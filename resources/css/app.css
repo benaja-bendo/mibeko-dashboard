@@ -9,9 +9,12 @@
 
 @theme {
     --font-sans:
-        'Instrument Sans', ui-sans-serif, system-ui, sans-serif,
+        'Inter', ui-sans-serif, system-ui, sans-serif,
         'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol',
         'Noto Color Emoji';
+
+    --font-serif:
+        'Crimson Text', 'Georgia', 'Times New Roman', serif;
 
     --radius-lg: var(--radius);
     --radius-md: calc(var(--radius) - 2px);
@@ -52,6 +55,7 @@
     --color-chart-5: var(--chart-5);
 
     --color-sidebar: var(--sidebar);
+    --color-sidebar-black: var(--sidebar-black);
     --color-sidebar-foreground: var(--sidebar-foreground);
     --color-sidebar-primary: var(--sidebar-primary);
     --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
@@ -59,6 +63,9 @@
     --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
     --color-sidebar-border: var(--sidebar-border);
     --color-sidebar-ring: var(--sidebar-ring);
+
+    --color-success: var(--success);
+    --color-success-foreground: var(--success-foreground);
 }
 
 :root {
@@ -78,6 +85,8 @@
     --accent-foreground: oklch(0.205 0 0);
     --destructive: oklch(0.577 0.245 27.325);
     --destructive-foreground: oklch(0.577 0.245 27.325);
+    --success: oklch(0.55 0.12 145);
+    --success-foreground: oklch(0.98 0 0);
     --border: oklch(0.922 0 0);
     --input: oklch(0.922 0 0);
     --ring: oklch(0.87 0 0);
@@ -88,6 +97,7 @@
     --chart-5: oklch(0.769 0.188 70.08);
     --radius: 0.625rem;
     --sidebar: oklch(0.985 0 0);
+    --sidebar-black: oklch(0.985 0 0);
     --sidebar-foreground: oklch(0.145 0 0);
     --sidebar-primary: oklch(0.205 0 0);
     --sidebar-primary-foreground: oklch(0.985 0 0);
@@ -98,38 +108,60 @@
 }
 
 .dark {
-    --background: oklch(0.145 0 0);
-    --foreground: oklch(0.985 0 0);
-    --card: oklch(0.145 0 0);
-    --card-foreground: oklch(0.985 0 0);
-    --popover: oklch(0.145 0 0);
-    --popover-foreground: oklch(0.985 0 0);
-    --primary: oklch(0.985 0 0);
-    --primary-foreground: oklch(0.205 0 0);
-    --secondary: oklch(0.269 0 0);
-    --secondary-foreground: oklch(0.985 0 0);
-    --muted: oklch(0.269 0 0);
-    --muted-foreground: oklch(0.708 0 0);
-    --accent: oklch(0.269 0 0);
-    --accent-foreground: oklch(0.985 0 0);
-    --destructive: oklch(0.396 0.141 25.723);
-    --destructive-foreground: oklch(0.637 0.237 25.331);
-    --border: oklch(0.269 0 0);
-    --input: oklch(0.269 0 0);
-    --ring: oklch(0.439 0 0);
-    --chart-1: oklch(0.488 0.243 264.376);
-    --chart-2: oklch(0.696 0.17 162.48);
-    --chart-3: oklch(0.769 0.188 70.08);
-    --chart-4: oklch(0.627 0.265 303.9);
-    --chart-5: oklch(0.645 0.246 16.439);
-    --sidebar: oklch(0.205 0 0);
-    --sidebar-foreground: oklch(0.985 0 0);
-    --sidebar-primary: oklch(0.985 0 0);
-    --sidebar-primary-foreground: oklch(0.985 0 0);
-    --sidebar-accent: oklch(0.269 0 0);
-    --sidebar-accent-foreground: oklch(0.985 0 0);
-    --sidebar-border: oklch(0.269 0 0);
-    --sidebar-ring: oklch(0.439 0 0);
+    /* Strict Adherence Palette */
+
+    /* Deep Dark Grey/Black Background */
+    --background: #121212;
+    --foreground: #FFFFFF;
+
+    /* Primary Dark Base (Sidebar/Panels): Slate-Grey #2C2F33 */
+    --card: #2C2F33;
+    --card-foreground: #FFFFFF;
+    --popover: #2C2F33;
+    --popover-foreground: #FFFFFF;
+
+    /* Accent/Alert Color: Vibrant Red #FF4500 */
+    --primary: #FF4500;
+    --primary-foreground: #FFFFFF;
+
+    /* Secondary Elements (Lighter Slate) */
+    --secondary: #3A3E44;
+    --secondary-foreground: #FFFFFF;
+    --muted: #202225;
+    --muted-foreground: #A0A0A0;
+    --accent: #35383D;
+    --accent-foreground: #FFFFFF;
+
+    /* Destructive same as Primary for Alert */
+    --destructive: #FF4500;
+    --destructive-foreground: #FFFFFF;
+
+    /* Borders */
+    --border: #3A3E44;
+    --input: #2C2F33;
+    --ring: #FF4500;
+
+    /* Chart colors - Vibrant Red Variations */
+    --chart-1: #FF4500;
+    --chart-2: #CC3700;
+    --chart-3: #992900;
+    --chart-4: #FF6B33;
+    --chart-5: #FF8552;
+
+    /* Sidebar - Slate-Grey #2C2F33 */
+    --sidebar: #2C2F33;
+    --sidebar-black: #000000;
+    --sidebar-foreground: #FFFFFF;
+    --sidebar-primary: #FF4500;
+    --sidebar-primary-foreground: #FFFFFF;
+    --sidebar-accent: #35383D;
+    --sidebar-accent-foreground: #FFFFFF;
+    --sidebar-border: #3A3E44;
+    --sidebar-ring: #FF4500;
+
+    /* Success: Bright Green #00C853 */
+    --success: #00C853;
+    --success-foreground: #FFFFFF;
 }
 
 @layer base {

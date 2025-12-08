@@ -1,4 +1,3 @@
-import { PlaceholderPattern } from '@/components/ui/placeholder-pattern';
 import AppLayout from '@/layouts/app-layout';
 import { dashboard } from '@/routes';
 import { type BreadcrumbItem } from '@/types';
@@ -105,7 +104,7 @@ export default function Dashboard({ stats }: Props) {
                     <CardHeader>
                         <div className="flex items-center justify-between">
                             <CardTitle>Documents récents</CardTitle>
-                            <Link href="/documents">
+                            <Link href="/curation">
                                 <Button variant="ghost" size="sm">
                                     Voir tout
                                     <ArrowRight className="ml-2 h-4 w-4" />
@@ -119,7 +118,7 @@ export default function Dashboard({ stats }: Props) {
                                 {stats.recent_documents.map((doc) => (
                                     <Link
                                         key={doc.id}
-                                        href={`/documents/${doc.id}`}
+                                        href={`/curation/${doc.id}`}
                                         className="block"
                                     >
                                         <div className="flex items-center justify-between rounded-lg border p-3 transition-colors hover:bg-muted/50">
@@ -145,7 +144,7 @@ export default function Dashboard({ stats }: Props) {
                                     <p className="mt-2 text-sm text-muted-foreground">
                                         Aucun document disponible
                                     </p>
-                                    <Link href="/documents">
+                                    <Link href="/curation">
                                         <Button variant="link" size="sm" className="mt-2">
                                             Commencer
                                         </Button>
@@ -163,7 +162,7 @@ export default function Dashboard({ stats }: Props) {
                             <CardTitle className="text-base">Actions rapides</CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-2">
-                            <Link href="/documents">
+                            <Link href="/curation">
                                 <Button variant="outline" className="w-full justify-start">
                                     <FileText className="mr-2 h-4 w-4" />
                                     Parcourir les documents

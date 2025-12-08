@@ -33,4 +33,9 @@ class Article extends Model
     {
         return $this->hasMany(ArticleVersion::class);
     }
+
+    public function latestVersion()
+    {
+        return $this->hasOne(ArticleVersion::class)->orderByDesc('created_at');
+    }
 }

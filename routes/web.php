@@ -12,7 +12,7 @@ Route::get('/', function () {
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('dashboard', function () {
-        return Inertia::render('dashboard', [
+        return Inertia::render('Dashboard', [
             'stats' => [
                 'total_documents' => \App\Models\LegalDocument::count(),
                 'total_articles' => \App\Models\Article::count(),
@@ -30,9 +30,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ]);
     })->name('dashboard');
 
-    // Legal Documents
-    Route::get('documents', [App\Http\Controllers\LegalDocumentController::class, 'index'])->name('documents.index');
-    Route::get('documents/{document}', [App\Http\Controllers\LegalDocumentController::class, 'show'])->name('documents.show');
+    // Curation Dashboard
+    Route::prefix('curation')->name('curation.')->group(function () {
+        Route::get('/', [App\Http\Controllers\CurationController::class, 'index'])->name('index');
+        Route::get('/{document}', [App\Http\Controllers\CurationController::class, 'show'])->name('show');
+        Route::post('/{document}/structure', [App\Http\Controllers\CurationController::class, 'updateStructure'])->name('structure.update');
+        Route::post('/{document}/content', [App\Http\Controllers\CurationController::class, 'updateContent'])->name('content.update');
+    });
 });
 
 require __DIR__.'/settings.php';

@@ -22,7 +22,13 @@ class LegalDocument extends Model
         'date_entree_vigueur',
         'source_url',
         'statut',
+        'curation_status',
     ];
+
+    const STATUS_DRAFT = 'draft';
+    const STATUS_REVIEW = 'review';
+    const STATUS_VALIDATED = 'validated';
+    const STATUS_PUBLISHED = 'published';
 
     protected function casts(): array
     {

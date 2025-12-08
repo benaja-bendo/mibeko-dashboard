@@ -3,7 +3,7 @@
 -- ===========================================================
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";   -- Pour les IDs uniques
 CREATE EXTENSION IF NOT EXISTS "ltree";       -- Pour la hiérarchie performante
--- CREATE EXTENSION IF NOT EXISTS "vector";      -- Pour la recherche sémantique (RAG)
+CREATE EXTENSION IF NOT EXISTS "vector";      -- Pour la recherche sémantique (RAG)
 CREATE EXTENSION IF NOT EXISTS "btree_gist";  -- Pour les contraintes de temps (exclude)
 
 -- NETTOYAGE (Attention: supprime les données existantes)

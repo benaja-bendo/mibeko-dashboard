@@ -1,0 +1,37 @@
+
+services:
+    minio:
+        image: 'minio/minio:latest'
+        ports:
+            - '${FORWARD_MINIO_PORT:-9000}:9000' # Port API
+            - '${FORWARD_MINIO_CONSOLE_PORT:-9001}:9001' # Port Console (UI)
+        environment:
+            MINIO_ROOT_USER: 'sail'
+            MINIO_ROOT_PASSWORD: 'password'
+        volumes:
+            - 'minio_data:/data'
+        command: minio server /data --console-address ":9001"
+        networks:
+            - sail
+
+    createbuckets:
+        image: minio/mc
+        depends_on:
+            - minio
+        entrypoint: >
+            /bin/sh -c "
+            /usr/bin/mc alias set myminio http://minio:9000 sail password;
+            /usr/bin/mc mb myminio/${AWS_BUCKET:-local};
+            /usr/bin/mc anonymous set download myminio/${AWS_BUCKET:-local};
+            exit 0;
+            "
+        networks:
+            - sail
+
+volumes:
+    minio_data:
+        driver: local
+
+networks:
+    sail:
+        driver: bridge
