@@ -1,10 +1,18 @@
 import { useState } from 'react';
-import { Head, useForm } from '@inertiajs/react';
+import { Head, useForm, router } from '@inertiajs/react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ScrollArea } from '@/components/ui/scroll-area'; // Assuming this exists or I'll use div overflow
-import { Separator } from '@/components/ui/separator';
-import { Textarea } from '@/components/ui/textarea'; // Need to check if this exists
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+} from '@/components/ui/dialog';
 import {
     ChevronRight,
     ChevronDown,
@@ -13,10 +21,19 @@ import {
     Save,
     CheckCircle,
     ArrowLeft,
-    Maximize2
+    Maximize2,
+    ExternalLink,
+    Pencil,
+    FileWarning,
+    Link2,
+    Link2Off,
+    Check,
+    Loader2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Link } from '@inertiajs/react';
+import { updateSourceUrl, updateContent } from '@/actions/App/Http/Controllers/CurationController';
+import { show as pdfProxy } from '@/actions/App/Http/Controllers/PdfProxyController';
 
 // --- Interfaces ---
 
@@ -50,7 +67,189 @@ interface Props {
     articles: Article[];
 }
 
-// --- Components ---
+// --- PDF Panel Component ---
+
+const PdfPanel = ({ document }: { document: Document }) => {
+    const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+    const [urlInput, setUrlInput] = useState(document.source_url || '');
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [recentlySaved, setRecentlySaved] = useState(false);
+
+    const handleSaveUrl = () => {
+        setIsSubmitting(true);
+        router.patch(
+            updateSourceUrl.url(document.id),
+            { source_url: urlInput || null },
+            {
+                preserveScroll: true,
+                onSuccess: () => {
+                    setIsEditDialogOpen(false);
+                    setRecentlySaved(true);
+                    setTimeout(() => setRecentlySaved(false), 2000);
+                },
+                onFinish: () => setIsSubmitting(false),
+            }
+        );
+    };
+
+    const handleOpenDialog = () => {
+        setUrlInput(document.source_url || '');
+        setIsEditDialogOpen(true);
+    };
+
+    const hasSource = !!document.source_url;
+
+    // Build proxy URL for inline PDF display (fixes Minio/S3 download issue)
+    const proxyUrl = hasSource 
+        ? pdfProxy.url({ query: { path: document.source_url! } })
+        : null;
+
+    return (
+        <div className="w-1/2 border-r flex flex-col bg-zinc-900">
+            {/* Toolbar */}
+            <div className="flex items-center justify-between h-12 px-4 border-b border-zinc-700 bg-zinc-800/80 backdrop-blur-sm">
+                <div className="flex items-center gap-3 min-w-0 flex-1">
+                    {hasSource ? (
+                        <>
+                            <div className="flex items-center gap-2">
+                                <div className="flex items-center justify-center w-7 h-7 rounded-md bg-emerald-500/20 text-emerald-400">
+                                    <Link2 className="h-4 w-4" />
+                                </div>
+                                <Badge variant="outline" className="bg-emerald-500/10 text-emerald-400 border-emerald-500/30 text-xs">
+                                    Source disponible
+                                </Badge>
+                            </div>
+                            <div
+                                className="flex items-center gap-1.5 text-xs text-zinc-400 truncate max-w-[200px]"
+                                title={document.source_url!}
+                            >
+                                <span className="truncate">{document.source_url}</span>
+                            </div>
+                        </>
+                    ) : (
+                        <div className="flex items-center gap-2">
+                            <div className="flex items-center justify-center w-7 h-7 rounded-md bg-amber-500/20 text-amber-400">
+                                <Link2Off className="h-4 w-4" />
+                            </div>
+                            <Badge variant="outline" className="bg-amber-500/10 text-amber-400 border-amber-500/30 text-xs">
+                                Aucune source
+                            </Badge>
+                        </div>
+                    )}
+                </div>
+                
+                <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+                    <DialogTrigger asChild>
+                        <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="h-8 gap-1.5 text-zinc-400 hover:text-zinc-100 hover:bg-zinc-700"
+                            onClick={handleOpenDialog}
+                        >
+                            {recentlySaved ? (
+                                <>
+                                    <Check className="h-3.5 w-3.5 text-emerald-400" />
+                                    <span className="text-emerald-400 text-xs">Enregistré</span>
+                                </>
+                            ) : (
+                                <>
+                                    <Pencil className="h-3.5 w-3.5" />
+                                    <span className="text-xs">{hasSource ? 'Modifier' : 'Ajouter'}</span>
+                                </>
+                            )}
+                        </Button>
+                    </DialogTrigger>
+                    <DialogContent className="sm:max-w-lg">
+                        <DialogHeader>
+                            <DialogTitle className="flex items-center gap-2">
+                                <Link2 className="h-5 w-5 text-primary" />
+                                {hasSource ? 'Modifier le chemin source' : 'Ajouter un chemin source'}
+                            </DialogTitle>
+                            <DialogDescription>
+                                Entrez le chemin du fichier PDF dans Minio (ex: dossier/fichier.pdf).
+                            </DialogDescription>
+                        </DialogHeader>
+                        <div className="grid gap-4 py-4">
+                            <div className="grid gap-2">
+                                <Label htmlFor="source_url">Chemin Minio</Label>
+                                <Input
+                                    id="source_url"
+                                    type="text"
+                                    placeholder="documents/2024/loi-123.pdf"
+                                    value={urlInput}
+                                    onChange={(e) => setUrlInput(e.target.value)}
+                                    className="font-mono text-sm"
+                                />
+                            </div>
+                            {document.source_url && urlInput !== document.source_url && (
+                                <div className="text-xs text-muted-foreground bg-muted/50 p-3 rounded-md">
+                                    <p className="font-medium mb-1">Chemin actuel:</p>
+                                    <p className="font-mono truncate">{document.source_url}</p>
+                                </div>
+                            )}
+                        </div>
+                        <DialogFooter>
+                            <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
+                                Annuler
+                            </Button>
+                            <Button onClick={handleSaveUrl} disabled={isSubmitting}>
+                                {isSubmitting ? (
+                                    <>
+                                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                        Enregistrement...
+                                    </>
+                                ) : (
+                                    <>
+                                        <Save className="mr-2 h-4 w-4" />
+                                        Enregistrer
+                                    </>
+                                )}
+                            </Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
+            </div>
+
+            {/* PDF Content */}
+            <div className="flex-1 relative">
+                {hasSource ? (
+                    <iframe
+                        src={proxyUrl!}
+                        className="h-full w-full"
+                        title="PDF Source"
+                    />
+                ) : (
+                    <div className="flex h-full items-center justify-center">
+                        <div className="text-center max-w-xs">
+                            <div className="flex justify-center mb-4">
+                                <div className="w-16 h-16 rounded-2xl bg-zinc-800 flex items-center justify-center">
+                                    <FileWarning className="h-8 w-8 text-zinc-600" />
+                                </div>
+                            </div>
+                            <h3 className="text-lg font-medium text-zinc-300 mb-2">
+                                Aucun PDF source
+                            </h3>
+                            <p className="text-sm text-zinc-500 mb-4">
+                                Ajoutez le chemin du document PDF original (Minio) pour le visualiser ici.
+                            </p>
+                            <Button 
+                                variant="outline" 
+                                size="sm"
+                                onClick={handleOpenDialog}
+                                className="bg-zinc-800 border-zinc-700 hover:bg-zinc-700 text-zinc-300"
+                            >
+                                <Link2 className="mr-2 h-4 w-4" />
+                                Ajouter une source
+                            </Button>
+                        </div>
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+};
+
+// --- Tree Node Component ---
 
 const TreeNode = ({
     node,
@@ -115,14 +314,6 @@ const TreeNode = ({
                             </span>
                         </div>
                     ))}
-                    {/* Recursive children would go here if we had a nested structure,
-                        but for now we are assuming flat structure from backend needs processing
-                        or we just render flat list if backend sends it sorted by path.
-                        
-                        Wait, the backend sends a flat list of nodes.
-                        I need to reconstruct the tree or just render them in order if they are sorted by tree_path.
-                        If they are sorted by tree_path, I can just render them linearly and use indentation based on tree_path depth.
-                    */}
                 </div>
             )}
         </div>
@@ -151,7 +342,7 @@ export default function Workstation({ document, structure, articles }: Props) {
 
     const handleSave = () => {
         if (!selectedArticle) return;
-        post(route('curation.content.update', { document: document.id }), {
+        post(updateContent.url(document.id), {
             preserveScroll: true,
             onSuccess: () => {
                 // Optimistically update the local article list?
@@ -190,19 +381,7 @@ export default function Workstation({ document, structure, articles }: Props) {
             {/* Main Split View */}
             <div className="flex flex-1 overflow-hidden">
                 {/* Left: PDF Viewer */}
-                <div className="w-1/2 border-r bg-gray-100 relative">
-                    {document.source_url ? (
-                        <iframe
-                            src={document.source_url}
-                            className="h-full w-full"
-                            title="PDF Source"
-                        />
-                    ) : (
-                        <div className="flex h-full items-center justify-center text-muted-foreground">
-                            Aucun PDF source disponible
-                        </div>
-                    )}
-                </div>
+                <PdfPanel document={document} />
 
                 {/* Right: Editor & Tree */}
                 <div className="flex w-1/2 flex-col">
@@ -289,3 +468,4 @@ export default function Workstation({ document, structure, articles }: Props) {
         </div>
     );
 }
+

@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use App\Models\Article;
 use App\Models\LegalDocument;
-use App\Models\StructureNode;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
@@ -74,5 +73,18 @@ class CurationController extends Controller
     {
         // Logic to update article content
         return back()->with('success', 'Content updated');
+    }
+
+    public function updateSourceUrl(Request $request, LegalDocument $document)
+    {
+        $validated = $request->validate([
+            'source_url' => ['nullable', 'string', 'max:2048'],
+        ]);
+
+        $document->update([
+            'source_url' => $validated['source_url'],
+        ]);
+
+        return back()->with('success', 'URL source mise à jour');
     }
 }

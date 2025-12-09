@@ -20,7 +20,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
                     ->latest('date_publication')
                     ->take(5)
                     ->get()
-                    ->map(fn($doc) => [
+                    ->map(fn ($doc) => [
                         'id' => $doc->id,
                         'titre' => $doc->titre_officiel,
                         'type' => $doc->type->nom,
@@ -36,7 +36,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/{document}', [App\Http\Controllers\CurationController::class, 'show'])->name('show');
         Route::post('/{document}/structure', [App\Http\Controllers\CurationController::class, 'updateStructure'])->name('structure.update');
         Route::post('/{document}/content', [App\Http\Controllers\CurationController::class, 'updateContent'])->name('content.update');
+        Route::patch('/{document}/source-url', [App\Http\Controllers\CurationController::class, 'updateSourceUrl'])->name('source-url.update');
     });
+
+    // PDF Proxy for inline display (fixes Minio/S3 download issue)
+    Route::get('/pdf-proxy', [App\Http\Controllers\PdfProxyController::class, 'show'])->name('pdf.proxy');
 });
 
 require __DIR__.'/settings.php';
