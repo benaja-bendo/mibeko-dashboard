@@ -15,6 +15,7 @@ class PdfProxyController extends Controller
     public function show(Request $request): StreamedResponse
     {
         $path = $request->query('path');
+        $download = filter_var($request->query('download'), FILTER_VALIDATE_BOOLEAN);
 
         if (! $path) {
             abort(400, 'Missing path parameter');
@@ -26,12 +27,16 @@ class PdfProxyController extends Controller
             abort(404, 'File not found in storage');
         }
 
+        $isPdf = str_ends_with(strtolower($path), '.pdf');
+        $contentType = $isPdf ? 'application/pdf' : 'application/octet-stream';
+        $filename = basename($path);
         $headers = [
-            'Content-Type' => $disk->mimeType($path) ?? 'application/pdf',
-            'Content-Disposition' => 'inline; filename="'.basename($path).'"',
+            'Content-Type' => $contentType,
+            'Content-Disposition' => $download ? ('attachment; filename="'.$filename.'"') : 'inline',
             'Content-Length' => $disk->size($path),
             'Cache-Control' => 'public, max-age=3600',
             'X-Frame-Options' => 'SAMEORIGIN',
+            'Accept-Ranges' => 'bytes',
         ];
 
         return response()->stream(

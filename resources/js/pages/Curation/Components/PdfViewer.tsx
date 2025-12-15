@@ -13,13 +13,17 @@ import {
     PanelRightClose,
     Link2,
     FileWarning,
-    Maximize2
+    Maximize2,
+    Download
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-// Note: You need to ensure these actions are correctly imported or passed as props if you want to decouple completely
-// For now, I'll import them assuming the path is correct as per existing Workstation.tsx
 import { updateSourceUrl } from '@/actions/App/Http/Controllers/CurationController';
-import { show as pdfProxy } from '@/actions/App/Http/Controllers/PdfProxyController';
+
+// Helper function to build the PDF proxy URL
+const getPdfProxyUrl = (path: string | null): string | null => {
+    if (!path) return null;
+    return `/pdf-proxy?path=${encodeURIComponent(path)}`;
+};
 
 interface Document {
     id: string;
@@ -77,7 +81,16 @@ export default function PdfViewer({ document, collapsed, onToggle }: PdfViewerPr
                     </Button>
                     {document.source_url && (
                         <a 
-                            href={pdfProxy.url({ query: { path: document.source_url } })} 
+                            href={`${getPdfProxyUrl(document.source_url)}&download=1`} 
+                            className="inline-flex items-center justify-center h-8 w-8 rounded-md text-zinc-400 hover:text-zinc-100 hover:bg-zinc-700"
+                            title="Télécharger le PDF"
+                        >
+                            <Download className="h-4 w-4" />
+                        </a>
+                    )}
+                    {document.source_url && (
+                        <a 
+                            href={getPdfProxyUrl(document.source_url) || '#'} 
                             target="_blank" 
                             rel="noopener noreferrer"
                             className="inline-flex items-center justify-center h-8 w-8 rounded-md text-zinc-400 hover:text-zinc-100 hover:bg-zinc-700"
@@ -92,7 +105,7 @@ export default function PdfViewer({ document, collapsed, onToggle }: PdfViewerPr
             <div className="flex-1 relative bg-black/50 overflow-hidden">
                 {document.source_url ? (
                     <iframe
-                        src={pdfProxy.url({ query: { path: document.source_url } })}
+                        src={getPdfProxyUrl(document.source_url) || undefined}
                         className="h-full w-full border-0"
                         title="PDF Viewer"
                     />
