@@ -20,18 +20,37 @@ services:
             - minio
         entrypoint: >
             /bin/sh -c "
-            /usr/bin/mc alias set myminio http://minio:9000 sail password;
-            /usr/bin/mc mb myminio/${AWS_BUCKET:-local};
-            /usr/bin/mc anonymous set download myminio/${AWS_BUCKET:-local};
+            set -e;
+            until /usr/bin/mc alias set myminio http://minio:9000 sail password; do
+              echo 'MinIO non prêt, nouvelle tentative dans 2s...';
+              sleep 2;
+            done;
+            /usr/bin/mc mb -p myminio/${AWS_BUCKET:-local} || true;
+            /usr/bin/mc anonymous set download myminio/${AWS_BUCKET:-local} || true;
             exit 0;
             "
         networks:
             - sail
 
+    postgres:
+        #image: 'postgres:16-alpine'
+        image: 'pgvector/pgvector:pg16'
+        container_name: 'postgres-mibeko'
+        ports:
+            - '${FORWARD_POSTGRES_PORT:-5432}:5432'
+        environment:
+            POSTGRES_USER: '${DB_USERNAME:-sail}'
+            POSTGRES_PASSWORD: '${DB_PASSWORD:-password}'
+            POSTGRES_DB: '${DB_DATABASE:-mibeko}'
+        volumes:
+            - 'postgres_data:/var/lib/postgresql/data'
+        networks:
+            - sail
 volumes:
     minio_data:
         driver: local
-
+    postgres_data:
+        driver: local
 networks:
     sail:
         driver: bridge
