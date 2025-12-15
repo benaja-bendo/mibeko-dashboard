@@ -2,15 +2,25 @@ import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Separator } from '@/components/ui/separator';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
 import {
     Save,
-    CheckCircle,
     History,
     ChevronRight,
     FileText,
     AlertCircle,
     PanelRight,
-    PanelRightClose
+    PanelRightClose,
+    Plus,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import StatusBadge from './StatusBadge';
@@ -31,10 +41,17 @@ interface Article {
     status: 'pending' | 'in_progress' | 'validated';
 }
 
+interface NewVersionData {
+    content: string;
+    reason?: string;
+    validFrom?: string;
+}
+
 interface ContentEditorProps {
     article: Article | null;
     breadcrumbs: { title: string; type: string }[];
     onSave: (id: string, content: string) => void;
+    onCreateNewVersion?: (id: string, data: NewVersionData) => void;
     onUpdateStatus: (id: string, status: string) => void;
     currentDocumentId: string;
     isPdfVisible: boolean;
@@ -44,7 +61,8 @@ interface ContentEditorProps {
 export default function ContentEditor({ 
     article, 
     breadcrumbs, 
-    onSave, 
+    onSave,
+    onCreateNewVersion,
     onUpdateStatus,
     currentDocumentId,
     isPdfVisible,
@@ -52,6 +70,11 @@ export default function ContentEditor({
 }: ContentEditorProps) {
     const [content, setContent] = useState('');
     const [isDirty, setIsDirty] = useState(false);
+    const [newVersionDialogOpen, setNewVersionDialogOpen] = useState(false);
+    const [newVersionData, setNewVersionData] = useState({
+        reason: '',
+        validFrom: new Date().toISOString().split('T')[0],
+    });
     
     // Reset state when article changes
     useEffect(() => {
@@ -69,6 +92,26 @@ export default function ContentEditor({
     const handleSave = () => {
         if (article) {
             onSave(article.id, content);
+            setIsDirty(false);
+        }
+    };
+
+    const handleOpenNewVersionDialog = () => {
+        setNewVersionData({
+            reason: '',
+            validFrom: new Date().toISOString().split('T')[0],
+        });
+        setNewVersionDialogOpen(true);
+    };
+
+    const handleCreateNewVersion = () => {
+        if (article && onCreateNewVersion) {
+            onCreateNewVersion(article.id, {
+                content,
+                reason: newVersionData.reason,
+                validFrom: newVersionData.validFrom,
+            });
+            setNewVersionDialogOpen(false);
             setIsDirty(false);
         }
     };
@@ -165,19 +208,53 @@ export default function ContentEditor({
                     </div>
                     
                     <div className="flex items-center gap-2">
-                         <Button 
-                            size="sm" 
-                            variant="default"
-                            onClick={handleSave}
-                            disabled={!isDirty}
-                            className={cn(
-                                "transition-all",
-                                isDirty ? "bg-blue-600 hover:bg-blue-700 shadow-md shadow-blue-900/20" : "bg-zinc-200 text-zinc-400 hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-500"
-                            )}
-                        >
-                            <Save className="h-4 w-4 mr-2" />
-                            Enregistrer
-                        </Button>
+                        {/* Save current version button */}
+                        <TooltipProvider>
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <Button 
+                                        size="sm" 
+                                        variant="outline"
+                                        onClick={handleSave}
+                                        disabled={!isDirty}
+                                        className={cn(
+                                            "transition-all",
+                                            isDirty ? "border-blue-300 text-blue-600 hover:bg-blue-50 dark:border-blue-700 dark:text-blue-400 dark:hover:bg-blue-900/20" : ""
+                                        )}
+                                    >
+                                        <Save className="h-4 w-4 mr-2" />
+                                        Enregistrer
+                                    </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                    <p>Modifier la version actuelle sans créer d'historique</p>
+                                </TooltipContent>
+                            </Tooltip>
+                        </TooltipProvider>
+
+                        {/* New version button */}
+                        <TooltipProvider>
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <Button 
+                                        size="sm" 
+                                        variant="default"
+                                        onClick={handleOpenNewVersionDialog}
+                                        disabled={!isDirty}
+                                        className={cn(
+                                            "transition-all",
+                                            isDirty ? "bg-emerald-600 hover:bg-emerald-700 shadow-md shadow-emerald-900/20" : "bg-zinc-200 text-zinc-400 hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-500"
+                                        )}
+                                    >
+                                        <Plus className="h-4 w-4 mr-2" />
+                                        Nouvelle version
+                                    </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                    <p>Créer une nouvelle version avec historique complet</p>
+                                </TooltipContent>
+                            </Tooltip>
+                        </TooltipProvider>
                     </div>
                 </div>
             </div>
@@ -235,6 +312,53 @@ export default function ContentEditor({
                     </div>
                 </TabsContent>
             </Tabs>
+
+            {/* New Version Dialog */}
+            <Dialog open={newVersionDialogOpen} onOpenChange={setNewVersionDialogOpen}>
+                <DialogContent className="sm:max-w-md">
+                    <DialogHeader>
+                        <DialogTitle>Créer une nouvelle version</DialogTitle>
+                        <DialogDescription>
+                            Cette action créera une nouvelle version de l'article avec un historique complet.
+                            L'ancienne version sera conservée pour référence.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="validFrom">Date d'entrée en vigueur</Label>
+                            <Input
+                                id="validFrom"
+                                type="date"
+                                value={newVersionData.validFrom}
+                                onChange={(e) => setNewVersionData(prev => ({ ...prev, validFrom: e.target.value }))}
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="reason">Motif de la modification (optionnel)</Label>
+                            <Textarea
+                                id="reason"
+                                value={newVersionData.reason}
+                                onChange={(e) => setNewVersionData(prev => ({ ...prev, reason: e.target.value }))}
+                                placeholder="Ex: Mise à jour suite à la loi n°..."
+                                className="min-h-[80px]"
+                            />
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setNewVersionDialogOpen(false)}>
+                            Annuler
+                        </Button>
+                        <Button 
+                            onClick={handleCreateNewVersion}
+                            className="bg-emerald-600 hover:bg-emerald-700"
+                        >
+                            <Plus className="h-4 w-4 mr-2" />
+                            Créer la version
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }
+

@@ -23,6 +23,7 @@ class ArticleFactory extends Factory
             'parent_node_id' => StructureNode::factory(),
             'numero_article' => (string) $this->faker->numberBetween(1, 100),
             'ordre_affichage' => $this->faker->numberBetween(1, 1000),
+            'validation_status' => $this->faker->randomElement(['pending', 'in_progress', 'validated']),
         ];
     }
 }

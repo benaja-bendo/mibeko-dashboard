@@ -13,19 +13,10 @@ class ArticleVersion extends Model
 
     protected $fillable = [
         'article_id',
-        'valid_from',
-        'valid_until',
+        'validity_period',
         'contenu_texte',
         'modifie_par_document_id',
     ];
-
-    protected function casts(): array
-    {
-        return [
-            'valid_from' => 'date',
-            'valid_until' => 'date',
-        ];
-    }
 
     public function article(): BelongsTo
     {
@@ -35,5 +26,16 @@ class ArticleVersion extends Model
     public function modifiedByDocument(): BelongsTo
     {
         return $this->belongsTo(LegalDocument::class, 'modifie_par_document_id');
+    }
+
+    /**
+     * Helper to create a validity_period daterange string for PostgreSQL.
+     * Format: [start_date, end_date) - inclusive start, exclusive end
+     */
+    public static function makeValidityPeriod(string $startDate, ?string $endDate = null): string
+    {
+        $end = $endDate ?? 'infinity';
+
+        return "[{$startDate}, {$end})";
     }
 }

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Article;
+use App\Models\ArticleVersion;
 use App\Models\LegalDocument;
 use App\Models\StructureNode;
 use Illuminate\Http\Request;
@@ -168,8 +169,7 @@ class CurationController extends Controller
         if (! empty($validated['content'])) {
             $article->versions()->create([
                 'contenu_texte' => $validated['content'],
-                'valid_from' => now(),
-                // 'modifie_par_document_id' => $document->id // optional
+                'validity_period' => ArticleVersion::makeValidityPeriod(now()->toDateString()),
             ]);
         }
 
@@ -185,18 +185,66 @@ class CurationController extends Controller
             'content' => 'nullable|string',
             'validation_status' => 'string|in:pending,in_progress,validated',
             'parent_node_id' => 'nullable|exists:structure_nodes,id',
+            'update_in_place' => 'boolean',
+            'create_new_version' => 'boolean',
+            'valid_from' => 'date',
+            'modification_reason' => 'nullable|string',
         ]);
 
         $article->update($request->only(['numero_article', 'validation_status', 'parent_node_id']));
 
         if ($request->has('content')) {
-            // Create new version if content changed
             $currentContent = $article->latestVersion?->contenu_texte;
+
+            // Only process if content has changed
             if ($currentContent !== $request->content) {
-                $article->versions()->create([
-                    'contenu_texte' => $request->content,
-                    'valid_from' => now(),
-                ]);
+                if ($request->boolean('update_in_place')) {
+                    // Update the current version in-place (no history)
+                    if ($article->latestVersion) {
+                        $article->latestVersion->update([
+                            'contenu_texte' => $request->content,
+                        ]);
+                    } else {
+                        // No existing version, create one
+                        $article->versions()->create([
+                            'contenu_texte' => $request->content,
+                            'validity_period' => ArticleVersion::makeValidityPeriod(now()->toDateString()),
+                        ]);
+                    }
+                } elseif ($request->boolean('create_new_version')) {
+                    // Create a new version with full history tracking
+                    $validFrom = $request->input('valid_from', now()->toDateString());
+
+                    // Close the previous version's validity period
+                    if ($article->latestVersion) {
+                        DB::statement(
+                            'UPDATE article_versions SET validity_period = daterange(lower(validity_period), ?) WHERE id = ?',
+                            [$validFrom, $article->latestVersion->id]
+                        );
+                    }
+
+                    // Create new version with open-ended validity period
+                    $article->versions()->create([
+                        'contenu_texte' => $request->content,
+                        'validity_period' => ArticleVersion::makeValidityPeriod($validFrom),
+                        // TODO: Could also store modification_reason in a separate column if needed
+                    ]);
+                } else {
+                    // Default behavior: create new version (for backwards compatibility)
+                    $today = now()->toDateString();
+
+                    if ($article->latestVersion) {
+                        DB::statement(
+                            'UPDATE article_versions SET validity_period = daterange(lower(validity_period), ?) WHERE id = ?',
+                            [$today, $article->latestVersion->id]
+                        );
+                    }
+
+                    $article->versions()->create([
+                        'contenu_texte' => $request->content,
+                        'validity_period' => ArticleVersion::makeValidityPeriod($today),
+                    ]);
+                }
             }
         }
 

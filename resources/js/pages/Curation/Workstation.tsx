@@ -1,8 +1,13 @@
-import { useState, useEffect, useMemo } from 'react';
-import { Head, useForm, router } from '@inertiajs/react';
+import {
+    destroyArticle,
+    destroyNode,
+    reorder,
+    storeArticle,
+    storeNode,
+    updateArticle,
+    updateNode,
+} from '@/actions/App/Http/Controllers/CurationController';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import {
     Dialog,
     DialogContent,
@@ -10,18 +15,26 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import {
     Select,
     SelectContent,
     SelectItem,
     SelectTrigger,
     SelectValue,
-} from "@/components/ui/select";
-import { storeNode, updateNode, destroyNode, storeArticle, updateArticle, destroyArticle, reorder } from '@/actions/App/Http/Controllers/CurationController';
-import WorkstationLayout from './Components/WorkstationLayout';
-import { StructureNode, Article, TreeActions } from './Components/StructureTree';
-import { arrayMove } from '@dnd-kit/sortable';
+} from '@/components/ui/select';
 import { DragEndEvent } from '@dnd-kit/core';
+import { arrayMove } from '@dnd-kit/sortable';
+import { Head, router, useForm } from '@inertiajs/react';
+import { useEffect, useMemo, useState } from 'react';
+import { toast } from 'sonner';
+import {
+    Article,
+    StructureNode,
+    TreeActions,
+} from './Components/StructureTree';
+import WorkstationLayout from './Components/WorkstationLayout';
 
 interface Document {
     id: string;
@@ -36,10 +49,16 @@ interface Props {
     articles: Article[];
 }
 
-export default function Workstation({ document, structure: initialStructure, articles: initialArticles }: Props) {
+export default function Workstation({
+    document,
+    structure: initialStructure,
+    articles: initialArticles,
+}: Props) {
     const [structure, setStructure] = useState<StructureNode[]>([]);
     const [articles, setArticles] = useState<Article[]>(initialArticles);
-    const [selectedArticleId, setSelectedArticleId] = useState<string | null>(null);
+    const [selectedArticleId, setSelectedArticleId] = useState<string | null>(
+        null,
+    );
     const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
 
     // Initialize structure
@@ -52,7 +71,7 @@ export default function Workstation({ document, structure: initialStructure, art
     const treeStructure = useMemo(() => {
         const nodeMap = new Map<string, StructureNode>();
         // Create copies of nodes to avoid mutating state directly and add children array
-        structure.forEach(node => {
+        structure.forEach((node) => {
             nodeMap.set(node.id, { ...node, children: [] });
         });
 
@@ -62,7 +81,7 @@ export default function Workstation({ document, structure: initialStructure, art
         // though map lookup handles order independence.
         // We rely on tree_path length or hierarchy.
 
-        structure.forEach(originalNode => {
+        structure.forEach((originalNode) => {
             const node = nodeMap.get(originalNode.id)!;
             const pathParts = (node.tree_path || '').split('.');
 
@@ -100,7 +119,7 @@ export default function Workstation({ document, structure: initialStructure, art
 
         // BETTER APPROACH: Index by tree_path
         const pathMap = new Map<string, StructureNode>();
-        structure.forEach(node => {
+        structure.forEach((node) => {
             const n = { ...node, children: [] };
             nodeMap.set(node.id, n);
             pathMap.set(node.tree_path, n);
@@ -108,7 +127,7 @@ export default function Workstation({ document, structure: initialStructure, art
 
         const treeRoots: StructureNode[] = [];
 
-        structure.forEach(node => {
+        structure.forEach((node) => {
             const current = nodeMap.get(node.id)!;
             const parts = node.tree_path.split('.');
 
@@ -134,10 +153,19 @@ export default function Workstation({ document, structure: initialStructure, art
         return treeRoots.sort((a, b) => a.order - b.order);
     }, [structure]);
 
-
     // --- Dialog States ---
-    const [nodeDialog, setNodeDialog] = useState<{ open: boolean, mode: 'add'|'edit', parentId?: string, node?: StructureNode }>({ open: false, mode: 'add' });
-    const [articleDialog, setArticleDialog] = useState<{ open: boolean, mode: 'add'|'edit', parentId?: string, article?: Article }>({ open: false, mode: 'add' });
+    const [nodeDialog, setNodeDialog] = useState<{
+        open: boolean;
+        mode: 'add' | 'edit';
+        parentId?: string;
+        node?: StructureNode;
+    }>({ open: false, mode: 'add' });
+    const [articleDialog, setArticleDialog] = useState<{
+        open: boolean;
+        mode: 'add' | 'edit';
+        parentId?: string;
+        article?: Article;
+    }>({ open: false, mode: 'add' });
 
     // Forms
     const nodeForm = useForm({ type_unite: 'Titre', numero: '', titre: '' });
@@ -146,120 +174,199 @@ export default function Workstation({ document, structure: initialStructure, art
     // Handlers
     const handleNodeSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        const url = nodeDialog.mode === 'add'
-            ? storeNode.url(document.id)
-            : updateNode.url(document.id, nodeDialog.node?.id!);
-
-        const method = nodeDialog.mode === 'add' ? 'post' : 'put';
-
+        
         // Calculate path for new node
         let path = '';
         if (nodeDialog.mode === 'add') {
-             if (nodeDialog.parentId) {
-                 const parent = structure.find(n => n.id === nodeDialog.parentId);
-                 // We use timestamp as ID segment in path for uniqueness
-                 path = parent ? `${parent.tree_path}.${Date.now()}` : `root.${Date.now()}`;
-             } else {
-                 path = `root.${Date.now()}`;
-             }
+            if (nodeDialog.parentId) {
+                const parent = structure.find(
+                    (n) => n.id === nodeDialog.parentId,
+                );
+                // We use timestamp as ID segment in path for uniqueness
+                path = parent
+                    ? `${parent.tree_path}.${Date.now()}`
+                    : `root.${Date.now()}`;
+            } else {
+                path = `root.${Date.now()}`;
+            }
         }
 
         const data = {
             ...nodeForm.data,
-            ...(nodeDialog.mode === 'add' ? { tree_path: path } : {})
+            ...(nodeDialog.mode === 'add' ? { tree_path: path } : {}),
         };
 
-        nodeForm.submit(method, url, {
-            data,
-            onSuccess: () => {
-                setNodeDialog({ ...nodeDialog, open: false });
-                nodeForm.reset();
-            }
-        });
+        const onSuccess = () => {
+            setNodeDialog({ ...nodeDialog, open: false });
+            nodeForm.reset();
+            toast.success(nodeDialog.mode === 'add' ? 'Élément ajouté' : 'Élément mis à jour');
+        };
+
+        const onError = () => {
+            toast.error('Une erreur est survenue');
+        };
+
+        if (nodeDialog.mode === 'add') {
+            router.post(storeNode.url(document.id), data, { onSuccess, onError });
+        } else {
+            router.put(
+                updateNode['/curation/{document}/nodes/{node}'].url({ document: document.id, node: nodeDialog.node?.id! }),
+                data,
+                { onSuccess, onError }
+            );
+        }
     };
 
     const handleArticleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        const url = articleDialog.mode === 'add'
-            ? storeArticle.url(document.id)
-            : updateArticle.url(document.id, articleDialog.article?.id!);
+        
+        const data = {
+            ...articleForm.data,
+            parent_node_id:
+                articleDialog.parentId || articleDialog.article?.parent_id,
+        };
 
-        const method = articleDialog.mode === 'add' ? 'post' : 'put';
+        const onSuccess = () => {
+            setArticleDialog({ ...articleDialog, open: false });
+            articleForm.reset();
+            toast.success(articleDialog.mode === 'add' ? 'Article ajouté' : 'Article mis à jour');
+        };
 
-        articleForm.submit(method, url, {
-            data: {
-                ...articleForm.data,
-                parent_node_id: articleDialog.parentId || articleDialog.article?.parent_id
-            },
-            onSuccess: () => {
-                setArticleDialog({ ...articleDialog, open: false });
-                articleForm.reset();
-            }
-        });
-    }
+        const onError = () => {
+            toast.error('Une erreur est survenue');
+        };
+
+        if (articleDialog.mode === 'add') {
+            router.post(storeArticle.url(document.id), data, { onSuccess, onError });
+        } else {
+            router.put(
+                updateArticle.url({ document: document.id, article: articleDialog.article?.id! }),
+                data,
+                { onSuccess, onError }
+            );
+        }
+    };
 
     const handleSaveContent = (id: string, content: string) => {
-        router.visit(updateArticle.url(document.id, id), {
-            method: 'put',
-            data: { content },
+        // Update current version in-place (no new version created)
+        router.put(updateArticle.url({ document: document.id, article: id }), { 
+            content,
+            update_in_place: true 
+        }, {
             preserveScroll: true,
+            onSuccess: () => toast.success('Version actuelle modifiée'),
+            onError: () => toast.error('Erreur lors de l\'enregistrement'),
         });
         // Optimistic update
-        setArticles(prev => prev.map(a => a.id === id ? { ...a, content } : a));
+        setArticles((prev) =>
+            prev.map((a) => (a.id === id ? { ...a, content } : a)),
+        );
+    };
+
+    const handleCreateNewVersion = (id: string, data: { content: string; reason?: string; validFrom?: string }) => {
+        // Create a new version with full history tracking
+        router.put(updateArticle.url({ document: document.id, article: id }), {
+            content: data.content,
+            create_new_version: true,
+            valid_from: data.validFrom,
+            modification_reason: data.reason,
+        }, {
+            preserveScroll: true,
+            onSuccess: () => toast.success('Nouvelle version créée'),
+            onError: () => toast.error('Erreur lors de la création de la version'),
+        });
+        // Optimistic update
+        setArticles((prev) =>
+            prev.map((a) => (a.id === id ? { ...a, content: data.content } : a)),
+        );
     };
 
     const handleUpdateTitle = (title: string) => {
-        router.patch(`/curation/${document.id}`, { title }, {
-            preserveScroll: true,
-            preserveState: true,
-        });
+        router.patch(
+            `/curation/${document.id}`,
+            { title },
+            {
+                preserveScroll: true,
+                preserveState: true,
+                onSuccess: () => toast.success('Titre mis à jour'),
+                onError: () => toast.error('Erreur lors de la mise à jour du titre'),
+            },
+        );
     };
 
     const actions: TreeActions = {
         onEditNode: (node) => {
-             nodeForm.setData({ type_unite: node.type_unite, numero: node.numero || '', titre: node.titre || '' });
-             setNodeDialog({ open: true, mode: 'edit', node });
+            nodeForm.setData({
+                type_unite: node.type_unite,
+                numero: node.numero || '',
+                titre: node.titre || '',
+            });
+            setNodeDialog({ open: true, mode: 'edit', node });
         },
         onDeleteNode: (id) => {
-             if(confirm('Supprimer cet élément ?')) {
-                 router.delete(destroyNode.url(document.id, id));
-             }
+            if (confirm('Supprimer cet élément ?')) {
+                router.delete(destroyNode.url({ document: document.id, node: id }), {
+                    onSuccess: () => toast.success('Élément supprimé'),
+                    onError: () => toast.error('Erreur lors de la suppression'),
+                });
+            }
         },
         onAddNode: (parentId) => {
-             nodeForm.reset();
-             setNodeDialog({ open: true, mode: 'add', parentId });
+            nodeForm.reset();
+            setNodeDialog({ open: true, mode: 'add', parentId });
         },
         onAddArticle: (parentId) => {
             articleForm.reset();
-             setArticleDialog({ open: true, mode: 'add', parentId });
+            setArticleDialog({ open: true, mode: 'add', parentId });
         },
         onEditArticle: (article) => {
-             articleForm.setData({ numero_article: article.numero, content: article.content });
-             setArticleDialog({ open: true, mode: 'edit', article });
+            articleForm.setData({
+                numero_article: article.numero,
+                content: article.content,
+            });
+            setArticleDialog({ open: true, mode: 'edit', article });
         },
         onDeleteArticle: (id) => {
-            if(confirm('Supprimer cet article ?')) {
-                 router.delete(destroyArticle.url(document.id, id));
-             }
+            if (confirm('Supprimer cet article ?')) {
+                router.delete(destroyArticle.url({ document: document.id, article: id }), {
+                    onSuccess: () => toast.success('Article supprimé'),
+                    onError: () => toast.error('Erreur lors de la suppression'),
+                });
+            }
         },
         onUpdateStatus: (id, type, status) => {
-            const url = type === 'node'
-                ? updateNode.url(document.id, id)
-                : updateArticle.url(document.id, id);
+            const url =
+                type === 'node'
+                    ? updateNode['/curation/{document}/nodes/{node}'].url({ document: document.id, node: id })
+                    : updateArticle.url({ document: document.id, article: id });
 
-            router.visit(url, {
-                 method: 'put',
-                 data: { validation_status: status },
-                 preserveScroll: true,
-                 preserveState: true,
+            const statusLabel = {
+                pending: 'En attente',
+                in_progress: 'En cours',
+                validated: 'Validé',
+            }[status] || status;
+
+            router.put(url, { validation_status: status }, {
+                preserveScroll: true,
+                preserveState: true,
+                onSuccess: () => toast.success(`Statut changé : ${statusLabel}`),
+                onError: () => toast.error('Erreur lors du changement de statut'),
             });
 
             if (type === 'node') {
-                setStructure(prev => prev.map(n => n.id === id ? { ...n, status: status as any } : n));
+                setStructure((prev) =>
+                    prev.map((n) =>
+                        n.id === id ? { ...n, status: status as any } : n,
+                    ),
+                );
             } else {
-                 setArticles(prev => prev.map(a => a.id === id ? { ...a, status: status as any } : a));
+                setArticles((prev) =>
+                    prev.map((a) =>
+                        a.id === id ? { ...a, status: status as any } : a,
+                    ),
+                );
             }
-        }
+        },
     };
 
     // DnD Handler
@@ -271,7 +378,7 @@ export default function Workstation({ document, structure: initialStructure, art
         const overType = over.data.current?.type;
 
         if (activeType === 'article' && overType === 'article') {
-             setArticles((items) => {
+            setArticles((items) => {
                 const oldIndex = items.findIndex((i) => i.id === active.id);
                 const newIndex = items.findIndex((i) => i.id === over.id);
                 const newOrder = arrayMove(items, oldIndex, newIndex);
@@ -282,11 +389,22 @@ export default function Workstation({ document, structure: initialStructure, art
                     type: 'article',
                     order: index,
                     // keep parent id or update if dropped successfully across lists (not implemented fully here yet)
-                    parent_id: item.parent_id
+                    parent_id: item.parent_id,
                 }));
 
-                router.post(reorder.url(document.id), { items: updates }, { preserveScroll: true });
-                return newOrder.map((item, index) => ({ ...item, order: index }));
+                router.post(
+                    reorder.url(document.id),
+                    { items: updates },
+                    { 
+                        preserveScroll: true,
+                        onSuccess: () => toast.success('Ordre mis à jour'),
+                        onError: () => toast.error('Erreur lors du réordonnancement'),
+                    },
+                );
+                return newOrder.map((item, index) => ({
+                    ...item,
+                    order: index,
+                }));
             });
         }
         // Node reordering logic can be added here
@@ -310,22 +428,34 @@ export default function Workstation({ document, structure: initialStructure, art
                 }}
                 actions={actions}
                 onSaveContent={handleSaveContent}
+                onCreateNewVersion={handleCreateNewVersion}
                 onUpdateTitle={handleUpdateTitle}
                 onDragEnd={handleDragEnd}
             />
 
             {/* Node Dialog */}
-            <Dialog open={nodeDialog.open} onOpenChange={(open) => setNodeDialog(prev => ({ ...prev, open }))}>
+            <Dialog
+                open={nodeDialog.open}
+                onOpenChange={(open) =>
+                    setNodeDialog((prev) => ({ ...prev, open }))
+                }
+            >
                 <DialogContent>
                     <DialogHeader>
-                        <DialogTitle>{nodeDialog.mode === 'add' ? 'Ajouter un élément' : 'Modifier élément'}</DialogTitle>
+                        <DialogTitle>
+                            {nodeDialog.mode === 'add'
+                                ? 'Ajouter un élément'
+                                : 'Modifier élément'}
+                        </DialogTitle>
                     </DialogHeader>
                     <form onSubmit={handleNodeSubmit} className="space-y-4">
                         <div className="space-y-2">
                             <Label>Type d'unité</Label>
                             <Select
                                 value={nodeForm.data.type_unite}
-                                onValueChange={(val) => nodeForm.setData('type_unite', val)}
+                                onValueChange={(val) =>
+                                    nodeForm.setData('type_unite', val)
+                                }
                             >
                                 <SelectTrigger>
                                     <SelectValue placeholder="Choisir..." />
@@ -333,9 +463,15 @@ export default function Workstation({ document, structure: initialStructure, art
                                 <SelectContent>
                                     <SelectItem value="Livre">Livre</SelectItem>
                                     <SelectItem value="Titre">Titre</SelectItem>
-                                    <SelectItem value="Chapitre">Chapitre</SelectItem>
-                                    <SelectItem value="Section">Section</SelectItem>
-                                    <SelectItem value="Paragraphe">Paragraphe</SelectItem>
+                                    <SelectItem value="Chapitre">
+                                        Chapitre
+                                    </SelectItem>
+                                    <SelectItem value="Section">
+                                        Section
+                                    </SelectItem>
+                                    <SelectItem value="Paragraphe">
+                                        Paragraphe
+                                    </SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>
@@ -343,21 +479,37 @@ export default function Workstation({ document, structure: initialStructure, art
                             <Label>Numéro (ex: I, 1, A)</Label>
                             <Input
                                 value={nodeForm.data.numero}
-                                onChange={e => nodeForm.setData('numero', e.target.value)}
+                                onChange={(e) =>
+                                    nodeForm.setData('numero', e.target.value)
+                                }
                             />
                         </div>
                         <div className="space-y-2">
                             <Label>Titre (optionnel)</Label>
                             <Input
                                 value={nodeForm.data.titre}
-                                onChange={e => nodeForm.setData('titre', e.target.value)}
+                                onChange={(e) =>
+                                    nodeForm.setData('titre', e.target.value)
+                                }
                             />
                         </div>
                         <DialogFooter>
-                            <Button type="button" variant="outline" onClick={() => setNodeDialog({ ...nodeDialog, open: false })}>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() =>
+                                    setNodeDialog({
+                                        ...nodeDialog,
+                                        open: false,
+                                    })
+                                }
+                            >
                                 Annuler
                             </Button>
-                            <Button type="submit" disabled={nodeForm.processing}>
+                            <Button
+                                type="submit"
+                                disabled={nodeForm.processing}
+                            >
                                 Enregistrer
                             </Button>
                         </DialogFooter>
@@ -366,35 +518,65 @@ export default function Workstation({ document, structure: initialStructure, art
             </Dialog>
 
             {/* Article Dialog */}
-            <Dialog open={articleDialog.open} onOpenChange={(open) => setArticleDialog(prev => ({ ...prev, open }))}>
+            <Dialog
+                open={articleDialog.open}
+                onOpenChange={(open) =>
+                    setArticleDialog((prev) => ({ ...prev, open }))
+                }
+            >
                 <DialogContent>
                     <DialogHeader>
-                        <DialogTitle>{articleDialog.mode === 'add' ? 'Ajouter article' : 'Modifier article'}</DialogTitle>
+                        <DialogTitle>
+                            {articleDialog.mode === 'add'
+                                ? 'Ajouter article'
+                                : 'Modifier article'}
+                        </DialogTitle>
                     </DialogHeader>
-                     <form onSubmit={handleArticleSubmit} className="space-y-4">
+                    <form onSubmit={handleArticleSubmit} className="space-y-4">
                         <div className="space-y-2">
                             <Label>Numéro Article</Label>
                             <Input
                                 value={articleForm.data.numero_article}
-                                onChange={e => articleForm.setData('numero_article', e.target.value)}
+                                onChange={(e) =>
+                                    articleForm.setData(
+                                        'numero_article',
+                                        e.target.value,
+                                    )
+                                }
                                 placeholder="ex: 12, 12 bis..."
                             />
                         </div>
-                        {/* Only show content field on creation, editing happens in main view mostly */}
-                        {articleDialog.mode === 'add' && (
-                             <div className="space-y-2">
-                                <Label>Contenu initial</Label>
-                                <Input
-                                    value={articleForm.data.content}
-                                    onChange={e => articleForm.setData('content', e.target.value)}
-                                />
-                            </div>
-                        )}
-                         <DialogFooter>
-                            <Button type="button" variant="outline" onClick={() => setArticleDialog({ ...articleDialog, open: false })}>
+                        <div className="space-y-2">
+                            <Label>{articleDialog.mode === 'add' ? 'Contenu initial' : 'Contenu'}</Label>
+                            <textarea
+                                value={articleForm.data.content}
+                                onChange={(e) =>
+                                    articleForm.setData(
+                                        'content',
+                                        e.target.value,
+                                    )
+                                }
+                                className="flex min-h-[120px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                                placeholder="Contenu de l'article..."
+                            />
+                        </div>
+                        <DialogFooter>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() =>
+                                    setArticleDialog({
+                                        ...articleDialog,
+                                        open: false,
+                                    })
+                                }
+                            >
                                 Annuler
                             </Button>
-                            <Button type="submit" disabled={articleForm.processing}>
+                            <Button
+                                type="submit"
+                                disabled={articleForm.processing}
+                            >
                                 Enregistrer
                             </Button>
                         </DialogFooter>

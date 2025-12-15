@@ -35,6 +35,7 @@ interface WorkstationLayoutProps {
     onSelectArticle: (article: Article) => void;
     actions: TreeActions;
     onSaveContent: (id: string, content: string) => void;
+    onCreateNewVersion?: (id: string, data: { content: string; reason?: string; validFrom?: string }) => void;
     onUpdateTitle: (title: string) => void;
     // DnD
     onDragEnd: (event: DragEndEvent) => void;
@@ -50,6 +51,7 @@ export default function WorkstationLayout({
     onSelectArticle,
     actions,
     onSaveContent,
+    onCreateNewVersion,
     onUpdateTitle,
     onDragEnd
 }: WorkstationLayoutProps) {
@@ -142,6 +144,7 @@ export default function WorkstationLayout({
                                         article={selectedArticle}
                                         breadcrumbs={breadcrumbs}
                                         onSave={onSaveContent}
+                                        onCreateNewVersion={onCreateNewVersion}
                                         onUpdateStatus={(id, status) => actions.onUpdateStatus(id, 'article', status)}
                                         currentDocumentId={document.id}
                                         isPdfVisible={!isPdfCollapsed}
