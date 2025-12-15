@@ -17,6 +17,7 @@ class Article extends Model
         'parent_node_id',
         'numero_article',
         'ordre_affichage',
+        'validation_status',
     ];
 
     public function document(): BelongsTo

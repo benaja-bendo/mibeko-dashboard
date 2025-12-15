@@ -46,6 +46,7 @@ CREATE TABLE legal_documents (
     
     source_url TEXT,              -- Lien PDF original
     statut VARCHAR(20) CHECK (statut IN ('vigueur', 'abroge', 'projet')) DEFAULT 'vigueur',
+    curation_status VARCHAR(50) DEFAULT 'draft', -- draft, curated, published
     
     created_at TIMESTAMP DEFAULT NOW(),
     updated_at TIMESTAMP DEFAULT NOW()
@@ -70,6 +71,9 @@ CREATE TABLE structure_nodes (
     -- Exemple de path : "root.livre1.titre2.chap1"
     tree_path ltree NOT NULL,
     
+    validation_status VARCHAR(50) DEFAULT 'pending', -- pending, in_progress, validated
+    sort_order INTEGER DEFAULT 0,
+
     created_at TIMESTAMP DEFAULT NOW()
 );
 

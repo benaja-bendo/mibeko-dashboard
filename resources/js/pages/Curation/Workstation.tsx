@@ -1,58 +1,27 @@
-import { useState } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Head, useForm, router } from '@inertiajs/react';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
     Dialog,
     DialogContent,
-    DialogDescription,
     DialogFooter,
     DialogHeader,
     DialogTitle,
-    DialogTrigger,
 } from '@/components/ui/dialog';
 import {
-    ChevronRight,
-    ChevronDown,
-    FileText,
-    Folder,
-    Save,
-    CheckCircle,
-    ArrowLeft,
-    Maximize2,
-    ExternalLink,
-    Pencil,
-    FileWarning,
-    Link2,
-    Link2Off,
-    Check,
-    Loader2,
-} from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { Link } from '@inertiajs/react';
-import { updateSourceUrl, updateContent } from '@/actions/App/Http/Controllers/CurationController';
-import { show as pdfProxy } from '@/actions/App/Http/Controllers/PdfProxyController';
-
-// --- Interfaces ---
-
-interface StructureNode {
-    id: string;
-    type_unite: string;
-    numero: string | null;
-    titre: string | null;
-    tree_path: string;
-    children?: StructureNode[]; // We might need to build this tree client-side
-}
-
-interface Article {
-    id: string;
-    numero: string;
-    content: string;
-    parent_id: string | null;
-    order: number;
-}
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
+import { storeNode, updateNode, destroyNode, storeArticle, updateArticle, destroyArticle, reorder } from '@/actions/App/Http/Controllers/CurationController';
+import WorkstationLayout from './Components/WorkstationLayout';
+import { StructureNode, Article, TreeActions } from './Components/StructureTree';
+import { arrayMove } from '@dnd-kit/sortable';
+import { DragEndEvent } from '@dnd-kit/core';
 
 interface Document {
     id: string;
@@ -67,405 +36,371 @@ interface Props {
     articles: Article[];
 }
 
-// --- PDF Panel Component ---
+export default function Workstation({ document, structure: initialStructure, articles: initialArticles }: Props) {
+    const [structure, setStructure] = useState<StructureNode[]>([]);
+    const [articles, setArticles] = useState<Article[]>(initialArticles);
+    const [selectedArticleId, setSelectedArticleId] = useState<string | null>(null);
+    const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
 
-const PdfPanel = ({ document }: { document: Document }) => {
-    const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-    const [urlInput, setUrlInput] = useState(document.source_url || '');
-    const [isSubmitting, setIsSubmitting] = useState(false);
-    const [recentlySaved, setRecentlySaved] = useState(false);
+    // Initialize structure
+    useEffect(() => {
+        setStructure(initialStructure.sort((a, b) => a.order - b.order));
+        setArticles(initialArticles.sort((a, b) => a.order - b.order));
+    }, [initialStructure, initialArticles]);
 
-    const handleSaveUrl = () => {
-        setIsSubmitting(true);
-        router.patch(
-            updateSourceUrl.url(document.id),
-            { source_url: urlInput || null },
-            {
-                preserveScroll: true,
-                onSuccess: () => {
-                    setIsEditDialogOpen(false);
-                    setRecentlySaved(true);
-                    setTimeout(() => setRecentlySaved(false), 2000);
-                },
-                onFinish: () => setIsSubmitting(false),
+    // Build hierarchical tree from flat structure
+    const treeStructure = useMemo(() => {
+        const nodeMap = new Map<string, StructureNode>();
+        // Create copies of nodes to avoid mutating state directly and add children array
+        structure.forEach(node => {
+            nodeMap.set(node.id, { ...node, children: [] });
+        });
+
+        const roots: StructureNode[] = [];
+
+        // Sort by tree_path to ensure parents are processed before children if possible,
+        // though map lookup handles order independence.
+        // We rely on tree_path length or hierarchy.
+
+        structure.forEach(originalNode => {
+            const node = nodeMap.get(originalNode.id)!;
+            const pathParts = (node.tree_path || '').split('.');
+
+            // Heuristic: If path has > 2 parts (root.timestamp.timestamp), it has a parent.
+            // But strict ID matching is better if we had parent_id.
+            // Since we don't have explicit parent_id in the interface, we rely on path logic or finding the parent in the map.
+            // Actually, if tree_path is "root.ID1.ID2", ID2 is child of ID1.
+            // We need to match the "ID" part.
+            // BUT the IDs generated in handleNodeSubmit are `Date.now()`.
+            // The `id` field from DB is a UUID (presumably).
+            // Let's assume tree_path stores IDs or we must fallback to flat list if parsing fails.
+
+            // Fallback: If we can't reliably determine hierarchy from path without parent_id column,
+            // we might be stuck.
+            // However, `StructureTree` component logic I wrote uses `node.children`.
+            // Let's try to infer parent from path:
+            // Path: "root.A.B" -> Parent Path: "root.A"
+            // Find node with tree_path === "root.A"
+
+            const lastDotIndex = node.tree_path.lastIndexOf('.');
+            if (lastDotIndex > 0) {
+                const parentPath = node.tree_path.substring(0, lastDotIndex);
+                if (parentPath === 'root') {
+                    roots.push(node);
+                } else {
+                    // Find parent by path
+                    // This is slow O(N^2) effectively if we search array, but with Map we need to index by Path.
+                    // Let's map by path too.
+                    // But we can't because we iterate structure.
+                }
+            } else {
+                roots.push(node);
             }
-        );
+        });
+
+        // BETTER APPROACH: Index by tree_path
+        const pathMap = new Map<string, StructureNode>();
+        structure.forEach(node => {
+            const n = { ...node, children: [] };
+            nodeMap.set(node.id, n);
+            pathMap.set(node.tree_path, n);
+        });
+
+        const treeRoots: StructureNode[] = [];
+
+        structure.forEach(node => {
+            const current = nodeMap.get(node.id)!;
+            const parts = node.tree_path.split('.');
+
+            if (parts.length <= 2) {
+                // e.g. "root.123" -> Root level
+                treeRoots.push(current);
+            } else {
+                // e.g. "root.123.456" -> Parent is "root.123"
+                const parentPath = parts.slice(0, -1).join('.');
+                const parent = pathMap.get(parentPath);
+
+                if (parent) {
+                    parent.children!.push(current);
+                    // Re-sort children by order
+                    parent.children!.sort((a, b) => a.order - b.order);
+                } else {
+                    // Orphaned or logic mismatch, treat as root
+                    treeRoots.push(current);
+                }
+            }
+        });
+
+        return treeRoots.sort((a, b) => a.order - b.order);
+    }, [structure]);
+
+
+    // --- Dialog States ---
+    const [nodeDialog, setNodeDialog] = useState<{ open: boolean, mode: 'add'|'edit', parentId?: string, node?: StructureNode }>({ open: false, mode: 'add' });
+    const [articleDialog, setArticleDialog] = useState<{ open: boolean, mode: 'add'|'edit', parentId?: string, article?: Article }>({ open: false, mode: 'add' });
+
+    // Forms
+    const nodeForm = useForm({ type_unite: 'Titre', numero: '', titre: '' });
+    const articleForm = useForm({ numero_article: '', content: '' });
+
+    // Handlers
+    const handleNodeSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        const url = nodeDialog.mode === 'add'
+            ? storeNode.url(document.id)
+            : updateNode.url(document.id, nodeDialog.node?.id!);
+
+        const method = nodeDialog.mode === 'add' ? 'post' : 'put';
+
+        // Calculate path for new node
+        let path = '';
+        if (nodeDialog.mode === 'add') {
+             if (nodeDialog.parentId) {
+                 const parent = structure.find(n => n.id === nodeDialog.parentId);
+                 // We use timestamp as ID segment in path for uniqueness
+                 path = parent ? `${parent.tree_path}.${Date.now()}` : `root.${Date.now()}`;
+             } else {
+                 path = `root.${Date.now()}`;
+             }
+        }
+
+        const data = {
+            ...nodeForm.data,
+            ...(nodeDialog.mode === 'add' ? { tree_path: path } : {})
+        };
+
+        nodeForm.submit(method, url, {
+            data,
+            onSuccess: () => {
+                setNodeDialog({ ...nodeDialog, open: false });
+                nodeForm.reset();
+            }
+        });
     };
 
-    const handleOpenDialog = () => {
-        setUrlInput(document.source_url || '');
-        setIsEditDialogOpen(true);
+    const handleArticleSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        const url = articleDialog.mode === 'add'
+            ? storeArticle.url(document.id)
+            : updateArticle.url(document.id, articleDialog.article?.id!);
+
+        const method = articleDialog.mode === 'add' ? 'post' : 'put';
+
+        articleForm.submit(method, url, {
+            data: {
+                ...articleForm.data,
+                parent_node_id: articleDialog.parentId || articleDialog.article?.parent_id
+            },
+            onSuccess: () => {
+                setArticleDialog({ ...articleDialog, open: false });
+                articleForm.reset();
+            }
+        });
+    }
+
+    const handleSaveContent = (id: string, content: string) => {
+        router.visit(updateArticle.url(document.id, id), {
+            method: 'put',
+            data: { content },
+            preserveScroll: true,
+        });
+        // Optimistic update
+        setArticles(prev => prev.map(a => a.id === id ? { ...a, content } : a));
     };
 
-    const hasSource = !!document.source_url;
+    const handleUpdateTitle = (title: string) => {
+        router.patch(`/curation/${document.id}`, { title }, {
+            preserveScroll: true,
+            preserveState: true,
+        });
+    };
 
-    // Build proxy URL for inline PDF display (fixes Minio/S3 download issue)
-    const proxyUrl = hasSource 
-        ? pdfProxy.url({ query: { path: document.source_url! } })
-        : null;
+    const actions: TreeActions = {
+        onEditNode: (node) => {
+             nodeForm.setData({ type_unite: node.type_unite, numero: node.numero || '', titre: node.titre || '' });
+             setNodeDialog({ open: true, mode: 'edit', node });
+        },
+        onDeleteNode: (id) => {
+             if(confirm('Supprimer cet élément ?')) {
+                 router.delete(destroyNode.url(document.id, id));
+             }
+        },
+        onAddNode: (parentId) => {
+             nodeForm.reset();
+             setNodeDialog({ open: true, mode: 'add', parentId });
+        },
+        onAddArticle: (parentId) => {
+            articleForm.reset();
+             setArticleDialog({ open: true, mode: 'add', parentId });
+        },
+        onEditArticle: (article) => {
+             articleForm.setData({ numero_article: article.numero, content: article.content });
+             setArticleDialog({ open: true, mode: 'edit', article });
+        },
+        onDeleteArticle: (id) => {
+            if(confirm('Supprimer cet article ?')) {
+                 router.delete(destroyArticle.url(document.id, id));
+             }
+        },
+        onUpdateStatus: (id, type, status) => {
+            const url = type === 'node'
+                ? updateNode.url(document.id, id)
+                : updateArticle.url(document.id, id);
+
+            router.visit(url, {
+                 method: 'put',
+                 data: { validation_status: status },
+                 preserveScroll: true,
+                 preserveState: true,
+            });
+
+            if (type === 'node') {
+                setStructure(prev => prev.map(n => n.id === id ? { ...n, status: status as any } : n));
+            } else {
+                 setArticles(prev => prev.map(a => a.id === id ? { ...a, status: status as any } : a));
+            }
+        }
+    };
+
+    // DnD Handler
+    const handleDragEnd = (event: DragEndEvent) => {
+        const { active, over } = event;
+        if (!over || active.id === over.id) return;
+
+        const activeType = active.data.current?.type;
+        const overType = over.data.current?.type;
+
+        if (activeType === 'article' && overType === 'article') {
+             setArticles((items) => {
+                const oldIndex = items.findIndex((i) => i.id === active.id);
+                const newIndex = items.findIndex((i) => i.id === over.id);
+                const newOrder = arrayMove(items, oldIndex, newIndex);
+
+                // Calculate new orders
+                const updates = newOrder.map((item, index) => ({
+                    id: item.id,
+                    type: 'article',
+                    order: index,
+                    // keep parent id or update if dropped successfully across lists (not implemented fully here yet)
+                    parent_id: item.parent_id
+                }));
+
+                router.post(reorder.url(document.id), { items: updates }, { preserveScroll: true });
+                return newOrder.map((item, index) => ({ ...item, order: index }));
+            });
+        }
+        // Node reordering logic can be added here
+    };
 
     return (
-        <div className="w-1/2 border-r flex flex-col bg-zinc-900">
-            {/* Toolbar */}
-            <div className="flex items-center justify-between h-12 px-4 border-b border-zinc-700 bg-zinc-800/80 backdrop-blur-sm">
-                <div className="flex items-center gap-3 min-w-0 flex-1">
-                    {hasSource ? (
-                        <>
-                            <div className="flex items-center gap-2">
-                                <div className="flex items-center justify-center w-7 h-7 rounded-md bg-emerald-500/20 text-emerald-400">
-                                    <Link2 className="h-4 w-4" />
-                                </div>
-                                <Badge variant="outline" className="bg-emerald-500/10 text-emerald-400 border-emerald-500/30 text-xs">
-                                    Source disponible
-                                </Badge>
-                            </div>
-                            <div
-                                className="flex items-center gap-1.5 text-xs text-zinc-400 truncate max-w-[200px]"
-                                title={document.source_url!}
+        <>
+            <Head title={`Curation - ${document.title}`} />
+
+            <WorkstationLayout
+                document={document}
+                structure={treeStructure} // Pass the built tree
+                articles={articles}
+                selectedNodeId={selectedNodeId}
+                selectedArticleId={selectedArticleId}
+                onSelectNode={setSelectedNodeId}
+                onSelectArticle={(a) => {
+                    setSelectedArticleId(a.id);
+                    // Also select parent node in tree if exists
+                    if (a.parent_id) setSelectedNodeId(a.parent_id);
+                }}
+                actions={actions}
+                onSaveContent={handleSaveContent}
+                onUpdateTitle={handleUpdateTitle}
+                onDragEnd={handleDragEnd}
+            />
+
+            {/* Node Dialog */}
+            <Dialog open={nodeDialog.open} onOpenChange={(open) => setNodeDialog(prev => ({ ...prev, open }))}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>{nodeDialog.mode === 'add' ? 'Ajouter un élément' : 'Modifier élément'}</DialogTitle>
+                    </DialogHeader>
+                    <form onSubmit={handleNodeSubmit} className="space-y-4">
+                        <div className="space-y-2">
+                            <Label>Type d'unité</Label>
+                            <Select
+                                value={nodeForm.data.type_unite}
+                                onValueChange={(val) => nodeForm.setData('type_unite', val)}
                             >
-                                <span className="truncate">{document.source_url}</span>
-                            </div>
-                        </>
-                    ) : (
-                        <div className="flex items-center gap-2">
-                            <div className="flex items-center justify-center w-7 h-7 rounded-md bg-amber-500/20 text-amber-400">
-                                <Link2Off className="h-4 w-4" />
-                            </div>
-                            <Badge variant="outline" className="bg-amber-500/10 text-amber-400 border-amber-500/30 text-xs">
-                                Aucune source
-                            </Badge>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Choisir..." />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="Livre">Livre</SelectItem>
+                                    <SelectItem value="Titre">Titre</SelectItem>
+                                    <SelectItem value="Chapitre">Chapitre</SelectItem>
+                                    <SelectItem value="Section">Section</SelectItem>
+                                    <SelectItem value="Paragraphe">Paragraphe</SelectItem>
+                                </SelectContent>
+                            </Select>
                         </div>
-                    )}
-                </div>
-                
-                <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-                    <DialogTrigger asChild>
-                        <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            className="h-8 gap-1.5 text-zinc-400 hover:text-zinc-100 hover:bg-zinc-700"
-                            onClick={handleOpenDialog}
-                        >
-                            {recentlySaved ? (
-                                <>
-                                    <Check className="h-3.5 w-3.5 text-emerald-400" />
-                                    <span className="text-emerald-400 text-xs">Enregistré</span>
-                                </>
-                            ) : (
-                                <>
-                                    <Pencil className="h-3.5 w-3.5" />
-                                    <span className="text-xs">{hasSource ? 'Modifier' : 'Ajouter'}</span>
-                                </>
-                            )}
-                        </Button>
-                    </DialogTrigger>
-                    <DialogContent className="sm:max-w-lg">
-                        <DialogHeader>
-                            <DialogTitle className="flex items-center gap-2">
-                                <Link2 className="h-5 w-5 text-primary" />
-                                {hasSource ? 'Modifier le chemin source' : 'Ajouter un chemin source'}
-                            </DialogTitle>
-                            <DialogDescription>
-                                Entrez le chemin du fichier PDF dans Minio (ex: dossier/fichier.pdf).
-                            </DialogDescription>
-                        </DialogHeader>
-                        <div className="grid gap-4 py-4">
-                            <div className="grid gap-2">
-                                <Label htmlFor="source_url">Chemin Minio</Label>
-                                <Input
-                                    id="source_url"
-                                    type="text"
-                                    placeholder="documents/2024/loi-123.pdf"
-                                    value={urlInput}
-                                    onChange={(e) => setUrlInput(e.target.value)}
-                                    className="font-mono text-sm"
-                                />
-                            </div>
-                            {document.source_url && urlInput !== document.source_url && (
-                                <div className="text-xs text-muted-foreground bg-muted/50 p-3 rounded-md">
-                                    <p className="font-medium mb-1">Chemin actuel:</p>
-                                    <p className="font-mono truncate">{document.source_url}</p>
-                                </div>
-                            )}
+                        <div className="space-y-2">
+                            <Label>Numéro (ex: I, 1, A)</Label>
+                            <Input
+                                value={nodeForm.data.numero}
+                                onChange={e => nodeForm.setData('numero', e.target.value)}
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label>Titre (optionnel)</Label>
+                            <Input
+                                value={nodeForm.data.titre}
+                                onChange={e => nodeForm.setData('titre', e.target.value)}
+                            />
                         </div>
                         <DialogFooter>
-                            <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
+                            <Button type="button" variant="outline" onClick={() => setNodeDialog({ ...nodeDialog, open: false })}>
                                 Annuler
                             </Button>
-                            <Button onClick={handleSaveUrl} disabled={isSubmitting}>
-                                {isSubmitting ? (
-                                    <>
-                                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                        Enregistrement...
-                                    </>
-                                ) : (
-                                    <>
-                                        <Save className="mr-2 h-4 w-4" />
-                                        Enregistrer
-                                    </>
-                                )}
+                            <Button type="submit" disabled={nodeForm.processing}>
+                                Enregistrer
                             </Button>
                         </DialogFooter>
-                    </DialogContent>
-                </Dialog>
-            </div>
+                    </form>
+                </DialogContent>
+            </Dialog>
 
-            {/* PDF Content */}
-            <div className="flex-1 relative">
-                {hasSource ? (
-                    <iframe
-                        src={proxyUrl!}
-                        className="h-full w-full"
-                        title="PDF Source"
-                    />
-                ) : (
-                    <div className="flex h-full items-center justify-center">
-                        <div className="text-center max-w-xs">
-                            <div className="flex justify-center mb-4">
-                                <div className="w-16 h-16 rounded-2xl bg-zinc-800 flex items-center justify-center">
-                                    <FileWarning className="h-8 w-8 text-zinc-600" />
-                                </div>
+            {/* Article Dialog */}
+            <Dialog open={articleDialog.open} onOpenChange={(open) => setArticleDialog(prev => ({ ...prev, open }))}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>{articleDialog.mode === 'add' ? 'Ajouter article' : 'Modifier article'}</DialogTitle>
+                    </DialogHeader>
+                     <form onSubmit={handleArticleSubmit} className="space-y-4">
+                        <div className="space-y-2">
+                            <Label>Numéro Article</Label>
+                            <Input
+                                value={articleForm.data.numero_article}
+                                onChange={e => articleForm.setData('numero_article', e.target.value)}
+                                placeholder="ex: 12, 12 bis..."
+                            />
+                        </div>
+                        {/* Only show content field on creation, editing happens in main view mostly */}
+                        {articleDialog.mode === 'add' && (
+                             <div className="space-y-2">
+                                <Label>Contenu initial</Label>
+                                <Input
+                                    value={articleForm.data.content}
+                                    onChange={e => articleForm.setData('content', e.target.value)}
+                                />
                             </div>
-                            <h3 className="text-lg font-medium text-zinc-300 mb-2">
-                                Aucun PDF source
-                            </h3>
-                            <p className="text-sm text-zinc-500 mb-4">
-                                Ajoutez le chemin du document PDF original (Minio) pour le visualiser ici.
-                            </p>
-                            <Button 
-                                variant="outline" 
-                                size="sm"
-                                onClick={handleOpenDialog}
-                                className="bg-zinc-800 border-zinc-700 hover:bg-zinc-700 text-zinc-300"
-                            >
-                                <Link2 className="mr-2 h-4 w-4" />
-                                Ajouter une source
+                        )}
+                         <DialogFooter>
+                            <Button type="button" variant="outline" onClick={() => setArticleDialog({ ...articleDialog, open: false })}>
+                                Annuler
                             </Button>
-                        </div>
-                    </div>
-                )}
-            </div>
-        </div>
-    );
-};
-
-// --- Tree Node Component ---
-
-const TreeNode = ({
-    node,
-    level,
-    onSelect,
-    selectedId,
-    articles,
-    onSelectArticle
-}: {
-    node: StructureNode;
-    level: number;
-    onSelect: (id: string) => void;
-    selectedId: string | null;
-    articles: Article[];
-    onSelectArticle: (article: Article) => void;
-}) => {
-    const [expanded, setExpanded] = useState(true);
-    const nodeArticles = articles.filter(a => a.parent_id === node.id);
-
-    return (
-        <div>
-            <div
-                className={cn(
-                    "flex items-center py-1 px-2 cursor-pointer hover:bg-accent/50 rounded-sm text-sm",
-                    selectedId === node.id && "bg-accent"
-                )}
-                style={{ paddingLeft: `${level * 12 + 8}px` }}
-                onClick={() => {
-                    setExpanded(!expanded);
-                    onSelect(node.id);
-                }}
-            >
-                {expanded ? (
-                    <ChevronDown className="h-4 w-4 mr-1 text-muted-foreground" />
-                ) : (
-                    <ChevronRight className="h-4 w-4 mr-1 text-muted-foreground" />
-                )}
-                <Folder className="h-4 w-4 mr-2 text-blue-500" />
-                <span className="font-medium truncate">
-                    {node.type_unite} {node.numero}
-                </span>
-            </div>
-
-            {expanded && (
-                <div>
-                    {nodeArticles.map(article => (
-                        <div
-                            key={article.id}
-                            className={cn(
-                                "flex items-center py-1 px-2 cursor-pointer hover:bg-accent/50 rounded-sm text-sm ml-4",
-                                selectedId === article.id && "bg-accent text-accent-foreground"
-                            )}
-                            style={{ paddingLeft: `${(level + 1) * 12 + 8}px` }}
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                onSelectArticle(article);
-                            }}
-                        >
-                            <FileText className="h-3 w-3 mr-2 text-gray-500" />
-                            <span className="truncate">
-                                Article {article.numero}
-                            </span>
-                        </div>
-                    ))}
-                </div>
-            )}
-        </div>
-    );
-};
-
-// --- Main Page ---
-
-export default function Workstation({ document, structure, articles }: Props) {
-    const [selectedArticle, setSelectedArticle] = useState<Article | null>(null);
-    
-    // Form for editing article
-    const { data, setData, post, processing, recentlySuccessful } = useForm({
-        content: '',
-        article_id: ''
-    });
-
-    // Update form when article changes
-    const handleSelectArticle = (article: Article) => {
-        setSelectedArticle(article);
-        setData({
-            content: article.content,
-            article_id: article.id
-        });
-    };
-
-    const handleSave = () => {
-        if (!selectedArticle) return;
-        post(updateContent.url(document.id), {
-            preserveScroll: true,
-            onSuccess: () => {
-                // Optimistically update the local article list?
-                // For now, Inertia reload will handle it, but might be slow.
-                // Ideally we update local state.
-            }
-        });
-    };
-
-    // Helper to calculate depth from tree_path (e.g. "root.livre1.titre2" -> depth 2)
-    const getDepth = (path: string) => (path.match(/\./g) || []).length;
-
-    return (
-        <div className="flex h-screen flex-col overflow-hidden bg-background">
-            {/* Header */}
-            <header className="flex h-14 items-center gap-4 border-b bg-muted/40 px-6">
-                <Link href="/curation">
-                    <Button variant="ghost" size="icon">
-                        <ArrowLeft className="h-5 w-5" />
-                    </Button>
-                </Link>
-                <div className="flex-1">
-                    <h1 className="text-lg font-semibold">{document.title}</h1>
-                </div>
-                <div className="flex items-center gap-2">
-                    <Badge variant="outline" className="uppercase">
-                        {document.status}
-                    </Badge>
-                    <Button size="sm" onClick={handleSave} disabled={processing || !selectedArticle}>
-                        <Save className="mr-2 h-4 w-4" />
-                        {recentlySuccessful ? 'Enregistré' : 'Enregistrer'}
-                    </Button>
-                </div>
-            </header>
-
-            {/* Main Split View */}
-            <div className="flex flex-1 overflow-hidden">
-                {/* Left: PDF Viewer */}
-                <PdfPanel document={document} />
-
-                {/* Right: Editor & Tree */}
-                <div className="flex w-1/2 flex-col">
-                    {/* Toolbar */}
-                    <div className="flex items-center justify-between border-b p-2 px-4 bg-muted/10">
-                        <span className="text-sm font-medium text-muted-foreground">
-                            Structure & Contenu
-                        </span>
-                        <div className="flex gap-1">
-                            {/* Tools like Search/Replace could go here */}
-                        </div>
-                    </div>
-
-                    <div className="flex flex-1 overflow-hidden">
-                        {/* Structure Tree (Left side of Right Pane) */}
-                        <div className="w-1/3 border-r overflow-y-auto bg-muted/5 p-2">
-                            {structure.map((node) => {
-                                const depth = getDepth(node.tree_path);
-                                // Simple linear rendering with indentation
-                                // This assumes 'structure' is sorted by tree_path
-                                return (
-                                    <TreeNode
-                                        key={node.id}
-                                        node={node}
-                                        level={depth}
-                                        onSelect={() => {}}
-                                        selectedId={selectedArticle?.id || null}
-                                        articles={articles}
-                                        onSelectArticle={handleSelectArticle}
-                                    />
-                                );
-                            })}
-                            
-                            {/* Orphan Articles (no parent) */}
-                            {articles.filter(a => !a.parent_id).map(article => (
-                                <div
-                                    key={article.id}
-                                    className={cn(
-                                        "flex items-center py-1 px-2 cursor-pointer hover:bg-accent/50 rounded-sm text-sm",
-                                        selectedArticle?.id === article.id && "bg-accent text-accent-foreground"
-                                    )}
-                                    onClick={() => handleSelectArticle(article)}
-                                >
-                                    <FileText className="h-3 w-3 mr-2 text-gray-500" />
-                                    <span className="truncate">
-                                        Article {article.numero}
-                                    </span>
-                                </div>
-                            ))}
-                        </div>
-
-                        {/* Editor (Right side of Right Pane) */}
-                        <div className="flex-1 flex flex-col p-4 overflow-y-auto">
-                            {selectedArticle ? (
-                                <div className="space-y-4 h-full flex flex-col">
-                                    <div>
-                                        <h2 className="text-lg font-bold flex items-center gap-2">
-                                            Article {selectedArticle.numero}
-                                            {selectedArticle.parent_id && (
-                                                <Badge variant="secondary" className="text-xs font-normal">
-                                                    Lié à la structure
-                                                </Badge>
-                                            )}
-                                        </h2>
-                                    </div>
-                                    <div className="flex-1">
-                                        <textarea
-                                            className="w-full h-full min-h-[400px] p-4 rounded-md border resize-none focus:outline-none focus:ring-2 focus:ring-ring bg-background font-mono text-sm leading-relaxed"
-                                            value={data.content}
-                                            onChange={(e) => setData('content', e.target.value)}
-                                            placeholder="Contenu de l'article..."
-                                        />
-                                    </div>
-                                </div>
-                            ) : (
-                                <div className="flex h-full items-center justify-center text-muted-foreground">
-                                    Sélectionnez un article pour l'éditer
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
+                            <Button type="submit" disabled={articleForm.processing}>
+                                Enregistrer
+                            </Button>
+                        </DialogFooter>
+                    </form>
+                </DialogContent>
+            </Dialog>
+        </>
     );
 }
-

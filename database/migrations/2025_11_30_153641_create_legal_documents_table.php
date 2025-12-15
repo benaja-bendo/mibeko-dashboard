@@ -2,6 +2,7 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
@@ -26,9 +27,12 @@ return new class extends Migration
 
             $table->text('source_url')->nullable();
             $table->string('statut', 20)->default('vigueur');
+            $table->string('curation_status')->default('draft');
 
             $table->timestamps();
         });
+
+        DB::statement("ALTER TABLE legal_documents ADD CONSTRAINT legal_documents_statut_check CHECK (statut IN ('vigueur','abroge','projet'))");
     }
 
     /**

@@ -34,9 +34,25 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::prefix('curation')->name('curation.')->group(function () {
         Route::get('/', [App\Http\Controllers\CurationController::class, 'index'])->name('index');
         Route::get('/{document}', [App\Http\Controllers\CurationController::class, 'show'])->name('show');
-        Route::post('/{document}/structure', [App\Http\Controllers\CurationController::class, 'updateStructure'])->name('structure.update');
-        Route::post('/{document}/content', [App\Http\Controllers\CurationController::class, 'updateContent'])->name('content.update');
+        Route::patch('/{document}', [App\Http\Controllers\CurationController::class, 'update'])->name('update');
+
+        // Nodes
+        Route::post('/{document}/nodes', [App\Http\Controllers\CurationController::class, 'storeNode'])->name('nodes.store');
+        Route::put('/{document}/nodes/{node}', [App\Http\Controllers\CurationController::class, 'updateNode'])->name('nodes.update');
+        Route::delete('/{document}/nodes/{node}', [App\Http\Controllers\CurationController::class, 'destroyNode'])->name('nodes.destroy');
+
+        // Articles
+        Route::post('/{document}/articles', [App\Http\Controllers\CurationController::class, 'storeArticle'])->name('articles.store');
+        Route::put('/{document}/articles/{article}', [App\Http\Controllers\CurationController::class, 'updateArticle'])->name('articles.update');
+        Route::delete('/{document}/articles/{article}', [App\Http\Controllers\CurationController::class, 'destroyArticle'])->name('articles.destroy');
+
+        // Actions
+        Route::post('/{document}/reorder', [App\Http\Controllers\CurationController::class, 'reorder'])->name('reorder');
         Route::patch('/{document}/source-url', [App\Http\Controllers\CurationController::class, 'updateSourceUrl'])->name('source-url.update');
+
+        // Backward compatibility
+        Route::post('/{document}/content', [App\Http\Controllers\CurationController::class, 'updateContent'])->name('content.update');
+        Route::post('/{document}/structure', [App\Http\Controllers\CurationController::class, 'updateNode'])->name('structure.update'); // mapped to updateNode roughly
     });
 
     // PDF Proxy for inline display (fixes Minio/S3 download issue)

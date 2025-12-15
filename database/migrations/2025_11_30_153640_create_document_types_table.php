@@ -2,6 +2,7 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
@@ -11,6 +12,11 @@ return new class extends Migration
      */
     public function up(): void
     {
+        DB::statement('CREATE EXTENSION IF NOT EXISTS "uuid-ossp"');
+        DB::statement('CREATE EXTENSION IF NOT EXISTS "ltree"');
+        DB::statement('CREATE EXTENSION IF NOT EXISTS "vector"');
+        DB::statement('CREATE EXTENSION IF NOT EXISTS "btree_gist"');
+
         Schema::create('document_types', function (Blueprint $table) {
             $table->string('code', 10)->primary();
             $table->string('nom', 50);

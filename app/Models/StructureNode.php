@@ -18,6 +18,8 @@ class StructureNode extends Model
         'numero',
         'titre',
         'tree_path',
+        'validation_status',
+        'sort_order',
     ];
 
     public function document(): BelongsTo
