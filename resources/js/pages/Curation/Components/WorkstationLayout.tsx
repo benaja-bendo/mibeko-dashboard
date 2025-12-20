@@ -7,16 +7,16 @@ import {
 } from "@/components/ui/resizable";
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, FileText, PanelRightClose, PanelRightOpen } from 'lucide-react';
+import { ArrowLeft, FileText } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
 import { sortableKeyboardCoordinates } from '@dnd-kit/sortable';
 
 // Components
-import PdfViewer from './PdfViewer';
-import StructureTree, { StructureNode, Article, TreeActions } from './StructureTree';
-import ContentEditor from './ContentEditor';
-import EditableHeaderTitle from './EditableHeaderTitle';
+import PdfViewer from '@/pages/Curation/Components/PdfViewer';
+import StructureTree, { StructureNode, Article, TreeActions } from '@/pages/Curation/Components/StructureTree';
+import ContentEditor from '@/pages/Curation/Components/ContentEditor';
+import EditableHeaderTitle from '@/pages/Curation/Components/EditableHeaderTitle';
 
 interface Document {
     id: string;

@@ -33,8 +33,8 @@ import {
     Article,
     StructureNode,
     TreeActions,
-} from './Components/StructureTree';
-import WorkstationLayout from './Components/WorkstationLayout';
+} from '@/pages/Curation/Components/StructureTree';
+import WorkstationLayout from '@/pages/Curation/Components/WorkstationLayout';
 
 interface Document {
     id: string;
@@ -174,7 +174,7 @@ export default function Workstation({
     // Handlers
     const handleNodeSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        
+
         // Calculate path for new node
         let path = '';
         if (nodeDialog.mode === 'add') {
@@ -219,7 +219,7 @@ export default function Workstation({
 
     const handleArticleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        
+
         const data = {
             ...articleForm.data,
             parent_node_id:
@@ -249,9 +249,9 @@ export default function Workstation({
 
     const handleSaveContent = (id: string, content: string) => {
         // Update current version in-place (no new version created)
-        router.put(updateArticle.url({ document: document.id, article: id }), { 
+        router.put(updateArticle.url({ document: document.id, article: id }), {
             content,
-            update_in_place: true 
+            update_in_place: true
         }, {
             preserveScroll: true,
             onSuccess: () => toast.success('Version actuelle modifiée'),
@@ -395,7 +395,7 @@ export default function Workstation({
                 router.post(
                     reorder.url(document.id),
                     { items: updates },
-                    { 
+                    {
                         preserveScroll: true,
                         onSuccess: () => toast.success('Ordre mis à jour'),
                         onError: () => toast.error('Erreur lors du réordonnancement'),

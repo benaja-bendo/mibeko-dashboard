@@ -16,7 +16,6 @@ import {
     Maximize2,
     Download
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
 import { updateSourceUrl } from '@/actions/App/Http/Controllers/CurationController';
 
 // Helper function to build the PDF proxy URL
@@ -80,8 +79,8 @@ export default function PdfViewer({ document, collapsed, onToggle }: PdfViewerPr
                          <Link2 className="h-4 w-4" />
                     </Button>
                     {document.source_url && (
-                        <a 
-                            href={`${getPdfProxyUrl(document.source_url)}&download=1`} 
+                        <a
+                            href={`${getPdfProxyUrl(document.source_url)}&download=1`}
                             className="inline-flex items-center justify-center h-8 w-8 rounded-md text-zinc-400 hover:text-zinc-100 hover:bg-zinc-700"
                             title="Télécharger le PDF"
                         >
@@ -89,9 +88,9 @@ export default function PdfViewer({ document, collapsed, onToggle }: PdfViewerPr
                         </a>
                     )}
                     {document.source_url && (
-                        <a 
-                            href={getPdfProxyUrl(document.source_url) || '#'} 
-                            target="_blank" 
+                        <a
+                            href={getPdfProxyUrl(document.source_url) || '#'}
+                            target="_blank"
                             rel="noopener noreferrer"
                             className="inline-flex items-center justify-center h-8 w-8 rounded-md text-zinc-400 hover:text-zinc-100 hover:bg-zinc-700"
                         >
@@ -126,10 +125,10 @@ export default function PdfViewer({ document, collapsed, onToggle }: PdfViewerPr
                         <DialogTitle>Modifier la source du document</DialogTitle>
                     </DialogHeader>
                     <div className="py-2">
-                        <Input 
-                            value={urlInput} 
-                            onChange={e => setUrlInput(e.target.value)} 
-                            placeholder="Chemin Minio (ex: bucket/path/to/file.pdf)..." 
+                        <Input
+                            value={urlInput}
+                            onChange={e => setUrlInput(e.target.value)}
+                            placeholder="Chemin Minio (ex: bucket/path/to/file.pdf)..."
                         />
                          <p className="text-xs text-muted-foreground mt-2">
                             Entrez le chemin relatif dans le bucket de stockage.

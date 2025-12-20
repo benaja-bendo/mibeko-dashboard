@@ -23,7 +23,7 @@ import {
     Plus,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import StatusBadge from './StatusBadge';
+import StatusBadge from '@/pages/Curation/Components/StatusBadge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
     Tooltip,
@@ -58,9 +58,9 @@ interface ContentEditorProps {
     onTogglePdf: () => void;
 }
 
-export default function ContentEditor({ 
-    article, 
-    breadcrumbs, 
+export default function ContentEditor({
+    article,
+    breadcrumbs,
     onSave,
     onCreateNewVersion,
     onUpdateStatus,
@@ -75,7 +75,7 @@ export default function ContentEditor({
         reason: '',
         validFrom: new Date().toISOString().split('T')[0],
     });
-    
+
     // Reset state when article changes
     useEffect(() => {
         if (article) {
@@ -139,8 +139,8 @@ export default function ContentEditor({
                                 {i > 0 && <ChevronRight className="h-3 w-3 mx-1 text-zinc-300" />}
                                 <span className={cn(
                                     "truncate max-w-[200px] transition-colors",
-                                    i === breadcrumbs.length - 1 
-                                        ? "font-medium text-zinc-900 dark:text-zinc-100 bg-zinc-100 dark:bg-zinc-800 px-1.5 py-0.5 rounded-md" 
+                                    i === breadcrumbs.length - 1
+                                        ? "font-medium text-zinc-900 dark:text-zinc-100 bg-zinc-100 dark:bg-zinc-800 px-1.5 py-0.5 rounded-md"
                                         : "hover:text-zinc-800 cursor-default"
                                 )}>
                                     {crumb.title}
@@ -148,7 +148,7 @@ export default function ContentEditor({
                             </div>
                         ))}
                     </nav>
-                    
+
                     {/* PDF Toggle Button */}
                     <div className="flex items-center gap-2">
                          <TooltipProvider>
@@ -191,8 +191,8 @@ export default function ContentEditor({
                             <h2 className="text-2xl font-bold font-serif text-zinc-900 dark:text-zinc-50 tracking-tight">
                                 Article {article.numero}
                             </h2>
-                            <StatusBadge 
-                                status={article.status} 
+                            <StatusBadge
+                                status={article.status}
                                 onChange={(s) => onUpdateStatus(article.id, s)}
                             />
                         </div>
@@ -206,14 +206,14 @@ export default function ContentEditor({
                             )}
                         </div>
                     </div>
-                    
+
                     <div className="flex items-center gap-2">
                         {/* Save current version button */}
                         <TooltipProvider>
                             <Tooltip>
                                 <TooltipTrigger asChild>
-                                    <Button 
-                                        size="sm" 
+                                    <Button
+                                        size="sm"
                                         variant="outline"
                                         onClick={handleSave}
                                         disabled={!isDirty}
@@ -236,8 +236,8 @@ export default function ContentEditor({
                         <TooltipProvider>
                             <Tooltip>
                                 <TooltipTrigger asChild>
-                                    <Button 
-                                        size="sm" 
+                                    <Button
+                                        size="sm"
                                         variant="default"
                                         onClick={handleOpenNewVersionDialog}
                                         disabled={!isDirty}
@@ -263,13 +263,13 @@ export default function ContentEditor({
             <Tabs defaultValue="editor" className="flex-1 flex flex-col min-h-0">
                  <div className="px-6 border-b border-zinc-100 dark:border-zinc-800 shrink-0 bg-white dark:bg-zinc-950 flex items-center justify-between">
                     <TabsList className="h-10 bg-transparent p-0 w-auto gap-6">
-                        <TabsTrigger 
+                        <TabsTrigger
                             value="editor"
                             className="h-10 rounded-none border-b-2 border-transparent data-[state=active]:border-blue-600 data-[state=active]:shadow-none px-0 bg-transparent"
                         >
                             Éditeur
                         </TabsTrigger>
-                        <TabsTrigger 
+                        <TabsTrigger
                             value="history"
                             className="h-10 rounded-none border-b-2 border-transparent data-[state=active]:border-blue-600 data-[state=active]:shadow-none px-0 bg-transparent"
                         >
@@ -293,7 +293,7 @@ export default function ContentEditor({
 
                     <div className="flex-1 overflow-y-auto bg-white dark:bg-zinc-950">
                         <div className="max-w-3xl mx-auto py-12 px-8 min-h-full">
-                             <Textarea 
+                             <Textarea
                                 value={content}
                                 onChange={handleContentChange}
                                 className="w-full h-full min-h-[60vh] resize-none border-0 focus-visible:ring-0 p-0 text-lg leading-loose font-serif text-zinc-800 dark:text-zinc-300 bg-transparent placeholder:text-zinc-300 selection:bg-blue-100 dark:selection:bg-blue-900/30"
@@ -348,7 +348,7 @@ export default function ContentEditor({
                         <Button variant="outline" onClick={() => setNewVersionDialogOpen(false)}>
                             Annuler
                         </Button>
-                        <Button 
+                        <Button
                             onClick={handleCreateNewVersion}
                             className="bg-emerald-600 hover:bg-emerald-700"
                         >

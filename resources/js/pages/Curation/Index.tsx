@@ -12,7 +12,7 @@ import {
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Edit, FileText, CheckCircle, Clock, AlertCircle } from 'lucide-react';
+import { Edit, FileText } from 'lucide-react';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
