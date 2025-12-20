@@ -12,7 +12,7 @@ Route::get('/', function () {
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('dashboard', function () {
-        return Inertia::render('Dashboard', [
+        return Inertia::render('dashboard', [
             'stats' => [
                 'total_documents' => \App\Models\LegalDocument::count(),
                 'total_articles' => \App\Models\Article::count(),

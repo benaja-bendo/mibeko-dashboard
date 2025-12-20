@@ -14,7 +14,7 @@ class CurationController extends Controller
 {
     public function index()
     {
-        return Inertia::render('Curation/Index', [
+        return Inertia::render('Curation/index', [
             'documents' => LegalDocument::query()
                 ->with(['type', 'institution'])
                 ->withCount('articles')
@@ -39,7 +39,7 @@ class CurationController extends Controller
             $query->orderBy('ordre_affichage'); // Use ordre_affichage for articles as per schema, maybe aliased to order in frontend
         }]);
 
-        return Inertia::render('Curation/Workstation', [
+        return Inertia::render('Curation/workstation', [
             'document' => [
                 'id' => $document->id,
                 'title' => $document->titre_officiel,
