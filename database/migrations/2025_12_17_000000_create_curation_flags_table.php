@@ -13,7 +13,6 @@ return new class extends Migration
     {
         Schema::create('curation_flags', function (Blueprint $table) {
             $table->uuid('id')->primary();
-            $table->foreignId('document_id')->nullable()->constrained('legal_documents');
 
             $table->uuid('document_id')->nullable();
             $table->foreign('document_id')->references('id')->on('legal_documents');
@@ -26,6 +25,13 @@ return new class extends Migration
             $table->boolean('resolved')->default(false);
             $table->timestamp('created_at')->useCurrent();
         });
+
+        // Add QA status column to article_versions if it doesn't exist
+        if (!Schema::hasColumn('article_versions', 'is_verified')) {
+            Schema::table('article_versions', function (Blueprint $table) {
+                $table->boolean('is_verified')->default(false);
+            });
+        }
     }
 
     /**
@@ -34,5 +40,11 @@ return new class extends Migration
     public function down(): void
     {
         Schema::dropIfExists('curation_flags');
+
+        if (Schema::hasColumn('article_versions', 'is_verified')) {
+            Schema::table('article_versions', function (Blueprint $table) {
+                $table->dropColumn('is_verified');
+            });
+        }
     }
 };
