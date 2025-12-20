@@ -19,6 +19,7 @@ return new class extends Migration
 
             $table->string('numero_article', 50);
             $table->integer('ordre_affichage')->default(0);
+            $table->string('validation_status', 20)->default('pending');
 
             $table->timestamps();
         });

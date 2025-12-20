@@ -24,6 +24,7 @@ DROP TABLE IF EXISTS structure_nodes CASCADE;
 DROP TABLE IF EXISTS legal_documents CASCADE;
 DROP TABLE IF EXISTS institutions CASCADE;
 DROP TABLE IF EXISTS document_types CASCADE;
+DROP TABLE IF EXISTS curation_flags CASCADE;
 
 -- ===========================================================
 -- 0. TABLES SYSTÈME (LARAVEL DEFAULT)
@@ -224,6 +225,8 @@ CREATE TABLE article_versions (
 
     -- Métadonnées de modification
     modifie_par_document_id UUID REFERENCES legal_documents(id), -- Quelle loi a créé cette version ?
+
+    is_verified BOOLEAN DEFAULT FALSE, -- Document validé (QA Status)
 
     created_at TIMESTAMP DEFAULT NOW(),
 
