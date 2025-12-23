@@ -7,10 +7,16 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use OwenIt\Auditing\Contracts\Auditable;
 
-class LegalDocument extends Model
+class LegalDocument extends Model implements Auditable
 {
-    use HasFactory, HasUuids;
+    use HasFactory, HasUuids, \OwenIt\Auditing\Auditable;
+
+    protected $auditExclude = [
+        'created_at',
+        'updated_at',
+    ];
 
     protected $fillable = [
         'type_code',

@@ -6,10 +6,19 @@ use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use OwenIt\Auditing\Contracts\Auditable;
 
-class ArticleVersion extends Model
+class ArticleVersion extends Model implements Auditable
 {
-    use HasFactory, HasUuids;
+    use HasFactory, HasUuids, \OwenIt\Auditing\Auditable;
+
+    protected $auditExclude = [
+        'search_tsv',
+        'embedding',
+        'created_at',
+        'updated_at',
+    ];
 
     protected $fillable = [
         'article_id',
