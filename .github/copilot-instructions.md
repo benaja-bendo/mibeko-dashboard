@@ -12,15 +12,9 @@ This application is a Laravel application and its main Laravel ecosystems packag
 - inertiajs/inertia-laravel (INERTIA) - v2
 - laravel/fortify (FORTIFY) - v1
 - laravel/framework (LARAVEL) - v12
-- pgvector/pgvector (DATABASE) - pg16
-
-## Testing Configuration
-- The application uses **PostgreSQL** with the **pgvector** extension for all tests.
-- SQLite is NOT supported due to the usage of specific PostgreSQL features (tsvector, vector types).
-- Tests must run against a dedicated `mibeko_testing` database.
-- In CI/CD, use the `pgvector/pgvector:pg16` service container.
 - laravel/nightwatch (NIGHTWATCH) - v1
 - laravel/prompts (PROMPTS) - v0
+- laravel/sanctum (SANCTUM) - v4
 - laravel/wayfinder (WAYFINDER) - v0
 - laravel/mcp (MCP) - v0
 - laravel/pint (PINT) - v1
