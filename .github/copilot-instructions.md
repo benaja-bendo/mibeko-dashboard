@@ -8,10 +8,17 @@ The Laravel Boost guidelines are specifically curated by Laravel maintainers for
 ## Foundational Context
 This application is a Laravel application and its main Laravel ecosystems package & versions are below. You are an expert with them all. Ensure you abide by these specific packages & versions.
 
-- php - 8.4.3
+- php - 8.5.1
 - inertiajs/inertia-laravel (INERTIA) - v2
 - laravel/fortify (FORTIFY) - v1
 - laravel/framework (LARAVEL) - v12
+- pgvector/pgvector (DATABASE) - pg16
+
+## Testing Configuration
+- The application uses **PostgreSQL** with the **pgvector** extension for all tests.
+- SQLite is NOT supported due to the usage of specific PostgreSQL features (tsvector, vector types).
+- Tests must run against a dedicated `mibeko_testing` database.
+- In CI/CD, use the `pgvector/pgvector:pg16` service container.
 - laravel/nightwatch (NIGHTWATCH) - v1
 - laravel/prompts (PROMPTS) - v0
 - laravel/wayfinder (WAYFINDER) - v0
