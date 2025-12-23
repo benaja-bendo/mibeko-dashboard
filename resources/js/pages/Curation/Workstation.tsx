@@ -41,6 +41,8 @@ interface Document {
     title: string;
     source_url: string | null;
     status: string;
+    date_signature: string | null;
+    date_publication: string | null;
 }
 
 interface Props {
@@ -60,6 +62,7 @@ export default function Workstation({
         null,
     );
     const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
+    const [selectedType, setSelectedType] = useState<'document' | 'node' | 'article'>('document');
 
     // Initialize structure
     useEffect(() => {
@@ -281,15 +284,15 @@ export default function Workstation({
         );
     };
 
-    const handleUpdateTitle = (title: string) => {
+    const handleUpdateDocument = (data: Partial<Document>) => {
         router.patch(
             `/curation/${document.id}`,
-            { title },
+            data,
             {
                 preserveScroll: true,
                 preserveState: true,
-                onSuccess: () => toast.success('Titre mis à jour'),
-                onError: () => toast.error('Erreur lors de la mise à jour du titre'),
+                onSuccess: () => toast.success('Document mis à jour'),
+                onError: () => toast.error('Erreur lors de la mise à jour'),
             },
         );
     };
@@ -416,20 +419,30 @@ export default function Workstation({
 
             <WorkstationLayout
                 document={document}
-                structure={treeStructure} // Pass the built tree
+                structure={treeStructure}
                 articles={articles}
                 selectedNodeId={selectedNodeId}
                 selectedArticleId={selectedArticleId}
-                onSelectNode={setSelectedNodeId}
+                selectedType={selectedType}
+                onSelectDocument={() => {
+                    setSelectedType('document');
+                    setSelectedNodeId(null);
+                    setSelectedArticleId(null);
+                }}
+                onSelectNode={(id) => {
+                    setSelectedType('node');
+                    setSelectedNodeId(id);
+                    setSelectedArticleId(null);
+                }}
                 onSelectArticle={(a) => {
+                    setSelectedType('article');
                     setSelectedArticleId(a.id);
-                    // Also select parent node in tree if exists
                     if (a.parent_id) setSelectedNodeId(a.parent_id);
                 }}
                 actions={actions}
                 onSaveContent={handleSaveContent}
                 onCreateNewVersion={handleCreateNewVersion}
-                onUpdateTitle={handleUpdateTitle}
+                onUpdateDocument={handleUpdateDocument}
                 onDragEnd={handleDragEnd}
             />
 

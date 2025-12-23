@@ -33,8 +33,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Curation Dashboard
     Route::prefix('curation')->name('curation.')->group(function () {
         Route::get('/', [App\Http\Controllers\CurationController::class, 'index'])->name('index');
+        Route::post('/', [App\Http\Controllers\CurationController::class, 'store'])->name('store');
         Route::get('/{document}', [App\Http\Controllers\CurationController::class, 'show'])->name('show');
         Route::patch('/{document}', [App\Http\Controllers\CurationController::class, 'update'])->name('update');
+        Route::delete('/{document}', [App\Http\Controllers\CurationController::class, 'destroy'])->name('destroy');
+
 
         // Nodes
         Route::post('/{document}/nodes', [App\Http\Controllers\CurationController::class, 'storeNode'])->name('nodes.store');

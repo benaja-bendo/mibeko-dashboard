@@ -61,6 +61,7 @@ interface StructureTreeProps {
     selectedArticleId: string | null;
     onSelectNode: (id: string) => void;
     onSelectArticle: (article: Article) => void;
+    onSelectDocument: () => void;
     actions: TreeActions;
 }
 
@@ -320,11 +321,23 @@ export default function StructureTree({
     selectedArticleId,
     onSelectNode,
     onSelectArticle,
+    onSelectDocument,
     actions
 }: StructureTreeProps) {
     // Root level sorting context
     return (
         <div className="flex-1 overflow-y-auto p-2 scrollbar-thin scrollbar-thumb-zinc-200 dark:scrollbar-thumb-zinc-800">
+             <div 
+                className={cn(
+                    "flex items-center py-1.5 px-2 mb-2 cursor-pointer rounded-md text-sm transition-all select-none",
+                    !selectedNodeId && !selectedArticleId ? "bg-blue-50 dark:bg-blue-900/20 text-blue-900 dark:text-blue-100 font-semibold" : "hover:bg-zinc-100 dark:hover:bg-zinc-800/50 text-zinc-700 dark:text-zinc-400"
+                )}
+                onClick={onSelectDocument}
+             >
+                <Book className="h-4 w-4 mr-2 opacity-70" />
+                Table des matières
+             </div>
+
              <SortableContext
                 items={structure.map(n => n.id)}
                 strategy={verticalListSortingStrategy}

@@ -23,6 +23,8 @@ interface Document {
     title: string;
     source_url: string | null;
     status: string;
+    date_signature: string | null;
+    date_publication: string | null;
 }
 
 interface WorkstationLayoutProps {
@@ -31,13 +33,14 @@ interface WorkstationLayoutProps {
     articles: Article[];
     selectedNodeId: string | null;
     selectedArticleId: string | null;
+    selectedType: 'document' | 'node' | 'article';
+    onSelectDocument: () => void;
     onSelectNode: (id: string) => void;
     onSelectArticle: (article: Article) => void;
     actions: TreeActions;
     onSaveContent: (id: string, content: string) => void;
     onCreateNewVersion?: (id: string, data: { content: string; reason?: string; validFrom?: string }) => void;
-    onUpdateTitle: (title: string) => void;
-    // DnD
+    onUpdateDocument: (data: Partial<Document>) => void;
     onDragEnd: (event: DragEndEvent) => void;
 }
 
@@ -47,20 +50,49 @@ export default function WorkstationLayout({
     articles,
     selectedNodeId,
     selectedArticleId,
+    selectedType,
+    onSelectDocument,
     onSelectNode,
     onSelectArticle,
     actions,
     onSaveContent,
     onCreateNewVersion,
-    onUpdateTitle,
+    onUpdateDocument,
     onDragEnd
 }: WorkstationLayoutProps) {
     const [isPdfCollapsed, setIsPdfCollapsed] = useState(false);
 
-    // Derive selected article object
+    // Derive selected entities
     const selectedArticle = useMemo(() =>
         articles.find(a => a.id === selectedArticleId) || null
     , [articles, selectedArticleId]);
+
+    const selectedNode = useMemo(() => {
+        // Flatten tree to find node if needed, or search in props if we had flat structure.
+        // workstation.tsx has flat structure as `initialStructure`. 
+        // For simplicity, let's assume we can find it in the articles' parents or just search the tree.
+        const findInTree = (nodes: StructureNode[], id: string): StructureNode | null => {
+            for (const n of nodes) {
+                if (n.id === id) return n;
+                if (n.children) {
+                    const found = findInTree(n.children, id);
+                    if (found) return found;
+                }
+            }
+            return null;
+        };
+        return selectedNodeId ? findInTree(structure, selectedNodeId) : null;
+    }, [structure, selectedNodeId]);
+
+    // Navigation logic: Find previous and next articles
+    const { prevArticle, nextArticle } = useMemo(() => {
+        if (!selectedArticleId) return { prevArticle: null, nextArticle: null };
+        const index = articles.findIndex(a => a.id === selectedArticleId);
+        return {
+            prevArticle: index > 0 ? articles[index - 1] : null,
+            nextArticle: index < articles.length - 1 ? articles[index + 1] : null,
+        };
+    }, [articles, selectedArticleId]);
 
     // Derive breadcrumbs
     const breadcrumbs = useMemo(() => {
@@ -96,17 +128,20 @@ export default function WorkstationLayout({
                         </Button>
                     </Link>
                     <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2.5 overflow-hidden">
-                            <FileText className="h-5 w-5 text-blue-600 dark:text-blue-500 shrink-0" />
-                            <EditableHeaderTitle
-                                title={document.title}
-                                onUpdate={onUpdateTitle}
-                                className="text-lg font-semibold text-zinc-900 dark:text-zinc-100"
-                            />
-                            <Badge variant="secondary" className="hidden sm:inline-flex text-xs font-normal ml-2 shrink-0">
-                                {document.status}
-                            </Badge>
-                        </div>
+                            <div 
+                                className="flex items-center gap-2.5 overflow-hidden cursor-pointer hover:opacity-80 transition-opacity"
+                                onClick={onSelectDocument}
+                            >
+                                <FileText className="h-5 w-5 text-blue-600 dark:text-blue-500 shrink-0" />
+                                <EditableHeaderTitle
+                                    title={document.title}
+                                    onUpdate={(title) => onUpdateDocument({ title })}
+                                    className="text-lg font-semibold text-zinc-900 dark:text-zinc-100"
+                                />
+                                <Badge variant="secondary" className="hidden sm:inline-flex text-xs font-normal ml-2 shrink-0">
+                                    {document.status}
+                                </Badge>
+                            </div>
                     </div>
                 </header>
 
@@ -132,6 +167,7 @@ export default function WorkstationLayout({
                                         selectedArticleId={selectedArticleId}
                                         onSelectNode={onSelectNode}
                                         onSelectArticle={onSelectArticle}
+                                        onSelectDocument={onSelectDocument}
                                         actions={actions}
                                     />
                                 </ResizablePanel>
@@ -140,13 +176,20 @@ export default function WorkstationLayout({
 
                                 {/* Panel C: Content Editor */}
                                 <ResizablePanel defaultSize={70} minSize={30} className="bg-white dark:bg-zinc-900">
-                                <ContentEditor
+                                    <ContentEditor
+                                        document={document}
+                                        node={selectedNode}
                                         article={selectedArticle}
+                                        selectedType={selectedType}
+                                        prevArticle={prevArticle}
+                                        nextArticle={nextArticle}
+                                        onSelectArticle={onSelectArticle}
                                         breadcrumbs={breadcrumbs}
                                         onSave={onSaveContent}
                                         onCreateNewVersion={onCreateNewVersion}
-                                        onUpdateStatus={(id, status) => actions.onUpdateStatus(id, 'article', status)}
-                                        currentDocumentId={document.id}
+                                        onUpdateStatus={(id: string, type: 'node' | 'article', status: string) => actions.onUpdateStatus(id, type, status)}
+                                        onUpdateDocument={onUpdateDocument}
+                                        onUpdateNode={(id: string, data: Partial<StructureNode>) => actions.onEditNode({ ...selectedNode!, ...data })} // Simplified, should probably be a direct action
                                         isPdfVisible={!isPdfCollapsed}
                                         onTogglePdf={() => setIsPdfCollapsed(!isPdfCollapsed)}
                                     />

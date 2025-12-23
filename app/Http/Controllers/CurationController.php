@@ -6,29 +6,93 @@ use App\Models\Article;
 use App\Models\ArticleVersion;
 use App\Models\LegalDocument;
 use App\Models\StructureNode;
+use App\Models\Institution;
+use App\Models\DocumentType;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 
 class CurationController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        return Inertia::render('Curation/index', [
-            'documents' => LegalDocument::query()
-                ->with(['type', 'institution'])
-                ->withCount('articles')
-                ->latest('updated_at')
-                ->paginate(20)
-                ->through(fn ($doc) => [
+        $query = LegalDocument::query()
+            ->with(['type', 'institution'])
+            ->withCount(['articles', 'articles as validated_articles_count' => function ($query) {
+                $query->where('validation_status', 'validated');
+            }]);
+
+        // Filtering
+        if ($request->filled('search')) {
+            $query->where('titre_officiel', 'ilike', '%' . $request->search . '%');
+        }
+
+        if ($request->filled('type')) {
+            $query->where('type_code', $request->type);
+        }
+
+        if ($request->filled('status')) {
+            $query->where('curation_status', $request->status);
+        }
+
+        $documents = $query->latest('updated_at')
+            ->paginate(20)
+            ->withQueryString()
+            ->through(function ($doc) {
+                $progression = $doc->articles_count > 0 
+                    ? round(($doc->validated_articles_count / $doc->articles_count) * 100) 
+                    : 0;
+
+                // Mock quality score logic
+                $qualityScore = 85; // Default mock
+                if ($doc->articles_count === 0) $qualityScore = 0;
+                elseif ($progression > 90) $qualityScore = 95;
+                elseif ($progression > 50) $qualityScore = 80;
+
+                return [
                     'id' => $doc->id,
                     'title' => $doc->titre_officiel,
                     'type' => $doc->type->nom ?? 'N/A',
+                    'type_code' => $doc->type_code,
+                    'institution' => $doc->institution->nom ?? 'N/A',
                     'date' => $doc->date_publication?->format('Y-m-d'),
                     'articles_count' => $doc->articles_count,
                     'status' => $doc->curation_status,
-                ]),
+                    'progression' => $progression,
+                    'quality_score' => $qualityScore,
+                ];
+            });
+
+        return Inertia::render('Curation/index', [
+            'documents' => $documents,
+            'filters' => $request->only(['search', 'type', 'status']),
+            'document_types' => DocumentType::all(['code', 'nom']),
+            'institutions' => Institution::all(['id', 'nom']),
         ]);
+    }
+
+    public function store(Request $request)
+    {
+        $validated = $request->validate([
+            'type_code' => 'required|exists:document_types,code',
+            'institution_id' => 'required|exists:institutions,id',
+            'titre_officiel' => 'required|string|max:1000',
+            'reference_nor' => 'nullable|string|max:100',
+            'date_publication' => 'nullable|date',
+            'source_url' => 'nullable|string|max:2048',
+            'curation_status' => 'required|string|in:draft,review,validated,published',
+        ]);
+
+        $document = LegalDocument::create($validated);
+
+        return redirect()->route('curation.show', $document)->with('success', 'Document créé avec succès.');
+    }
+
+    public function destroy(LegalDocument $document)
+    {
+        $document->delete();
+
+        return back()->with('success', 'Document supprimé.');
     }
 
     public function show(LegalDocument $document)
@@ -45,6 +109,8 @@ class CurationController extends Controller
                 'title' => $document->titre_officiel,
                 'source_url' => $document->source_url,
                 'status' => $document->curation_status,
+                'date_signature' => $document->date_signature?->format('Y-m-d'),
+                'date_publication' => $document->date_publication?->format('Y-m-d'),
             ],
             'structure' => $document->structureNodes->map(function ($node) {
                 return [
@@ -73,8 +139,10 @@ class CurationController extends Controller
     public function update(Request $request, LegalDocument $document)
     {
         $validated = $request->validate([
-            'title' => 'sometimes|string|max:1000', // titre_officiel
-            'status' => 'sometimes|string|in:draft,published,archived', // curation_status
+            'title' => 'sometimes|string|max:1000',
+            'status' => 'sometimes|string|in:draft,review,validated,published',
+            'date_signature' => 'nullable|date',
+            'date_publication' => 'nullable|date',
         ]);
 
         $updateData = [];
@@ -83,6 +151,12 @@ class CurationController extends Controller
         }
         if (array_key_exists('status', $validated)) {
             $updateData['curation_status'] = $validated['status'];
+        }
+        if (array_key_exists('date_signature', $validated)) {
+            $updateData['date_signature'] = $validated['date_signature'];
+        }
+        if (array_key_exists('date_publication', $validated)) {
+            $updateData['date_publication'] = $validated['date_publication'];
         }
 
         if (! empty($updateData)) {
