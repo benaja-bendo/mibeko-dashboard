@@ -7,6 +7,8 @@ CREATE EXTENSION IF NOT EXISTS "vector";      -- Pour la recherche sémantique (
 CREATE EXTENSION IF NOT EXISTS "btree_gist";  -- Pour les contraintes de temps (exclude)
 
 -- NETTOYAGE (Attention: supprime les données existantes)
+DROP TABLE IF EXISTS audits CASCADE;
+DROP TABLE IF EXISTS personal_access_tokens CASCADE;
 DROP TABLE IF EXISTS failed_jobs CASCADE;
 DROP TABLE IF EXISTS job_batches CASCADE;
 DROP TABLE IF EXISTS jobs CASCADE;
@@ -122,6 +124,42 @@ CREATE TABLE IF NOT EXISTS failed_jobs (
     failed_at TIMESTAMP(0) WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Personal Access Tokens (Sanctum)
+CREATE TABLE IF NOT EXISTS personal_access_tokens (
+    id BIGSERIAL PRIMARY KEY,
+    tokenable_type VARCHAR(255) NOT NULL,
+    tokenable_id UUID NOT NULL,
+    name VARCHAR(255) NOT NULL,
+    token VARCHAR(64) NOT NULL UNIQUE,
+    abilities TEXT,
+    last_used_at TIMESTAMP(0) WITHOUT TIME ZONE,
+    expires_at TIMESTAMP(0) WITHOUT TIME ZONE,
+    created_at TIMESTAMP(0) WITHOUT TIME ZONE,
+    updated_at TIMESTAMP(0) WITHOUT TIME ZONE
+);
+CREATE INDEX IF NOT EXISTS idx_pat_tokenable ON personal_access_tokens(tokenable_type, tokenable_id);
+CREATE INDEX IF NOT EXISTS idx_pat_expires_at ON personal_access_tokens(expires_at);
+
+-- Audits (Laravel Auditing)
+CREATE TABLE IF NOT EXISTS audits (
+    id BIGSERIAL PRIMARY KEY,
+    user_type VARCHAR(255),
+    user_id UUID,
+    event VARCHAR(255) NOT NULL,
+    auditable_type VARCHAR(255) NOT NULL,
+    auditable_id UUID NOT NULL,
+    old_values TEXT,
+    new_values TEXT,
+    url TEXT,
+    ip_address INET,
+    user_agent VARCHAR(1023),
+    tags VARCHAR(255),
+    created_at TIMESTAMP(0) WITHOUT TIME ZONE,
+    updated_at TIMESTAMP(0) WITHOUT TIME ZONE
+);
+CREATE INDEX IF NOT EXISTS idx_audits_user ON audits(user_id, user_type);
+CREATE INDEX IF NOT EXISTS idx_audits_auditable ON audits(auditable_type, auditable_id);
+
 -- ===========================================================
 -- 1. TABLE : METADONNÉES DES DOCUMENTS (Le contenant)
 -- Inspiré de schema02 pour la richesse
@@ -208,7 +246,7 @@ CREATE TABLE articles (
 
     numero_article VARCHAR(50) NOT NULL, -- "1", "2 bis", "Art. 4"
     ordre_affichage INT DEFAULT 0,
-    
+
     validation_status VARCHAR(20) DEFAULT 'pending',
 
     created_at TIMESTAMP DEFAULT NOW(),
@@ -236,7 +274,7 @@ CREATE TABLE article_versions (
 
     -- Métadonnées de modification
     modifie_par_document_id UUID REFERENCES legal_documents(id), -- Quelle loi a créé cette version ?
-    
+
     validation_status VARCHAR(50) DEFAULT 'pending' CHECK (validation_status IN ('pending', 'in_progress', 'validated', 'rejected')),
 
     is_verified BOOLEAN DEFAULT FALSE, -- Document validé (QA Status)
@@ -280,14 +318,14 @@ CREATE TABLE document_relations (
 -- ===========================================================
 CREATE TABLE curation_flags (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    
+
     document_id UUID REFERENCES legal_documents(id),
     article_id UUID REFERENCES articles(id),
-    
+
     type_probleme VARCHAR(50), -- 'scan_illisible', 'structure_cassee', 'doublon'
     description TEXT,
     resolved BOOLEAN DEFAULT FALSE,
-    
+
     created_at TIMESTAMP DEFAULT NOW(),
     updated_at TIMESTAMP DEFAULT NOW()
 );
