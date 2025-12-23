@@ -96,6 +96,11 @@ return [
             'prefix_indexes' => true,
             'search_path' => 'public',
             'sslmode' => 'prefer',
+            'dump' => [
+                'dump_binary_path' => '/opt/homebrew/bin', // Folder containing pg_dump
+                'use_single_transaction',
+                'timeout' => 60 * 5, // 5 minutes
+            ],
         ],
 
         'sqlsrv' => [
@@ -148,7 +153,7 @@ return [
 
         'options' => [
             'cluster' => env('REDIS_CLUSTER', 'redis'),
-            'prefix' => env('REDIS_PREFIX', Str::slug((string) env('APP_NAME', 'laravel')).'-database-'),
+            'prefix' => env('REDIS_PREFIX', Str::slug((string) env('APP_NAME', 'laravel')) . '-database-'),
             'persistent' => env('REDIS_PERSISTENT', false),
         ],
 

@@ -17,6 +17,7 @@ DROP TABLE IF EXISTS password_reset_tokens CASCADE;
 DROP TABLE IF EXISTS users CASCADE;
 DROP TABLE IF EXISTS migrations CASCADE;
 
+DROP TABLE IF EXISTS curation_flags CASCADE;
 DROP TABLE IF EXISTS document_relations CASCADE;
 DROP TABLE IF EXISTS article_versions CASCADE;
 DROP TABLE IF EXISTS articles CASCADE;
@@ -24,7 +25,7 @@ DROP TABLE IF EXISTS structure_nodes CASCADE;
 DROP TABLE IF EXISTS legal_documents CASCADE;
 DROP TABLE IF EXISTS institutions CASCADE;
 DROP TABLE IF EXISTS document_types CASCADE;
-DROP TABLE IF EXISTS curation_flags CASCADE;
+
 
 -- ===========================================================
 -- 0. TABLES SYSTÈME (LARAVEL DEFAULT)
@@ -41,7 +42,7 @@ CREATE TABLE IF NOT EXISTS migrations (
 
 -- Utilisateurs (Authentification + 2FA Fortify)
 CREATE TABLE IF NOT EXISTS users (
-    id BIGSERIAL PRIMARY KEY,
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     name VARCHAR(255) NOT NULL,
     email VARCHAR(255) NOT NULL UNIQUE,
     email_verified_at TIMESTAMP(0) WITHOUT TIME ZONE,
@@ -64,7 +65,7 @@ CREATE TABLE IF NOT EXISTS password_reset_tokens (
 -- Sessions (si driver database utilisé)
 CREATE TABLE IF NOT EXISTS sessions (
     id VARCHAR(255) PRIMARY KEY,
-    user_id BIGINT,
+    user_id UUID,
     ip_address VARCHAR(45),
     user_agent TEXT,
     payload TEXT NOT NULL,
@@ -129,14 +130,20 @@ CREATE TABLE IF NOT EXISTS failed_jobs (
 CREATE TABLE document_types (
     code VARCHAR(10) PRIMARY KEY, -- LOI, DEC, ORD, CODE, CONST
     nom VARCHAR(50) NOT NULL,
-    niveau_hierarchique INT DEFAULT 0 -- 1=Constitution, 2=Loi, etc.
+    niveau_hierarchique INT DEFAULT 0, -- 1=Constitution, 2=Loi, etc.
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW()
 );
+
 -- Institutions (Qui a émis le texte ?)
 CREATE TABLE institutions (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     nom VARCHAR(200) NOT NULL,
-    sigle VARCHAR(50)
+    sigle VARCHAR(50),
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW()
 );
+
 -- Textes officiels (Les documents eux-mêmes)
 CREATE TABLE legal_documents (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -180,7 +187,8 @@ CREATE TABLE structure_nodes (
     validation_status VARCHAR(50) DEFAULT 'pending', -- pending, in_progress, validated
     sort_order INTEGER DEFAULT 0,
 
-    created_at TIMESTAMP DEFAULT NOW()
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW()
 );
 
 -- Index pour rechercher instantanément tous les enfants d'un noeud
@@ -200,8 +208,11 @@ CREATE TABLE articles (
 
     numero_article VARCHAR(50) NOT NULL, -- "1", "2 bis", "Art. 4"
     ordre_affichage INT DEFAULT 0,
+    
+    validation_status VARCHAR(20) DEFAULT 'pending',
 
-    created_at TIMESTAMP DEFAULT NOW()
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW()
 );
 
 -- ===========================================================
@@ -225,10 +236,13 @@ CREATE TABLE article_versions (
 
     -- Métadonnées de modification
     modifie_par_document_id UUID REFERENCES legal_documents(id), -- Quelle loi a créé cette version ?
+    
+    validation_status VARCHAR(50) DEFAULT 'pending' CHECK (validation_status IN ('pending', 'in_progress', 'validated', 'rejected')),
 
     is_verified BOOLEAN DEFAULT FALSE, -- Document validé (QA Status)
 
     created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW(),
 
     -- CONTRAINTE D'INTEGRITÉ TEMPORELLE
     -- Empêche d'avoir deux versions valides en même temps pour le même article
@@ -255,5 +269,25 @@ CREATE TABLE document_relations (
     target_article_id UUID REFERENCES articles(id),
 
     relation_type VARCHAR(50) CHECK (relation_type IN ('MODIFIE', 'ABROGE', 'CITE', 'COMPLETE')),
-    commentaire TEXT
+    commentaire TEXT,
+
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW()
+);
+
+-- ===========================================================
+-- 6. TABLE : DRAPEAUX DE CURATION (Signalement d'erreurs)
+-- ===========================================================
+CREATE TABLE curation_flags (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    
+    document_id UUID REFERENCES legal_documents(id),
+    article_id UUID REFERENCES articles(id),
+    
+    type_probleme VARCHAR(50), -- 'scan_illisible', 'structure_cassee', 'doublon'
+    description TEXT,
+    resolved BOOLEAN DEFAULT FALSE,
+    
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW()
 );

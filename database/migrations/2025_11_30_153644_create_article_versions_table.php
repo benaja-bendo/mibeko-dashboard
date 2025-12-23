@@ -19,7 +19,9 @@ return new class extends Migration
             $table->text('contenu_texte');
             $table->foreignUuid('modifie_par_document_id')->nullable()->constrained('legal_documents');
 
-            $table->boolean('is_verified')->default(false); // Document validé (QA Status)
+            $table->string('validation_status', 50)
+                ->default('pending')
+                ->check("validation_status IN ('pending', 'in_progress', 'validated', 'rejected')"); // Document validé (QA Status)
 
             $table->timestamps();
         });
