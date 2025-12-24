@@ -63,7 +63,7 @@ class CurationController extends Controller
                 ];
             });
 
-        return Inertia::render('curation/index', [
+        return Inertia::render('Curation/Index', [
             'documents' => $documents,
             'filters' => $request->only(['search', 'type', 'status']),
             'document_types' => DocumentType::all(['code', 'nom']),
@@ -103,7 +103,7 @@ class CurationController extends Controller
             $query->orderBy('ordre_affichage'); // Use ordre_affichage for articles as per schema, maybe aliased to order in frontend
         }]);
 
-        return Inertia::render('curation/workstation', [
+        return Inertia::render('Curation/Workstation', [
             'document' => [
                 'id' => $document->id,
                 'title' => $document->titre_officiel,
