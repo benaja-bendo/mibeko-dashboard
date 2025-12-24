@@ -11,14 +11,14 @@ uses(RefreshDatabase::class);
 
 beforeEach(function () {
     $this->user = User::factory()->create();
-    
+
     // Ensure we have types and institutions
     $this->type = DocumentType::create([
         'code' => 'LOI',
         'nom' => 'Loi',
         'niveau_hierarchique' => 1
     ]);
-    
+
     $this->institution = Institution::create([
         'nom' => 'Assemblée Nationale',
         'sigle' => 'AN'
@@ -76,7 +76,7 @@ it('creates a new legal document', function () {
 
     $document = LegalDocument::where('titre_officiel', 'Nouvelle Loi de Test')->first();
     expect($document)->not->toBeNull();
-    
+
     $response->assertRedirect("/curation/{$document->id}");
 });
 
