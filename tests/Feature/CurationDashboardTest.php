@@ -31,7 +31,7 @@ it('displays the curation index page', function () {
 
     $response->assertStatus(200)
         ->assertInertia(fn ($page) => $page
-            ->component('Curation/index')
+            ->component('curation/index')
             ->has('documents.data')
             ->has('document_types')
             ->has('institutions')
@@ -110,7 +110,7 @@ it('displays the curation workstation with metadata', function () {
 
     $response->assertStatus(200)
         ->assertInertia(fn ($page) => $page
-            ->component('Curation/workstation')
+            ->component('curation/workstation')
             ->where('document.date_signature', '2025-06-01')
             ->where('document.date_publication', '2025-06-15')
         );
