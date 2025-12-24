@@ -5,7 +5,7 @@ namespace App\Http\Resources\V1;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
-class InstitutionResource extends JsonResource
+class StructureNodeResource extends JsonResource
 {
     /**
      * Transform the resource into an array.
@@ -14,10 +14,14 @@ class InstitutionResource extends JsonResource
      */
     public function toArray(Request $request): array
     {
+        /** @var \App\Models\StructureNode $this */
         return [
             'id' => $this->id,
-            'name' => $this->nom,
-            'acronym' => $this->sigle,
+            'type' => $this->type_unite,
+            'number' => $this->numero,
+            'title' => $this->titre,
+            'order' => $this->sort_order,
+            'articles' => ArticleResource::collection($this->whenLoaded('articles')),
         ];
     }
 }

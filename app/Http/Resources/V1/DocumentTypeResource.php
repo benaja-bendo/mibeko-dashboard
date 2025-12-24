@@ -5,7 +5,7 @@ namespace App\Http\Resources\V1;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
-class InstitutionResource extends JsonResource
+class DocumentTypeResource extends JsonResource
 {
     /**
      * Transform the resource into an array.
@@ -14,10 +14,11 @@ class InstitutionResource extends JsonResource
      */
     public function toArray(Request $request): array
     {
+        /** @var \App\Models\DocumentType $this */
         return [
-            'id' => $this->id,
+            'code' => $this->code,
             'name' => $this->nom,
-            'acronym' => $this->sigle,
+            'hierarchy_level' => $this->niveau_hierarchique,
         ];
     }
 }

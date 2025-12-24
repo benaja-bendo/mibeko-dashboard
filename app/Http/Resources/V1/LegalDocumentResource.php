@@ -30,6 +30,7 @@ class LegalDocumentResource extends JsonResource
                 'name' => $this->type->nom,
             ]),
             'articles' => ArticleResource::collection($this->whenLoaded('articles')),
+            'relations' => DocumentRelationResource::collection($this->whenLoaded('relations')),
         ];
     }
 }

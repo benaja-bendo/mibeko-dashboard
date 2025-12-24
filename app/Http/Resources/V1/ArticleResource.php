@@ -18,6 +18,7 @@ class ArticleResource extends JsonResource
         return [
             'id' => $this->id,
             'number' => $this->numero_article,
+            'order' => $this->ordre_affichage,
             'content' => $this->whenLoaded('latestVersion', fn() => $this->latestVersion->contenu_texte),
             'validation_status' => $this->validation_status,
         ];
