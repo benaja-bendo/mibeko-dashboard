@@ -19,6 +19,8 @@ DROP TABLE IF EXISTS password_reset_tokens CASCADE;
 DROP TABLE IF EXISTS users CASCADE;
 DROP TABLE IF EXISTS migrations CASCADE;
 
+DROP TABLE IF EXISTS article_tag CASCADE;
+DROP TABLE IF EXISTS tags CASCADE;
 DROP TABLE IF EXISTS curation_flags CASCADE;
 DROP TABLE IF EXISTS document_relations CASCADE;
 DROP TABLE IF EXISTS article_versions CASCADE;
@@ -269,7 +271,8 @@ CREATE TABLE article_versions (
     contenu_texte TEXT NOT NULL,
 
     -- Recherche : Hybride (Full Text + Vector)
-    search_tsv TSVECTOR GENERATED ALWAYS AS (to_tsvector('french', contenu_texte)) STORED,
+    -- search_tsv TSVECTOR GENERATED ALWAYS AS (to_tsvector('french', contenu_texte)) STORED,
+    search_tsv TSVECTOR,
     -- embedding VECTOR(1536), -- Dimension 1536 pour OpenAI ada-002 (à adapter selon votre modèle)
 
     -- Métadonnées de modification
@@ -329,3 +332,78 @@ CREATE TABLE curation_flags (
     created_at TIMESTAMP DEFAULT NOW(),
     updated_at TIMESTAMP DEFAULT NOW()
 );
+
+-- ===========================================================
+-- 7. TABLE : TAGS (Pour Sandrine / Simplification)
+-- ===========================================================
+CREATE TABLE tags (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    name VARCHAR(255) NOT NULL UNIQUE,
+    slug VARCHAR(255) NOT NULL UNIQUE,
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE TABLE article_tag (
+    article_id UUID NOT NULL REFERENCES articles(id) ON DELETE CASCADE,
+    tag_id UUID NOT NULL REFERENCES tags(id) ON DELETE CASCADE,
+    PRIMARY KEY (article_id, tag_id)
+);
+
+CREATE INDEX idx_article_tag_article ON article_tag(article_id);
+CREATE INDEX idx_article_tag_tag ON article_tag(tag_id);
+
+-- ===========================================================
+-- 8. TRIGGERS : REFRESH SEARCH TSV (Full Text Search)
+-- ===========================================================
+CREATE OR REPLACE FUNCTION fn_refresh_article_version_tsv()
+RETURNS TRIGGER AS $$
+DECLARE
+    article_id_to_update UUID;
+    tags_text TEXT;
+BEGIN
+    -- Identify which article to update
+    IF (TG_RELNAME = 'article_versions') THEN
+        article_id_to_update := NEW.article_id;
+    ELSE
+        -- We are in article_tag
+        IF (TG_OP = 'DELETE') THEN
+            article_id_to_update := OLD.article_id;
+        ELSE
+            article_id_to_update := NEW.article_id;
+        END IF;
+    END IF;
+
+    -- Get all tags for this article
+    SELECT COALESCE(string_agg(name, ' '), '') INTO tags_text
+    FROM tags
+    JOIN article_tag ON tags.id = article_tag.tag_id
+    WHERE article_tag.article_id = article_id_to_update;
+
+    -- Update search index
+    IF (TG_RELNAME = 'article_versions') THEN
+        NEW.search_tsv := (
+            setweight(to_tsvector('french', COALESCE(NEW.contenu_texte, '')), 'A') ||
+            setweight(to_tsvector('french', tags_text), 'B')
+        );
+        RETURN NEW;
+    ELSE
+        UPDATE article_versions 
+        SET search_tsv = (
+            setweight(to_tsvector('french', COALESCE(contenu_texte, '')), 'A') ||
+            setweight(to_tsvector('french', tags_text), 'B')
+        )
+        WHERE article_id = article_id_to_update;
+        RETURN NULL;
+    END IF;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_refresh_tsv_on_version
+BEFORE INSERT OR UPDATE OF contenu_texte ON article_versions
+FOR EACH ROW EXECUTE FUNCTION fn_refresh_article_version_tsv();
+
+CREATE TRIGGER trg_refresh_tsv_on_tags
+AFTER INSERT OR DELETE OR UPDATE ON article_tag
+FOR EACH ROW EXECUTE FUNCTION fn_refresh_article_version_tsv();
+
