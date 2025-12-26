@@ -25,12 +25,14 @@ class LegalDocumentResource extends JsonResource
                 'publication' => $this->date_publication?->toIso8601String(),
             ],
             'institution' => InstitutionResource::make($this->whenLoaded('institution')),
-            'type' => $this->whenLoaded('type', fn() => [
+            'type' => $this->whenLoaded('type', fn () => [
                 'code' => $this->type->code,
                 'name' => $this->type->nom,
             ]),
-            'articles' => ArticleResource::collection($this->whenLoaded('articles')),
+            'structure' => StructureNodeResource::collection($this->whenLoaded('structureNodes')),
+            'articles' => ArticleSyncResource::collection($this->whenLoaded('articles')),
             'relations' => DocumentRelationResource::collection($this->whenLoaded('relations')),
+            'updated_at' => $this->updated_at->toIso8601String(),
         ];
     }
 }

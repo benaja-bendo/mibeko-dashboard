@@ -13,6 +13,8 @@ class Article extends Model
 {
     use HasFactory, HasUuids;
 
+    protected $touches = ['document'];
+
     protected $fillable = [
         'document_id',
         'parent_node_id',
@@ -39,6 +41,11 @@ class Article extends Model
     public function latestVersion()
     {
         return $this->hasOne(ArticleVersion::class)->orderByDesc('created_at');
+    }
+
+    public function activeVersion()
+    {
+        return $this->hasOne(ArticleVersion::class)->whereRaw('upper_inf(validity_period)');
     }
 
     public function tags(): BelongsToMany

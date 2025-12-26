@@ -32,8 +32,11 @@ class LegalDocument extends Model implements Auditable
     ];
 
     const STATUS_DRAFT = 'draft';
+
     const STATUS_REVIEW = 'review';
+
     const STATUS_VALIDATED = 'validated';
+
     const STATUS_PUBLISHED = 'published';
 
     protected function casts(): array
@@ -63,5 +66,10 @@ class LegalDocument extends Model implements Auditable
     public function articles(): HasMany
     {
         return $this->hasMany(Article::class, 'document_id');
+    }
+
+    public function relations(): HasMany
+    {
+        return $this->hasMany(DocumentRelation::class, 'source_doc_id');
     }
 }

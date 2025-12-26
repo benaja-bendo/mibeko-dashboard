@@ -12,6 +12,8 @@ class ArticleVersion extends Model implements Auditable
 {
     use HasFactory, HasUuids, \OwenIt\Auditing\Auditable;
 
+    protected $touches = ['article'];
+
     protected $auditExclude = [
         'search_tsv',
         'embedding',
@@ -42,8 +44,10 @@ class ArticleVersion extends Model implements Auditable
      */
     public static function makeValidityPeriod(string $startDate, ?string $endDate = null): string
     {
-        $end = $endDate ?? 'infinity';
+        if ($endDate === null || $endDate === 'infinity') {
+            return "[{$startDate},)";
+        }
 
-        return "[{$startDate}, {$end})";
+        return "[{$startDate}, {$endDate})";
     }
 }
