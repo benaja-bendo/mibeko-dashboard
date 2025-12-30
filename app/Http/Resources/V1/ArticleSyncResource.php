@@ -23,6 +23,7 @@ class ArticleSyncResource extends JsonResource
             'number' => $this->numero_article,
             'order' => $this->ordre_affichage,
             'content' => $this->whenLoaded('activeVersion', fn () => $this->activeVersion->contenu_texte),
+            'tags' => $this->whenLoaded('tags', fn () => $this->tags->pluck('name')), // or full tag objects if needed. PRD "Semantic Tagging" implies using string names for search.
             'updated_at' => $this->updated_at->toIso8601String(),
         ];
     }

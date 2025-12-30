@@ -19,6 +19,7 @@ class LegalDocumentExportController extends Controller
                 'type',
                 'structureNodes',
                 'articles.activeVersion',
+                'articles.tags',
                 'relations',
             ])
             ->findOrFail($id);

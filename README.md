@@ -58,6 +58,9 @@ Assurez-vous d'avoir installé les outils suivants sur votre machine :
     ./vendor/bin/sail up -d
     ```
     *(Note : Vous pouvez créer un alias pour `sail` pour simplifier les commandes suivantes)*
+    ```bash
+    php artisan serve --host=0.0.0.0 --port=8000
+    ```
 
 5.  **Installer les dépendances JavaScript**
     ```bash
