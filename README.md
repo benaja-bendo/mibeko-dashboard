@@ -60,6 +60,7 @@ Assurez-vous d'avoir installé les outils suivants sur votre machine :
     *(Note : Vous pouvez créer un alias pour `sail` pour simplifier les commandes suivantes)*
     ```bash
     php artisan serve --host=0.0.0.0 --port=8000
+    php artisan db:seed --class=RealisticLegalSeeder
     ```
 
 5.  **Installer les dépendances JavaScript**

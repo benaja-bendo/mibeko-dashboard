@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\V1\ArticleSearchController;
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\DocumentTypeController;
 use App\Http\Controllers\Api\V1\InstitutionController;
@@ -24,6 +25,9 @@ Route::prefix('v1')->group(function () {
     Route::apiResource('legal-documents', LegalDocumentController::class)->only(['index', 'show']);
     Route::get('legal-documents/{document}/tree', [StructureNodeController::class, 'tree']);
     Route::get('legal-documents/{id}/full-export', [LegalDocumentExportController::class, 'export']);
+
+    // Article Search (for mobile app)
+    Route::get('articles/search', [ArticleSearchController::class, 'search']);
 
     // Sync
     Route::get('sync/updates', [SyncController::class, 'updates']);
