@@ -26,9 +26,18 @@ return new class extends Migration
             $table->timestamps();
         });
 
-        DB::statement('ALTER TABLE article_versions ADD COLUMN validity_period DATERANGE NOT NULL');
+        // PRD 2.2: Versioning Temporel (SCD Type 2) avec tstzrange
+        DB::statement('ALTER TABLE article_versions ADD COLUMN validity_period TSTZRANGE NOT NULL');
+        
+        // PRD 2.1: Recherche (Full-text + Sémantique)
         DB::statement("ALTER TABLE article_versions ADD COLUMN search_tsv TSVECTOR GENERATED ALWAYS AS (to_tsvector('french', contenu_texte)) STORED");
+        DB::statement('ALTER TABLE article_versions ADD COLUMN embedding vector(1536)');
+
+        // Indexes
         DB::statement('CREATE INDEX idx_versions_search ON article_versions USING GIN (search_tsv)');
+        DB::statement('CREATE INDEX idx_versions_embedding ON article_versions USING hnsw (embedding vector_cosine_ops)');
+        
+        // Constraint: No overlapping validity periods for the same article
         DB::statement('ALTER TABLE article_versions ADD CONSTRAINT article_versions_excl EXCLUDE USING GIST (article_id WITH =, validity_period WITH &&)');
     }
 

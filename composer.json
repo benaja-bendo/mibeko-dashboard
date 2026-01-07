@@ -10,6 +10,7 @@
     "license": "MIT",
     "require": {
         "php": "^8.2",
+        "barryvdh/laravel-dompdf": "^3.1",
         "dedoc/scramble": "^0.13.8",
         "inertiajs/inertia-laravel": "^2.0",
         "laravel/fortify": "^1.30",
@@ -19,8 +20,10 @@
         "laravel/tinker": "^2.10.1",
         "laravel/wayfinder": "^0.1.9",
         "league/flysystem-aws-s3-v3": "^3.0",
+        "openai-php/laravel": "^0.18.0",
         "owen-it/laravel-auditing": "^14.0",
-        "spatie/laravel-backup": "^9.3"
+        "spatie/laravel-backup": "^9.3",
+        "spatie/laravel-query-builder": "^6.3"
     },
     "require-dev": {
         "fakerphp/faker": "^1.23",

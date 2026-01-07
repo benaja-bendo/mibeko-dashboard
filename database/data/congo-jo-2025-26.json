@@ -1,0 +1,3162 @@
+{
+  "id": "congo-jo-2025-26",
+  "source_file": "congo-jo-2025-26.md",
+  "textes": [
+    {
+      "numero_texte": "Loi n° 10-2025",
+      "date_publication": "2025-05-28",
+      "intitule_long": "relative au titre, à l'exercice de la profession d'architecte et à l'architecture en République du Congo",
+      "formule_promulgation": "L'Assemblée nationale et le Sénat ont délibéré et adopté ; Le Président de la République promulgue la loi dont la teneur suit :",
+      "contenu": [
+        {
+          "type": "Titre",
+          "intitule": "TITRE I : DISPOSITIONS GENERALES",
+          "elements": [
+            {
+              "type": "Article",
+              "numero": "premier",
+              "texte": [
+                {
+                  "type": "alinea",
+                  "content": "La présente loi a pour objet de fixer les conditions d'accès au titre d'architecte, à l'exercice de la profession et le cadre d'orientation générale de l'architecture en République du Congo."
+                }
+              ]
+            },
+            {
+              "type": "Article",
+              "numero": "2",
+              "texte": [
+                {
+                  "type": "alinea",
+                  "content": "Au sens de la presente loi, les termes ci-après sont définis ainsi qu'il suit :"
+                },
+                {
+                  "type": "alinea",
+                  "content": "architecte : artiste, technicien et homme de sciences. Il exerce sous sa responsabilité une profession libreale, intellectuelle et non commerciale. Son œuvre doit s'intégrer aux conditions politiques, économiques, sociales, environnementales et culturelles de son milieu ;"
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "-",
+                  "content": "architecte fonctionnaire ou agent public : architecte exerçant dans un service public, parapublic ou autre structure de l'Etat ou des collectivités locales ;"
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "-",
+                  "content": "architecture : expression culturelle d'une société en termes d'espace, de forme et de contexte historique, une activité de conception des projets de construction, un outil intellectuel forge par l'homme pour résoudre les problèmes qui lui sont posés par son habitat. Elle concourt à l'acte de conceivevoir, construire, organiser, aménager ou transformer l'espace ou les territoires des établissements humains ;"
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "-",
+                  "content": "cabinet d'architecte : entreprise spécialisée dans la prestation de services architecturaux ;"
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "-",
+                  "content": "bureau d'études/agency d'architecture: organisme dans lequel des architectes, ingénieurs, dessinateurs et représentants d'autres disciplines élaborent des projets architecturaux pour le compte de l'État, d'une collectivité territoriale ou du secteur privé;"
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "-",
+                  "content": "société d'architecture : structure exerçant la profession d'architecte ;"
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "-",
+                  "content": "maitre d'ouvrage : personne morale ou physique pour qui est réalisé le projet ;"
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "-",
+                  "content": "maître d'oeuvre: personne morale ou physique retenue par le maître d'ouvrage, charge du bon déroulement et de l'exécution des travaux."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "Titre",
+          "intitule": "TITRE II : DE L'ARCHITECTE",
+          "elements": [
+            {
+              "type": "Chapitre",
+              "intitule": "CHAPITRE 1 : Du titre et de l'exercice de la profession",
+              "elements": [
+                {
+                  "type": "Article",
+                  "numero": "3",
+                  "texte": [
+                    {
+                      "type": "alinea",
+                      "content": "Seules les personnes physiques inscrites au tableau de l'ordre des architectes du Congo peuvent porter le titre d'architecte, conformément aux dispositions des articles 4 et 7 de la presente loi."
+                    }
+                  ]
+                },
+                {
+                  "type": "Article",
+                  "numero": "4",
+                  "texte": [
+                    {
+                      "type": "alinea",
+                      "content": "Seules les personnes morales inscrites au tableau de l'ordre des architectes du Congo peuvent utiliser le titre de cabinet, bureau d'études d'architecture ou société d'architecture, conformément aux dispositions des articles 8 et 9 de la presente loi."
+                    }
+                  ]
+                },
+                {
+                  "type": "Article",
+                  "numero": "5",
+                  "texte": [
+                    {
+                      "type": "alinea",
+                      "content": "L'inscription au tableau de l'ordre des architectes du Congo confère le droit d'exercer sur l'ensemble du territoire national."
+                    }
+                  ]
+                },
+                {
+                  "type": "Article",
+                  "numero": "6",
+                  "texte": [
+                    {
+                      "type": "alinea",
+                      "content": "Sont inscrites au tableau de l'ordre des architectes du Congo, les personnes physiques de nationalité congolaise ou étrangère qui jouissent de leurs droits civiques,présentent les garanties de moralité nécessaires et replissant les conditions définies aux articles 19, 20 et 21 de la loi n° 013-92 du 29 avril 1992 portant creation de l'ordre des architectes du Congo."
+                    },
+                    {
+                      "type": "alinea",
+                      "content": "Tout architecte souhaitant s'inscrite au tableau de l'ordre des architectes du Congo est tenu d'accomplir un stage d'une durée de vingt-quatre (24) mois minimum, auprès d'un architecte, d'un bureau d'études ou d'une société d'architecture ou d'un service public ou parapublic reconnu."
+                    }
+                  ],
+                  "references": [
+                    {
+                      "type": "loi",
+                      "texte_cite": "loi n° 013-92 du 29 avril 1992"
+                    }
+                  ]
+                },
+                {
+                  "type": "Article",
+                  "numero": "7",
+                  "texte": [
+                    {
+                      "type": "alinea",
+                      "content": "L'architecte exerce sa profession selon l'un des modes suivants :"
+                    },
+                    {
+                      "type": "enumeration",
+                      "marker": "-",
+                      "content": "à titre individuel ;"
+                    },
+                    {
+                      "type": "enumeration",
+                      "marker": "-",
+                      "content": "en qualité d'associe ;"
+                    },
+                    {
+                      "type": "enumeration",
+                      "marker": "-",
+                      "content": "en qualité de salarié d'un architecte, d'un bureau d'études d'architecture ou d'une société d'architecture;"
+                    },
+                    {
+                      "type": "enumeration",
+                      "marker": "-",
+                      "content": "en qualité de salarié d'une société privée ;"
+                    },
+                    {
+                      "type": "enumeration",
+                      "marker": "-",
+                      "content": "en qualité de fonctionnaire ou d'agent public."
+                    }
+                  ]
+                },
+                {
+                  "type": "Article",
+                  "numero": "8",
+                  "texte": [
+                    {
+                      "type": "alinea",
+                      "content": "A titre individuel, l'architecte peut s'insteller en cabinet privé."
+                    }
+                  ]
+                },
+                {
+                  "type": "Article",
+                  "numero": "9",
+                  "texte": [
+                    {
+                      "type": "alinea",
+                      "content": "L'architecte, associé à un ou plusieurs architectes ou à tout autre professionnel duBATIMENT, peut se constituer avec ceux-ci en bureau d'etudes d'architecture ou société d'architecture, dans les conditions prévues par la presente loi."
+                    }
+                  ]
+                },
+                {
+                  "type": "Article",
+                  "numero": "10",
+                  "texte": [
+                    {
+                      "type": "alinea",
+                      "content": "L'architecte salarié dans un cabinet privaté, un bureau d'études d'architecture, une société d'architecture ou une société privée est engagé sur la base d'un contrat."
+                    },
+                    {
+                      "type": "alinea",
+                      "content": "Il a droit à un salaire fixe. Ce salaire ne doit enaucun cas etre inférieur a celui prevu pour les cadressupérieurs par la convention collective du batiment etdes travaux publics."
+                    },
+                    {
+                      "type": "alinea",
+                      "content": "La rémunération doit en outre inclure les divers avantages définis par la réglementation du travail en vigueur, augmentée d'une prime spéciale calculée en pourcentage des honoraires provenant des projets qu'il aura diriges."
+                    }
+                  ]
+                },
+                {
+                  "type": "Article",
+                  "numero": "11",
+                  "texte": [
+                    {
+                      "type": "alinea",
+                      "content": "L'architecte fonctionnaire ou agent public est celui qui exerce dans un service public, parapublic ou toute autre structure de l'Etat ou des collectivités locales."
+                    }
+                  ]
+                },
+                {
+                  "type": "Article",
+                  "numero": "12",
+                  "texte": [
+                    {
+                      "type": "alinea",
+                      "content": "L'architecte fonctionnaire ou agent public a pour vocation :"
+                    },
+                    {
+                      "type": "enumeration",
+                      "marker": "-",
+                      "content": "d'entrepreneure sur tout projet soumis au visa de l'autorité de tutelle, les tâches de vérification, de contrôle architectural et technique;"
+                    },
+                    {
+                      "type": "enumeration",
+                      "marker": "-",
+                      "content": "de receivevoir de l'autorité de tutelle mandat de représentier, de défendre les intérêts de l'Etat, des administrations et des collectivités publiques tant à l'intérieur qu'à l'extérieur du territoire national;"
+                    },
+                    {
+                      "type": "enumeration",
+                      "marker": "-",
+                      "content": "de prendre une part active à l'élaboration des études architecturales, d'une politique d'aménagement du territoire, de l'habitat et de l'urbanisme, tant en milieu rural qu'en milieu urbain;"
+                    },
+                    {
+                      "type": "enumeration",
+                      "marker": "-",
+                      "content": "de participer activement à l'elaboration de la réglementation et des normes dans le domaine de l'aménagement du territoire, de l'habitat, de l'urbanisme, de l'assainissement et de veiller au strict respect des textes en la matière."
+                    }
+                  ]
+                },
+                {
+                  "type": "Article",
+                  "numero": "13",
+                  "texte": [
+                    {
+                      "type": "alinea",
+                      "content": "Les architectes fonctionnaires ou agents publics sont régis par le statut général de la fonction publique ou toute convention collective de l'organisme public ou semi-public qui les emploie."
+                    },
+                    {
+                      "type": "alinea",
+                      "content": "Ils conservent la plénitude du droit de propriété intellectuelle sur la production d'oeuvre d'architecture et d'urbanisme de leur propre conception et jouissent des avantages et des prerogatives garantis par la loi et les textes en vigueur en la matière."
+                    }
+                  ]
+                },
+                {
+                  "type": "Article",
+                  "numero": "14",
+                  "texte": [
+                    {
+                      "type": "alinea",
+                      "content": "La qualité d'architecte fonctionnaire ou agent public, ainsi que les droits et obligations qui en découlent, cèssentès que l'architecte n'est plus agent de l'Etat."
+                    }
+                  ]
+                },
+                {
+                  "type": "Article",
+                  "numero": "15",
+                  "texte": [
+                    {
+                      "type": "alinea",
+                      "content": "L'architecte étranger autorisé à exercer au Congo doit respecter les conditions suivantes, en sus de celles prévues à l'article 6 :"
+                    },
+                    {
+                      "type": "enumeration",
+                      "marker": "-",
+                      "content": "être associé à un architecte congolais inscrit au tableau de l'ordre des architectes du Congo ;"
+                    },
+                    {
+                      "type": "enumeration",
+                      "marker": "-",
+                      "content": "étabir sa résidence au Congo."
+                    }
+                  ]
+                },
+                {
+                  "type": "Article",
+                  "numero": "16",
+                  "texte": [
+                    {
+                      "type": "alinea",
+                      "content": "L'autorisation d'exercer est accordée à l'architecte étranger par le conseil national de l'ordre des architectes du Congo, sous réserve de réciprocité, sur presentation d'un dossier complinant :"
+                    },
+                    {
+                      "type": "enumeration",
+                      "marker": "-",
+                      "content": "une demande écrite sur papier timbré ;"
+                    },
+                    {
+                      "type": "enumeration",
+                      "marker": "-",
+                      "content": "un extrait d'acte de naissance ;"
+                    },
+                    {
+                      "type": "enumeration",
+                      "marker": "-",
+                      "content": "un curriculum vitae ;"
+                    },
+                    {
+                      "type": "enumeration",
+                      "marker": "-",
+                      "content": "un extrait de casier judiciaire datant de moins de trois mois ;"
+                    },
+                    {
+                      "type": "enumeration",
+                      "marker": "-",
+                      "content": "un certificat de nationalité du pays d'origine ;"
+                    },
+                    {
+                      "type": "enumeration",
+                      "marker": "-",
+                      "content": "un diplôme d'architecte reconnu par l'Etat congolais."
+                    }
+                  ]
+                },
+                {
+                  "type": "Article",
+                  "numero": "17",
+                  "texte": [
+                    {
+                      "type": "alinea",
+                      "content": "Les architectes étrangers autorisés à exercer la profession sont soumis à toutes les obligations relatives à l'exercice de la profession d'architecte en République du Congo."
+                    }
+                  ]
+                },
+                {
+                  "type": "Article",
+                  "numero": "18",
+                  "texte": [
+                    {
+                      "type": "alinea",
+                      "content": "L'autorisation accordée à l'architecte étranger, conformément à l'article 17 ci-dessus,)cesse de plein droit lorsque l'intérêtse quitte définitivement le territoire de la République du Congo."
+                    }
+                  ]
+                },
+                {
+                  "type": "Article",
+                  "numero": "19",
+                  "texte": [
+                    {
+                      "type": "alinea",
+                      "content": "L'architecte est tenu au secret professionnel dans les conditions prévues et réprimées par la loi. Toutefois, il en est délié lorsqu'il est traduit, pour faute professionnelle, devant le conseil national de l'ordre, siègeant en matière disciplinaire ou devant les tribunaux."
+                    }
+                  ]
+                },
+                {
+                  "type": "Article",
+                  "numero": "20",
+                  "texte": [
+                    {
+                      "type": "alinea",
+                      "content": "L'architecte est responsable de la bonne exécution des missions qui lui sont confiées. Les études non conformes aux programmes préétablies sont obligatoirement reprises par leurs auteurs."
+                    }
+                  ]
+                },
+                {
+                  "type": "Article",
+                  "numero": "21",
+                  "texte": [
+                    {
+                      "type": "alinea",
+                      "content": "Tout manquement aux devoirs de la profession expose son auteur à l'une des sanctions disciplinaires suivantes :"
+                    },
+                    {
+                      "type": "enumeration",
+                      "marker": "-",
+                      "content": "l'avertissement ;"
+                    },
+                    {
+                      "type": "enumeration",
+                      "marker": "-",
+                      "content": "le rappel à l'ordre ;"
+                    },
+                    {
+                      "type": "enumeration",
+                      "marker": "-",
+                      "content": "le blâme avec inscription au dossier ;"
+                    },
+                    {
+                      "type": "enumeration",
+                      "marker": "-",
+                      "content": "la suspension pour une durée maximale d'une année ;"
+                    },
+                    {
+                      "type": "enumeration",
+                      "marker": "-",
+                      "content": "la radiation du tableau compteant l'interdiction d'exercer la profession d'architecte."
+                    },
+                    {
+                      "type": "alinea",
+                      "content": "L'architecte qui écope d'une sanction fait recours auprès de l'assemblée générale de l'ordre des architectes du Congo."
+                    }
+                  ]
+                },
+                {
+                  "type": "Article",
+                  "numero": "22",
+                  "texte": [
+                    {
+                      "type": "alinea",
+                      "content": "Tout architecte qui, dans l'exercice de sa profession, commet une infraction, fera l'objet des poursuites judiciaires."
+                    }
+                  ]
+                },
+                {
+                  "type": "Article",
+                  "numero": "23",
+                  "texte": [
+                    {
+                      "type": "alinea",
+                      "content": "L'architecte est tenu de contracter une assurance couvrant tous les risques professionnels. Toutefois, cette obligation n'exclut pas pour l'architecte, la possibilité de contracter d'autres assurances pour des opérations ponctuelles."
+                    }
+                  ]
+                },
+                {
+                  "type": "Article",
+                  "numero": "24",
+                  "texte": [
+                    {
+                      "type": "alinea",
+                      "content": "L'architecte est tenu de se conformer à la législation fiscale en vigueur réglementant les professions libérales non commerciales en République du Congo."
+                    }
+                  ]
+                },
+                {
+                  "type": "Article",
+                  "numero": "25",
+                  "texte": [
+                    {
+                      "type": "alinea",
+                      "content": "L'architecte doit faire preuve d'objectivité et d'équité, lorsqu'il est amné à donner son avis sur la proposition d'un entrepreneur de travaux ou d'un"
+                    },
+                    {
+                      "type": "alinea",
+                      "content": "document contractuel liant un maître d'ouvrage à un entrepreneur ou à un fournisseur. Il en est de même lorsqu'il formule une appréciation sur la compétence ou la qualité d'une entreprise ou sur la qualité des ouvrages."
+                    }
+                  ]
+                },
+                {
+                  "type": "Article",
+                  "numero": "26",
+                  "texte": [
+                    {
+                      "type": "alinea",
+                      "content": "L'architecte qui n'a pas participé à l'élaboration d'un projet, ne peut enaucun cas y apposer sa signature ni prétendre à une rémunération."
+                    },
+                    {
+                      "type": "alinea",
+                      "content": "Les noms et les titres de tout architecte qui a effectivement participé à l'elaboration d'un projet doivent être explicitement mentionnés sur les éléments du projet auxquels il a participé."
+                    }
+                  ]
+                },
+                {
+                  "type": "Article",
+                  "numero": "27",
+                  "texte": [
+                    {
+                      "type": "alinea",
+                      "content": "Lorsqu'un architecte est amné à pratiquer plusieurs activités de nature différentes, celles-ci doivent être parfaitement distinctes, indépendantes et de notoriété publique."
+                    },
+                    {
+                      "type": "alinea",
+                      "content": "Toute confusion d'activités, de fonctions, de responsabilités, dont l'ambiguité pourrait entrainer méprise, tromperie et procurer à l'architecte des avantages matériels à l'insu du client ou de l'employeur, est interdite."
+                    }
+                  ]
+                },
+                {
+                  "type": "Article",
+                  "numero": "28",
+                  "texte": [
+                    {
+                      "type": "alinea",
+                      "content": "L'architecte peut, à l'occasion d'une même mission, exercer à la fois une activité de conception architecturale ou de maîtrise d'oeuvre et des fonctions de contrôle et d'expertise."
+                    }
+                  ]
+                },
+                {
+                  "type": "Article",
+                  "numero": "29",
+                  "texte": [
+                    {
+                      "type": "alinea",
+                      "content": "Les activités d'architecte, maître d'oeuvre, sont incompatibles avec les activités d'entrepreneur, de promoteur ou de fournisseur de matériel aux de construction."
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "Chapitre",
+              "intitule": "CHAPITRE 2 : Des missions de l'architecte",
+              "elements": [
+                {
+                  "type": "Article",
+                  "numero": "30",
+                  "texte": [
+                    {
+                      "type": "alinea",
+                      "content": "Dans l'exécution de ses missions classiques, l'architecte est maître d'œuvre."
+                    },
+                    {
+                      "type": "alinea",
+                      "content": "# A ce titre :"
+                    },
+                    {
+                      "type": "enumeration",
+                      "marker": "-",
+                      "content": "il participe à l'élaboration du programme des études qui lui sont confiées ;"
+                    },
+                    {
+                      "type": "enumeration",
+                      "marker": "-",
+                      "content": "il cree, concoit et compose les edifices et les espaces, en déterminé les proportions, la structure, la distribution. Il en trace les plans, rédige les devis et les marchés en vue des travaux;"
+                    },
+                    {
+                      "type": "enumeration",
+                      "marker": "-",
+                      "content": "il dirige et coordonne les travaux de chantier ou peut être associé à leur surveillance;"
+                    },
+                    {
+                      "type": "enumeration",
+                      "marker": "-",
+                      "content": "il vérifie les décomptes en vue du règlement des dépenses ;"
+                    },
+                    {
+                      "type": "enumeration",
+                      "marker": "-",
+                      "content": "il veille à l'observation des textes législatifs et réglementaires applicables aux travaux dont il a la charge ;"
+                    },
+                    {
+                      "type": "enumeration",
+                      "marker": "-",
+                      "content": "il peut être chargé de l'expertise."
+                    }
+                  ]
+                },
+                {
+                  "type": "Article",
+                  "numero": "31",
+                  "texte": [
+                    {
+                      "type": "alinea",
+                      "content": "Dans le cadre de ses compétences, l'architecte assume les fonctions d'expert, donne des consultations ou dispense des enseignements."
+                    }
+                  ]
+                },
+                {
+                  "type": "Article",
+                  "numero": "32",
+                  "texte": [
+                    {
+                      "type": "alinea",
+                      "content": "L'architecte assiste son client lors de la préparation du contrat d'entreprise, de la réception des travaux et pendant la période de garantie."
+                    }
+                  ]
+                },
+                {
+                  "type": "Article",
+                  "numero": "33",
+                  "texte": [
+                    {
+                      "type": "alinea",
+                      "content": "Les missions confiées à l'architecte doivent être accomplies par lui-même ou sous sa direction. Elles peuvent être complètes ou partielles."
+                    },
+                    {
+                      "type": "alinea",
+                      "content": "L'architecte assure ses missions suivant le mandat qu'il reçoit de son client. Ce mandat doit être définis dans le contrat le liant à son client."
+                    },
+                    {
+                      "type": "alinea",
+                      "content": "L'architecte doit adapter le nombre et l'endetue des missions qu'il accepte à ses aptitudes, à ses connaissances, à ses possibilités d'intervention personnelle, au moyen qu'il peutmettre en œuvre ainsi qu'aux exigences particulières qu'impliquent l'importance et le lieu d'exécution de ses missions. Il doit recourir, en cas de nécessité, aux compétences d'autres professionnels du bâtiment."
+                    }
+                  ]
+                },
+                {
+                  "type": "Article",
+                  "numero": "34",
+                  "texte": [
+                    {
+                      "type": "alinea",
+                      "content": "Lorsque l'architecte a la conviction que les disponibilités dont dispose le maître d'ouvrage sont manifestement insuffisantes pour les travaux projétés, il doit l'en informer par écrit."
+                    },
+                    {
+                      "type": "alinea",
+                      "content": "Outre des avis et des conseils, l'architecte doit fournir à son client les explications nécessaires à la compréhension et à l'appréciation des services qu'il lui rend."
+                    },
+                    {
+                      "type": "alinea",
+                      "content": "L'architecte doit s'abstenir de prendre toute décision ou de donner tout ordre pouvant entrainer une dépense non prévue ou qui n'a pas été préalablement approuvée par le maître d'ouvrage."
+                    }
+                  ]
+                },
+                {
+                  "type": "Article",
+                  "numero": "35",
+                  "texte": [
+                    {
+                      "type": "alinea",
+                      "content": "Lorsque l'architecte a l'intention de sous-traiter d'autres missions, il doit au préalable obtenir du maître d'ouvrage l'acceptation du sous-traitant et l'agréement des conditions de paiement."
+                    }
+                  ]
+                },
+                {
+                  "type": "Article",
+                  "numero": "36",
+                  "texte": [
+                    {
+                      "type": "alinea",
+                      "content": "La dénonciation d'un contrat par un architecte constitue une faute professionnelle, sauf si elle intervient pour des motifs justes et raisonnables tels que la perte de confiance manIFESTée par son client, la survenance d'une situation plaçant l'architecte en conflit d'intérêt ou susceptible de porter atteinte à son indépendance, la violation par le client d'une ou plusieurs clauses du contrat qui le lie à l'architecte."
+                    }
+                  ]
+                },
+                {
+                  "type": "Article",
+                  "numero": "37",
+                  "texte": [
+                    {
+                      "type": "alinea",
+                      "content": "L'architecte qui dirige les travaux s'assure que ceux-ci sont conduits conformément aux plans et aux documents descriptifs qu'il a établis et aux plannings d'exécution qu'il a prescrits. Dans ce cas, il reçoit de l'entreprise les situations, les mémoires et les pièces justificatives des dépenses, les vérifie et les remet à son client en lui faisant d'après l'état d'avancement des travaux et conformément aux conventions, des propositions de versement d'acomptes et de paiement du solde."
+                    }
+                  ]
+                },
+                {
+                  "type": "Article",
+                  "numero": "38",
+                  "texte": [
+                    {
+                      "type": "alinea",
+                      "content": "Lorsque l'architecte assiste son client pour les réceptions des travaux, il vise les procès-verbaux dressés à cette occasion."
+                    }
+                  ]
+                },
+                {
+                  "type": "Article",
+                  "numero": "39",
+                  "texte": [
+                    {
+                      "type": "alinea",
+                      "content": "L'architecte employeur assure pour lui-même et ses collaborateurs le renforcement des capacités. Il confère à chacun d'eux, architecte ou non, des tâches correspondant à leur niveau de qualification."
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "Chapitre",
+              "intitule": "CHAPITRE 3 : De l'intervention de l'architecte",
+              "elements": [
+                {
+                  "type": "Article",
+                  "numero": "40",
+                  "texte": [
+                    {
+                      "type": "alinea",
+                      "content": "La personne physique ou morale qui désire entreprenevre des travaux dans une zone soumise à une autorisation de construire doit faire appel à un architecte qui établit un projet architectural."
+                    }
+                  ]
+                },
+                {
+                  "type": "Article",
+                  "numero": "41",
+                  "texte": [
+                    {
+                      "type": "alinea",
+                      "content": "Le recours à l'architecte n'est pas obligatoire pour :"
+                    },
+                    {
+                      "type": "enumeration",
+                      "marker": "-",
+                      "content": "les constructions uniquement à rez-dechaussée, à usage d'habitation ou non, dont l'emprise au sol ne dépasse pas cent (100) mètres carrés et simples de par leur composition et de par leurs structures de résistance ;"
+                    },
+                    {
+                      "type": "enumeration",
+                      "marker": "-",
+                      "content": "les travaux qui concernent exclusivement l'aménagement et l'équipement des espaces interieurs des constructions et des vitrines commerciales ou qui sont limités à des reprises n'entrainant pas de modifications visibles de l'extérieur."
+                    }
+                  ]
+                },
+                {
+                  "type": "Article",
+                  "numero": "42",
+                  "texte": [
+                    {
+                      "type": "alinea",
+                      "content": "Les prototypes de construction et leurs variantes industriales ou non, susceptibles d'utilisation repétée, doivent avant toute commercialisation être établis par un architecte et ce, quel que soit le maître d'ouvrage qui les utilise."
+                    }
+                  ]
+                },
+                {
+                  "type": "Article",
+                  "numero": "43",
+                  "texte": [
+                    {
+                      "type": "alinea",
+                      "content": "Les autorités habilitées à délivrer les permis de construire, ainsi que les autorisations de lotir, s'assurent au cours de l'instruction des dossiers de demande, du respect des dispositions prévues aux articles 40, 41 et 42 ci-dessus."
+                    }
+                  ]
+                },
+                {
+                  "type": "Article",
+                  "numero": "44",
+                  "texte": [
+                    {
+                      "type": "alinea",
+                      "content": "L'architecte assure la direction des travaux afin de veiller au respect des documents d'exécution des ouvrages en cours de réalisation du projet architectural élaboré par ses soins."
+                    }
+                  ]
+                },
+                {
+                  "type": "Article",
+                  "numero": "45",
+                  "texte": [
+                    {
+                      "type": "alinea",
+                      "content": "Aucune modification ne peut être apportée aux plans architecturaux pendant la réalisation des travaux sans accord préalable de l'architecte concepteur du projet, même si celui-ci n'assure pas la direction des travaux."
+                    }
+                  ]
+                },
+                {
+                  "type": "Article",
+                  "numero": "46",
+                  "texte": [
+                    {
+                      "type": "alinea",
+                      "content": "Le projet architectural mentionné à l'article 40 ci-dessus comporte les documents graphiques et écrites définissant :"
+                    },
+                    {
+                      "type": "enumeration",
+                      "marker": "-",
+                      "content": "l'insertion au site, au relief et l'adaptation au climat ;"
+                    },
+                    {
+                      "type": "enumeration",
+                      "marker": "-",
+                      "content": "l'implantation du ou des batiments, compte tenu de l'alignement, de la marge de recul, des prospects et des niveaux topographiques;"
+                    },
+                    {
+                      "type": "enumeration",
+                      "marker": "-",
+                      "content": "la composition du ou des batiments, plan de masse précisant la disposition relative des volumes ;"
+                    },
+                    {
+                      "type": "enumeration",
+                      "marker": "-",
+                      "content": "l'organisation du ou des batiments, des plans et des coupes faisant apparaitre leur distribution, leur fonction, leur utilisation, leur forme et leurs dimensions;"
+                    },
+                    {
+                      "type": "enumeration",
+                      "marker": "-",
+                      "content": "l'expression des volumes, des élevations interieures et extérieures précisant les diverses formes des éléments et leur organisation d'ensemble;"
+                    },
+                    {
+                      "type": "enumeration",
+                      "marker": "-",
+                      "content": "leschoix des matériaux et des couleurs."
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "Chapitre",
+              "intitule": "CHAPITRE 4 : De l'exercicerial",
+              "elements": [
+                {
+                  "type": "Article",
+                  "numero": "47",
+                  "texte": [
+                    {
+                      "type": "alinea",
+                      "content": "L'architecte salarié doit s'assurer que le contrat qui le lie à l'employeur précise :"
+                    },
+                    {
+                      "type": "enumeration",
+                      "marker": "-",
+                      "content": "la désignation et la qualité des parties contractantes ;"
+                    },
+                    {
+                      "type": "enumeration",
+                      "marker": "-",
+                      "content": "les missions confiées à l'architecte et les prestations correspondantes ainsi que les moyens mis à sa disposition ;"
+                    },
+                    {
+                      "type": "enumeration",
+                      "marker": "-",
+                      "content": "les conditions de rémunération des prestations fournies ;"
+                    },
+                    {
+                      "type": "enumeration",
+                      "marker": "-",
+                      "content": "les conditions d'assurance qui couvrent les responsabilités découlant des missions accomplies ;"
+                    },
+                    {
+                      "type": "enumeration",
+                      "marker": "-",
+                      "content": "la compatibilité de l'exercice de ses fonctions avec les règes professionnelles."
+                    }
+                  ]
+                },
+                {
+                  "type": "Article",
+                  "numero": "48",
+                  "texte": [
+                    {
+                      "type": "alinea",
+                      "content": "Lorsque l'architecte salarié ne peut plus replir ses missions dans les conditions requises à l'article 47 de la presente loi, il en informe son employeur et le Conseil national de l'ordre des architectes du Congo, dans un délais d'un (1) mois."
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "Titre",
+          "intitule": "TITRE III : DE L'ARCHITECTURE",
+          "elements": [
+            {
+              "type": "Chapitre",
+              "intitule": "CHAPITRE 1 : De la qualité architecturale",
+              "elements": [
+                {
+                  "type": "Article",
+                  "numero": "49",
+                  "texte": [
+                    {
+                      "type": "alinea",
+                      "content": "La création architecturale, la qualité de l'architecture des constructions, leur insertion harmonieuse dans le milieu environnant, dans l'espace construit et aménaged des territoires urbains et ruraux, le respect des paysages naturels, urbains et ruraux ainsi que le patrimoine architectural, des monuments historiques, des ouvrages et des sites classés, sont d'utilité et d'intérêt publics sur l'ensemble du territoire national."
+                    },
+                    {
+                      "type": "alinea",
+                      "content": "Les autorités habilitées à délivrer les autorisations de lotir ainsi que le permis de construire ou de démolir s'assurent, au cours de l'instruction des demandes, du respect de cet intérêt."
+                    }
+                  ]
+                },
+                {
+                  "type": "Article",
+                  "numero": "50",
+                  "texte": [
+                    {
+                      "type": "alinea",
+                      "content": "La création architecturale puise son inspiration dans les valeurs culturelles africaines, congolaises et dans les exigences de la modernité."
+                    },
+                    {
+                      "type": "alinea",
+                      "content": "L'acte de creation architecturale est une prestation de service spécifique, d'intérêt général, fournie par un professionnel de la conception de l'espace."
+                    },
+                    {
+                      "type": "alinea",
+                      "content": "Il recouvre à la fois un acte professionnel, un acte artistique et un acte de maîtrise d'oeuvre qui a pour effet le conception et la réalisation des espaces habités, urbanisés ou non."
+                    }
+                  ]
+                },
+                {
+                  "type": "Article",
+                  "numero": "51",
+                  "texte": [
+                    {
+                      "type": "alinea",
+                      "content": "L'utilisation de l'espace construit doit se conformer aux besoin et aspirations de la société congolaise."
+                    },
+                    {
+                      "type": "alinea",
+                      "content": "En conséquence, toute personne physique ou morale qui désire édifier, réhabiliter ou modifier unBATIMENT ou un espace public doit faire appel à un architecte."
+                    },
+                    {
+                      "type": "alinea",
+                      "content": "Le recours à un architecte n'est pas obligatoire, pour les constructions ou modifications de constructions, dans les conditions prévues par la loi n° 6-2019 du 5 mars 2019 portant code de l'urbanisme et de la construction."
+                    }
+                  ],
+                  "references": [
+                    {
+                      "type": "loi",
+                      "texte_cite": "loi n° 6-2019 du 5 mars 2019"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "Chapitre",
+              "intitule": "CHAPITRE 2 : De la construction",
+              "elements": [
+                {
+                  "type": "Article",
+                  "numero": "52",
+                  "texte": [
+                    {
+                      "type": "alinea",
+                      "content": "Les dispositions des articles 6, 7 et 8 de la presente loi sont applicables à toute construction édifiée sur le territoire congolais, qu'elle que soit son importance ou sa destination."
+                    }
+                  ]
+                },
+                {
+                  "type": "Article",
+                  "numero": "53",
+                  "texte": [
+                    {
+                      "type": "alinea",
+                      "content": "Toute construction nouvelle, toute modification ou toute démolition de construction ancienne, soumise à la procédure de demande du permis de construire ou de démolir, exige l'intervention d'un architecte, sauf dérogation prévue à l'article 40 ci-dessus."
+                    }
+                  ]
+                },
+                {
+                  "type": "Article",
+                  "numero": "54",
+                  "texte": [
+                    {
+                      "type": "alinea",
+                      "content": "Les modèles types de construction, leurs variantes susceptibles d'utilisation répétée doivent, avant toute commercialisation, être établis par un architecte dans les conditions prévues à l'article 40 de la présente loi et ce, quel que soit le maître d'ouvrage qui les utilise."
+                    }
+                  ]
+                },
+                {
+                  "type": "Article",
+                  "numero": "55",
+                  "texte": [
+                    {
+                      "type": "alinea",
+                      "content": "Toutes constructions projetées doivent être conformes aux dispositions législatives et réglementaires concernant leur implantation, leur destination, leur nature, leur architecture, leurs dimensions, leur assainissement, leur intégration au site, l'aménagement de leurs abords et leur réponse aux exigences de développement durable."
+                    },
+                    {
+                      "type": "alinea",
+                      "content": "Dans le cas d'une opération de réhabilitation, le projet architectural doit être précisé d'un diagnostic établi par un architecte. Ce diagnostic fait ressortir les caractéristiques architecturales interieures, extérieures et la valeur culturelle du batiment lignes d'être conservées et mises en valeur, son potentiel d'usage et, est accompagné d'un document graphique permettant d'approçier son insertion dans le bâti environnant."
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "Titre",
+          "intitule": "TITRE IV : DISPOSITIONS DIVERSES, TRANSITOIRES ET FINALES",
+          "elements": [
+            {
+              "type": "Article",
+              "numero": "56",
+              "texte": [
+                {
+                  "type": "alinea",
+                  "content": "Les modalités d'organisation des concours des projets d'architecture sont à la charge du maître d'ouvrage par le biais d'un architecte."
+                }
+              ]
+            },
+            {
+              "type": "Article",
+              "numero": "57",
+              "texte": [
+                {
+                  "type": "alinea",
+                  "content": "Tout bureau d'études d'architecture ou toute société d'architecture doit communiquer ses statuts et la liste de ses associés ainsi que toutes modifications y afferentes à l'ordre des architectes du Congo."
+                }
+              ]
+            },
+            {
+              "type": "Article",
+              "numero": "58",
+              "texte": [
+                {
+                  "type": "alinea",
+                  "content": "Les maîtres d'ouvrage publics et privés favorisent, pour la passation des marchés de maitrise d'oeuvre ayant pour objet la réalisation d'un ouvrage de bathtub, la procédure de mise en concurrence qui participe à la création, à la qualité, à l'innovation architecturales et à l'insertion harmonieuse des constructions dans leur milieu environnant."
+                }
+              ]
+            },
+            {
+              "type": "Article",
+              "numero": "59",
+              "texte": [
+                {
+                  "type": "alinea",
+                  "content": "Les cabinets, bureaux détudes ou sociétés d'architecture qui soumissionnent aux marchés publics de maïtrise d'oeuvre, y compris par la procédure de concours d'architecture, doivent au préalable obtenir un agrément du ministère en charge de l'urbanisme et de l'architecture."
+                }
+              ]
+            },
+            {
+              "type": "Article",
+              "numero": "60",
+              "texte": [
+                {
+                  "type": "alinea",
+                  "content": "Tout projet architectural doit composer la signature de l'architecte ou des architectes ayant contribuè à sonélaboration."
+                }
+              ]
+            },
+            {
+              "type": "Article",
+              "numero": "61",
+              "texte": [
+                {
+                  "type": "alinea",
+                  "content": "La propriété artistique et intellectuelle de l'architecte sur ses oeuvres est garantie par les lois et règlements en vigueur en République du Congo."
+                }
+              ]
+            },
+            {
+              "type": "Article",
+              "numero": "62",
+              "texte": [
+                {
+                  "type": "alinea",
+                  "content": "L'ordre des architectes du Congo veille à la protection de la propriété artistique et intellectuelle de l'architecte."
+                }
+              ]
+            },
+            {
+              "type": "Article",
+              "numero": "63",
+              "texte": [
+                {
+                  "type": "alinea",
+                  "content": "Le non-respect des dispositions de la presente loi expose tout architecte aux sanctions prévues à l'article 23 de la presente loi."
+                }
+              ]
+            },
+            {
+              "type": "Article",
+              "numero": "64",
+              "texte": [
+                {
+                  "type": "alinea",
+                  "content": "Des décrets en Conseil des ministres définitissant le barème des honoraires d'architecte, le code des devoirs professionnels, la classification, la protection, la conservation, la réhabilitation ou la restauration des sites classés, des monuments historiques et du patrimoine architectural."
+                }
+              ]
+            },
+            {
+              "type": "Article",
+              "numero": "65",
+              "texte": [
+                {
+                  "type": "alinea",
+                  "content": "La présente loi, qui abroge toutes dispositions antérieures contraires, sera publiée au Journal officiel et executée comme loi de l'Etat."
+                },
+                {
+                  "type": "alinea",
+                  "content": "Fait à Brazzaville, le 28 mai 2025"
+                },
+                {
+                  "type": "alinea",
+                  "content": "ParlePrésidentdelaRépublique,"
+                },
+                {
+                  "type": "alinea",
+                  "content": "Denis SASSOU-N'GUESSO"
+                },
+                {
+                  "type": "alinea",
+                  "content": "LePremierministre,chef duGouvernement,"
+                },
+                {
+                  "type": "alinea",
+                  "content": "Anatole Collinet MAKOSSO"
+                },
+                {
+                  "type": "alinea",
+                  "content": "Le ministre de la construction, de l'urbanisme et de l'habitat,"
+                },
+                {
+                  "type": "alinea",
+                  "content": "Josué Rodrigue NGOUONIMBA"
+                },
+                {
+                  "type": "alinea",
+                  "content": "Le ministre d'Etat, ministre de la fonction publique, du travail et de la sécurité sociale,"
+                },
+                {
+                  "type": "alinea",
+                  "content": "Firmin AYESSA"
+                },
+                {
+                  "type": "alinea",
+                  "content": "Le ministre d'Etat, ministre des'affaires foncières et du domaine public, charge des relations avec le Parlement,"
+                },
+                {
+                  "type": "alinea",
+                  "content": "Pierre MABIALA"
+                },
+                {
+                  "type": "alinea",
+                  "content": "Le ministre d'Etat, ministre de l'aménagement du territoire et des grands travaux,"
+                },
+                {
+                  "type": "alinea",
+                  "content": "Jean Jacques BOUYA"
+                },
+                {
+                  "type": "alinea",
+                  "content": "Le ministre des finances, du budget et du portefeuille public,"
+                },
+                {
+                  "type": "alinea",
+                  "content": "Christian YOKA"
+                },
+                {
+                  "type": "alinea",
+                  "content": "Le garde des sceaux, ministre de la justice, des droits humains et de la promotion des peuples autochtones,"
+                },
+                {
+                  "type": "alinea",
+                  "content": "Aimé Ange Wilfrid BININGA"
+                },
+                {
+                  "type": "alinea",
+                  "content": "La ministre de l'enseignement supérieur,"
+                },
+                {
+                  "type": "alinea",
+                  "content": "Delphine Edith EMMANUEL ADOUKI"
+                },
+                {
+                  "type": "alinea",
+                  "content": "La ministre de l'industrie culturelle, touristique, artistique et des loisirs,"
+                },
+                {
+                  "type": "alinea",
+                  "content": "Marie-France Lydie Hélène PONGAULT"
+                },
+                {
+                  "type": "alinea",
+                  "content": "Le ministre de l'assainissement urbain, du développement local et de l'entretien routier,"
+                },
+                {
+                  "type": "alinea",
+                  "content": "Juste Désiré MONDELE"
+                },
+                {
+                  "type": "alinea",
+                  "content": "Loin 14-2025 du 25 juin 2025 autorisant la ratification du contrat de financement et de prét relatif au « troisième financement à l'appui des politiques de développement pour la gestion budgêtaire et la croissance inclusive », signé entre la République du Congo, la Banque internationale pour la reconstruction et le développement et l'Association internationale de développement, ci-après le groupe de la Banque mondiale"
+                },
+                {
+                  "type": "alinea",
+                  "content": "L'Assemblée nationale et le Sénéat ont délibéré et adopté ;"
+                },
+                {
+                  "type": "alinea",
+                  "content": "Le Président de la République promulgue la loi dont la teneur suit :"
+                }
+              ]
+            },
+            {
+              "type": "Article",
+              "numero": "premier",
+              "texte": [
+                {
+                  "type": "alinea",
+                  "content": "Est autorisée la ratification du contrat de financement et de prét relatif au « troisième financement à l'appui des politiques de développement pour la gestion budgêtaire et la croissance inclusive », signé entre la République du Congo, la Banque internationale pour la reconstruction et le développement et l'Association internationale de développement, ci-après le groupe de la Banque mondiale, dont le texte est annexe à la présente loi."
+                }
+              ]
+            },
+            {
+              "type": "Article",
+              "numero": "2",
+              "texte": [
+                {
+                  "type": "alinea",
+                  "content": "La présente loi sera publiée au Journal officiel et exécutée comme loi de l'Etat."
+                },
+                {
+                  "type": "alinea",
+                  "content": "Fait à Brazzaville, le 25 juin 2025"
+                },
+                {
+                  "type": "alinea",
+                  "content": "ParlePrésidentdelaRépublique,"
+                },
+                {
+                  "type": "alinea",
+                  "content": "Denis SASSOU-N'GUESSO"
+                },
+                {
+                  "type": "alinea",
+                  "content": "LePremierministre,chef duGouvernement,"
+                },
+                {
+                  "type": "alinea",
+                  "content": "Anatole Collinet MAKOSSO"
+                },
+                {
+                  "type": "alinea",
+                  "content": "Le ministre des finances, du budget et du portefeuille public,"
+                },
+                {
+                  "type": "alinea",
+                  "content": "Christian YOKA"
+                },
+                {
+                  "type": "alinea",
+                  "content": "Pour le ministre de l'économie, du plan et de l'intégration régionale, en mission :"
+                },
+                {
+                  "type": "alinea",
+                  "content": "Le ministre des finances, du budget et du portefeuille public,"
+                },
+                {
+                  "type": "alinea",
+                  "content": "Christian YOKA"
+                },
+                {
+                  "type": "alinea",
+                  "content": "Accord de financement (Troisième financement de la politique de gestion budgétaire et de développement de la croissance inclusive)"
+                },
+                {
+                  "type": "alinea",
+                  "content": "entre"
+                },
+                {
+                  "type": "alinea",
+                  "content": "LA REPUBLIQUE DU CONGO"
+                },
+                {
+                  "type": "alinea",
+                  "content": "et"
+                },
+                {
+                  "type": "alinea",
+                  "content": "L'ASSOCIATION INTERNATIONALE DE DEVELOPPEMENT"
+                },
+                {
+                  "type": "alinea",
+                  "content": "ACCORD DE FINANCEMENT"
+                },
+                {
+                  "type": "alinea",
+                  "content": "ACCORD datede la date de signature entre la REPUBLICQUE DU CONGO (beneficiaire) et l'ASSOCIATION INTERNATIONAL DE DÉVELOPPEMENT (Association) dans le but de fournir un financement à l'appui du programme (tel que défini dans l'annexe au present accord). L'Association a decide de fournir ce financement sur la base, entre autres, des éléments suivants: (i) des mesures que le bénéficiaire a déjà prises dans le cadre du programme et qui sont décrites dans la section I de l'annexe 1 du present accord; et (ii) du maintainen par le bénéficiaire d'un cadre de politique macroeconomique adequat. Le bénéficiaire et l'association conviennent donc de ce qui suit :"
+                },
+                {
+                  "type": "alinea",
+                  "content": "# ARTICLE I - CONDITIONS GENÉRALES ; DÉFINITIONS"
+                },
+                {
+                  "type": "alinea",
+                  "content": "1.01. Les conditions générales (telles que définies dans l'annexe au present accord) s'appliquent au present accord et en font partie intégrante."
+                },
+                {
+                  "type": "alinea",
+                  "content": "1.02. Sauf si le contexte s'y oppose, les termes en majuscules utilisés dans leprésent accord ont la signification qui leur est attribuée dans les conditions générales ou dans l'annexe au présence accord."
+                },
+                {
+                  "type": "alinea",
+                  "content": "# ARTICLE II - FINANCEMENT"
+                },
+                {
+                  "type": "alinea",
+                  "content": "2.01. L'Association accepte d'accorder au bénéficiaire un crédit, qui est considéré comme un financement concessionnel aux fins des conditions générales, pour les montants suivants :"
+                },
+                {
+                  "type": "alinea",
+                  "content": "(a) un premier crédit d'un montant de quarante et un millions six cent mille euros (41.600.000 EUR), tel que ce montant peut être converti de temps"
+                },
+                {
+                  "type": "alinea",
+                  "content": "à autre par le biais d'une conversion de devises («Crédit A») ; et"
+                },
+                {
+                  "type": "alinea",
+                  "content": "(b) un deuxième crédit d'un montant de douze millions trois cent mille euros (EUR 12.300.000), tel que ce montant peut être converti de temps à autre par une conversion de devises («Crédit B»)."
+                },
+                {
+                  "type": "alinea",
+                  "content": "# 2.02. Les conditions de financement applicables au Crédit A sont les suivantes :"
+                },
+                {
+                  "type": "alinea",
+                  "content": "(a) Le taux maximum de la commission d'engagement est d'un demi pour cent (1/2 de  $1\\%$ ) par an sur le solde de financement non prélevé."
+                },
+                {
+                  "type": "alinea",
+                  "content": "(b) Les frais de service applicables au Crédit A sont le plus élevé des deux montants suivants: (i) la somme de trois quarts de un pour cent (3/4 de 1 %) par an plus l'ajustement de base des frais de service applicables au Crédit A; et (ii) trois quarts de un pour cent (3/4 de 1 %) par an; sur le Solde créditeur prélevé applicable au Crédit A."
+                },
+                {
+                  "type": "alinea",
+                  "content": "(c) Les frais d'intérêt applicables au Crédit A sont le plus élevé des deux montants suivants : (i) la somme de un et un quart pour cent  $(1,25\\%)$  par an plus l'ajustement de base des frais d'intérêt applicables au Crédit A ; et (ii) zéro pour cent  $(0\\%)$  par an ; sur le solde créditeur retiree applicable au Crédit A."
+                },
+                {
+                  "type": "alinea",
+                  "content": "(d) Les dates de paiement applicables au Crédit A sont le 15 février et le 15 août de chaque année."
+                },
+                {
+                  "type": "alinea",
+                  "content": "(e) Le montant principal du Crédit A sera rembourse conformément au calendrier de remboursement figurant à l'annexe 2. A de la présente convention."
+                },
+                {
+                  "type": "alinea",
+                  "content": "(f) La monnaie de paiement est l'euro."
+                },
+                {
+                  "type": "alinea",
+                  "content": "# 2.03. Les conditions de financement applicables au Crédit B sont les suivantes :"
+                },
+                {
+                  "type": "alinea",
+                  "content": "(a) Let taux maximum de la commission d'engagement applicable au Crédit B est d'un demi pour cent (1/2 de  $1\\%$ ) par an sur le solde de financement non prélevé applicable au Crédit B."
+                },
+                {
+                  "type": "alinea",
+                  "content": "(b) Les dates de paiement applicables au Crédit B sont le 15 février et le 15 août de chaque année."
+                },
+                {
+                  "type": "alinea",
+                  "content": "(c) Le montant principal du Crédit B sera rembourse conformément au calendrier de remboursement figurant à l'annexe 2.B de la présente convention."
+                },
+                {
+                  "type": "alinea",
+                  "content": "(d) La monnaie de paiement est l'euro."
+                },
+                {
+                  "type": "alinea",
+                  "content": "# 2.05. Sans préjudice des dispositions de l'article 5.05 des conditions générales, le bénéficiaire fournitrapidement à l'Association les informations relativesaux dispositions du present article II que l'Associationpeut raisonnablement lui demander."
+                },
+                {
+                  "type": "alinea",
+                  "content": "# ARTICLE III - PROGRAMME"
+                },
+                {
+                  "type": "alinea",
+                  "content": "3.01. Le bénéficiaire déclare son engagement à l'égard du programme et de sa mise en œuvre. À cette fin, et conformément à l'article 5.05 des conditions générales :"
+                },
+                {
+                  "type": "alinea",
+                  "content": "(a) le bénéficiaire et l'Association procédent de temps à autre, à la demande de l'une ou l'autre partie, à un échange de vues sur le cadre de la politique macroeconomique du bénéficiaire et sur les progrès réalisés dans la mise en œuvre du programme [et des actions spécifiées à la section I de l'annexe 1 duprésent accord];"
+                },
+                {
+                  "type": "alinea",
+                  "content": "(b) avant chaque échange de vues, le bénéficiaire fournit à l'Association, pour examen et commentaires, un rapport sur les progrès accomplis dans la mise en œuvre du programme, avec les détails que l'Association peut raisonnablement demander ; et"
+                },
+                {
+                  "type": "alinea",
+                  "content": "(c) sans préjudice des dispositions des paragraphs a) et b) duprésent article, le bénéficiaire informe rapidement l'association de toute situation qui aurait pour effet d'annuler matériellement les objectifs du programme ou toute action entreprises dans le cadre du programme [y compris toute action spécifique dans la section I de l'annexe 1 duprésent accord]."
+                },
+                {
+                  "type": "alinea",
+                  "content": "# ARTICLE IV - RECOURS DE L'ASSOCIATION"
+                },
+                {
+                  "type": "alinea",
+                  "content": "4.01. L'évenement supplémentaire de suspension consiste en une situation qui s'est produit et qui rend improbable la réalisation du programme ou d'une partie importante de celui-ci."
+                },
+                {
+                  "type": "alinea",
+                  "content": "4.02. L'événement supplémentaire d'accelération consiste en ce que l'événement spécifique à l'article 4.01 du present accord se produit et se poursuive pendant une période de 30 jours après que l'Association a notice l'événement au bénéficiaire."
+                },
+                {
+                  "type": "alinea",
+                  "content": "# ARTICLE V - PRISE D'EFFET ; RÉSILIATION"
+                },
+                {
+                  "type": "alinea",
+                  "content": "5.01. Les conditions supplémentaires de prise d'effet sont les suivantes :"
+                },
+                {
+                  "type": "alinea",
+                  "content": "(a) L'Association est satisfaite des progrès réalisés par le bénéficiaire dans l'exécution du programme et de l'adéquation du cadre de politique macroeconomique du bénéficiaire."
+                },
+                {
+                  "type": "alinea",
+                  "content": "(b) L'accord de prét a été signé et remis et toutes les conditions préalables à la prise d'effet dudit accord (à l'exception de la signature et de la prise d'effet duprésent accord) ont été remplies."
+                },
+                {
+                  "type": "alinea",
+                  "content": "5.02. La date limite de prise d'effet est fixe a cent vingt (120) jours après la date de signature."
+                },
+                {
+                  "type": "alinea",
+                  "content": "5.03 Aux fins de l'article 10.05 (b) des conditions générales, la date à laquelle les obligations du bénéficiaire au titre du present accord (autres que"
+                },
+                {
+                  "type": "alinea",
+                  "content": "celles qui prévoient des obligations de paiement) prènnant fin est [vingt] ans après la date de signature."
+                },
+                {
+                  "type": "alinea",
+                  "content": "# ARTICLE VI - REprésentANT ; ADRESSES"
+                },
+                {
+                  "type": "alinea",
+                  "content": "6.01. Le représentant du bénéficiaire est son ministre chargé des finances."
+                },
+                {
+                  "type": "alinea",
+                  "content": "6.02. Aux fins de l'article 11.01 des Conditions générales:"
+                },
+                {
+                  "type": "alinea",
+                  "content": "(a) l'adresse du Beneficieaire est la suivante :"
+                },
+                {
+                  "type": "alinea",
+                  "content": "Ministere des finances, du budget et du portefeuille public"
+                },
+                {
+                  "type": "alinea",
+                  "content": "Boulevard Denis Sassou Ngueso"
+                },
+                {
+                  "type": "alinea",
+                  "content": "B.P. 2083"
+                },
+                {
+                  "type": "alinea",
+                  "content": "Brazzaville"
+                },
+                {
+                  "type": "alinea",
+                  "content": "République du Congo ; et"
+                },
+                {
+                  "type": "alinea",
+                  "content": "(b) l'adresse électronique du destinataire est la suivante: contact@finances.govu.cg"
+                },
+                {
+                  "type": "alinea",
+                  "content": "6.03. Aux fins de l'article 11.01 des Conditions générales:"
+                },
+                {
+                  "type": "alinea",
+                  "content": "(a) l'adresse de l'Association est la suivante : Association internationale de développement 1818 H Street, N.W."
+                },
+                {
+                  "type": "alinea",
+                  "content": "Washington, D.C. 20433"
+                },
+                {
+                  "type": "alinea",
+                  "content": "Etats-Unis d'Amérique ; et"
+                },
+                {
+                  "type": "alinea",
+                  "content": "(b) l'adresse électronique de l'Association est la suivante :"
+                },
+                {
+                  "type": "alinea",
+                  "content": "Télex: 248423 (MCI) Facsimile: 1-202-477-6391"
+                },
+                {
+                  "type": "alinea",
+                  "content": "CONVENU à la date de signature."
+                },
+                {
+                  "type": "alinea",
+                  "content": "# République DU CONGO"
+                },
+                {
+                  "type": "alinea",
+                  "content": "Par"
+                },
+                {
+                  "type": "alinea",
+                  "content": "Représentant autorisé"
+                },
+                {
+                  "type": "alinea",
+                  "content": "Nom : Christian YOKA"
+                },
+                {
+                  "type": "alinea",
+                  "content": "Titre : Ministre des finances"
+                },
+                {
+                  "type": "alinea",
+                  "content": "Date : 25 juin 2025"
+                },
+                {
+                  "type": "alinea",
+                  "content": "# ASSOCIATION INTERNATIONALE DE DEVELOPMENT"
+                },
+                {
+                  "type": "alinea",
+                  "content": "Par"
+                },
+                {
+                  "type": "alinea",
+                  "content": "Représentant autorisé"
+                },
+                {
+                  "type": "alinea",
+                  "content": "Nom : Cheick Fantamady Kante"
+                },
+                {
+                  "type": "alinea",
+                  "content": "Titre : Division Director"
+                },
+                {
+                  "type": "alinea",
+                  "content": "Date : 24 juin 2025"
+                },
+                {
+                  "type": "alinea",
+                  "content": "# ANNEXE 1"
+                },
+                {
+                  "type": "alinea",
+                  "content": "# Actions du programme; disponibilité du produit du financement"
+                },
+                {
+                  "type": "alinea",
+                  "content": "Section I. Mesures prises dans le cadre du programme. Les mesures prises par le bénéficiaire dans le cadre du programme sont les suivantes :"
+                },
+                {
+                  "type": "alinea",
+                  "content": "# Pilier I : Reinforcement de la mobilisation des recettes et de la gestion des finances publiques"
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "1.",
+                  "content": "Pour renforcer l'efficacité du système fiscal et douanier et améliorer la conformité, le bénéficiaire a : (a) autorisé, par l'intémédiaire du Conseil des ministres, les entités publiques et les tiers à partager les données des contribuables avec les administrations fiscales et douanières, sous réserve de dispositions visant à protéger les données des contribuables, par le biais du décret n° 2024-2078 ; et (b) créé le comité de gestion et d'évaluation pour l'approche fondée sur le risque dans la réalisation des contrôleis fiscaux et douaniers, par l'intémédiaire de l'arrêté ministeriel n° 22388."
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "2.",
+                  "content": "Afin de renforcer le cadre réglementaire du secteur petrolier et d'augmenter les recettes de l'Etat provenant du secteur petrolier, le bénéficiaire, par l'intermédiaire du Conseil des ministres, a adopté des décrets d'application du code des hydrocarbures : (a) faire de l'appeel d'offres la norme de selection des sociétés privées pour participer à un titre minier par le biais du décret n° 2024-2075 ; et (b) étabir des règles pour le transfert des droits miniers des sociétés contractantes ou le transfert des parts dans le capital d'une société contractante par le biais du décret n° 2024-2074."
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "3.",
+                  "content": "Pour améliorer l'efficacité des audits réalisés par l'Institution supérieure de contrôle pour superviser les ressources publiques, le bénéficiaire a : (a) promulgué la loi n° 3 de 2024 établissant le Haut Conseil de l'Institution supérieure de contrôle ; (b) établi les modalités d'organisation de l'épreuve spéciale pour les auditeurs adjoints par le décret n° 2024-2076 ; et (c) nommé les membres de l'Institution supérieure de contrôle par le décret n° 2024-2096."
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "4.",
+                  "content": "Pour renforcer l'efficacité, la transparence et l'optimisation des ressources dans l'attribution des marchés publics, le bénéficiaire, par l'intérimétaire du Conseil des ministres, a fourni la base juridique et politique pour l'utilisation des marchés publics électroniques, en (a) autorisant l'Agence de régulation des marchés publics (ARMP) à développer et àmettre en service une solution de marchés publics électroniques par le décret n° 2024-2072, et (b) en la plaçant sous l'autorité du Bureau du Premier ministre par le décret n° 2025-90."
+                },
+                {
+                  "type": "alinea",
+                  "content": "# Pilier 2: Améliorer les conditions d'une croissance inclusive et durable"
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "5.",
+                  "content": "Pour améliorer l'environnement des entreprises, rationaliser les inspections et réduire les coûts de transaction pour le secteur privé, le bénéficiaire a (a) promulgué la loi horizontal sur les inspections fixant le cadre des inspections à effectuer par l'administration publique sur les sociétés privées et les entreprises publiques, et (b) par l'intérimédiaire du Conseil des ministres, adopté le décret n° 2025-157 sur les inspections afin d'inclure des principes d'inspection fondés sur le risque, de redéfinir les mandats d'inspection, d'améliorer le respect des normes de sécurité publique et environnementales, et d'introduire des mécanismes de coordination et de réclamation."
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "6.",
+                  "content": "Pour améliorer la prestation de services dans les domaines de la santé et de l'education, le bénéficiaire a : (a) adopté l'arrêté ministeriel  $\\mathrm{n}^{\\circ}$  320 pour renforcer les mécanismes de recrutement et de déploiement du personnel de santé et d'education; et (b) publié les circulaires  $\\mathrm{n}^{\\circ}$  0327,  $\\mathrm{n}^{\\circ}$  0328 et  $\\mathrm{n}^{\\circ}$  0329 du 31 mars 2025 précisant le montant alloué par département pour soutenir les établissements de santé de base, les centres d'enseignement et de formation techniques et professionnels (EFTP) et les écoles pour l'année fiscale 2025, en application du décret  $\\mathrm{n}^{\\circ}$  2022-1875 et du décret  $\\mathrm{n}^{\\circ}$  2023-1749."
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "7.",
+                  "content": "Pour assurer une mise en œuvre efficace du programme national de filet de sécurité («NSNP») et du registre social unifié, le bénéficiaire a adopté: (a) l'arrêté ministeriel n° 18503 établissant les règles de collecte, de traitement, d'échange et de mise à jour des données du RSU ; et (b) l'arrêté ministeriel n° 17535 définissant les responsabilités des membres de l'unité de gestion du RSU."
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "10.",
+                  "content": "Afin de renforcer les institutions du marché et d'en améliorer la dynamique, le bénéficiaire a (a) promulgué la loi sur la concurrence et la loi sur l'autorité de la concurrence ; (b) adopté le décret n° 2024-2070 définissant les modalités de constatation des infractions, de notification des sanctions et des pénalités, des opérations de concentration d'entreprises et de perception des amendes contre les pratiques anticoncurrentielles en vertu de la loi sur la concurrence ; et (c) adopté le décret n° 2024-2071 approuvant les statuts de l'autorité de la concurrence."
+                },
+                {
+                  "type": "alinea",
+                  "content": "# Section II. Disponibilité du produit du financement"
+                },
+                {
+                  "type": "alinea",
+                  "content": "A. Généralités. Le bénéficiaire peutPTRirer le produit du financement conformément aux dispositions de la presente section et aux instructions supplémentaires que l'Association peut spécifier par notification au bénéficiaire."
+                },
+                {
+                  "type": "alinea",
+                  "content": "B. Affection des montants du financement. une seule tranche de retrait, à partir de laquelle le bénéficiaire peut effectuer des retraits du produit du financement. L'affection des montants du financement à cette fin est représentée dans le tableau ci-dessous :"
+                },
+                {
+                  "type": "alinea",
+                  "content": "<table><tr><td>Allocations</td><td>Montant du Crédit A"
+                },
+                {
+                  "type": "alinea",
+                  "content": "alloué"
+                },
+                {
+                  "type": "alinea",
+                  "content": "(exprimé en EUR)</td><td>Montant du Crédit"
+                },
+                {
+                  "type": "alinea",
+                  "content": "B alloué"
+                },
+                {
+                  "type": "alinea",
+                  "content": "(exprimé en EUR)</td></tr><tr><td>(1) Tranche de retrait"
+                },
+                {
+                  "type": "alinea",
+                  "content": "unique</td><td>41,600,000</td><td>12,300,000</td></tr><tr><td>MONTANT TOTAL</td><td>41,600,000</td><td>12,300,000</td></tr></table>"
+                },
+                {
+                  "type": "alinea",
+                  "content": "# C. Conditions de libération de la tranche de retrait."
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "1.",
+                  "content": "Aucun retrait ne sera effectué sur la Tranche de Retrait Unique à moins que l'Association ne soit satisfaite : (a) du programme mis en œuvre par le bénéficiaire ; et (b) de l'adéquation du cadre de politique macroeconomique du bénéficiaire."
+                },
+                {
+                  "type": "alinea",
+                  "content": "# D. Dépôt des montants de financement."
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "1.",
+                  "content": "Nonobstant les dispositions de la section 2.03 des conditions generales :"
+                },
+                {
+                  "type": "alinea",
+                  "content": "(a) le bénéficiaire ouvre, avant de remettre à l'Association la première demande de retrait du compte de financement, et maintain par la suite les deux comptes spécialisés suivants à des conditions satisfaissantes pour l'Association : (i) un compte spécialisé en euros («compte spécialisé en devises»); (ii) un compte spécialisé en FCFA («compte spécialisé en monnaie locale»); et"
+                },
+                {
+                  "type": "alinea",
+                  "content": "(b) tous les retraits du compte de financement sont déposés par l'Association sur le compte dédié en devises. Lors de chaque dépôt d'un montant du financement sur le compte dédié en devises, le bénéficiaire dépose un montant équivalent sur le compte dédié en monnaie locale."
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "2.",
+                  "content": "Dans les trente (30) jours suivant le retrait du financement du compte de financement, le bénéficiaire communique à l'Association : a) la somme exacte reçue sur le compte dédié en devises; b) les détails du compte sur lequel l'équivalent en FCFA du produit du financement sera créé ; c) l'enregistrement d'un montant équivalent dans les systèmes de gestion budgêtaire du bénéficiaire ; et d) l'état des encaisements et des décaissements du compte dédié en devises."
+                },
+                {
+                  "type": "alinea",
+                  "content": "# E. Audit. la demande de l'Association, le bénéficiaire :"
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "1.",
+                  "content": "faire vérifier les comptes dédiés par des auditeurs indépendants acceptés par l'Association, conformément à des normes d'audit appliquées de manière cohérente et acceptables pour l'Association ;"
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "2.",
+                  "content": "fournir à l'Association des que possible, mais dans tous les cas au plus tard quatre (4) mois après la date de la demande d'audit de l'Association, une copie certifiée du rapport d'audit, avec la portée et les détails que l'Association peut raisonnablement demander, et rendre ce rapport accessible au public en temps youlu et d'une manière acceptable pour l'Association ; et"
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "3.",
+                  "content": "fournir à l'Association toute autre information concernant les Comptes Dédiés et leur audit que l'Association peut raisonnablement demander."
+                },
+                {
+                  "type": "alinea",
+                  "content": "F. Date de clôture. La date de clôture est le 31 décembre 2026."
+                },
+                {
+                  "type": "alinea",
+                  "content": "# ANNEXE 2"
+                },
+                {
+                  "type": "alinea",
+                  "content": "A. Calendrier de remboursement du Crédit A"
+                },
+                {
+                  "type": "alinea",
+                  "content": "<table><tr><td>Date d&#x27;échéance du paiement</td><td>Montant du capital du crédit remboursable (exprimé en pourcentage)*</td></tr><tr><td>Le 15 février et le 15 août de chaque année:</td><td></td></tr><tr><td>du 15 août 2030 au 15 février 2050 inclus</td><td>1.65%</td></tr><tr><td>du 15 août 2050 au 15 février 2055 inclus</td><td>3.40%</td></tr></table>"
+                },
+                {
+                  "type": "alinea",
+                  "content": "* Les pourcentages représentent le pourcentage du montant principal du Crédit à rembourser, sauf indication contraire de l'Association conformément à Section 3.05 (b) des Conditions Générales."
+                },
+                {
+                  "type": "alinea",
+                  "content": "B. Calendrier de remboursement du Crédit B"
+                },
+                {
+                  "type": "alinea",
+                  "content": "<table><tr><td>Date d&#x27;échéance du paiement</td><td>Montant en principal du crédit remboursable (exprimé en pourcentage)*</td></tr><tr><td>Le 15 février et le 15 août de chaque année:</td><td></td></tr><tr><td>à partir du 15 août 2031 jusqu&#x27;àu 15 août 2036 inclus</td><td>8,33%</td></tr><tr><td>Le 15 février 2037</td><td>8,37%</td></tr></table>"
+                },
+                {
+                  "type": "alinea",
+                  "content": "* Les pourcentages représentent le pourcentage du montant principal du Crédit à rembourser, sauf indication contraire de l'Association conformément à l'article 3.05 (b) des Conditions Générales."
+                },
+                {
+                  "type": "alinea",
+                  "content": "# ANNXE"
+                },
+                {
+                  "type": "alinea",
+                  "content": "# Section I. Définitions"
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "1.",
+                  "content": "“Ajustement de base des frais d'intérêt”: l'ajustement de base standard de l'Association aux frais d'intérêt pour les crédits dans la devise du crédit, en vigueur à 0h01, heures de Washington, D.C., à la date à laquelle le crédit est approuvé par les directeurs exécutifs de l'Association, et exprimé sous forme de pourcentage annuel positif ou négatif."
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "2.",
+                  "content": "\"Ajustement de base des frais de service\": l'ajustement de base standard de l'Association aux"
+                },
+                {
+                  "type": "alinea",
+                  "content": "frais de service pour les crédits dans la devise du crédit, en vigueur à 0h01, heures de Washington, D.C., à la date à laquelle le crédit estapprové par les directeurs exécutifs de l'Association, et exprimé en pourcentage par an."
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "3.",
+                  "content": "\"CFAF\" désigne le franc centrafricain, la monnaie légale du bénéficiaire."
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "4.",
+                  "content": "“Loi sur la concurrence” signifie la Loi  $n^{\\circ} 16-2024$  relative à la concurrence, datedu 9 juillet 2024 et publiée au Journal Officiel du 18 juillet 2024."
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "5.",
+                  "content": "“Crédit A” désigne le crédit visé à l'article 2.01 (a) de la presente Convention et, pour les besoin des Conditions Générales, le Crédit."
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "6.",
+                  "content": "“Crédit B” désigne le crédit visé à la section 2.01(b) de la présente convention et, pour les besoin des conditions générales, le crédit."
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "7.",
+                  "content": "“Décret n° 2024-2070” désigne le Décret  $n^{\\circ}$  2024-2072 fixant les modalités de constatation des infractions, de notification des sanctions et astreintes, des opérations de concentrations d'entreprises et de recouvrement des amendes, contre les pratiques anticoncurrentielles, datedu10octobre2024et publié au Journal officiel du 17 octobre 2024."
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "8.",
+                  "content": "“Décret n° 2024-2071”: Décret n° 2024-2071 portant approbation des statuts de l'autorité nationale de la concurrence, datedu 10 octobre 2024 et publié au Journal officiel du 17 octobre 2024."
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "9.",
+                  "content": "“Décret n° 2024-2072” désigne le Décret  $n^{\\circ}$  2024-2072 fixant les conditions et les modalités de la dématérialisation des procédures de passation des marchés publics et de déléagues de service public, datedu10octobre2024etpubliéauJournal officiel du 17 octobre 2024."
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "10.",
+                  "content": "“Décret n°2024-2074”: Décret n°2024-2074 fixant les conditions et modalités d'approbation de la cession des intérêts participatifs dans le contrat pétrolier ou du transfert d'actions ou parts sociales dans le capital social de l'un des membres du contracteur, datedu 10 octobre 2024, et publié au Journal officiel du 17 octobre 2024."
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "11.",
+                  "content": "“Décret  $n^{\\circ}$  2024-2075” désigne le Décret  $n^{\\circ}$  2024-2075 fixant les conditions et modalités de constitution du contractant, datedu 10 octobre 2024 et publié au Journal officiel du 17 octobre 2024."
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "12.",
+                  "content": "“Décret  $n^{\\circ}$  2024-2076”: Décret  $n^{\\circ}$  2024-2076 du 10 octobre 2024 fixant le statut des assistants vérificateurs de la Cour des comptes et de discipline budgêtaire, datedu 10 octobre 2024 et publié au Journal officiel du 17 octobre 2024."
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "13.",
+                  "content": "“Décret n° 2024-2078” désigne le Décret  $n^{\\circ}$  2024-2078 du 10 octobre 2024 instituant l'échange des renseignements entre les entités publiques, les entités privées et les administrations fiscale et douanière, datedu 10 octobre 2024 et publié au Journal officiel du 17 octobre 2024."
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "14.",
+                  "content": "“Décret n° 2024-2096” désigne le décret présidentiel n° 2024-2096 du 14 octobre 2024 portant nomination des membres du Conseil supérieur de l'Institution supérieur de contrôle des finances publiques, publié au Journal officiel du 17 octobre 2024."
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "15.",
+                  "content": "“Décret n° 2025-90” : Décret n° 2024-2076 du 1 avril 2025 modifiant et complétant certaines dispositions du décret n° 2009-157 du 20 mai 2009 portant attributions, organisation et fonctionnement de l'autorité de régulation des marchés publics, datedu  $1^{\\mathrm{er}}$  avril 2025 et publié au Journal Officiel du 3 avril 2025."
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "16.",
+                  "content": "“Décret n° 2025-157” désigne le Décret n° 2025-157 du 25 Avril 2025 fixant la liste des inspections effectues par l'administration publique auprès des établissements et entreprises publics et privés, datedu 25 avril 2025 et publié au Journal Officiel du 8 mai 2025."
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "17.",
+                  "content": "\"Comptes dédiés\" désigne à la fois le Compte dédié en devises et le Compte dédié en monnaie locale."
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "18.",
+                  "content": "“Compte dédié en devises” désigne le compte visé à la partie D.1(a) de la section II de l'annexe 1 du present accord."
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "19.",
+                  "content": "\"Conditions générales\" désigne les \"Conditions générales de l'Association internationale de développement pour le financement de lIDA, financement des politiques de développement\", datedes du 14 décembre 2018 (dernière révision le 15 juillet 2023), avec les modifications énoncées à la section II de la presente annexe."
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "20.",
+                  "content": "\"Loi horizontally sur les inspections\" signifie la Loi  $n^{\\circ}$  4-2025 du 29 mars 2025 portant réforme des inspections effectuees par l'administration publique auprès des établissements et entreprises publics et privés, publiée au Journal Officiel du 3 avril 2025."
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "21.",
+                  "content": "\"Code des hydrocarbures\" signifie le Code des hydrocarbures du bénéficiaire n° 28-2016 du 12 octobre 2016 et ses amendements ultérieurs."
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "22.",
+                  "content": "\"Loi sur l'autorité de la concurrence\" signifie la Loi  $n^{\\circ}$  19-2024 portant creation de l'autorité nationale de la concurrence, datedu 16 août 2024,et publiée au Journal Officiel du 3 octobre 2024."
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "23.",
+                  "content": "\"Loi n° 3 de 2024\" désigne la loi portant création du Conseil supérieur de la Cour des comptes et de discipline budgêtaire, ou Loi n° 3-2024 fixant la composition, l'organisation et le fonctionnement du conseil supérieur de la Cour des comptes et de discipline budgêtaire, publiée au Journal officiel en date du 29 février 2024."
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "24.",
+                  "content": "\"Accord de prét\" désigne l'accord de prét pour le Programme entre le bénéficiaire et la Banque internationale pour la reconstruction et le développement, datedu même jour que le present accord, tel qu'il peut être modifié de temps à autre."
+                },
+                {
+                  "type": "alinea",
+                  "content": "L' \"accord de prét\" comprend toutes les annexes, tous les calendriers et tous les accords complémentaires à l'accord de prét."
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "25.",
+                  "content": "“Compte dédié à la monnaie locale” désigné le compte visé à la partie D.1(a) de la section II de l'annexe 1 du présence accord."
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "26.",
+                  "content": "“Arrêté ministeriel No. 320” désigne l'Arrêté  $n^{\\circ}$  320 déterminant la procédure d'intégration à la fonction publique des candidats en fonction des postes budgétaires ouverts au profit des ministères en charge de l'enseignement préscolaire, primaire, secondaire et de l'alphabetisation, de l'enseignement technique et professionnel, de la santé et de la population, en date du 28 mars 2025, et publié au Journal Officiel en date du 3 avril 2025."
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "27.",
+                  "content": "\"Arrêté ministeriel  $n^{\\circ}$  17535\" désigne l'Arrêté  $n^{\\circ}$  17535 relatifs aux attributions des membres de l'unité de gestion du registre social unique, datedu 8 août 2024 et publié au Journal officiel du 22 août 2024."
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "28.",
+                  "content": "“Arrêté ministeriel n° 18503” désigne l'Arrêté n° 18503 fixant les règles de collecte, de traitement, d'échange et d'actualisation des données du registre social unique, datedu 20 août, publié au Journal officiel du 29 août 2024."
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "29.",
+                  "content": "“Arrêté ministeriel n° 22156 22156” signifie Arrêté n°22156 déterminant la procédure d'intégration à la fonction publique des candidats en fonction des postes budgétaires ouverts au profit des ministères en charge de l'enseignement préscolaire, primaire, secondaire et de l'alphabetisation, de l'enseignement technique et professionnel et de la santé et de la population, datedu 11 octobre 2024 et publié au Journal Officiel du 17 octobre 2024."
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "30.",
+                  "content": "“Arréte ministeriel n° 22388” désigne l'Arrêté n° 22388 portant attributions, organisation et fonctionnement du comité d'évaluation et de gestion des risques dans les administrations fiscale et douanière, en date du 10 octobre 2024, et publié au Journal officiel du 17 octobre 2024."
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "31.",
+                  "content": "“Programme national de filets de sécurité” ou « PNFS « désigne le programme national de filets de sécurité du bénéficiaire, établi en vertu du décret n° 2023-1740, tel qu'il peut être modifié de temps à autre."
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "32.",
+                  "content": "\"Journal officiel\": le Journal officiel de la République du Congo, principale source de droit du bénéficiaire, publié pour diffuser les lois, les règlements et les décisions officielles."
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "33.",
+                  "content": "“Programme”: le programme d'objectifs, de politiques et d'actions énoncés ou mentionnés dans la dette datée du 19 mai 2025, adressée par le bénéficiaire à l'Association, déclarant l'engagement du bénéficiaire à exécuter le programme et demandant l'assistance de l'Association pour soutenir le programme au cours de son exécution et complenant les mesures prises, y compris celles énoncées à la section I de l'annexe 1 du préSENT accord, ainsi que les mesures à prendre conformément aux objectifs du programme."
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "34.",
+                  "content": "\"Agence de régulation des marchés publics\" désigne l'agence de l'Emprunteur chargée des marchés publics, créée et fonctionnant conformément au décret de l'Emprunteur n° 2009-157 du 20 mai 2009, ou son successeur légal à la satisfaction de l'Association."
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "35.",
+                  "content": "“Date de signature” désigne la plus tardive des deux dates auxquelles le Beneficieaire et l'Association ont signé le present Accord et cette définition s'applique à toutes les références à la « date de l'Accord de financement « dans les Conditions générales."
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "36.",
+                  "content": "\"Tranche de Retrait Unique\" signifie le montant du Financement alloué à la catégorie intitulée \"Tranche de Retrait Unique\" dans le tableau figurant dans la Partie B de la Section II de l'Annexe 1 du présent Accord."
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "37.",
+                  "content": "\"Institution supérieure de contrôle\" désigne la Cour des comptes et de discipline budgêtaire du bénéficiaire, créée en vertu de la constitution du bénéficiaire de 1992 et fonctionnant conformément à la loi du bénéficiaire  $\\mathrm{n}^{\\circ}$  022-92 du 20 octobre 1992 relative à l'organisation du pouvoir judiciaire, telle qu'amendée par la loi du bénéficiaire  $\\mathrm{n}^{\\circ}$  19-99 du 15 août 1999."
+                },
+                {
+                  "type": "alinea",
+                  "content": "# Section II. Modifications des conditions générales"
+                },
+                {
+                  "type": "alinea",
+                  "content": "Les conditions générales sont modifiées comme suit :"
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "1.",
+                  "content": "Les sections restantes de l'article III sont rénumérétées en conséquence, et toutes les références aux sections de l'article III dans toute disposition des conditions générales s'entendant comme des références à ces sections rénumérétées."
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "2.",
+                  "content": "Dans les paragraphs initialement numérotés 4, 64 et 79 de l'Annexe, les termes \"Calendrier d'amortissement\", \"Frais d'intérêt\" et \"Date de paiement\", respectivement, sont modifiés pour se dire comme suit :"
+                },
+                {
+                  "type": "alinea",
+                  "content": "\"4. \"Calendrier d'amortissement\" désigne le calendriel de remboursement du principal spécifique dans l'Accord de financement aux fins des articles 3.05 et 3.10.\""
+                },
+                {
+                  "type": "alinea",
+                  "content": "\"64. \"Frais d'intérêt\" désigne les frais d'intérêt aux fins de l'article 3.07.\""
+                },
+                {
+                  "type": "alinea",
+                  "content": "\"79. \"Date de paiement\" désigne chaque date spécifique dans l'Accord de financement survenant à partir de la date de l'Accord de financement à laquelle les frais de service, les frais d'intérêt, les frais d'engagement et les autres frais et commissions de crédit (autres que la commission d'ouverture de crédit) sont payables, le cas échéant.\""
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "3.",
+                  "content": "Le paragraphe 95 (Frais de service) de l'Annexe est supprimé dans son intégrality et les paragraphs suivants sont renumérétés en conséquence, et toute référence aux \"Frais de service\" ou aux \"Frais de service\" dans une quelconque disposition des Conditions générales est supprimée."
+                },
+                {
+                  "type": "alinea",
+                  "content": "# Accord de prêt"
+                },
+                {
+                  "type": "alinea",
+                  "content": "# (Troisième prét pour la gestion fiscale et la politique de développement de la croissance inclusive)"
+                },
+                {
+                  "type": "alinea",
+                  "content": "entre"
+                },
+                {
+                  "type": "alinea",
+                  "content": "# LA REPUBLIQUE DU CONGO"
+                },
+                {
+                  "type": "alinea",
+                  "content": "et"
+                },
+                {
+                  "type": "alinea",
+                  "content": "# LA BANQUE INTERNATIONALE POUR LA RECONSTRUCTION ET LE DÉVELOPPEMENT"
+                },
+                {
+                  "type": "alinea",
+                  "content": "# ACCORD DE PRÉT"
+                },
+                {
+                  "type": "alinea",
+                  "content": "ACCORD datede la date de signature entre la REPUBLIQUE DU CONGO (\"l'emprunteur\") et la BANQUE INTERNATIONAL POUR LA RECONSTRUCTION ET LE DÉVELOPPEMENT (\"la Banque\") en vue de fournir un financement à l'appui du programme (tel que définis dans l'annexe au present accord). La Banque a decide d'accorder ce financement sur la base, entre autres, des éléments suivants (i) des mesures que l'Emprunteur a déjà prises dans le cadre du Programme et qui sont décrites à la Section I de l'Annexe 1 du present Accord ; et (ii) du maini en par l'Emprunteur d'un cadre de politique macroeconomique adequat. L'Emprunteur et la Banque conviennent donc de ce qui suit :"
+                },
+                {
+                  "type": "alinea",
+                  "content": "# ARTICLE I - CONDITIONS GENERALES ; DEFINITIONS"
+                },
+                {
+                  "type": "alinea",
+                  "content": "1.01. Les conditions générales (telles que définies dans l'annexe à la présente convention) s'appliquent à la présente convention et en font partie intégrante."
+                },
+                {
+                  "type": "alinea",
+                  "content": "1.02. Sauf indication contraire du contexte, les termes en majuscules utilisés dans la presente convention ont la signification qui leur est attribuée dans les conditions générales ou dans l'annexe à la presente convention."
+                },
+                {
+                  "type": "alinea",
+                  "content": "# ARTICLE II - PRÉT"
+                },
+                {
+                  "type": "alinea",
+                  "content": "2.01. La Banque s'engage à préter à l'Emprunteur un montant de seized millions sept cent mille euros (EUR 16.700.000), tel que ce montant peut être converti de temps à autre par le biais d'une conversion de devises (« Préts »)."
+                },
+                {
+                  "type": "alinea",
+                  "content": "2.02. La commission d'ouverture de dossier s'éleve à un quart de un pour cent (0,25 %) du montant du Prét."
+                },
+                {
+                  "type": "alinea",
+                  "content": "2.03. La commission d'engagement est égale à un quart de un pour cent (0,25%) par an sur le solde non retire du prét."
+                },
+                {
+                  "type": "alinea",
+                  "content": "2.04. Le taux d'intérêt est le taux de référence plus le spread variable ou le taux applicable à la suite d'une conversion, sous réserve de la section 3.02(e) des conditions générales."
+                },
+                {
+                  "type": "alinea",
+                  "content": "2.05. Les dates de paiement sont le 15 février et le 15 août de chaque année."
+                },
+                {
+                  "type": "alinea",
+                  "content": "2.06. Le montant principal du Préts sera remboursé conformément à l'annexe 2 de la presente Convention."
+                },
+                {
+                  "type": "alinea",
+                  "content": "2.07. Sans préjudice des dispositions de l'article 5.05 des Conditions générales, l'Emprunteur fournira rapidement à la Banque les informations relatives aux dispositions duprésent article II que la Banque pourra, le cas échéant, raisonnablement demander."
+                },
+                {
+                  "type": "alinea",
+                  "content": "# ARTICLE III - PROGRAMME"
+                },
+                {
+                  "type": "alinea",
+                  "content": "3.01. L'Emprunteur déclare son engagement à l'égard du Programme et de sa mise en œuvre."
+                },
+                {
+                  "type": "alinea",
+                  "content": "À cette fin, et conformément à la Section 5.05 des Conditions générales :"
+                },
+                {
+                  "type": "alinea",
+                  "content": "(a) l'Emprunteur et la Banque procéderont de temps à autre, à la demande de l'une ou l'autre des parties, à des échanges de vues sur le cadre de politique macroeconomique de l'Emprunteur et sur les progrès réalisés dans la mise en œuvre du Programme et des actions spécifiées à la Section I de l'Annexe 1 du present Accord;"
+                },
+                {
+                  "type": "alinea",
+                  "content": "(b) avant chacun de ces échanges de vues, l'Emprunteur fournira à la Banque, pour examet et commentaires, un rapport sur les progrès accompilis dans l'exécution du Programme, avec les détails que la Banque pourrait raisonnablement demander ; et"
+                },
+                {
+                  "type": "alinea",
+                  "content": "(c) sans préjudice des paragraphs (a) et (b) du present article, l'Emprunteur informera promptement la Banque de toute situation qui aurait pour effet d'inverser matériellement les objectifs du Programme ou de toute mesure prise dans le cadre du Programme, y compris toute mesure spécifique à la Section I de l'Annexe 1 de la presente Convention."
+                },
+                {
+                  "type": "alinea",
+                  "content": "# ARTICLE IV - RECOURS DE LA BANQUE"
+                },
+                {
+                  "type": "alinea",
+                  "content": "4.01. Le cas de suspension supplémentaire consiste en une situation qui s'est produit et qui rend improbable la réalisation du programme ou d'une partie importante de celui-ci."
+                },
+                {
+                  "type": "alinea",
+                  "content": "4.02. Le cas supplémentaire d'accelération consiste en ce qui suit : l'évenement spécifique à la section 4.01 de la présente convention se produit et se poursuit pendant une période de 30 jours après que la Banque a notice l'évenement à l'Emprunteur."
+                },
+                {
+                  "type": "alinea",
+                  "content": "# ARTICLE V - PRISE D'EFFET ; RÉSILIATION"
+                },
+                {
+                  "type": "alinea",
+                  "content": "5.01. Les conditions supplémentaires d'efficacité sont les suivantes :"
+                },
+                {
+                  "type": "alinea",
+                  "content": "(a) La Banque est satisfaite des progrès réalisés par l'Emprunteur dans l'exécution du Programme et de l'adéquation du cadre de politique macroeconomique de l'Emprunteur ; et"
+                },
+                {
+                  "type": "alinea",
+                  "content": "(b) l'Accord de financement a ete signe et remis et toutes les conditions prealables à l'entree en vigueur dudit accord (a l'exception de l'execution et de l'entree en vigueur du present Accord) ont ete remplies."
+                },
+                {
+                  "type": "alinea",
+                  "content": "5.02. La date limite de prise d'effet est fixe a cent vingt (120) jours après la date de signature."
+                },
+                {
+                  "type": "alinea",
+                  "content": "5.03. Aux fins de l'article 9.05 (b) des Conditions générales, la date à laquelle les obligations de l'Emprunteur en vertu de la presente Convention (autres que celles prévoyant des obligations de paiement) prendront fin est vingt (20) ans après la Date de signature."
+                },
+                {
+                  "type": "alinea",
+                  "content": "# ARTICLE VI - REPRESENTANT ; ADRESSES"
+                },
+                {
+                  "type": "alinea",
+                  "content": "6.01. Le Représentant de l'Emprunteur est son ministre chargé des finances."
+                },
+                {
+                  "type": "alinea",
+                  "content": "6.02. Aux fins de l'article 10.01 des Conditions générales:"
+                },
+                {
+                  "type": "alinea",
+                  "content": "(a) l'adresse de l'Emprunteur est la suivante :"
+                },
+                {
+                  "type": "alinea",
+                  "content": "Ministère des Finances, du Budget et du Portefeuille Public"
+                },
+                {
+                  "type": "alinea",
+                  "content": "Boulevard Denis Sassou-N'guesso"
+                },
+                {
+                  "type": "alinea",
+                  "content": "B.P.2083"
+                },
+                {
+                  "type": "alinea",
+                  "content": "Brazzaville"
+                },
+                {
+                  "type": "alinea",
+                  "content": "République du Congo ; et"
+                },
+                {
+                  "type": "alinea",
+                  "content": "(b) l'adresse électronique de l'Emprunteur est la suivante:"
+                },
+                {
+                  "type": "alinea",
+                  "content": "Courriel:contact@finances.govc"
+                },
+                {
+                  "type": "alinea",
+                  "content": "6.03. Aux fins de l'article 10.01 des Conditions générales :"
+                },
+                {
+                  "type": "alinea",
+                  "content": "(a) l'adresse de la Banque est la suivante :"
+                },
+                {
+                  "type": "alinea",
+                  "content": "Banque internationale pour la reconstruction et le développement 1818 H Street,"
+                },
+                {
+                  "type": "alinea",
+                  "content": "N.W. Washington, D.C. 20433"
+                },
+                {
+                  "type": "alinea",
+                  "content": "États-Unis d'Amérique ; et"
+                },
+                {
+                  "type": "alinea",
+                  "content": "(b) l'adresse électronique de la Banque est la suivante :"
+                },
+                {
+                  "type": "alinea",
+                  "content": "Télex: 248423 (MCI) ou 64145(MCI)"
+                },
+                {
+                  "type": "alinea",
+                  "content": "Facsimile:1-202-477-6391"
+                },
+                {
+                  "type": "alinea",
+                  "content": "# République DU CONGO"
+                },
+                {
+                  "type": "alinea",
+                  "content": "# Par"
+                },
+                {
+                  "type": "alinea",
+                  "content": "Representant autorisé"
+                },
+                {
+                  "type": "alinea",
+                  "content": "Nom : Christian YOKA"
+                },
+                {
+                  "type": "alinea",
+                  "content": "Titre : Ministre des finances"
+                },
+                {
+                  "type": "alinea",
+                  "content": "Date:25juin 2025"
+                },
+                {
+                  "type": "alinea",
+                  "content": "# ASSOCIATION INTERNATIONALE DE DEVELOPMENT"
+                },
+                {
+                  "type": "alinea",
+                  "content": "# Par"
+                },
+                {
+                  "type": "alinea",
+                  "content": "Representant autorisé"
+                },
+                {
+                  "type": "alinea",
+                  "content": "Nom: Cheick Fantamady Kante"
+                },
+                {
+                  "type": "alinea",
+                  "content": "Titre : Division Director"
+                },
+                {
+                  "type": "alinea",
+                  "content": "Date:24juin 2025"
+                },
+                {
+                  "type": "alinea",
+                  "content": "# ANNEXE 1"
+                },
+                {
+                  "type": "alinea",
+                  "content": "# Action du programme ; disponibilité du produit des prêts"
+                },
+                {
+                  "type": "alinea",
+                  "content": "Section I. Mesures prises dans le cadre du Programme. Les mesures prises par l'Emprunteur dans le cadre du Programme sont les suivantes :"
+                },
+                {
+                  "type": "alinea",
+                  "content": "# Pilier I: Reinforcement de la mobilisation des recettes et de la gestion des finances publiques"
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "1.",
+                  "content": "Pour renforcer l'efficacité du système fiscal et douanier et améliorer la conformité, l'Emprunteur a : (a) par le biais du Conseil des ministres, autorisé les entités publiques et les tiers à partager les données des contribuables avec les administrations fiscales et douanières sous réserve de dispositions visant à protéger les données des contribuables par le biais du décret n° 2024-2078 ; et (b) établi le Comité de gestion et d'évaluation pour l'approche basée sur le risque pour la réalisation des audits fiscaux et douaniers par le biais de l'arrêté ministeriel n° 22388."
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "2.",
+                  "content": "Afin de renforcer le cadre réglementaire du secteur petrólier et d'accroître les recettes publiques provenant de ce secteur, l'Emprunteur, par l'intémédiaire du Conseil des ministres, a adopté des décrites d'application du Code des hydrocarbures : (a) faisant de l'appeil d'affres la norme de seLECTION des sociétés privées pour participer à un titre minier par le biais du décret n° 2024-2075 ; et (b) établissant des règles pour le transfert des droits miniers des sociétés contractantes ou le transfert des parts dans le capital d'une société contractante par le biais du décret n° 2024-2074."
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "3.",
+                  "content": "Pour améliorer l'efficacité des audits réalisés par l'Institution supérieure de contrôle pour superviser les ressources publiques, l'Emprunteur a : a) promulgué la loi n° 3 de 2024 portant création du Haut Conseil de l'Institution supérieure de contrôle; b) établi les modalités d'organisation de l'épreuve spéciale pour les auditeurs adjoints par le biais du décret n° 2024-2076 ; et c) nommé les membres de l'Institution supérieure de contrôle par le biais du décret n° 2024-2096."
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "4.",
+                  "content": "Pour renforcer l'efficacité, la transparence et l'optimisation des ressources dans l'attribution des marchés publics, l'Emprunteur, par l'intémediateur du Conseil des ministres, a fou原因 la base juridique et politique pour l'utilisation de la passation électronique des marchés publics, en (a) autorisant l'Agence de régulation des marchés publics (ARMP) à développer et àmettre en service une solution de passation électronique des marchés publics par le décret n° 2024- 2072, et (b) en la plaçant sous l'autorité du Cabinet du Premier ministre par le décret n° 2025-90."
+                },
+                {
+                  "type": "alinea",
+                  "content": "# Pilier 2: Améliorer les conditions d'une croissance inclusive et durable"
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "5.",
+                  "content": "Pour améliorer l'environnement des'affaires, rationaliser les inspections et réduire les coûts de transaction pour le secteur privé, l'Emprunteur a (a) promulgué la Loi horizontally sur les inspections, qui fixe le cadre des inspections à effectuer par l'administration publique sur les sociétés privées et les entreprises publiques, et (b) par l'intémediaire du Conseil des ministres, adopté le Décret n° 2025-157 sur les inspections pour inclure des principes d'inspection fondés sur le risque, rédéfiñir les mandats d'inspection, améliorer le respect des normes de sécurité publique et d'environnement, et introduire des mécanismes de coordination et de dépôt de plaintes."
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "6.",
+                  "content": "Pour améliorer la prestation de services dans les domaines de la santé et de l'education, l'Emprunteur a : (a) adopté l'arrêté ministeriel n° 320 pour renforcer les mécanismes de recrutement et de déploiation du personnel de santé et d'education ; et (b) publié les circulaires n° 0327, n° 0328 et n° 0329 du 31 mars 2025 précisant le montant alloué par département pour soutenir les établissements de santé de base, les centres d'enseignement et de formation techniques et professionnelles (EFTP) et les écoles pour l'année fiscale 2025, en application du décret n° 2022-1875 et du décret n° 2023-1749."
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "7.",
+                  "content": "Pour assurer une mise en œuvre efficace du Programme national de filets de sécurité et du Registre social unifié, l'Emprunteur a adopté : (a) l'arrêté ministeriel n° 18503 établissant les règles de collecte, de traitement, d'échange et de mise à jour des données du RSU ; et (b) l'arrêté ministeriel n° 17535 définitant les responsabilités des membres de l'unité de gestion du RSU."
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "10.",
+                  "content": "Pour renforcer les institutions du marché et améliorer la dynamique du marché, l'Emprunteur a (a) promulgué la Loi sur la concurrence et la Loi sur l'Autorité de la concurrence ; (b) adopté le Décret n° 2024-2070 fixant les modalités de constatation des infractions, de notification des sanctions et des pénalités, des opérations de concentration d'entreprises, et de recouvrement des amendes contre les pratiques anticoncurrentielles en vertu de la Loi sur la concurrence ; et (c) adopté le Décret n° 2024-2071 approuvant les statuts de l'Autorité de la concurrence."
+                },
+                {
+                  "type": "alinea",
+                  "content": "# Section II. Disponibilité du produit des prêts"
+                },
+                {
+                  "type": "alinea",
+                  "content": "A. Généralités. L'Emprunteur peut-retirer le produit du Préten conformément aux dispositions de la presente section et aux instructions supplémentaires que la Banque peut spécifier par notification à l'Emprunteur."
+                },
+                {
+                  "type": "alinea",
+                  "content": "B. Répartition des montants du Prét. Le Prét est réparti en une seule tranche de retrait, à partir de laquelle l'Emprunteur peut effectuer des retraits du produit du Prét. La répartition des montants du Prét à cette fin est indiquée dans le tableau ci-dessous:"
+                },
+                {
+                  "type": "alinea",
+                  "content": "<table><tr><td>Affectation</td><td>Montant du Pré Montant alloué (exprimé en EUR)</td></tr><tr><td>(1) Tranche de retrait unique</td><td>16,658,250</td></tr><tr><td>(2) Commission d&#x27;ouverture</td><td>41,750</td></tr><tr><td>(3) Cap ou Collar de taux d&#x27;intérêt conformément à la Section 4.05 des Conditions Générales</td><td>0</td></tr><tr><td>MONTANT TOTAL</td><td>16,700,000</td></tr></table>"
+                },
+                {
+                  "type": "alinea",
+                  "content": "# C. Conditions de libération de la tranche de retrait."
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "1.",
+                  "content": "Aucun retrait ne sera effectué sur la Tranche de retrait unique à moins que la Banque ne soit satisfaite : (a) du Programme mis en œuvre par l'Emprunteur ; et b) de l'adéquation du cadre de politique macroeconomique de l'Emprunteur."
+                },
+                {
+                  "type": "alinea",
+                  "content": "# D. Dépôt des montants des prêts."
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "1.",
+                  "content": "Nonobstant les dispositions de la section 2.03 des Conditions generales :"
+                },
+                {
+                  "type": "alinea",
+                  "content": "(a) l'Emprunteur ouvrira, avant de fournir à la Banque la première demande de retrait du Compte de prét, et mainiendra par la suite les deux comptes spécialisés suivants selon des modalités satisfaissantes pour la Banque: (i) un compte spécialisé en euros (« Compte spécialisé en devises «); (ii) un compte spécialisé en FCFA (« Compte spécialisé en monnaie locale «); et"
+                },
+                {
+                  "type": "alinea",
+                  "content": "(b) tous les retraits effectués sur le compte de prét sont déposés par la Banque sur le compte dédié en devises. Lors de chaque dépôt d'un montant du Prét sur le Compte dédié en devises, l'Emprunteur déposera un montant équivalent sur le Compte dédié en monnaie locale."
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "2.",
+                  "content": "Dans les trente (30) jours suivant le retrait du Pré du Compte du Pré, l'Emprunteur communique à la Banque : a) la somme exacte reçue sur le Compte dédié en devises ; b) les détails du compte sur lequel l'équivalent en FCFA du produit du Pré sera créé ; c) l'enregistrement qu'un montant équivalent a été comptabilisé dans les systèmes de gestion budgêtaire de l'Emprunteur ; et d) l'état des encaissements et décaissements du Compte dédié en devises."
+                },
+                {
+                  "type": "alinea",
+                  "content": "E. Audit. À la demande de la Banque, l'Emprunteur :"
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "1.",
+                  "content": "Faire auditor les Comptes dédiés par des auditeurs indépendants acceptables pour la Banque, conformément à des normes d'audit appliquées de manière cohérente et acceptables pour la Banque ;"
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "2.",
+                  "content": "Fournir à la Banque dés que possible, mais dans tous les cas au plus tard quatre (4) mois après"
+                },
+                {
+                  "type": "alinea",
+                  "content": "la date de la demande de la Banque pour un tel audit, une copie certifiée du rapport de cet audit, avec la portée et les détails que la Banque demandera raisonnablement, et rendre ce rapport accessible au public en temps opportun et d'une manière acceptable pour la Banque ; et"
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "3.",
+                  "content": "fournir à la Banque toute autre information concernant les comptes dédiés et leur audit que la Banque peut raisonnablement demander."
+                },
+                {
+                  "type": "alinea",
+                  "content": "F. Date de clôture. La date de clôture est le 31 décembre 2026."
+                },
+                {
+                  "type": "alinea",
+                  "content": "# ANNEXE 21"
+                },
+                {
+                  "type": "alinea",
+                  "content": "# Calendrier de remboursement de l'amortissement lié à l'engagement"
+                },
+                {
+                  "type": "alinea",
+                  "content": "Le tableau suivant présente les dates de paiement du principal du prét et le pourcentage du montant total du principal du prét playable à chaque date de paiement du principal (\"part de remboursement\")."
+                },
+                {
+                  "type": "alinea",
+                  "content": "Niveau de remboursement du capital²"
+                },
+                {
+                  "type": "alinea",
+                  "content": "<table><tr><td>Date de paiement du principal</td><td>Part de remboursement</td></tr><tr><td>Le 15 février et le 15 août de chaque annéeÂ partir du 15 août 2030 jusqu&#x27;àu 15 août 2059</td><td>1.67%</td></tr><tr><td>Le _15 février 2060_</td><td>1.47%</td></tr></table>"
+                },
+                {
+                  "type": "alinea",
+                  "content": "<sup>1</sup> A confirmer sur la base de la feuille de calcul actualisé du besoin du pré et du tableau d'amortissement à préparer par la WFA."
+                },
+                {
+                  "type": "alinea",
+                  "content": "2 La détermination des montants en principal du prét remboursables à chaque date de paiement du principal est effectuee conformément à l'article 3.03 des conditions generales."
+                },
+                {
+                  "type": "alinea",
+                  "content": "# ANNXE"
+                },
+                {
+                  "type": "alinea",
+                  "content": "# Section I. Définitions"
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "1.",
+                  "content": "\"Loi  $n^{\\circ}$  16-2024 relative à la concurrence\" signifie la Loi  $n^{\\circ}$  16-2024 relative à la concurrence, dated du 9 juillet 2024 et publiée au Journal Officiel du 18 juillet 2024."
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "2.",
+                  "content": "\"Décret n° 2024-2070\" désigne le Décret n° 2024-2072 fixant les modalités de constatation des infractions, de notification des sanctions et astreintes, des opérations de concentrations d'entreprises et de recouvrement des amendes, contre les pratiques anticoncurrentielles, datedu10octobre2024,et publié au Journal officiel du 17 octobre 2024."
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "3.",
+                  "content": "\"Décret n° 2024-2071\": Décret n° 2024-2071 portant approbation des statuts de l'autorité nationale de"
+                },
+                {
+                  "type": "alinea",
+                  "content": "la concurrence, datedu 10 octobre 2024 et publié au Journal officiel du 17 octobre 2024."
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "4.",
+                  "content": "“Décret n° 2024-2072” désigne le Décret n° 2024-2072 fixant les conditions et les modalités de la dématérialisation des procédures de passation des marchés publics et de délégations de service public, datedu 10 octobre 2024 et publié au Journal officiel du 17 octobre 2024."
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "5.",
+                  "content": "“Décret n° 2024-2074” désigne le Décret n° 2024-2074 fixant les conditions et modalités d'approbation de la cession des intérêts participatifs dans le contrat pétrolier ou du transfert d'actions ou parts sociales dans le capital social de l'un des membres du contracteur, datedu10octobre2024,etpubliéau Journal officiel du 17 octobre 2024."
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "6.",
+                  "content": "“Décret n° 2024-2075” désigne le Décret n° 2024-2075 fixant les conditions et modalités de constitution du contractant, dated du 10 octobre 2024 et publié au Journal officiel du 17 octobre 2024."
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "7.",
+                  "content": "\"Décret n° 2024-2076\" désigne le Décret n° 2024-2076 du 10 octobre 2024 fixant le statut des assistants vérifieurs de la Cour des comptes et de discipline budgêtaire, datedu 10 octobre 2024 et publié au Journal officiel du 17 octobre 2024."
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "8.",
+                  "content": "“Décret n° 2024-2078” désigne le Décret n° 2024-2078 du 10 octobre 2024 instituant l'échange des renseignements entre les entités publiques, les entités privées et les administrations fiscale et douanière, datedu 10 octobre 2024 et publié au Journal officiel du 17 octobre 2024."
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "9.",
+                  "content": "“Décret n° 2024-2096” désigne le décret présidentiel n° 2024-2096 du 14 octobre 2024 portant nomination des membres du Conseil supérieur de l'Institution supérieur de contrôle des finances publiques, publié au Journal officiel du 17 octobre 2024."
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "10.",
+                  "content": "“Décret n° 2025-90” signifie le Décret n° 2024-2076 du 1 avril 2025 modifiant et complétant certaines dispositions du décret n° 2009-157 du 20 mai 2009 portant attributions, organisation et fonctionnement de l'autorité de régulation des marchés publics, datedu  $1^{\\mathrm{er}}$  avril 2025, et publié au Journal Officiel du 3 avril 2025."
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "11.",
+                  "content": "\"Décret n° 2025-157\" désigne le Décret n° 2025-157 du 25 Avril 2025 fixant la liste des inspections effectuees par l'administration publique auprès des établissements et entreprises publics et privés, datedu 25 avril 2025 et publié au Journal Officiel du 8 mai 2025."
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "12.",
+                  "content": "\"Comptes dédiés\" désigne à la fois le Compte dédié en devises et le Compte dédié en monnaie locale."
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "13.",
+                  "content": "\"Financement A\" désigne le financement visé à la section 2.01(a) duprésent Accord et, aux fins des Conditions générales, le Financement."
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "14.",
+                  "content": "\"Financement B\" désigne le financement visé à la section 2.01(b) de la presente convention et, pour les besoins des conditions générales, le financement."
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "15.",
+                  "content": "\"Convention de financement\" désigne la convention datée du même jour que la présente Convention entre l'Emprunteur et l'Association internationale de développement, accordant un crédit à l'Emprunteur pour l'aider à financier le Projet, telle que cette convention peut être amendée de temps à autre. «Accord de financement « comprend toutes les annexes, tous les calendriers et tous les accords complémentaires à l'Accord de financement."
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "16.",
+                  "content": "“Compte dédié aux devises étrangères” désigne le compte visé à la partie D.1(a) de la section II de l'annexe 1 de la présente convention."
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "17.",
+                  "content": "\"Conditions générales\" désigne les \"Conditions générales de la Banque internationale pour la reconstruction et le développement pour le financement de la BIRD, financement de la politique de développement\", datedu 14 décembre 2018 (dernière révision le 15 juillet 2023), avec les modifications énoncées à la section II de la presente annexe."
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "18.",
+                  "content": "\"Loi horizontally sur les inspections\" signifie la Loi  $n^{\\circ}4$ -2025 du 29 mars 2025 portant réforme des inspections effectuees par l'administration publique auprès des établissements et entreprises publics et privés, publiée au Journal Officiel en date du 3 avril 2025."
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "19.",
+                  "content": "\"Code des hydrocarbures\" désigne le Code des hydrocarbures de l'Emprunteur n° 28-2016 du 12 octobre 2016 et ses amendements ultérieurs."
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "20.",
+                  "content": "\"Loi relative à l'autorité de la concurrence\" désigne la Loi  $n^{\\circ}$  19-2024 portant creation de l'autorité nationale de la concurrence, datedu 16 août 2024,et publiée au Journal Officiel du 3 octobre 2024."
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "21.",
+                  "content": "\"Loi n° 3 de 2024\" signifie la loi portant création du Haut Conseil de l'Institution supérieure de contrôle, ou Loi n° 3-2024 fixant la composition, l'organisation et le fonctionnement du conseil supérieur de la Cour des comptes et de discipline budgêtaire, publiée au Journal officiel en date du 29 février 2024."
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "22.",
+                  "content": "\"Compte dédié en monnaie locale\" désigne le compte visé à la partie D.1(b) de la section II de l'annexe 1 du précédent accord."
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "23.",
+                  "content": "\"Arrêté ministeriel n° 320\" désigne l'Arrêté n° 320 déterminant la procédure d'intégration à la fonction publique des candidats en fonction des postes budgétaires ouverts au profit des ministères en charge de l'enseignement préscolaire, primaire, secondaire et de l'alphabetisation, de l'enseignement technique et professionnel, de la santé et de la population, en date du 28 mars 2025, et publié au Journal Officiel en date du 3 avril 2025."
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "24.",
+                  "content": "\"Arrêté ministeriel n° 17535\" désigne l'Arrêté n° 17535 relatifs aux attributions des membres de l'unité de gestion du registre social unique, en date du 8 août 2024, publié au Journal officiel en date du 22 août 2024."
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "25.",
+                  "content": "\"Arrêté ministeriel n° 18503\" désigne l'Arrêté n° 18503 fixant les règes de collecte, de traitement, d'échange et d'actualisation des données du registre social unique, datedu 20 août, publié au Journal officiel du 29 août 2024."
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "26.",
+                  "content": "\"Arrêté ministeriel n° 22156 22156\" désigne l'Arrêté n°22156 déterminant la procédure d'intégration à la fonction publique des candidats en fonction des postes budgétaires ouverts au profit des ministères en charge de l'enseignement préscolaire, primaire, secondaire et de l'alphabetisation, de l'enseignement technique et professionnel et de la santé et de la population, en date du 11 octobre 2024, et publié au Journal Officiel du 17 octobre 2024."
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "27.",
+                  "content": "\"Arrêté ministeriel n° 22388\" désigne l'Arrêté n° 22388 portant attributions, organisation et fonctionnement du comité d'évaluation et de gestion des risques dans les administrations fiscale et douanière, datedu10octobre2024etpubliéauJournal officiel du 17 octobre 2024."
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "28.",
+                  "content": "\"Programme national de filets de sécurité\" ou \"PNFS\" désigne le programme national de filets de sécurité de l'Emprunteur, établi en vertu du décret  $n^{\\circ}$  2023-1740, tel qu'il peut être modifié de temps à autre."
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "29.",
+                  "content": "\"Journal officiel\" désigne le Journal officiel de la République du Congo, la principale source de droit de l'Emprunteur publiée pour diffuser les lois, les règlements et les décisions officielles."
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "30.",
+                  "content": "\"Programme\" désigne le programme d'objectifs, de politiques et d'actions énoncés ou mentionnés dans la dette datée du 19 mai 2025, adressée par l'Emprunteur à la Banque, déclarant l'engagement de l'Emprunteur à exécuter le Programme, et demandant l'assistance de la Banque à l'appui du Programme pendant son exécution et complenant les actions entreprises, y compris celles énoncées à la Section I de l'Annexe 1 du présence Accord, et les actions à entreprender conformément aux objectifs du programme."
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "31.",
+                  "content": "\"Agence de régulation des marchés publics\" désigne l'agence de l'Emprunteur chargée des marchés publics, créée et fonctionnant conformément au décret n° 2009-157 du 20 mai 2009 de l'Emprunteur, ou son successiveur légal à la satisfaction de la Banque."
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "32.",
+                  "content": "\"Date de signature\" désigne la plus tardive des deux dates auxquelles l'Emprunteur et la Banque ont signé le present Accord et cette définition s'applique à toutes les références à la « date de l'Accord de prét « dans les Conditions générales."
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "33.",
+                  "content": "\"Tranche de Retrait Unique\" désigne le montant du Prét affecté à la catégorie intitulée \"Tranche de Retrait Unique\" dans le tableau figurant à la Partie B de la Section II de l'Annexe 1 de la présente Convention."
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "34.",
+                  "content": "\"Institution supérieure de contrôle\" désigne la Cour des comptes et de discipline budgêtaire de l'Emprunteur, créée en vertu de la constitution de l'Em"
+                },
+                {
+                  "type": "alinea",
+                  "content": "prunteur de 1992 et fonctionnant conformément à la loi de l'Emprunteur n° 022-92, en date du 20 octobre 1992, relative à l'organisation du pouvoir judiciaire, celle qu'amendée conformément à la loi de l'Emprunteur n° 19-99 en date du 15 août 1999."
+                },
+                {
+                  "type": "alinea",
+                  "content": "# Section II. Modifications des Conditions générales"
+                },
+                {
+                  "type": "alinea",
+                  "content": "Les Conditions générales sont modifiées comme suit :"
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "1.",
+                  "content": "La section 3.01 (Front-end Fee; Commitment Charge; Exposure Surcharge) est modifiée comme suit :"
+                },
+                {
+                  "type": "alinea",
+                  "content": "\"Section 3.01. Commission initiale ; commission d'engagement"
+                },
+                {
+                  "type": "alinea",
+                  "content": "(a) L'Emprunteur paiera à la Banque une Commission d'ouverture de dossier sur le montant du Pré et au taux spécifique dans la Convention de Pré. Sauf disposition contraire de la Section 2.05 (b), l'Emprunteur paiera la Commission d'ouverture au plus tard soixante (60) jours après la Date d'effet."
+                },
+                {
+                  "type": "alinea",
+                  "content": "(b) L'Emprunteur paiera à la Banque une Commission d'engagement sur le Solde du Prént non prélevé au taux spécifique dans la Convention de Préts. La Commission d'engagement court à partir d'une date située soit (60) jours après la date de la Convention de préts jusqu'àux dates respectives auxquelles les montants sont reliés par l'Emprunteur du Compte de préts ou annulés. Sauf disposition contraire de la Section 2.05 (c), l'Emprunteur paiera la Commission d'engagement semestriellement à terme échu à chaque Date de paiement\"."
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "2.",
+                  "content": "La section 3.04 (Remboursement anticipate) est modifiée comme suit :"
+                },
+                {
+                  "type": "alinea",
+                  "content": "# \"Section3.04. Remboursement anticipé"
+                },
+                {
+                  "type": "alinea",
+                  "content": "(a) ÀpRES avoir donné un préavis d'au moins quarante-cinq (45) jours à la Banque, l'Emprunteur peut rembourser à la Banque les montants suivants avant l'échéance, à une date acceptable pour la Banque (à condition que l'Emprunteur ait payé tous les Paiements du Prét dus à cette date): (i) la totalité du Solde du Prét retire à cette date; ou (ii) la totalité du capital d'une ou plusieurs échéances du Prét. Tout remboursement anticipé partiel du Solde du Prét retire sera appliqué de la maniere spécifiée par l'Emprunteur ou, en l'absence de toute Specification de la part de l'Emprunteur, de la maniere suivante: (A) si le Contrat de Prét prévoit l'amortissement séparé de certains Montants Décaissés du capital du Prét, le remboursement anticipé sera effectué dans l'ordre inverse de ces Montants Décaissés, le Montant Décaissé qui a été retire en dernier étant rembourse en premier et l'échéance la plus tardive dudit Montant Décaissé étant rembourse en premier; et (B) dans tous les autres cas, le remboursement anticipé sera effectué dans l'ordre inverse des échéances du Prét, l'échéance la plus tardive étant remboursée en premier."
+                },
+                {
+                  "type": "alinea",
+                  "content": "(b) Si, pour tout montant du Pré t à rembourser par anticipation, une Conversion a été effectuee et que la P eriode de Conversion n'a pas pris fin au moment du remboursement anticipé, les dispositions de l'article 4.06 s'appliquent."
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "3.",
+                  "content": "Dans les paragraphs initialement numérotés 73 et 79 de l'Annexe, les termes \"Versement du Pré\" et \"Date de Versement\", respectivement, sont modifiés comme suit :"
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "73.",
+                  "content": "\"Palement du Pré\" désigne tout montant payable par les Parties au Pré à la Banque en vertu des Conventions Juridiques, y compris (mais sans s'y limiter) tout montant du Solde du Pré retire sur, les intérêts, la Commission d'ouverture de dossier, la Commission d'engagement, les intérêts au Taux d'intérêt par défaut (le cas échéant), toute surcharge, toute commission de transaction pour une Conversion ou la résiliation anticipée d'une Conversion, toute prime payable lors de l'établissement d'un Plafond de taux d'intérêt ou d'un Collar de taux d'intérêt, et tout Montant de Dénouement payable par l'Emprunteur."
+                },
+                {
+                  "type": "alinea",
+                  "content": "\"79. \"Date de Paiement « désigne chaque date spécifique dans le Contrat de Prétsurvenant à partir de la date du Contrat de Préts à laquelle les intérêts, la Commission d'Engagement et les autres frais et commissions du Préts (autres que la Commission d'Amortissement) sont payables, le cas échéant.\""
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "4.",
+                  "content": "Les définitions des paragraphs 4 (Montant d'Exposition Excédentaire Alloué); 51 (Surcharge d'Exposition); 93 (Limite d'Exposition Standard) et 99 (Exposition Totale) de l'Annexe sont toutes supprimées dans leur intégralité et les définitions et paragraphs restants ( selon le cas) sont renumerétés en conséquence."
+                }
+              ],
+              "references": [
+                {
+                  "type": "decret",
+                  "texte_cite": "décret n° 2024-2078"
+                },
+                {
+                  "type": "decret",
+                  "texte_cite": "décret n° 2024-2075"
+                },
+                {
+                  "type": "decret",
+                  "texte_cite": "décret n° 2024-2074"
+                },
+                {
+                  "type": "loi",
+                  "texte_cite": "loi n° 3"
+                },
+                {
+                  "type": "decret",
+                  "texte_cite": "décret n° 2024-2076"
+                },
+                {
+                  "type": "decret",
+                  "texte_cite": "décret n° 2024-2096"
+                },
+                {
+                  "type": "decret",
+                  "texte_cite": "décret n° 2024-2072"
+                },
+                {
+                  "type": "decret",
+                  "texte_cite": "décret n° 2025-90"
+                },
+                {
+                  "type": "decret",
+                  "texte_cite": "décret n° 2025-157"
+                },
+                {
+                  "type": "decret",
+                  "texte_cite": "décret n° 2024-2070"
+                },
+                {
+                  "type": "decret",
+                  "texte_cite": "décret n° 2024-2071"
+                },
+                {
+                  "type": "decret",
+                  "texte_cite": "Décret n° 2024-2070"
+                },
+                {
+                  "type": "decret",
+                  "texte_cite": "Décret n° 2024-2071"
+                },
+                {
+                  "type": "decret",
+                  "texte_cite": "Décret n° 2024-2071"
+                },
+                {
+                  "type": "decret",
+                  "texte_cite": "Décret n° 2024-2072"
+                },
+                {
+                  "type": "decret",
+                  "texte_cite": "Décret n°2024-2074"
+                },
+                {
+                  "type": "decret",
+                  "texte_cite": "Décret n°2024-2074"
+                },
+                {
+                  "type": "decret",
+                  "texte_cite": "Décret n° 2024-2078"
+                },
+                {
+                  "type": "decret",
+                  "texte_cite": "Décret n° 2024-2096"
+                },
+                {
+                  "type": "decret",
+                  "texte_cite": "Décret n° 2025-90"
+                },
+                {
+                  "type": "decret",
+                  "texte_cite": "Décret n° 2024-2076 du 1 avril 2025"
+                },
+                {
+                  "type": "decret",
+                  "texte_cite": "décret n° 2009-157 du 20 mai 2009"
+                },
+                {
+                  "type": "decret",
+                  "texte_cite": "Décret n° 2025-157"
+                },
+                {
+                  "type": "decret",
+                  "texte_cite": "Décret n° 2025-157 du 25 Avril 2025"
+                },
+                {
+                  "type": "loi",
+                  "texte_cite": "Loi n° 3"
+                },
+                {
+                  "type": "loi",
+                  "texte_cite": "Loi n° 3-2024"
+                },
+                {
+                  "type": "arrete",
+                  "texte_cite": "Arrêté n° 18503"
+                },
+                {
+                  "type": "arrete",
+                  "texte_cite": "Arrêté n°22156"
+                },
+                {
+                  "type": "arrete",
+                  "texte_cite": "Arrêté n° 22388"
+                },
+                {
+                  "type": "decret",
+                  "texte_cite": "décret n° 2023-1740"
+                },
+                {
+                  "type": "decret",
+                  "texte_cite": "décret n° 2024-2078"
+                },
+                {
+                  "type": "decret",
+                  "texte_cite": "décret n° 2024-2075"
+                },
+                {
+                  "type": "decret",
+                  "texte_cite": "décret n° 2024-2074"
+                },
+                {
+                  "type": "loi",
+                  "texte_cite": "loi n° 3"
+                },
+                {
+                  "type": "decret",
+                  "texte_cite": "décret n° 2024-2076"
+                },
+                {
+                  "type": "decret",
+                  "texte_cite": "décret n° 2024-2096"
+                },
+                {
+                  "type": "decret",
+                  "texte_cite": "décret n° 2024-"
+                },
+                {
+                  "type": "decret",
+                  "texte_cite": "décret n° 2025-90"
+                },
+                {
+                  "type": "decret",
+                  "texte_cite": "Décret n° 2025-157"
+                },
+                {
+                  "type": "decret",
+                  "texte_cite": "décret n° 2022-1875"
+                },
+                {
+                  "type": "decret",
+                  "texte_cite": "décret n° 2023-1749"
+                },
+                {
+                  "type": "decret",
+                  "texte_cite": "Décret n° 2024-2070"
+                },
+                {
+                  "type": "decret",
+                  "texte_cite": "Décret n° 2024-2071"
+                },
+                {
+                  "type": "decret",
+                  "texte_cite": "Décret n° 2024-2070"
+                },
+                {
+                  "type": "decret",
+                  "texte_cite": "Décret n° 2024-2072"
+                },
+                {
+                  "type": "decret",
+                  "texte_cite": "Décret n° 2024-2071"
+                },
+                {
+                  "type": "decret",
+                  "texte_cite": "Décret n° 2024-2071"
+                },
+                {
+                  "type": "decret",
+                  "texte_cite": "Décret n° 2024-2072"
+                },
+                {
+                  "type": "decret",
+                  "texte_cite": "Décret n° 2024-2072"
+                },
+                {
+                  "type": "decret",
+                  "texte_cite": "Décret n° 2024-2074"
+                },
+                {
+                  "type": "decret",
+                  "texte_cite": "Décret n° 2024-2074"
+                },
+                {
+                  "type": "decret",
+                  "texte_cite": "Décret n° 2024-2075"
+                },
+                {
+                  "type": "decret",
+                  "texte_cite": "Décret n° 2024-2075"
+                },
+                {
+                  "type": "decret",
+                  "texte_cite": "Décret n° 2024-2076"
+                },
+                {
+                  "type": "decret",
+                  "texte_cite": "Décret n° 2024-2076 du 10 octobre 2024"
+                },
+                {
+                  "type": "decret",
+                  "texte_cite": "Décret n° 2024-2078"
+                },
+                {
+                  "type": "decret",
+                  "texte_cite": "Décret n° 2024-2078 du 10 octobre 2024"
+                },
+                {
+                  "type": "decret",
+                  "texte_cite": "Décret n° 2024-2096"
+                },
+                {
+                  "type": "decret",
+                  "texte_cite": "Décret n° 2025-90"
+                },
+                {
+                  "type": "decret",
+                  "texte_cite": "Décret n° 2024-2076 du 1 avril 2025"
+                },
+                {
+                  "type": "decret",
+                  "texte_cite": "décret n° 2009-157 du 20 mai 2009"
+                },
+                {
+                  "type": "decret",
+                  "texte_cite": "Décret n° 2025-157"
+                },
+                {
+                  "type": "decret",
+                  "texte_cite": "Décret n° 2025-157 du 25 Avril 2025"
+                },
+                {
+                  "type": "loi",
+                  "texte_cite": "Loi n° 3"
+                },
+                {
+                  "type": "loi",
+                  "texte_cite": "Loi n° 3-2024"
+                },
+                {
+                  "type": "arrete",
+                  "texte_cite": "Arrêté n° 320"
+                },
+                {
+                  "type": "arrete",
+                  "texte_cite": "Arrêté n° 17535"
+                },
+                {
+                  "type": "arrete",
+                  "texte_cite": "Arrêté n° 18503"
+                },
+                {
+                  "type": "arrete",
+                  "texte_cite": "Arrêté n°22156"
+                },
+                {
+                  "type": "arrete",
+                  "texte_cite": "Arrêté n° 22388"
+                },
+                {
+                  "type": "decret",
+                  "texte_cite": "décret n° 2009-157 du 20 mai 2009"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "signatures": [
+        "Denis SASSOU-N'GUESSO",
+        "Anatole Collinet MAKOSSO",
+        "Firmin AYESSA, Le ministre d'Etat, ministre de la fonction publique, du travail et de la sécurité sociale",
+        "Pierre MABIALA, Le ministre d'Etat, ministre des'affaires foncières et du domaine public, charge des relations avec le Parlement",
+        "Jean Jacques BOUYA, Le ministre d'Etat, ministre de l'aménagement du territoire et des grands travaux",
+        "Christian YOKA, Le ministre des finances, du budget et du portefeuille public",
+        "Delphine Edith EMMANUEL ADOUKI, La ministre de l'enseignement supérieur",
+        "Denis SASSOU-N'GUESSO, Le Président de la République promulgue la loi dont la teneur suit :",
+        "Anatole Collinet MAKOSSO",
+        "Christian YOKA, Le ministre des finances, du budget et du portefeuille public",
+        "Christian YOKA, Le ministre des finances, du budget et du portefeuille public",
+        "L'ASSOCIATION INTERNATIONALE DE DEVELOPPEMENT, LA REPUBLIQUE DU CONGO",
+        "ACCORD DE FINANCEMENT",
+        "Boulevard Denis Sassou Ngueso",
+        "Brazzaville",
+        "Par",
+        "Par",
+        "Boulevard Denis Sassou-N'guesso",
+        "Brazzaville"
+      ]
+    },
+    {
+      "numero_texte": "Loi n° 7-2011",
+      "date_publication": "2011-03-02",
+      "intitule_long": "1499 du 13 juin 2025 portant ouverture du concours du franchissement au titre des années 2022 et 2023",
+      "contenu": [
+        {
+          "type": "Chapitre",
+          "intitule": "CHAPITRE I : DISPOSITION GÉNÉRALE",
+          "elements": [
+            {
+              "type": "Article",
+              "numero": "premier",
+              "texte": [
+                {
+                  "type": "alinea",
+                  "content": "Il est ouvert un concours de sclection de deux cents (200) candidats au franchissement, sessions cumulées 2022 et 2023, soit cent (100) candidats par session. Ce concours est réservé exclusivement aux sous-officiers supérieurs de la police nationale du grade d'adjudant-chef de police."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "Chapitre",
+          "intitule": "CHAPITRE II : DES CONDITIONS DE CANDIDATURE",
+          "elements": [
+            {
+              "type": "Article",
+              "numero": "2",
+              "texte": [
+                {
+                  "type": "alinea",
+                  "content": "Les candidats doivent replir les conditions suivantes :"
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "-",
+                  "content": "être titulaire du BT2 ou d'un diplôme équivalent ;"
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "-",
+                  "content": "avoir une ancienneté au grade d'adjudant-chef de police d'un (1) an au moins au 31 décembre 2021, pour les candidats éligibles à la session 2022 ;"
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "-",
+                  "content": "avoir une ancienneté au grade d'adjudant-chef de police d'un (1) an au moins au 31 décembre 2022, pour les candidats éligibles à la session 2023."
+                }
+              ]
+            },
+            {
+              "type": "Article",
+              "numero": "3",
+              "texte": [
+                {
+                  "type": "alinea",
+                  "content": "Les dossiers de candidature sont ceux transmis par voie hierarchique à la direction générale de l'administration et des ressources humaines dans le cadre de l'avancement au titre des années 2021 et 2022."
+                }
+              ]
+            },
+            {
+              "type": "Article",
+              "numero": "4",
+              "texte": [
+                {
+                  "type": "alinea",
+                  "content": "Le directeur général de l'administration et des ressources humaines arrêté et publiè la liste définitive des candidats au concours."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "Chapitre",
+          "intitule": "CHAPITRE III : DE L'ORGANISATION",
+          "elements": [
+            {
+              "type": "Article",
+              "numero": "5",
+              "texte": [
+                {
+                  "type": "alinea",
+                  "content": "Il est mis en place une commission chargée de l'organisation et du déroulement du concours composée de la manière suivante:"
+                },
+                {
+                  "type": "alinea",
+                  "content": "préident : directeur général de l'administration et des ressources humaines ;"
+                },
+                {
+                  "type": "alinea",
+                  "content": "vice-président : directeur général des finances et de l'équipement ;"
+                },
+                {
+                  "type": "alinea",
+                  "content": "membre :"
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "-",
+                  "content": "le conseiller à l'ordre public du ministre de l'intérieur et de la décentralisation ;"
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "-",
+                  "content": "le gestionnaire du personnel du ministeré de l'intérieur et de la décentralisation ;"
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "-",
+                  "content": "le gestionnaire du personnel du commandement des forces de police ;"
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "-",
+                  "content": "le gestionnaire du personnel du commandement de la sécurité civile ;"
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "-",
+                  "content": "le gestionnaire du personnel de la centrale d'intelligence et de documentation ;"
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "-",
+                  "content": "le gestionnaire du personnel de la direction générale de la sécurité présidente;"
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "-",
+                  "content": "le gestionnaire du personnel de la garde républicaine ;"
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "-",
+                  "content": "le gestionnaire du personnel de l'inspection générale de la police nationale et de la gendarmerie nationale ;"
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "-",
+                  "content": "le gestionnaire du personnel de la direction générale de l'administration et des ressources humaines ;"
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "-",
+                  "content": "le gestionnaire du personnel de la direction générale des finances et de l'équipement;"
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "-",
+                  "content": "le gestionnaire du personnel de la direction générale de la(Strategie, de la coopération et de la communication ;"
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "-",
+                  "content": "le gestionnaire du personnel de l'école nationale supérieure de police."
+                },
+                {
+                  "type": "alinea",
+                  "content": "secretariat :"
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "-",
+                  "content": "un officier supérieur de la direction générale de l'administration et des ressources humaines, chef de secretariat ;"
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "-",
+                  "content": "un officier supérieur adjoint au chef de secretariat ;"
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "-",
+                  "content": "douze (12) membres."
+                }
+              ]
+            },
+            {
+              "type": "Article",
+              "numero": "6",
+              "texte": [
+                {
+                  "type": "alinea",
+                  "content": "Deux (2) centres d'examen sont retenus : un à Brazzaville et un à Pointe-Noire. Le déroulement des épréuves dans les centres retenus est assure par une sous-commission locale."
+                }
+              ]
+            },
+            {
+              "type": "Article",
+              "numero": "7",
+              "texte": [
+                {
+                  "type": "alinea",
+                  "content": "Les épreuves retenues sont les suivantes :"
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "-",
+                  "content": "épréuve d'orthographe ;"
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "-",
+                  "content": "épréuve de culture générale;"
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "-",
+                  "content": "épréuve professionnelle."
+                }
+              ]
+            },
+            {
+              "type": "Article",
+              "numero": "8",
+              "texte": [
+                {
+                  "type": "alinea",
+                  "content": "Les résultats des candidats admis au concours du franchissement sont publiés par une note de service du ministre de l'intérieur et de la décentralisation."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "Chapitre",
+          "intitule": "CHAPITRE IV : DISPOSITIONS",
+          "elements": [
+            {
+              "type": "Article",
+              "numero": "9",
+              "texte": [
+                {
+                  "type": "alinea",
+                  "content": "Une note de service du ministre de l'intérieur et de la decentralisation fixe la date du concours du franchissement, les modalités du déroulement des épreuves, la composition des sous-commissions locales et désigne les membres de la commission et des sous-commissions."
+                }
+              ]
+            },
+            {
+              "type": "Article",
+              "numero": "10",
+              "texte": [
+                {
+                  "type": "alinea",
+                  "content": "Leprésent arrêté sera enregistré et publié au Journal officiel de la République du Congo."
+                },
+                {
+                  "type": "alinea",
+                  "content": "Fait à Brazzaville, le 13 juin 2025"
+                },
+                {
+                  "type": "alinea",
+                  "content": "Raymond Zéphirin MBOULOU"
+                },
+                {
+                  "type": "alinea",
+                  "content": "# MINISTERE DES FINANCES, DU BUDGET ET DU PORTEFEUILLE PUBLIC"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
