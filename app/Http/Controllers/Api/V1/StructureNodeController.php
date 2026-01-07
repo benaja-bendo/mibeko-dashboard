@@ -20,14 +20,17 @@ class StructureNodeController extends Controller
      * 
      * Returns the structure tree for a specific document.
      */
-    public function tree(string $documentId): AnonymousResourceCollection
+    public function tree(string $documentId): \Illuminate\Http\JsonResponse
     {
         $nodes = StructureNode::query()
             ->where('document_id', $documentId)
-            ->with(['articles.latestVersion'])
+            ->with(['articles.activeVersion'])
             ->orderBy('sort_order')
             ->get();
 
-        return StructureNodeResource::collection($nodes);
+        return $this->success(
+            StructureNodeResource::collection($nodes),
+            'Structure récupérée avec succès'
+        );
     }
 }

@@ -3,11 +3,10 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
-
-use App\Models\Institution;
 use App\Http\Resources\V1\InstitutionResource;
-use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use App\Models\Institution;
+use Illuminate\Http\JsonResponse;
+use Spatie\QueryBuilder\QueryBuilder;
 
 /**
  * @group Institutions
@@ -17,8 +16,16 @@ class InstitutionController extends Controller
     /**
      * List institutions.
      */
-    public function index(): AnonymousResourceCollection
+    public function index(): JsonResponse
     {
-        return InstitutionResource::collection(Institution::all());
+        $institutions = QueryBuilder::for(Institution::class)
+            ->allowedFilters(['nom', 'sigle'])
+            ->allowedSorts(['nom', 'sigle'])
+            ->get();
+
+        return $this->success(
+            InstitutionResource::collection($institutions),
+            'Institutions récupérées avec succès'
+        );
     }
 }

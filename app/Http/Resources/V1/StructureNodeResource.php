@@ -21,7 +21,7 @@ class StructureNodeResource extends JsonResource
             'number' => $this->numero,
             'title' => $this->titre,
             'order' => $this->sort_order,
-            'articles' => ArticleResource::collection($this->whenLoaded('articles')),
+            'articles' => ArticleBriefResource::collection($this->whenLoaded('articles')),
         ];
     }
 }

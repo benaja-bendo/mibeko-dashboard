@@ -2,12 +2,15 @@
 
 use App\Http\Controllers\Api\V1\ArticleSearchController;
 use App\Http\Controllers\Api\V1\AuthController;
+use App\Http\Controllers\Api\V1\CatalogController;
 use App\Http\Controllers\Api\V1\DocumentTypeController;
 use App\Http\Controllers\Api\V1\InstitutionController;
 use App\Http\Controllers\Api\V1\LegalDocumentController;
+use App\Http\Controllers\Api\V1\LegalDocumentDownloadController;
 use App\Http\Controllers\Api\V1\LegalDocumentExportController;
 use App\Http\Controllers\Api\V1\StructureNodeController;
 use App\Http\Controllers\Api\V1\SyncController;
+use App\Http\Controllers\PdfProxyController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function () {
@@ -19,16 +22,28 @@ Route::prefix('v1')->group(function () {
     });
 
     // Resources
+    Route::get('catalog', [CatalogController::class, 'index']); // BE1
+
     Route::apiResource('institutions', InstitutionController::class)->only(['index']);
     Route::apiResource('document-types', DocumentTypeController::class)->only(['index']);
 
     Route::apiResource('legal-documents', LegalDocumentController::class)->only(['index', 'show']);
     Route::get('legal-documents/{document}/tree', [StructureNodeController::class, 'tree']);
-    Route::get('legal-documents/{id}/full-export', [LegalDocumentExportController::class, 'export']);
+    
+    // BE2 - Flat List Download
+    Route::get('legal-documents/{id}/download', [LegalDocumentDownloadController::class, 'download']);
+    
+    // BE4 - PDF Proxy
+    Route::get('legal-documents/{id}/pdf', [PdfProxyController::class, 'show']);
+    
+    // BE5 - PDF Export
+    Route::get('legal-documents/{id}/export', [LegalDocumentExportController::class, 'export']);
+    Route::get('articles/{id}/export', [LegalDocumentExportController::class, 'exportArticle']);
 
-    // Article Search (for mobile app)
+    // Article Search (for mobile app) - BE3 Hybrid
+    Route::get('search', [ArticleSearchController::class, 'search']);
     Route::get('articles/search', [ArticleSearchController::class, 'search']);
 
-    // Sync
+    // Sync - @deprecated by CatalogController but kept for backward compatibility if any
     Route::get('sync/updates', [SyncController::class, 'updates']);
 });

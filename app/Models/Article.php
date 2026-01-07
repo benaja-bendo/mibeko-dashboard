@@ -3,12 +3,12 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
-use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Article extends Model
 {
@@ -52,5 +52,32 @@ class Article extends Model
     public function tags(): BelongsToMany
     {
         return $this->belongsToMany(Tag::class);
+    }
+
+    /**
+     * Build a breadcrumb string for an article.
+     */
+    public function getBreadcrumbAttribute(): string
+    {
+        $parts = [];
+
+        if ($this->document?->type) {
+            $parts[] = $this->document->type->nom;
+        }
+
+        if ($this->document) {
+            // Truncate long titles
+            $title = $this->document->titre_officiel;
+            if (strlen($title) > 40) {
+                $title = mb_substr($title, 0, 40).'...';
+            }
+            $parts[] = $title;
+        }
+
+        if ($this->parentNode) {
+            $parts[] = $this->parentNode->titre ?? $this->parentNode->numero;
+        }
+
+        return implode(' > ', $parts);
     }
 }

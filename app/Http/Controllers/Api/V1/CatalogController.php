@@ -1,0 +1,47 @@
+<?php
+
+namespace App\Http\Controllers\Api\V1;
+
+use App\Http\Controllers\Controller;
+use App\Http\Resources\V1\LegalDocumentCatalogResource;
+use App\Models\LegalDocument;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+
+/**
+ * @group Catalog & Sync
+ */
+class CatalogController extends Controller
+{
+    /**
+     * Get the global catalog status.
+     *
+     * Returns the global sync state and the list of available resources.
+     * Mobile app uses this to detect if it needs to update its local database.
+     * 
+     * @response {
+     *   "success": true,
+     *   "message": "Catalogue récupéré avec succès",
+     *   "data": {
+     *     "global_update_required": true,
+     *     "last_essential_sync": "2026-01-05T08:00:00Z",
+     *     "resources": [ ... ]
+     *   }
+     * }
+     */
+    public function index(Request $request): JsonResponse
+    {
+        // For MVP, we consider everything essential needs update if it changed recently
+        // In real impl, we would check $request->input('last_sync_date')
+        
+        $documents = LegalDocument::query()
+            ->with(['type'])
+            ->get();
+
+        return $this->success([
+            'global_update_required' => false, // Dynamic logic to be added
+            'last_essential_sync' => now()->toIso8601String(),
+            'resources' => LegalDocumentCatalogResource::collection($documents),
+        ], 'Catalogue récupéré avec succès');
+    }
+}
