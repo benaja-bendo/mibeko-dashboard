@@ -23,6 +23,7 @@ class ArticleVersionFactory extends Factory
             'article_id' => Article::factory(),
             'validity_period' => ArticleVersion::makeValidityPeriod($this->faker->date()),
             'contenu_texte' => $this->faker->paragraphs(3, true),
+            'validation_status' => 'validated',
             'modifie_par_document_id' => null,
         ];
     }
