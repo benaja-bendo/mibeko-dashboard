@@ -4,6 +4,7 @@ use App\Models\LegalDocument;
 use App\Models\Institution;
 use App\Models\Article;
 use App\Models\ArticleVersion;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
@@ -12,7 +13,7 @@ it('can filter legal documents by status', function () {
     LegalDocument::factory()->create(['statut' => 'vigueur']);
     LegalDocument::factory()->create(['statut' => 'projet']);
 
-    $response = $this->getJson('/api/v1/legal-documents?status=vigueur');
+    $response = $this->getJson('/api/v1/legal-documents?filter[statut]=vigueur');
 
     $response->assertStatus(200)
         ->assertJsonCount(1, 'data')
@@ -23,7 +24,7 @@ it('can search legal documents by title', function () {
     LegalDocument::factory()->create(['titre_officiel' => 'Unique Title']);
     LegalDocument::factory()->create(['titre_officiel' => 'Other Title']);
 
-    $response = $this->getJson('/api/v1/legal-documents?search=Unique');
+    $response = $this->getJson('/api/v1/legal-documents?filter[titre_officiel]=Unique');
 
     $response->assertStatus(200)
         ->assertJsonCount(1, 'data')

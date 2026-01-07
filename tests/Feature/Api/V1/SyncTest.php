@@ -27,8 +27,8 @@ it('syncs articles modified after a specific date', function () {
     $response = $this->getJson('/api/v1/sync/updates?'.http_build_query(['since' => now()->subDays(1)->toDateTimeString()]));
 
     $response->assertSuccessful()
-        ->assertJsonCount(1, 'data')
-        ->assertJsonPath('data.0.id', $newArticle->id);
+        ->assertJsonCount(1, 'data.updated')
+        ->assertJsonPath('data.updated.0.id', $newArticle->id);
 });
 
 it('exports a full legal document with its structure and articles', function () {
@@ -44,11 +44,11 @@ it('exports a full legal document with its structure and articles', function () 
         'contenu_texte' => 'Contenu de test',
     ]);
 
-    $response = $this->getJson("/api/v1/legal-documents/{$document->id}/full-export");
+    $response = $this->getJson("/api/v1/legal-documents/{$document->id}/download");
 
     $response->assertSuccessful()
-        ->assertJsonPath('data.id', $document->id)
-        ->assertJsonCount(1, 'data.structure')
+        ->assertJsonPath('data.resource_id', $document->id)
+        ->assertJsonCount(1, 'data.nodes')
         ->assertJsonCount(1, 'data.articles')
         ->assertJsonPath('data.articles.0.content', 'Contenu de test');
 });
