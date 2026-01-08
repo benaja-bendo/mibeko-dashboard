@@ -44,4 +44,20 @@ class CatalogController extends Controller
             'resources' => LegalDocumentCatalogResource::collection($documents),
         ], 'Catalogue récupéré avec succès');
     }
+
+    /**
+     * Get statistics about available documents.
+     *
+     * Returns counts of documents grouped by type (Codes, Laws, etc.).
+     */
+    public function stats(): JsonResponse
+    {
+        $stats = \Illuminate\Support\Facades\DB::table('legal_documents')
+            ->join('document_types', 'legal_documents.type_code', '=', 'document_types.code')
+            ->select('document_types.nom as type_name', 'document_types.code as type_code', \Illuminate\Support\Facades\DB::raw('count(*) as count'))
+            ->groupBy('document_types.code', 'document_types.nom')
+            ->get();
+
+        return $this->success($stats, 'Statistiques récupérées avec succès');
+    }
 }

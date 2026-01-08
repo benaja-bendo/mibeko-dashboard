@@ -23,6 +23,7 @@ Route::prefix('v1')->group(function () {
 
     // Resources
     Route::get('catalog', [CatalogController::class, 'index']); // BE1
+    Route::get('catalog/stats', [CatalogController::class, 'stats']);
 
     Route::apiResource('institutions', InstitutionController::class)->only(['index']);
     Route::apiResource('document-types', DocumentTypeController::class)->only(['index']);

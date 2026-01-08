@@ -8,6 +8,7 @@ use App\Models\DocumentType;
 use App\Models\Institution;
 use App\Models\LegalDocument;
 use App\Models\StructureNode;
+use App\Models\Tag;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Str;
 
@@ -15,6 +16,12 @@ class RealisticLegalSeeder extends Seeder
 {
     public function run(): void
     {
+        // 0. Create Life Themes Tags
+        $tagFamille = Tag::firstOrCreate(['slug' => 'famille'], ['name' => 'Famille & Personnes', 'slug' => 'famille']);
+        $tagTravail = Tag::firstOrCreate(['slug' => 'travail'], ['name' => 'Travail & Entreprise', 'slug' => 'travail']);
+        $tagLogement = Tag::firstOrCreate(['slug' => 'logement'], ['name' => 'Logement & Foncier', 'slug' => 'logement']);
+        $tagJustice = Tag::firstOrCreate(['slug' => 'justice'], ['name' => 'Justice & Droits', 'slug' => 'justice']);
+
         $presidence = Institution::firstOrCreate(['sigle' => 'PR'], [
             'nom' => 'Présidence de la République',
             'sigle' => 'PR',
@@ -76,12 +83,13 @@ class RealisticLegalSeeder extends Seeder
             'ordre_affichage' => 1,
         ]);
 
-        ArticleVersion::create([
-            'article_id' => $art1->id,
+        $art1->versions()->create([
             'contenu_texte' => 'La République du Congo est un État de droit, souverain, unitaire, indivisible, décentralisé, laïc et démocratique. Sa capitale est Brazzaville.',
             'validity_period' => ArticleVersion::makeValidityPeriod('2015-10-25'),
             'validation_status' => 'validated',
         ]);
+
+        $art1->tags()->sync([$tagJustice->id]);
 
         // 2. Code du Travail
         $codeTravail = LegalDocument::create([
@@ -110,12 +118,13 @@ class RealisticLegalSeeder extends Seeder
             'ordre_affichage' => 1,
         ]);
 
-        ArticleVersion::create([
-            'article_id' => $artLicenciement->id,
+        $artLicenciement->versions()->create([
             'contenu_texte' => 'Le licenciement pour motif économique est tout licenciement effectué par un employeur pour un ou plusieurs motifs non inhérents à la personne du travailleur et résultant d\'une suppression ou transformation d\'emploi ou d\'une modification substantielle du contrat de travail.',
             'validity_period' => ArticleVersion::makeValidityPeriod('1975-03-15'),
             'validation_status' => 'validated',
         ]);
+
+        $artLicenciement->tags()->sync([$tagTravail->id]);
 
         // 3. Code Civil
         $codeCivil = LegalDocument::create([
@@ -143,15 +152,16 @@ class RealisticLegalSeeder extends Seeder
             'ordre_affichage' => 1,
         ]);
 
-        ArticleVersion::create([
-            'article_id' => $artMariage->id,
+        $artMariage->versions()->create([
             'contenu_texte' => 'Le mariage est l\'union légitime d\'un homme et d\'une femme. La famille est la cellule de base de la société. Elle est placée sous la protection de l\'État.',
             'validity_period' => ArticleVersion::makeValidityPeriod('1960-08-15'),
             'validation_status' => 'validated',
         ]);
 
+        $artMariage->tags()->sync([$tagFamille->id]);
+
         // Add a simple Law for diversity
-        LegalDocument::create([
+        $loiDonnees = LegalDocument::create([
             'id' => Str::uuid(),
             'titre_officiel' => 'Loi n° 5-2023 du 11 mai 2023 portant protection des données à caractère personnel',
             'reference_nor' => 'LOI-2023-005',
@@ -159,5 +169,27 @@ class RealisticLegalSeeder extends Seeder
             'type_code' => $loiType->code,
             'institution_id' => $presidence->id,
         ]);
+
+        $titreLoi = $loiDonnees->structureNodes()->create([
+            'type_unite' => 'Titre',
+            'numero' => 'I',
+            'titre' => 'DISPOSITIONS GENERALES',
+            'tree_path' => 'TITRE_I',
+            'sort_order' => 1,
+        ]);
+
+        $artLoi = $loiDonnees->articles()->create([
+            'parent_node_id' => $titreLoi->id,
+            'numero_article' => '1er',
+            'ordre_affichage' => 1,
+        ]);
+
+        $artLoi->versions()->create([
+            'contenu_texte' => 'La présente loi fixe le cadre juridique de la protection des données à caractère personnel en République du Congo.',
+            'validity_period' => ArticleVersion::makeValidityPeriod('2023-05-11'),
+            'validation_status' => 'validated',
+        ]);
+
+        $artLoi->tags()->sync([$tagJustice->id]);
     }
 }

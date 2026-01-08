@@ -3,9 +3,11 @@
         "codex",
         "copilot",
         "gemini",
+        "opencode",
         "phpstorm"
     ],
     "editors": [
+        "claude_code",
         "codex",
         "gemini",
         "opencode",

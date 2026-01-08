@@ -27,28 +27,26 @@ class ArticleSearchController extends Controller
     public function search(Request $request): JsonResponse
     {
         $request->validate([
-            'q' => ['required', 'string', 'min:2'],
+            'q' => ['nullable', 'string', 'min:2'],
             'document_id' => ['nullable', 'string', 'exists:legal_documents,id'],
+            'tag' => ['nullable', 'string'],
         ]);
 
         $query = $request->input('q');
         $documentId = $request->input('document_id');
+        $tag = $request->input('tag');
 
-        // 1. Generate Embedding
-        $embedding = $this->generateEmbedding($query);
-        $embeddingString = '[' . implode(',', $embedding) . ']';
+        if (empty($query) && empty($tag)) {
+            return response()->json(['data' => [], 'meta' => []]);
+        }
 
-        // 2. Build Query with Scoring
-        // Score A: ts_rank (scaled 0-1 approx)
-        // Score B: 1 - cosine_distance (similarity 0-1)
-        // Final Score: (Ranking * 0.7) + (Similarity * 0.3)
-        // We select articles.id to group/distinct if needed, but here we query versions and join articles
-        
+        // Base query with common joins
         $results = DB::table('article_versions as av')
             ->join('articles as a', 'av.article_id', '=', 'a.id')
             ->join('legal_documents as ld', 'a.document_id', '=', 'ld.id')
             ->join('document_types as dt', 'ld.type_code', '=', 'dt.code')
             ->leftJoin('structure_nodes as sn', 'a.parent_node_id', '=', 'sn.id')
+            ->where('av.validation_status', 'validated')
             ->select([
                 'a.id as article_id',
                 'a.numero_article',
@@ -60,24 +58,55 @@ class ArticleSearchController extends Controller
                 'dt.code as document_type_code',
                 'dt.nom as type_name',
                 'sn.titre as node_title',
-            ])
-            ->selectRaw("ts_rank(av.search_tsv, websearch_to_tsquery('french', ?)) as rank_score", [$query])
-            ->selectRaw("COALESCE(1 - (av.embedding <=> ?::vector), 0) as similarity_score", [$embeddingString])
-            ->selectRaw("(ts_rank(av.search_tsv, websearch_to_tsquery('french', ?)) * 0.7) + (COALESCE(1 - (av.embedding <=> ?::vector), 0) * 0.3) as total_score", [$query, $embeddingString])
-            ->whereRaw("av.validation_status = 'validated'") // Only validated versions
-            ->where(function ($q) use ($query, $embeddingString) {
-                // Ensure strictly valid candidates mostly match either keyword or vector
-                $q->whereRaw("av.search_tsv @@ websearch_to_tsquery('french', ?)", [$query])
-                  ->orWhereRaw("av.embedding <=> ?::vector < 0.5", [$embeddingString]);
-            });
+            ]);
 
+        // Apply Tag Filter
+        if ($tag) {
+            $results->join('article_tag as at', 'a.id', '=', 'at.article_id')
+                ->join('tags as t', 'at.tag_id', '=', 't.id')
+                ->where('t.slug', $tag);
+        }
+
+        // Apply Document Filter
         if ($documentId) {
             $results->where('a.document_id', $documentId);
         }
 
-        $paginator = $results
-            ->orderByDesc('total_score')
-            ->paginate($request->integer('per_page', 20));
+        // Apply Search Logic if query is present
+        if (!empty($query)) {
+            // 1. Generate Embedding
+            $embedding = $this->generateEmbedding($query);
+            $embeddingString = '[' . implode(',', $embedding) . ']';
+
+            // 2. Add scoring and search conditions
+            // Boost matches in document title
+            $results->selectRaw("ts_rank(av.search_tsv, websearch_to_tsquery('french', ?)) as rank_score", [$query])
+                ->selectRaw("COALESCE(1 - (av.embedding <=> ?::vector), 0) as similarity_score", [$embeddingString])
+                // New: Title match score (high priority)
+                ->selectRaw("CASE WHEN ld.titre_officiel ILIKE ? THEN 1.0 ELSE 0.0 END as title_exact_match", ["%$query%"])
+                // New: Article number boost
+                ->selectRaw("CASE WHEN a.numero_article = ? THEN 1.0 ELSE 0.0 END as article_num_match", [$query])
+                // Combined score with weights:
+                // 40% Document Title match, 30% Keyword rank, 20% Semantic similarity, 10% Article number
+                ->selectRaw("
+                    (CASE WHEN ld.titre_officiel ILIKE ? THEN 0.4 ELSE 0.0 END) +
+                    (ts_rank(av.search_tsv, websearch_to_tsquery('french', ?)) * 0.3) +
+                    (COALESCE(1 - (av.embedding <=> ?::vector), 0) * 0.2) +
+                    (CASE WHEN a.numero_article = ? THEN 0.1 ELSE 0.0 END)
+                    as total_score
+                ", ["%$query%", $query, $embeddingString, $query])
+                ->where(function ($q) use ($query, $embeddingString) {
+                    $q->whereRaw("av.search_tsv @@ websearch_to_tsquery('french', ?)", [$query])
+                      ->orWhereRaw("av.embedding <=> ?::vector < 0.5", [$embeddingString])
+                      ->orWhere('ld.titre_officiel', 'ILIKE', "%$query%");
+                })
+                ->orderByDesc('total_score');
+        } else {
+            // Default ordering for browsing by tag
+            $results->orderBy('a.ordre_affichage');
+        }
+
+        $paginator = $results->paginate($request->integer('per_page', 20));
 
         // 3. Transform for Response - Flat format matching RemoteSearchResult
         $paginator->getCollection()->transform(function ($item) {
@@ -87,7 +116,7 @@ class ArticleSearchController extends Controller
                 $item->document_title,
                 $item->node_title,
             ]));
-            
+
             return [
                 'id' => $item->article_id,
                 'number' => $item->numero_article ?? '',
