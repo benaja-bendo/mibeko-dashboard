@@ -1,0 +1,4229 @@
+{
+  "id": "congo-jo-2025-35",
+  "source_file": "congo-jo-2025-35.md",
+  "textes": [
+    {
+      "numero_texte": "Loi n° 8-2003",
+      "date_publication": "2003-02-06",
+      "intitule_long": "portant attributions, composition et fonctionnement du comité interminériel de la decentralisation en matière de santé de base",
+      "contenu": [
+        {
+          "type": "Chapitre",
+          "intitule": "CHAPITRE 1 : Disposition générale",
+          "elements": [
+            {
+              "type": "Article",
+              "numero": "premier",
+              "texte": [
+                {
+                  "type": "alinea",
+                  "content": "Leprésent décret fixe, en application de l'article 41 de la loi n° 17-2019 du 21 mai 2019 susvisée, les attributions, la composition et le fonctionnement du comité interminériel de la decentralisation en matière de santé de base."
+                },
+                {
+                  "type": "alinea",
+                  "content": "Le comité interminériel de la décentralisation en matière de santé de base est placé sous l'autorité du Premier ministre."
+                }
+              ],
+              "references": [
+                {
+                  "type": "loi",
+                  "texte_cite": "loi n° 17-2019 du 21 mai 2019"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "Chapitre",
+          "intitule": "CHAPITRE 2 : Des attributions",
+          "elements": [
+            {
+              "type": "Article",
+              "numero": "2",
+              "texte": [
+                {
+                  "type": "alinea",
+                  "content": "Le comité interminériel de la decentralisation en matière de santé de base est l'organe chargé de suivre la mise en œuvre des programmes d'accompagnement du processus de decentralisation en matière de santé de base."
+                },
+                {
+                  "type": "alinea",
+                  "content": "A ce titre, il est chargé, notamment, de :"
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "-",
+                  "content": "adopter les programmes d'accompagnement du transfert des compétences et des ressources aux collectivités locales ;"
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "-",
+                  "content": "proposer les modalités d'exercice par les départements et les communes des compétences transférées ;"
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "-",
+                  "content": "approuver l'évaluation et la répartition entre les collectivités locales des ressources financières, matérielles et humaines que l'Etat utiliseit pour l'exercice des compétences à transférer ;"
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "-",
+                  "content": "suivre l'exécution des chronogrammes d'activités des ministères en matière de transfert de compétences et de ressources;"
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "-",
+                  "content": "évaluer l'exécution des crédits budgétaires alloués;"
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "-",
+                  "content": "veiller à la mise en cohérence des modalités d'opérationnalisation du transfert des compétences et des ressources de l'Etat aux collectivités locales;"
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "-",
+                  "content": "examiner les difficultés rencontres dans la mise en œuvre des compétences et donner des orientations pour leur solution."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "Chapitre",
+          "intitule": "CHAPITRE 3 : De la composition",
+          "elements": [
+            {
+              "type": "Article",
+              "numero": "3",
+              "texte": [
+                {
+                  "type": "alinea",
+                  "content": "Le comité interminériel de la decentralisation en matière de santé de base comprend :"
+                },
+                {
+                  "type": "alinea",
+                  "content": "-unecoordination;"
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "-",
+                  "content": "un secretariat technique permanent."
+                }
+              ]
+            },
+            {
+              "type": "Section",
+              "intitule": "SECTION 1 : De la coordination",
+              "elements": [
+                {
+                  "type": "Article",
+                  "numero": "4",
+                  "texte": [
+                    {
+                      "type": "alinea",
+                      "content": "La coordination du comité interminériel délibéré sur toutes les questions qui relevant du comité interminériel de la decentralisation, citées à l'article 2 duprésent décret."
+                    }
+                  ]
+                },
+                {
+                  "type": "Article",
+                  "numero": "5",
+                  "texte": [
+                    {
+                      "type": "alinea",
+                      "content": "La coordination du comité interminériel est composée ainsi qu'il suit:"
+                    },
+                    {
+                      "type": "enumeration",
+                      "marker": "-",
+                      "content": "président : le Premier ministre, chef du Gouvernement ;"
+                    },
+                    {
+                      "type": "enumeration",
+                      "marker": "-",
+                      "content": "premier vice-président : le ministre chargé de la decentralisation ;"
+                    },
+                    {
+                      "type": "enumeration",
+                      "marker": "-",
+                      "content": "deuxième vice-président : le ministre chargé de la santé ;"
+                    },
+                    {
+                      "type": "alinea",
+                      "content": "troisième vice-président : le ministre charge des finances et du budget ;"
+                    },
+                    {
+                      "type": "enumeration",
+                      "marker": "-",
+                      "content": "quatrième vice-président : le ministre chargé de la réforme de l'Etat ;"
+                    },
+                    {
+                      "type": "enumeration",
+                      "marker": "-",
+                      "content": "secrete-rapporteur : le ministre charge du développement local ;"
+                    },
+                    {
+                      "type": "enumeration",
+                      "marker": "-",
+                      "content": "membres :"
+                    },
+                    {
+                      "type": "enumeration",
+                      "marker": "-",
+                      "content": "le ministre chargé de l'aménagement du territoire ;"
+                    },
+                    {
+                      "type": "enumeration",
+                      "marker": "-",
+                      "content": "le ministre chargé de la fonction publique ;"
+                    },
+                    {
+                      "type": "enumeration",
+                      "marker": "-",
+                      "content": "le ministre chargé de la coopération internationale;"
+                    },
+                    {
+                      "type": "enumeration",
+                      "marker": "-",
+                      "content": "le représentant de la République ;"
+                    },
+                    {
+                      "type": "enumeration",
+                      "marker": "-",
+                      "content": "le représentant de la Primature ;"
+                    },
+                    {
+                      "type": "enumeration",
+                      "marker": "-",
+                      "content": "le représentant du ministère en charge de la santé."
+                    }
+                  ]
+                },
+                {
+                  "type": "Article",
+                  "numero": "6",
+                  "texte": [
+                    {
+                      "type": "alinea",
+                      "content": "La coordination du comité interminériel peut faire appel à toute personne ressource,voie en raison de sa compétence et de son expérience, sur les questions de decentralisation et du développement local."
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "Section",
+              "intitule": "SECTION 2 : Du secretariat technique permanent",
+              "elements": [
+                {
+                  "type": "Article",
+                  "numero": "7",
+                  "texte": [
+                    {
+                      "type": "alinea",
+                      "content": "Le secretariat technique permanent du comité interminériel de la decentralisation en matière de santé de base est place sous la responsabilité du ministre chargé de la decentralisation."
+                    }
+                  ]
+                },
+                {
+                  "type": "Article",
+                  "numero": "8",
+                  "texte": [
+                    {
+                      "type": "alinea",
+                      "content": "Le secretariat technique permanent est charge de préparer les dossiers à soumettre à la délibération du comité interminériel de la décentralisation dans les matières citées à l'article 2 du present décret."
+                    }
+                  ]
+                },
+                {
+                  "type": "Article",
+                  "numero": "9",
+                  "texte": [
+                    {
+                      "type": "alinea",
+                      "content": "Le secretariat technique permanent du comité interminériel est composé ainsi qu'il suit :"
+                    },
+                    {
+                      "type": "enumeration",
+                      "marker": "-",
+                      "content": "secrete technique permanent : le préfet, directeur général des collectivités locales ;"
+                    },
+                    {
+                      "type": "enumeration",
+                      "marker": "-",
+                      "content": "secrétaire technique permanent adjoint : le directeur général des soins et services de santé ;"
+                    },
+                    {
+                      "type": "enumeration",
+                      "marker": "-",
+                      "content": "secreteaire-rapporteur : le préfet, directeur général de l'administration du territoire ;"
+                    },
+                    {
+                      "type": "alinea",
+                      "content": "members :"
+                    },
+                    {
+                      "type": "enumeration",
+                      "marker": "-",
+                      "content": "l'inspecteur général de l'administration du territoire ;"
+                    },
+                    {
+                      "type": "enumeration",
+                      "marker": "-",
+                      "content": "le directeur général de la fonction publiqueterritoriale;"
+                    },
+                    {
+                      "type": "enumeration",
+                      "marker": "-",
+                      "content": "les directeurs généraux des administrations centrales de l'Etat concernées par le transfert des compétences en matière de santé de base aux collectivités locales ;"
+                    },
+                    {
+                      "type": "enumeration",
+                      "marker": "-",
+                      "content": "le représentant du ministeré de la réforme de l'Etat."
+                    }
+                  ]
+                },
+                {
+                  "type": "Article",
+                  "numero": "10",
+                  "texte": [
+                    {
+                      "type": "alinea",
+                      "content": "Le secretariat technique permanent du comité interminériel peut faire appel à toute personne resource."
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "Chapitre",
+          "intitule": "CHAPITRE 4 : Du fonctionnement",
+          "elements": [
+            {
+              "type": "Section",
+              "intitule": "SECTION 1 : Du fonctionnement de la coordination",
+              "elements": [
+                {
+                  "type": "Article",
+                  "numero": "11",
+                  "texte": [
+                    {
+                      "type": "alinea",
+                      "content": "Le président de la coordination du comité interminériel convoque et dirige les réunions du comité."
+                    }
+                  ]
+                },
+                {
+                  "type": "Article",
+                  "numero": "12",
+                  "texte": [
+                    {
+                      "type": "alinea",
+                      "content": "Le premier vice-président supplée le pré-sident en cas d'absence ou d'empêchement."
+                    }
+                  ]
+                },
+                {
+                  "type": "Article",
+                  "numero": "13",
+                  "texte": [
+                    {
+                      "type": "alinea",
+                      "content": "Le deuxième vice-président supplée le premier vice-président en cas d'absence ou d'empêcheMENT et vice-versa."
+                    }
+                  ]
+                },
+                {
+                  "type": "Article",
+                  "numero": "14",
+                  "texte": [
+                    {
+                      "type": "alinea",
+                      "content": "Le troisième vice-président supplée le deuxième vice-président en cas d'absence ou d'empêchement et vice-versa."
+                    }
+                  ]
+                },
+                {
+                  "type": "Article",
+                  "numero": "15",
+                  "texte": [
+                    {
+                      "type": "alinea",
+                      "content": "Le quatrième vice-président supplée le troisième vice-président en cas d'absence ou d'empêchement et vice-versa."
+                    }
+                  ]
+                },
+                {
+                  "type": "Article",
+                  "numero": "16",
+                  "texte": [
+                    {
+                      "type": "alinea",
+                      "content": "Les vice-présidents peuvent receivevoir délegation expressé duprésident, en vue de l'accompilissement d'une mission précise."
+                    },
+                    {
+                      "type": "alinea",
+                      "content": "Le secretaire-rapporteur élaboré les rapportés péri-diques ainsi que les comptes rendus des réunions et en assure la conservation."
+                    }
+                  ]
+                },
+                {
+                  "type": "Article",
+                  "numero": "17",
+                  "texte": [
+                    {
+                      "type": "alinea",
+                      "content": "Le comité interminériel se réunit une (1) fois par semestre, sur convocation de son préident."
+                    },
+                    {
+                      "type": "alinea",
+                      "content": "Toutefois, le comité interminéristiel peut se réunir en session extraordinaire à la demande de son pré-sident, lorsqu'les circonstances l'exigent."
+                    }
+                  ]
+                },
+                {
+                  "type": "Article",
+                  "numero": "18",
+                  "texte": [
+                    {
+                      "type": "alinea",
+                      "content": "L'ordre du jour accompagné, le cas échéant, des dossiers à examiner, est transmis sept (7) jours avant, pour les réunions ordinaires."
+                    },
+                    {
+                      "type": "alinea",
+                      "content": "Ce délambda est ramené à trois (3) jours pour les réunions extraordinaires."
+                    }
+                  ]
+                },
+                {
+                  "type": "Article",
+                  "numero": "19",
+                  "texte": [
+                    {
+                      "type": "alinea",
+                      "content": "Les rapportés du comité interminériel sont adressés au Conseil de cabinet."
+                    }
+                  ]
+                },
+                {
+                  "type": "Article",
+                  "numero": "20",
+                  "texte": [
+                    {
+                      "type": "alinea",
+                      "content": "Le comité interminériel peut constituer des commissions ad hoc charges de l'instruction de questions précises."
+                    },
+                    {
+                      "type": "alinea",
+                      "content": "Ces commissions ad hoc cesser d'exister ds la remise de leurs rapport."
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "Section",
+              "intitule": "SECTION 2 : Du fonctionnement du secretariat technique permanent",
+              "elements": [
+                {
+                  "type": "Article",
+                  "numero": "21",
+                  "texte": [
+                    {
+                      "type": "alinea",
+                      "content": "Le président du secretariat technique permanent du comité interminériel convoque et dirige les réunions du secretariat des la remise de leurs rapports."
+                    }
+                  ]
+                },
+                {
+                  "type": "Article",
+                  "numero": "22",
+                  "texte": [
+                    {
+                      "type": "alinea",
+                      "content": "Le secretaire technique permanent supplée le préident, en cas d'absence ou d'empêchement."
+                    }
+                  ]
+                },
+                {
+                  "type": "Article",
+                  "numero": "23",
+                  "texte": [
+                    {
+                      "type": "alinea",
+                      "content": "Le securité-rapporteur élaboré les rapports périodiques ainsi que les comptes rendus des réunions et en assure la conservation."
+                    },
+                    {
+                      "type": "alinea",
+                      "content": "Il prépare, sous l'autorité duprésident du secretariat technique permanent, l'ordre du jour des réunions et les dossiers à soumettre à l'examen du secretariat technique permanent du comité interminériel de la décentralisation."
+                    }
+                  ]
+                },
+                {
+                  "type": "Article",
+                  "numero": "24",
+                  "texte": [
+                    {
+                      "type": "alinea",
+                      "content": "Le secretariat technique permanent du comité interminériel se réunit une (1) fais par trimestre, sur convocation de son préident."
+                    },
+                    {
+                      "type": "alinea",
+                      "content": "Toutefois, le secretariat technique permanent du comité interminériel peut se réunir en session extraordinaire, lorsque les circonstances l'exigent."
+                    }
+                  ]
+                },
+                {
+                  "type": "Article",
+                  "numero": "25",
+                  "texte": [
+                    {
+                      "type": "alinea",
+                      "content": "L'ordre du jour accompagné, le cas échéant, des dossiers à examiner, est transmis sept (7) jours avant, pour les réunions ordinaires."
+                    },
+                    {
+                      "type": "alinea",
+                      "content": "Ce délambda est ramené à trois (3) jours, pour les réunions extraordinaires."
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "Chapitre",
+          "intitule": "CHAPITRE 5 : Dispositions diverses et finales",
+          "elements": [
+            {
+              "type": "Article",
+              "numero": "26",
+              "texte": [
+                {
+                  "type": "alinea",
+                  "content": "Les fonctions de membre du comite interministeiel sont gratuite."
+                }
+              ]
+            },
+            {
+              "type": "Article",
+              "numero": "27",
+              "texte": [
+                {
+                  "type": "alinea",
+                  "content": "Les frais de fonctionnement du comité interminériel de la décentralisation en matière de santé de base sont imputables au budget de l'Etat."
+                }
+              ]
+            },
+            {
+              "type": "Article",
+              "numero": "28",
+              "texte": [
+                {
+                  "type": "alinea",
+                  "content": "Leprésent décret sera enregistré et publié au Journal officiel de la République du Congo."
+                },
+                {
+                  "type": "alinea",
+                  "content": "Fait à Brazzaville, le 21 août 2025"
+                },
+                {
+                  "type": "alinea",
+                  "content": "Par le Premier ministre, chef du Gouvernement,"
+                },
+                {
+                  "type": "alinea",
+                  "content": "Anatole Collinet MAKOSSO"
+                },
+                {
+                  "type": "alinea",
+                  "content": "Le ministre de l'intérieur et de la décentralisation,"
+                },
+                {
+                  "type": "alinea",
+                  "content": "Raymond Zéphirin MBOULOU"
+                },
+                {
+                  "type": "alinea",
+                  "content": "Le ministre de la santé et de la population,"
+                },
+                {
+                  "type": "alinea",
+                  "content": "Jean-Rosaire IBARA"
+                },
+                {
+                  "type": "alinea",
+                  "content": "Le ministre des finances, du budget et du portefeuille public,"
+                },
+                {
+                  "type": "alinea",
+                  "content": "Christian YOKA"
+                },
+                {
+                  "type": "alinea",
+                  "content": "# MINISTERE DE L'ENSEIGNEMENT PRESCOLAIRE, PRIMAIRE, SECONDAIRE ET DE L'ALPHABETISATION"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "signatures": [
+        "Anatole Collinet MAKOSSO, Par le Premier ministre, chef du Gouvernement",
+        "Jean-Rosaire IBARA, Le ministre de la santé et de la population",
+        "Christian YOKA, Le ministre des finances, du budget et du portefeuille public"
+      ]
+    },
+    {
+      "numero_texte": "Loi n° 25-95",
+      "date_publication": "1995-11-17",
+      "intitule_long": "portant attributions, composition et fonctionnement du comité interminériel de la décentralisation en matière d'enseignement préscolaire, primaire et secondaire",
+      "contenu": [
+        {
+          "type": "Chapitre",
+          "intitule": "CHAPITRE 1 : Disposition générale",
+          "elements": [
+            {
+              "type": "Article",
+              "numero": "premier",
+              "texte": [
+                {
+                  "type": "alinea",
+                  "content": "Leprésent décret fixe, en application de l'article 51 alinéa 2 de la loi n° 16-2019 du 21 mai 2019 susvisée, les attributions, la composition et le fonctionnement du comité interminériel de la decentralisation en matière d'enseignement préscolaire, primaire et secondaire."
+                },
+                {
+                  "type": "alinea",
+                  "content": "Le comité interminériel de la decentralisation en matière d'enseinement préscolaire, primaire et secondaire est placé sous l'autorité du Premier ministre."
+                }
+              ],
+              "references": [
+                {
+                  "type": "loi",
+                  "texte_cite": "loi n° 16-2019 du 21 mai 2019"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "Chapitre",
+          "intitule": "CHAPITRE 2 : Des attributions",
+          "elements": [
+            {
+              "type": "Article",
+              "numero": "2",
+              "texte": [
+                {
+                  "type": "alinea",
+                  "content": "Le comité interminériel est l'organe chargé de suivre la mise en œuvre des programmes d'accompagnement du processus de decentralisation en matière d'enseignement préscolaire, primaire et seconde."
+                },
+                {
+                  "type": "alinea",
+                  "content": "A ce titre, il est chargé, notamment, de :"
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "-",
+                  "content": "adopter les programmes d'accompagnement du transfert des compétences et des ressources aux collectivités locales ;"
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "-",
+                  "content": "proposer les modalités d'exercice par les départements et les communes des compétences transférées;"
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "-",
+                  "content": "approuver l'évaluation et la répartition entre les collectivités locales des ressources financières, matérielles et humaines que l'Etat utiliseit pour l'exercice des compétences à transférer ;"
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "-",
+                  "content": "suivre l'exécution des chronogrammes d'activités des ministères en matière de transfert de compétences et de ressources ;"
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "-",
+                  "content": "évaluer l'exécution des crédits budgétaires alloués ;"
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "-",
+                  "content": "veiller à la mise en œuvre du transfert progressif des compétences aux collectivités locales ;"
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "-",
+                  "content": "veiller à la mise en cohérence des modalités d'opérationnalisation du transfert des compétences et des ressources de l'Etat aux collectivités locales;"
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "-",
+                  "content": "examiner les difficultés rencontres dans la mise en œuvre des compétences et donner des orientations pour leur solution."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "Chapitre",
+          "intitule": "CHAPITRE 3 : De la composition",
+          "elements": [
+            {
+              "type": "Article",
+              "numero": "3",
+              "texte": [
+                {
+                  "type": "alinea",
+                  "content": "Le comité interminériel de la decentralisation en matière d'enseignement préscolaire, primaire et secondaire comprend :"
+                },
+                {
+                  "type": "alinea",
+                  "content": "-unecoordination;"
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "-",
+                  "content": "un secretariat technique permanent."
+                }
+              ]
+            },
+            {
+              "type": "Section",
+              "intitule": "SECTION 1 : De la coordination",
+              "elements": [
+                {
+                  "type": "Article",
+                  "numero": "4",
+                  "texte": [
+                    {
+                      "type": "alinea",
+                      "content": "La coordination du comité interminériel délibéré sur toutes les questions qui relevant du comité interminériel de la decentralisation, citées à l'article 2 du present décret."
+                    }
+                  ]
+                },
+                {
+                  "type": "Article",
+                  "numero": "5",
+                  "texte": [
+                    {
+                      "type": "alinea",
+                      "content": "La coordination du comité interminériel est composée ainsi qu'il suit :"
+                    },
+                    {
+                      "type": "enumeration",
+                      "marker": "-",
+                      "content": "président : le Premier ministre, chef du Gouvernement ;"
+                    },
+                    {
+                      "type": "enumeration",
+                      "marker": "-",
+                      "content": "premier vice-président : le ministre chargé de la décentralisation ;"
+                    },
+                    {
+                      "type": "enumeration",
+                      "marker": "-",
+                      "content": "deuxième vice-président : le ministre charge de l'enseignement préscolaire, primaire, secondaire et de l'alphabetisation ;"
+                    },
+                    {
+                      "type": "alinea",
+                      "content": "troisième vice-président : le ministre charge de l'enseignement technique et professionnel ;"
+                    },
+                    {
+                      "type": "enumeration",
+                      "marker": "-",
+                      "content": "quatrième vice-président : le ministre chargé des finances et du budget ;"
+                    },
+                    {
+                      "type": "enumeration",
+                      "marker": "-",
+                      "content": "cinquième vice-président : le ministre chargé de la réforme de l'Etat ;"
+                    },
+                    {
+                      "type": "enumeration",
+                      "marker": "-",
+                      "content": "secrete-rapporteur : le ministre charge du développement local ;"
+                    },
+                    {
+                      "type": "alinea",
+                      "content": "# members :"
+                    },
+                    {
+                      "type": "enumeration",
+                      "marker": "-",
+                      "content": "le ministre charge de l'aménagemn du territorie ;"
+                    },
+                    {
+                      "type": "enumeration",
+                      "marker": "-",
+                      "content": "le ministre chargé de la fonction publique ;"
+                    },
+                    {
+                      "type": "enumeration",
+                      "marker": "-",
+                      "content": "le ministre chargé de la coopération internationale;"
+                    },
+                    {
+                      "type": "enumeration",
+                      "marker": "-",
+                      "content": "le représentant de la République ;"
+                    },
+                    {
+                      "type": "enumeration",
+                      "marker": "-",
+                      "content": "le représentant de la Primature ;"
+                    },
+                    {
+                      "type": "enumeration",
+                      "marker": "-",
+                      "content": "le représentant du ministeré en charge de l'enseignement préscolaire, primaire, secondaire et de l'alphabétisarion ;"
+                    },
+                    {
+                      "type": "enumeration",
+                      "marker": "-",
+                      "content": "le représentant du ministère en charge de l'enseignement technique et professionnel."
+                    }
+                  ]
+                },
+                {
+                  "type": "Article",
+                  "numero": "6",
+                  "texte": [
+                    {
+                      "type": "alinea",
+                      "content": "La coordination du comité interminériel peut faire appel à toute personne resource, besoin en raison de sa compétence et de son expérience sur les questions de decentralisation en matière d'enseignement préscolaire, primaire secondaire."
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "Section",
+              "intitule": "SECTION 2 : Du secretariat technique permanent",
+              "elements": [
+                {
+                  "type": "Article",
+                  "numero": "7",
+                  "texte": [
+                    {
+                      "type": "alinea",
+                      "content": "Le secretariat technique permanent du comité interminériel est place sous la responsabilité du ministre chargé de la decentralisation."
+                    }
+                  ]
+                },
+                {
+                  "type": "Article",
+                  "numero": "8",
+                  "texte": [
+                    {
+                      "type": "alinea",
+                      "content": "Le secretariat technique permanent est charge de préparer les dossiers à soumettre à la délibération du comité interminériel de la decentralisation dans les matières citées à l'article 2 du present décret."
+                    }
+                  ]
+                },
+                {
+                  "type": "Article",
+                  "numero": "9",
+                  "texte": [
+                    {
+                      "type": "alinea",
+                      "content": "Le secretariat technique permanent du comité interminériel de la décentralisation en matière d'enseignement préscolaire, primaire et seconde de la décentralisation est composé ainsi qu'il suit:"
+                    },
+                    {
+                      "type": "enumeration",
+                      "marker": "-",
+                      "content": "secrete technique permanent : le directeur général des collectivités locales ;"
+                    },
+                    {
+                      "type": "enumeration",
+                      "marker": "-",
+                      "content": "secretaire technique permanent adjoint : le directeur général de l'enseignement primaire et secondaire ;"
+                    },
+                    {
+                      "type": "enumeration",
+                      "marker": "-",
+                      "content": "secretaire-rapporteur: le directeur général de l'administration du territoire;"
+                    },
+                    {
+                      "type": "alinea",
+                      "content": "# members :"
+                    },
+                    {
+                      "type": "enumeration",
+                      "marker": "-",
+                      "content": "l'inspecteur général de l'administration du territoire ;"
+                    },
+                    {
+                      "type": "enumeration",
+                      "marker": "-",
+                      "content": "le directeur général de la fonction publiqueterritoriale;"
+                    },
+                    {
+                      "type": "enumeration",
+                      "marker": "-",
+                      "content": "les directeurs généraux des administrations centrales de l'Etat concernées par le transfert des compétences en matière d'enseignement préscolaire, primaire et secondaire aux collectivités locales;"
+                    },
+                    {
+                      "type": "enumeration",
+                      "marker": "-",
+                      "content": "le représentant du ministeré de la réforme de l'Etat."
+                    }
+                  ]
+                },
+                {
+                  "type": "Article",
+                  "numero": "10",
+                  "texte": [
+                    {
+                      "type": "alinea",
+                      "content": "Le secretariat technique permanent du comité interminériel de la decentralisation peut faire appel à toute personne ressource."
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "Chapitre",
+          "intitule": "CHAPITRE 4 : Du fonctionnement",
+          "elements": [
+            {
+              "type": "Section",
+              "intitule": "SECTION 1 : Du fonctionnement de la coordination",
+              "elements": [
+                {
+                  "type": "Article",
+                  "numero": "11",
+                  "texte": [
+                    {
+                      "type": "alinea",
+                      "content": "Le préident de la coordination du comité interminériel de la decentralisation convoque et dirige les réunions du comité."
+                    }
+                  ]
+                },
+                {
+                  "type": "Article",
+                  "numero": "12",
+                  "texte": [
+                    {
+                      "type": "alinea",
+                      "content": "Le premier vice-président supplée leprésident en cas d'absence ou d'empechement."
+                    }
+                  ]
+                },
+                {
+                  "type": "Article",
+                  "numero": "13",
+                  "texte": [
+                    {
+                      "type": "alinea",
+                      "content": "Le deuxième vice-président supplée le premier vice-président en cas d'absence ou d'empêche-ment et vice-versa."
+                    }
+                  ]
+                },
+                {
+                  "type": "Article",
+                  "numero": "14",
+                  "texte": [
+                    {
+                      "type": "alinea",
+                      "content": "Le troisième vice-président supplée le deuxième vice-président en cas d'absence ou d'empechement et vice-versa."
+                    }
+                  ]
+                },
+                {
+                  "type": "Article",
+                  "numero": "15",
+                  "texte": [
+                    {
+                      "type": "alinea",
+                      "content": "Le quatrième vice-président supplée le troisième vice-président en cas d'absence ou d'empêchement et vice-versa."
+                    }
+                  ]
+                },
+                {
+                  "type": "Article",
+                  "numero": "16",
+                  "texte": [
+                    {
+                      "type": "alinea",
+                      "content": "Le cinquième vice-président supplée le quatrième vice-président en cas d'absence ou d'empêchement et vice-versa."
+                    }
+                  ]
+                },
+                {
+                  "type": "Article",
+                  "numero": "17",
+                  "texte": [
+                    {
+                      "type": "alinea",
+                      "content": "Les vice-présidents peuvent receivevoir délegation expressé duprésident, en vue de l'accompilissement d'une mission précise."
+                    },
+                    {
+                      "type": "alinea",
+                      "content": "Le secretaire-rapporteur élaboré les rapportés périodiques ainsi que les comptes rendus des réunions et en assure la conservation."
+                    }
+                  ]
+                },
+                {
+                  "type": "Article",
+                  "numero": "18",
+                  "texte": [
+                    {
+                      "type": "alinea",
+                      "content": "La coordination du comité interminériel se réunit une fois par semester, sur convocation de son préident."
+                    },
+                    {
+                      "type": "alinea",
+                      "content": "Toutefois, la coordination peut se réunir en session extraordinaire, lorsque les circonstances l'exigent."
+                    }
+                  ]
+                },
+                {
+                  "type": "Article",
+                  "numero": "19",
+                  "texte": [
+                    {
+                      "type": "alinea",
+                      "content": "L'ordre du jour accompagné, le cas échéant, des dossiers à examiner, est transmis sept (7) jours avant, pour les réunions ordinaires."
+                    },
+                    {
+                      "type": "alinea",
+                      "content": "Ce délambda est ramené à trois jours, pour les réunions extraordinaires."
+                    }
+                  ]
+                },
+                {
+                  "type": "Article",
+                  "numero": "20",
+                  "texte": [
+                    {
+                      "type": "alinea",
+                      "content": "Les rapportés du comité interminériel sont adressés ou Conseil de cabinet."
+                    }
+                  ]
+                },
+                {
+                  "type": "Article",
+                  "numero": "21",
+                  "texte": [
+                    {
+                      "type": "alinea",
+                      "content": "La coordination du comité interminériel peut constituer des commissions ad hoc charges de l'instruction de questions précises."
+                    },
+                    {
+                      "type": "alinea",
+                      "content": "Ces commissions ad hoc cessent d'exister ds la remise de leurs rapports."
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "Section",
+              "intitule": "SECTION 2 : Du fonctionnement du secretariat technique permanent",
+              "elements": [
+                {
+                  "type": "Article",
+                  "numero": "22",
+                  "texte": [
+                    {
+                      "type": "alinea",
+                      "content": "Le préident du secretariat technique permanent du comité interminériel convoque et dirige les réunions du secretariat technique permanent des la remise de leurs rapports."
+                    }
+                  ]
+                },
+                {
+                  "type": "Article",
+                  "numero": "23",
+                  "texte": [
+                    {
+                      "type": "alinea",
+                      "content": "Le securitaire technique permanent du comité interminériel supplée ie président en cas d'absence ou d'empechement."
+                    }
+                  ]
+                },
+                {
+                  "type": "Article",
+                  "numero": "24",
+                  "texte": [
+                    {
+                      "type": "alinea",
+                      "content": "Le securité rapporteur élaboré les rapports périodiques ainsi que les comptes rendus des réunions et en assure la conservation."
+                    },
+                    {
+                      "type": "alinea",
+                      "content": "Il prépare, sous l'autorité duprésident du secretariat technique permanent, l'ordre du jour des réunions et les dossiers à soumettre à l'examen du secretariat technique permanent du comité interminériel de la décentralisation."
+                    }
+                  ]
+                },
+                {
+                  "type": "Article",
+                  "numero": "25",
+                  "texte": [
+                    {
+                      "type": "alinea",
+                      "content": "Le secretariat technique permanent du comité interminériel se réunit une (1) fais par trimestre, sur convocation de son préident."
+                    },
+                    {
+                      "type": "alinea",
+                      "content": "Toutefois, le secretariat technique permanent du comité interminériel peut se réunir en session extraordinaire, lorsque les circonstances l'exigent."
+                    }
+                  ]
+                },
+                {
+                  "type": "Article",
+                  "numero": "26",
+                  "texte": [
+                    {
+                      "type": "alinea",
+                      "content": "L'ordre du jour accompagné, le cas échéant, des dossiers à examiner, est transmis sept (7) jours avant, pour les réunions ordinaires."
+                    },
+                    {
+                      "type": "alinea",
+                      "content": "Ce délambda est ramené à trois (3) jours pour les réunions extraordinaires."
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "Chapitre",
+          "intitule": "CHAPITRE 5 : Dispositions diverses et finales",
+          "elements": [
+            {
+              "type": "Article",
+              "numero": "27",
+              "texte": [
+                {
+                  "type": "alinea",
+                  "content": "Les fonctions de membre du comite interministeiel sont gratuites."
+                }
+              ]
+            },
+            {
+              "type": "Article",
+              "numero": "28",
+              "texte": [
+                {
+                  "type": "alinea",
+                  "content": "Les frais de fonctionnement du comité interminériel de décentralisation en matière d'enseignement préscolaire, primaire et secondaire sont imputables au budget de l'Etat."
+                }
+              ]
+            },
+            {
+              "type": "Article",
+              "numero": "29",
+              "texte": [
+                {
+                  "type": "alinea",
+                  "content": "Leprésent décret sera enregistré et publié au Journal officiel de la République du Congo."
+                },
+                {
+                  "type": "alinea",
+                  "content": "Fait à Brazzaville, le 21 août 2025"
+                },
+                {
+                  "type": "alinea",
+                  "content": "Par le Premier ministre, chef du Gouvernement,"
+                },
+                {
+                  "type": "alinea",
+                  "content": "Anatole Collinet MAKOSSO"
+                },
+                {
+                  "type": "alinea",
+                  "content": "Le ministre de l'intérieur et de la decentralisation,"
+                },
+                {
+                  "type": "alinea",
+                  "content": "Raymond Zéphirin MBOULOU"
+                },
+                {
+                  "type": "alinea",
+                  "content": "Le ministre de l'enseignement préscolaire, primaire, secondaire et de l'alphabetisation,"
+                },
+                {
+                  "type": "alinea",
+                  "content": "Jean-Luc MOUTHOU"
+                },
+                {
+                  "type": "alinea",
+                  "content": "Le ministre des finances, du budget et du portefeuille public,"
+                },
+                {
+                  "type": "alinea",
+                  "content": "Christian YOKA"
+                },
+                {
+                  "type": "alinea",
+                  "content": "Le ministre de l'enseignement technique et professionnel,"
+                },
+                {
+                  "type": "alinea",
+                  "content": "Ghislain Thierry MAGUESSA EBOMÉ"
+                },
+                {
+                  "type": "alinea",
+                  "content": "# MINISTERE DES POSTES, DES TELECOMMUNICATIONS ET DE L'ECONOMIE NUMERIQUE"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "signatures": [
+        "Anatole Collinet MAKOSSO, Par le Premier ministre, chef du Gouvernement",
+        "Jean-Luc MOUTHOU, Le ministre de l'enseignement préscolaire, primaire, secondaire et de l'alphabetisation",
+        "Christian YOKA, Le ministre des finances, du budget et du portefeuille public"
+      ]
+    },
+    {
+      "numero_texte": "Loi n° 74-2022",
+      "date_publication": "2022-08-16",
+      "intitule_long": "portant approbation des statuts du centre african de recherche en intelligence artificielle",
+      "contenu": [
+        {
+          "type": "Article",
+          "numero": "premier",
+          "texte": [
+            {
+              "type": "alinea",
+              "content": "Sontapprovés les statuts du centre african de recherche en intelligence artificielle, dont la structure du texte est annexée auprésent décret."
+            }
+          ]
+        },
+        {
+          "type": "Article",
+          "numero": "2",
+          "texte": [
+            {
+              "type": "alinea",
+              "content": "Leprésent décret sera enregistré et publié au Journal officiel de la République du Congo."
+            },
+            {
+              "type": "alinea",
+              "content": "Fait à Brazzaville, le 2 juillet 2025"
+            },
+            {
+              "type": "alinea",
+              "content": "Par le Président de la République,"
+            },
+            {
+              "type": "alinea",
+              "content": "Denis SASSOU-N'GUESSO"
+            },
+            {
+              "type": "alinea",
+              "content": "LePremierministre,chef duGouvernement,"
+            },
+            {
+              "type": "alinea",
+              "content": "Anatole Collinet MAKOSSO"
+            },
+            {
+              "type": "alinea",
+              "content": "Le ministre des postes, des télécommunications et de l'économie numérique,"
+            },
+            {
+              "type": "alinea",
+              "content": "Léon Juste IBOMBO"
+            },
+            {
+              "type": "alinea",
+              "content": "Le ministre de la recherche scientifique et de l'innovation technologique,"
+            },
+            {
+              "type": "alinea",
+              "content": "Rigobert MABOUNDOU"
+            },
+            {
+              "type": "alinea",
+              "content": "Le ministre des finances, du budget et du portefeuille public,"
+            },
+            {
+              "type": "alinea",
+              "content": "Christian YOKA"
+            },
+            {
+              "type": "alinea",
+              "content": "La ministre de l'enseignement supérieur,"
+            },
+            {
+              "type": "alinea",
+              "content": "Delphine Edith EMMANUEL ADOUKI"
+            },
+            {
+              "type": "alinea",
+              "content": "# STATUTS DU CENTRE AFRICAIN DE RECHERCHE EN INTELLIGENCE ARTIFICIELLE"
+            },
+            {
+              "type": "alinea",
+              "content": "Approuvés par décret n° 2025-279 du 2 juillet 2025"
+            }
+          ],
+          "references": [
+            {
+              "type": "decret",
+              "texte_cite": "décret n° 2025-279 du 2 juillet 2025"
+            }
+          ]
+        },
+        {
+          "type": "Titre",
+          "intitule": "TITRE I : DISPOSITIONS GENERALES",
+          "elements": [
+            {
+              "type": "Article",
+              "numero": "premier",
+              "texte": [
+                {
+                  "type": "alinea",
+                  "content": "Les Presents statuts fixent, en application de l'article 8 de la loi n° 14-2024 du 23 mai 2024 portant creation du centre african de recherche en intelligence artificielle, les attributions, l'organisa"
+                },
+                {
+                  "type": "alinea",
+                  "content": "tion et le fonctionnement de ses organes d'administration et de gestion."
+                }
+              ],
+              "references": [
+                {
+                  "type": "loi",
+                  "texte_cite": "loi n° 14-2024 du 23 mai 2024"
+                }
+              ]
+            },
+            {
+              "type": "Article",
+              "numero": "2",
+              "texte": [
+                {
+                  "type": "alinea",
+                  "content": "Le centre african de recherche en intelligence artificielle est un établissement public administratif à caractère scientifique et technique, doté de la personnalité morale et de l'autonomie financière."
+                },
+                {
+                  "type": "alinea",
+                  "content": "II est régi selon les régles qui régissant les établissements publics."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "Titre",
+          "intitule": "TITRE II : DES MISSIONS, DU SIEGE, DE LA DUREE ET DE LA TUTELLE",
+          "elements": [
+            {
+              "type": "Chapitre",
+              "intitule": "CHAPITRE 1 : Des missions",
+              "elements": [
+                {
+                  "type": "Article",
+                  "numero": "3",
+                  "texte": [
+                    {
+                      "type": "alinea",
+                      "content": "Le centre africain de recherche en intelligence artificielle est un établissement de recherche, de formation et de développement."
+                    },
+                    {
+                      "type": "alinea",
+                      "content": "A ce titre, il a pour missions, notamment, de :"
+                    },
+                    {
+                      "type": "enumeration",
+                      "marker": "-",
+                      "content": "proposer des stratégies nationales de développement sur les technologies de l'intelligence artificielle et autres technologies émergentes ;"
+                    },
+                    {
+                      "type": "alinea",
+                      "content": "assurer la formation continue certifiante dans le domaine de l'intelligence artificielle ;"
+                    },
+                    {
+                      "type": "enumeration",
+                      "marker": "-",
+                      "content": "promouvoir la recherche et le développement en cybersécurité, en protection des données à caractère personnel et autres technologies émergentes;"
+                    },
+                    {
+                      "type": "enumeration",
+                      "marker": "-",
+                      "content": "servir leschercheurs de toute l'Afrique et au-delà en mettant à leur disposition des laboratoires d'intelligence artificielle à la pointe de la technologie ;"
+                    },
+                    {
+                      "type": "enumeration",
+                      "marker": "-",
+                      "content": "orienter leschercheurs dans des projets industriels concernant les domaines de l'intelligence artificielle qui garantiront le développement socio-economique du continent ;"
+                    },
+                    {
+                      "type": "enumeration",
+                      "marker": "-",
+                      "content": "encourager et soutenir les différentes startups et initiatives en matière d'intelligence artificielle ;"
+                    },
+                    {
+                      "type": "enumeration",
+                      "marker": "-",
+                      "content": "promouvoir la recherche, le développement dans les télécommunications et l'économie digitale ;"
+                    },
+                    {
+                      "type": "enumeration",
+                      "marker": "-",
+                      "content": "promouvoir la collaboration entre le monde universitaire et les industries dans les domaines de l'intelligence artificielle et de la robotique ;"
+                    },
+                    {
+                      "type": "enumeration",
+                      "marker": "-",
+                      "content": "promouvoir les travaux et mener des recherches standards et interdisciplinaires avancées dans les grands domaines de l'intelligence artificielle;"
+                    },
+                    {
+                      "type": "alinea",
+                      "content": "diffuser les connaissances et l'expertise dans les domaines de l'intelligence artificielle ;"
+                    },
+                    {
+                      "type": "enumeration",
+                      "marker": "-",
+                      "content": "promouvoir l'accès inclusif à l'intelligence artificielle et aux innovations numériques ;"
+                    },
+                    {
+                      "type": "enumeration",
+                      "marker": "-",
+                      "content": "explorer le potentiel de l'intelligence artificielle et de ses impacts macroeconomiques dans différents secteurs d'activités ;"
+                    },
+                    {
+                      "type": "enumeration",
+                      "marker": "-",
+                      "content": "améliorer le paysage actuel de la recherche en intelligence artificielle tant en République du Congo qu'en Afrique ;"
+                    },
+                    {
+                      "type": "alinea",
+                      "content": "explorer de nouveaux domaines de recherche sur l'intelligence artificielle au service de l'homme ;"
+                    },
+                    {
+                      "type": "enumeration",
+                      "marker": "-",
+                      "content": "apporter son concours à la formation, à la recherche et par la recherche des étudiants en master et en doctorat en partenariat avec les universités locales et régionales pour développement des projets de recherche en intelligence artificielle :"
+                    },
+                    {
+                      "type": "enumeration",
+                      "marker": "-",
+                      "content": "mesure en œuvre des projets basés sur les produits et services de l'intelligence artificielle."
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "Chapitre",
+              "intitule": "CHAPITRE 2 : Du siege, de la durée et de la tutelle",
+              "elements": [
+                {
+                  "type": "Article",
+                  "numero": "4",
+                  "texte": [
+                    {
+                      "type": "alinea",
+                      "content": "Le siège du centre african de recherche en intelligence artificielle est fixé dans le département de Brazzaville."
+                    },
+                    {
+                      "type": "alinea",
+                      "content": "Toutefois, en cas de besoin, il peut etre transfere en tout autre lieu du territorie national par decret en Conseil des ministres."
+                    }
+                  ]
+                },
+                {
+                  "type": "Article",
+                  "numero": "5",
+                  "texte": [
+                    {
+                      "type": "alinea",
+                      "content": "La durée du centre african de recherche en intelligence artificielle est illimitée, sauf en cas de dissolution prononcée conformément à la réglementation en vigueur, sur proposition du comité de direction."
+                    }
+                  ]
+                },
+                {
+                  "type": "Article",
+                  "numero": "6",
+                  "texte": [
+                    {
+                      "type": "alinea",
+                      "content": "Le centre africain de recherche en intelligence artificielle est place sous la tutelle administrative et technique du ministre chargé de l'économie numérique, sous la tutelle scientifique du ministre chargé de la recherche scientifique et de l'innovation technologique et sous la tutelle budgêtaire du ministre chargé des finances."
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "Titre",
+          "intitule": "TITRE III : DE L'ORGANISATION ET DU FONCTIONNEMENT",
+          "elements": [
+            {
+              "type": "Article",
+              "numero": "7",
+              "texte": [
+                {
+                  "type": "alinea",
+                  "content": "Le centre africain de recherche en intelligence artificielle est administré par un comité de direction et géré par une direction générale."
+                }
+              ]
+            },
+            {
+              "type": "Chapitre",
+              "intitule": "CHAPITRE 1 : Du comité de direction",
+              "elements": [
+                {
+                  "type": "Article",
+                  "numero": "8",
+                  "texte": [
+                    {
+                      "type": "alinea",
+                      "content": "Le comité de direction est l'organe d'orientation et de délibération du centre african de recherche en intelligence artificielle. Il est investi des pouvoirs qui lui permettent de replir les missions du centre."
+                    },
+                    {
+                      "type": "alinea",
+                      "content": "A ce titre, il délibéré notamment sur :"
+                    },
+                    {
+                      "type": "enumeration",
+                      "marker": "-",
+                      "content": "la politique générale du centre ;"
+                    },
+                    {
+                      "type": "enumeration",
+                      "marker": "-",
+                      "content": "l'organigramme et le règlement interieur;"
+                    },
+                    {
+                      "type": "enumeration",
+                      "marker": "-",
+                      "content": "le statut du personnel, la grille de rémunération et les autres avantages ;"
+                    },
+                    {
+                      "type": "enumeration",
+                      "marker": "-",
+                      "content": "les plans et les programmes de développement, de formation et/ou d'investissement du centre;"
+                    },
+                    {
+                      "type": "enumeration",
+                      "marker": "-",
+                      "content": "le programme d'action et le budget annuel conformément aux objectifs globaux du secteur du numérique et de la recherche scientifique;"
+                    },
+                    {
+                      "type": "enumeration",
+                      "marker": "-",
+                      "content": "les comptes, les états financiers annuels et les rapportés d'activités ;"
+                    },
+                    {
+                      "type": "enumeration",
+                      "marker": "-",
+                      "content": "le bilan ;"
+                    },
+                    {
+                      "type": "enumeration",
+                      "marker": "-",
+                      "content": "la régularité des contrats ou des conventions, y compris les emprunts;"
+                    },
+                    {
+                      "type": "alinea",
+                      "content": "l'alienation des biens meubles, immeubles corporels ou incorporels conformément à la loi ;"
+                    },
+                    {
+                      "type": "enumeration",
+                      "marker": "-",
+                      "content": "la révision des statuts ;"
+                    },
+                    {
+                      "type": "enumeration",
+                      "marker": "-",
+                      "content": "le transfert du siège du centre ;"
+                    },
+                    {
+                      "type": "enumeration",
+                      "marker": "-",
+                      "content": "le règlement des litiges et les sanctions ;"
+                    },
+                    {
+                      "type": "enumeration",
+                      "marker": "-",
+                      "content": "l'affection des résultats en tenant compte, en priorité, des besoin en équipements et en constitution des réserves du centre;"
+                    },
+                    {
+                      "type": "enumeration",
+                      "marker": "-",
+                      "content": "les propositions de recrutement, de licenciement et de promotion du personnel faites par le directeur général;"
+                    },
+                    {
+                      "type": "enumeration",
+                      "marker": "-",
+                      "content": "la création des antennes départementales et autres services, sur proposition du directeur général."
+                    }
+                  ]
+                },
+                {
+                  "type": "Article",
+                  "numero": "9",
+                  "texte": [
+                    {
+                      "type": "alinea",
+                      "content": "Le comité de direction est compose ainsi qu'il suit:"
+                    },
+                    {
+                      "type": "alinea",
+                      "content": "# Avec voix délibérative :"
+                    },
+                    {
+                      "type": "enumeration",
+                      "marker": "-",
+                      "content": "un représentant de le Présidence de la République ;"
+                    },
+                    {
+                      "type": "enumeration",
+                      "marker": "-",
+                      "content": "un représentant de la Primature ;"
+                    },
+                    {
+                      "type": "enumeration",
+                      "marker": "-",
+                      "content": "un représentant du ministeré en charge de l'économie numérique ;"
+                    },
+                    {
+                      "type": "enumeration",
+                      "marker": "-",
+                      "content": "un représentant du ministeré en charge des investissements ;"
+                    },
+                    {
+                      "type": "enumeration",
+                      "marker": "-",
+                      "content": "un représentant du ministeré en charge de l'enseignement supérieur ;"
+                    },
+                    {
+                      "type": "enumeration",
+                      "marker": "-",
+                      "content": "un représentant du ministeré de la recherche scientifique et de l'innovation technologique ;"
+                    },
+                    {
+                      "type": "enumeration",
+                      "marker": "-",
+                      "content": "un représentant du ministeré en charge des finances ;"
+                    },
+                    {
+                      "type": "enumeration",
+                      "marker": "-",
+                      "content": "un représentant du ministeré en charge du contrôle d'Etat ;"
+                    },
+                    {
+                      "type": "enumeration",
+                      "marker": "-",
+                      "content": "un représentant de la commission économique des Nations Unies pour l'Afrique."
+                    },
+                    {
+                      "type": "alinea",
+                      "content": "# Avec voix consultative :"
+                    },
+                    {
+                      "type": "enumeration",
+                      "marker": "-",
+                      "content": "un représentant du ministeré en charge du développement durable;"
+                    },
+                    {
+                      "type": "enumeration",
+                      "marker": "-",
+                      "content": "un représentant du Conseil consultatif de la femme ;"
+                    },
+                    {
+                      "type": "enumeration",
+                      "marker": "-",
+                      "content": "un représentant du Conseil consultatif de la jeunesse ;"
+                    },
+                    {
+                      "type": "enumeration",
+                      "marker": "-",
+                      "content": "un représentant du Conseil consultatif des personnes vivant avec handicap."
+                    },
+                    {
+                      "type": "alinea",
+                      "content": "Les membres du comité de direction sont choisis, en raison de leurs compétences, de leur impartialité et de leur intégrité morale."
+                    }
+                  ]
+                },
+                {
+                  "type": "Article",
+                  "numero": "10",
+                  "texte": [
+                    {
+                      "type": "alinea",
+                      "content": "Le préident du comité de direction est choisi parmi les administrateurs. Il est nommé par décret en Conseil des ministres."
+                    },
+                    {
+                      "type": "alinea",
+                      "content": "Les autres membres du comité de direction sont nommés, par arrêté conjoint du ministre chargé de l'économie numérique et du ministre chargé de l'innovation technologique, sur proposition des structures qu'ils représentent."
+                    },
+                    {
+                      "type": "alinea",
+                      "content": "Les membres du comité de direction sont nommés pour un mandat de quatre (4) ans, renouvelable une fois."
+                    }
+                  ]
+                },
+                {
+                  "type": "Article",
+                  "numero": "11",
+                  "texte": [
+                    {
+                      "type": "alinea",
+                      "content": "Ne peuvent être nommés membres du comité de direction :"
+                    },
+                    {
+                      "type": "enumeration",
+                      "marker": "-",
+                      "content": "les condamnés à une peine afflictive et infamante ou correctionnelle;"
+                    },
+                    {
+                      "type": "enumeration",
+                      "marker": "-",
+                      "content": "les personnes frappées d'une interdiction, à temps, de certains droits civiques, civils ou de famille ;"
+                    },
+                    {
+                      "type": "enumeration",
+                      "marker": "-",
+                      "content": "les personnes étant en position de conflit d'intérêt dans le secteur du numérique et de la recherche scientifique."
+                    }
+                  ]
+                },
+                {
+                  "type": "Article",
+                  "numero": "12",
+                  "texte": [
+                    {
+                      "type": "alinea",
+                      "content": "Le président du comité de direction a pour missions de :"
+                    },
+                    {
+                      "type": "enumeration",
+                      "marker": "-",
+                      "content": "convoquer et présider les réunions du comité et en fixer l'ordre du jour;"
+                    },
+                    {
+                      "type": "alinea",
+                      "content": "assurer le contrôle de l'exécution des délibérations du comité de direction ;"
+                    },
+                    {
+                      "type": "enumeration",
+                      "marker": "-",
+                      "content": "signer les procès-verbaux des réunions et tous les actes approuvés par le comité de direction."
+                    }
+                  ]
+                },
+                {
+                  "type": "Article",
+                  "numero": "13",
+                  "texte": [
+                    {
+                      "type": "alinea",
+                      "content": "Le comité de direction se réunit deux (2) fois par an, en session ordinaire, sur convocation de son préident."
+                    },
+                    {
+                      "type": "alinea",
+                      "content": "La première session est consacrée à l'adoption du rapport d'activités. La deuxieme session est consacrée à l'adoption du budget du centre pour l'année suivante."
+                    },
+                    {
+                      "type": "alinea",
+                      "content": "Toutefois, le comité de direction peut se réunir en session extraordinaire, sur convocation de son préident, à la demande des deux (2/3) tiers de ses membres."
+                    }
+                  ]
+                },
+                {
+                  "type": "Article",
+                  "numero": "14",
+                  "texte": [
+                    {
+                      "type": "alinea",
+                      "content": "Le secretariat du comité de direction est assure par la direction générale du centre."
+                    }
+                  ]
+                },
+                {
+                  "type": "Article",
+                  "numero": "15",
+                  "texte": [
+                    {
+                      "type": "alinea",
+                      "content": "Le comité de direction ne peut valablement délibérer que si les deux tiers (2/3) de ses membres sont prênts."
+                    },
+                    {
+                      "type": "alinea",
+                      "content": "En cas d'empêchement d'un membre, celui-ci donne mandat à un autre membre de le représentier. Aucun membre ne peut etre porteur de plus de deux mandats."
+                    },
+                    {
+                      "type": "alinea",
+                      "content": "A défaut de réunir les deux tiers, leprésident constate l'absence de quorum et convoque une autre réunion qui se tient au plus tard dans les quinze jours qui suivent."
+                    }
+                  ]
+                },
+                {
+                  "type": "Article",
+                  "numero": "16",
+                  "texte": [
+                    {
+                      "type": "alinea",
+                      "content": "Les délibérations du comité de direction sont prises à la majorité simple."
+                    },
+                    {
+                      "type": "alinea",
+                      "content": "En cas de partage égal des voix, celle duprésident est prépondérante. Tout membre en position minoritaire peut émettre, par écrit, son opinion contraire qui sera annexée à la décision de la majorité."
+                    },
+                    {
+                      "type": "alinea",
+                      "content": "Le comité de direction peut faire appel à toute personne resource."
+                    }
+                  ]
+                },
+                {
+                  "type": "Article",
+                  "numero": "17",
+                  "texte": [
+                    {
+                      "type": "alinea",
+                      "content": "Les fonctions de membre du comité de direction sont gratuites. Toutefois, les membres du comité de direction perçoivent des frais de session."
+                    }
+                  ]
+                },
+                {
+                  "type": "Article",
+                  "numero": "18",
+                  "texte": [
+                    {
+                      "type": "alinea",
+                      "content": "Les délibérations du comité de direction font l'objet d'un procès-verbal consigné dans un registre spécial tenu à la direction générale, paraphé et cosigné par le préident et le securitaire de séance."
+                    },
+                    {
+                      "type": "alinea",
+                      "content": "Un exemple du procès-verbal est adressé à chacun des membres du comité de direction."
+                    }
+                  ]
+                },
+                {
+                  "type": "Article",
+                  "numero": "19",
+                  "texte": [
+                    {
+                      "type": "alinea",
+                      "content": "Les délibérations du comité de direction sont exécutoires immédiatement, sauf celles qui sont soumises à l'approbation du Conseil des ministres,"
+                    }
+                  ]
+                },
+                {
+                  "type": "Article",
+                  "numero": "20",
+                  "texte": [
+                    {
+                      "type": "alinea",
+                      "content": "Aucun membre du comité de direction ne peut passer une convention qui engage le comité de direction sans en avoir reçu mandat."
+                    }
+                  ]
+                },
+                {
+                  "type": "Article",
+                  "numero": "21",
+                  "texte": [
+                    {
+                      "type": "alinea",
+                      "content": "Il est interdit aux membres du comité de direction de contracter, directement ou par personne interposée, sousquelque forme que ce soit, des emprunts auprès du centre, de se faire consentir par le centre african de recherche en intelligence artificielle un découvert en compte courant ou autrement, ainsi que de faire cautionner ou avaliser par ce dernier leurs engagements envers les tiers."
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "Chapitre",
+              "intitule": "CHAPITRE 2 : De la direction générale",
+              "elements": [
+                {
+                  "type": "Article",
+                  "numero": "22",
+                  "texte": [
+                    {
+                      "type": "alinea",
+                      "content": "La direction générale assure la gestion quotidienne du centre."
+                    }
+                  ]
+                },
+                {
+                  "type": "Article",
+                  "numero": "23",
+                  "texte": [
+                    {
+                      "type": "alinea",
+                      "content": "Le centre africain de recherche en intelligence artificielle est dirigé par un directeur général nommé par décret en Conseil des ministres, sur proposition du ministre chargé de l'économie numérique."
+                    }
+                  ]
+                },
+                {
+                  "type": "Article",
+                  "numero": "24",
+                  "texte": [
+                    {
+                      "type": "alinea",
+                      "content": "Le directeur général est charge, notamment, de :"
+                    },
+                    {
+                      "type": "alinea",
+                      "content": "assurer la direction et la coordination de l'action du centre;"
+                    },
+                    {
+                      "type": "enumeration",
+                      "marker": "-",
+                      "content": "gérer les ressources humaines ;"
+                    },
+                    {
+                      "type": "enumeration",
+                      "marker": "-",
+                      "content": "supervise les travaux préparatoires en matière budgêtaire ;"
+                    },
+                    {
+                      "type": "enumeration",
+                      "marker": "-",
+                      "content": "élaborer et executer les plans, les programmes et budgets arrêtés par le comité de direction ;"
+                    },
+                    {
+                      "type": "enumeration",
+                      "marker": "-",
+                      "content": "passer les marchés, les contrats et les conventions liés au fonctionnement du centre dans les limites de ses attributions;"
+                    },
+                    {
+                      "type": "enumeration",
+                      "marker": "-",
+                      "content": "préparer les dossiers à partager aux délibérations du comité de direction ;"
+                    },
+                    {
+                      "type": "enumeration",
+                      "marker": "-",
+                      "content": "mesure en place les outils de communication du centre ;"
+                    },
+                    {
+                      "type": "enumeration",
+                      "marker": "-",
+                      "content": "executer les délibérations du comité de direction ;"
+                    },
+                    {
+                      "type": "enumeration",
+                      "marker": "-",
+                      "content": "ester en justice au nom du centre ;"
+                    },
+                    {
+                      "type": "enumeration",
+                      "marker": "-",
+                      "content": "représentier le centre dans tous les actes de la vie civile et en justice ;"
+                    },
+                    {
+                      "type": "enumeration",
+                      "marker": "-",
+                      "content": "prendre, en cas d'extreme urgence et d'impossibilité de réunir le comité de direction, toutes mesures conservatoires indispensablees à la continuité du fonctionnement du centre et"
+                    },
+                    {
+                      "type": "alinea",
+                      "content": "qui sont du ressort du comité de direction, à charge pour lui, d'en rendre compte au comité lors de la réunion suivante;"
+                    },
+                    {
+                      "type": "enumeration",
+                      "marker": "-",
+                      "content": "étabir, en fin d'exercice, un rapport annuel sur les activités du centre."
+                    }
+                  ]
+                },
+                {
+                  "type": "Article",
+                  "numero": "25",
+                  "texte": [
+                    {
+                      "type": "alinea",
+                      "content": "La direction générale, outre le secretariat de direction, le service communication et relations publiques, le service audit interne et contrôle de gestion et le comité scientifique, comprend :"
+                    },
+                    {
+                      "type": "enumeration",
+                      "marker": "-",
+                      "content": "la direction de l'innovation et de la promotion de l'entrepreneurariat ;"
+                    },
+                    {
+                      "type": "enumeration",
+                      "marker": "-",
+                      "content": "la direction de la recherche technologique et de la formation ;"
+                    },
+                    {
+                      "type": "enumeration",
+                      "marker": "-",
+                      "content": "la direction des'affaires administratives et financières ;"
+                    },
+                    {
+                      "type": "enumeration",
+                      "marker": "-",
+                      "content": "la direction de la coopération, de la réglementation et du contentieux;"
+                    },
+                    {
+                      "type": "enumeration",
+                      "marker": "-",
+                      "content": "la direction des systèmes d'information ;"
+                    },
+                    {
+                      "type": "enumeration",
+                      "marker": "-",
+                      "content": "les antennes départementales."
+                    }
+                  ]
+                },
+                {
+                  "type": "Section",
+                  "intitule": "SECTION 1 : Du secretariat de direction",
+                  "elements": [
+                    {
+                      "type": "Article",
+                      "numero": "26",
+                      "texte": [
+                        {
+                          "type": "alinea",
+                          "content": "Le secretariat de direction est dirigé et animé par un chef de secretariat qui a rang de chef de service."
+                        },
+                        {
+                          "type": "alinea",
+                          "content": "Il est chargé d'assurer tous les travaux de secretariat, notamment, de :"
+                        },
+                        {
+                          "type": "enumeration",
+                          "marker": "-",
+                          "content": "réceptionner et expédier le courrier ;"
+                        },
+                        {
+                          "type": "enumeration",
+                          "marker": "-",
+                          "content": "analyser sommairement les correspondances et autres documents ;"
+                        },
+                        {
+                          "type": "enumeration",
+                          "marker": "-",
+                          "content": "saisir et reprogramquier les correspondances et autres documents administratifs ;"
+                        },
+                        {
+                          "type": "enumeration",
+                          "marker": "-",
+                          "content": "et, d'une manière générale, exécuter toute autre tâche qui peut lui être confée."
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "Section",
+                  "intitule": "SECTION 2 : Du service communication et relations publiques",
+                  "elements": [
+                    {
+                      "type": "Article",
+                      "numero": "27",
+                      "texte": [
+                        {
+                          "type": "alinea",
+                          "content": "Le service communication et relations publiques est dirigé et animé par un chef de service."
+                        },
+                        {
+                          "type": "alinea",
+                          "content": "A ce titre, il est chargé, notamment, de :"
+                        },
+                        {
+                          "type": "enumeration",
+                          "marker": "-",
+                          "content": "élaborer etmettre en œuvre la strategie de communication du centre ;"
+                        },
+                        {
+                          "type": "alinea",
+                          "content": "assurer les relations avec la presse et les relations publiques ;"
+                        },
+                        {
+                          "type": "alinea",
+                          "content": "assurer la gestion et la mise à jour du site internet du centre ;"
+                        },
+                        {
+                          "type": "enumeration",
+                          "marker": "-",
+                          "content": "publier le rapport d'activité du centre ;"
+                        },
+                        {
+                          "type": "enumeration",
+                          "marker": "-",
+                          "content": "organise les manifestations du centre ;"
+                        },
+                        {
+                          "type": "alinea",
+                          "content": "assurer la traduction des documents et l'interprétaire ;"
+                        },
+                        {
+                          "type": "enumeration",
+                          "marker": "-",
+                          "content": "promouvoir le multilinguisme au sein du centre ;"
+                        },
+                        {
+                          "type": "enumeration",
+                          "marker": "-",
+                          "content": "assurer l'interface avec les citoyens et répondre à leurs sollicitations en leur apportant un éclairage sur le role et les avances du centre ;"
+                        },
+                        {
+                          "type": "enumeration",
+                          "marker": "-",
+                          "content": "mesure en relation, des que possible, les citoyens avec les entreprises digitales, les étudiants, les"
+                        },
+                        {
+                          "type": "alinea",
+                          "content": "entrepreneurs ou autres organismes susceptibles de les accompagner dans leur démarche."
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "Section",
+                  "intitule": "SECTION 3 : Du service audit interne et contrôle de gestion",
+                  "elements": [
+                    {
+                      "type": "Article",
+                      "numero": "28",
+                      "texte": [
+                        {
+                          "type": "alinea",
+                          "content": "Le service audit interne et contrôle de gestion est dirigé et animé par un chef de service qui a rang de chef de service."
+                        },
+                        {
+                          "type": "alinea",
+                          "content": "A ce titre, il est chargé, notamment, de :"
+                        },
+                        {
+                          "type": "enumeration",
+                          "marker": "-",
+                          "content": "veiller au respect des procédures de gestion du centre ;"
+                        },
+                        {
+                          "type": "enumeration",
+                          "marker": "-",
+                          "content": "élaborer les rapports annuels sur les activités du centre ;"
+                        },
+                        {
+                          "type": "enumeration",
+                          "marker": "-",
+                          "content": "contrôler et suivre la gestion budgêtaire, financière et comptable du centre ;"
+                        },
+                        {
+                          "type": "alinea",
+                          "content": "assurer le suivi et l'évaluation périodique de l'exécution des projets du centre ;"
+                        },
+                        {
+                          "type": "enumeration",
+                          "marker": "-",
+                          "content": "élaborer et suivre l'exécution des plans de développement et programmes d'actions du centre;"
+                        },
+                        {
+                          "type": "alinea",
+                          "content": "-élaborer et suivre le tableau de bord du centre."
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "Section",
+                  "intitule": "SECTION 4 : Du comité scientifique",
+                  "elements": [
+                    {
+                      "type": "Article",
+                      "numero": "29",
+                      "texte": [
+                        {
+                          "type": "alinea",
+                          "content": "Le comité scientifique du centre african de recherche en intelligence artificielle est régi par des textes spécifique."
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "Section",
+                  "intitule": "SECTION 5 : De la direction de l'innovation et de la promotion de l'entrepreneurariat",
+                  "elements": [
+                    {
+                      "type": "Article",
+                      "numero": "30",
+                      "texte": [
+                        {
+                          "type": "alinea",
+                          "content": "La direction de l'innovation et de la promotion de l'entrepreneurariat est dirigée et animée par un directeur."
+                        },
+                        {
+                          "type": "alinea",
+                          "content": "Elle est chargée, notamment, de :"
+                        },
+                        {
+                          "type": "enumeration",
+                          "marker": "-",
+                          "content": "définir une vision stratégique claire pour l'innovation et l'entrepreneurariat, alignée avec les objectifs globaux du centre, et mobiliser les ressources nécessaires pour la mise en œuvre;"
+                        },
+                        {
+                          "type": "enumeration",
+                          "marker": "-",
+                          "content": "supervise le processus d'innovation de la génération d'idées à la commercialisation des produits ou services innovants, en veillant à ce que les initiaites d'innovation soient alignées sur la vision stratégique du centre et apportent une valeur ajoutée ;"
+                        },
+                        {
+                          "type": "enumeration",
+                          "marker": "-",
+                          "content": "créé un environnement propice à l'entrepreneuriat au sein du centre en mettant en place des programmes internes de soutien aux entrepreneurs, tels que des incubateurs, des accélérateurs ou des initiatives de développement des compétences entreprises;"
+                        },
+                        {
+                          "type": "enumeration",
+                          "marker": "-",
+                          "content": "recherche et évaluation de nouvelles opportunités d'affaires, de partenariats ou d'investissements qui pouraient favoriser l'innovation et la croissance du centre, et promouvoir la culture entrepreneurie;"
+                        },
+                        {
+                          "type": "enumeration",
+                          "marker": "-",
+                          "content": "travailler en étroite collaboration avec d'autres directions, pour intégrer l'innovation dans tous les aspects de leurs activités ;"
+                        },
+                        {
+                          "type": "enumeration",
+                          "marker": "-",
+                          "content": "étabir des partenariats avec des universités, des centres de recherche, des startups, des incubateurs, des investisseurs et d'autres actuels externes pour stimuler l'innovation ouverte et l'échange d'idées;"
+                        },
+                        {
+                          "type": "enumeration",
+                          "marker": "-",
+                          "content": "définir des indicateurs clés de performance (KPI) pour évaluer l'impact des initiatives d'innovation et d'entrepreneuriat, et:gérer les risques associés à ces activités, en veillant à ce que les investissements dans l'innovation soient rentables et contribuient à la croissance du centre ;"
+                        },
+                        {
+                          "type": "enumeration",
+                          "marker": "-",
+                          "content": "proposer des mesures visant à aligner les politiques publiques relatives aux PME avec les besoin des entreprises du numérique."
+                        }
+                      ]
+                    },
+                    {
+                      "type": "Article",
+                      "numero": "31",
+                      "texte": [
+                        {
+                          "type": "alinea",
+                          "content": "La direction de l'innovation et de la promotion de l'entrepreneurariat comprend :"
+                        },
+                        {
+                          "type": "enumeration",
+                          "marker": "-",
+                          "content": "le service de cartographie des innovations numériques ;"
+                        },
+                        {
+                          "type": "enumeration",
+                          "marker": "-",
+                          "content": "le service de développement des startups et incubation ;"
+                        },
+                        {
+                          "type": "enumeration",
+                          "marker": "-",
+                          "content": "le service de l'appui aux entreprises et des relations avec l'écosystème entrepreneurial."
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "Section",
+                  "intitule": "SECTION 6 : De la direction de la recherche technologique et de la formation",
+                  "elements": [
+                    {
+                      "type": "Article",
+                      "numero": "32",
+                      "texte": [
+                        {
+                          "type": "alinea",
+                          "content": "La direction de la recherche technologique et de la formation est dirigée et animée par un directeur."
+                        },
+                        {
+                          "type": "alinea",
+                          "content": "Elle est chargée, notamment, de :"
+                        },
+                        {
+                          "type": "enumeration",
+                          "marker": "-",
+                          "content": "définir une strategie de recherche alignée sur les objectifs et les besoin du centre;"
+                        },
+                        {
+                          "type": "enumeration",
+                          "marker": "-",
+                          "content": "supervise la planification, la mise en œuvre et le suivi des projets de recherche ;"
+                        },
+                        {
+                          "type": "enumeration",
+                          "marker": "-",
+                          "content": "allouer les ressources humaines, financières et matérielles nécessaires à la réalisation des activités de recherche ;"
+                        },
+                        {
+                          "type": "enumeration",
+                          "marker": "-",
+                          "content": "étabir et entretenir des partenariats avec des universités, des instituts de recherche, des entreprises partenaires et d'autres actuels externes pour favoriser la collaboration, l'échange de connaissances et la recherche conjointe;"
+                        },
+                        {
+                          "type": "alinea",
+                          "content": "surveiller les avances technologiques et scientifiques pertinentes en identifiant les tendances emergentes, les innovations potentielles et les opportUNITés de partenariat ou de développement de nouveaux produits ou services ;"
+                        },
+                        {
+                          "type": "enumeration",
+                          "marker": "-",
+                          "content": "communiquer les résultats de la recherche à travers des publications scientifiques, des presentations lors de conférences, ou des interactions avec les médias et le grand public, contribuant ainsi à promouvoir les réalisations du centre dans le domaine de la recherche et de la technologie."
+                        }
+                      ]
+                    },
+                    {
+                      "type": "Article",
+                      "numero": "33",
+                      "texte": [
+                        {
+                          "type": "alinea",
+                          "content": "La direction de la recherche technologique et de formation comprend :"
+                        },
+                        {
+                          "type": "enumeration",
+                          "marker": "-",
+                          "content": "le service des programmes de recherche ;"
+                        },
+                        {
+                          "type": "enumeration",
+                          "marker": "-",
+                          "content": "le service des programmes de formations certifiantes."
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "Section",
+                  "intitule": "SECTION 7 : De la direction des'affaires administratives et financières",
+                  "elements": [
+                    {
+                      "type": "Article",
+                      "numero": "34",
+                      "texte": [
+                        {
+                          "type": "alinea",
+                          "content": "La direction des'affaires administratives et financières est dirigée et animée par un directeur."
+                        },
+                        {
+                          "type": "alinea",
+                          "content": "Elle est chargée, notamment, de :"
+                        },
+                        {
+                          "type": "enumeration",
+                          "marker": "-",
+                          "content": "gerer les'affaires administratives et les ressources humaines ;"
+                        },
+                        {
+                          "type": "alinea",
+                          "content": "-élaborer et executer le budget;"
+                        },
+                        {
+                          "type": "enumeration",
+                          "marker": "-",
+                          "content": "gerer le patrimoine et le matériel ;"
+                        },
+                        {
+                          "type": "enumeration",
+                          "marker": "-",
+                          "content": "centraliser etGERer les archives et la documentation ;"
+                        },
+                        {
+                          "type": "alinea",
+                          "content": "assurer la formation du personnel;"
+                        },
+                        {
+                          "type": "alinea",
+                          "content": "-élaborerlebilan;"
+                        },
+                        {
+                          "type": "enumeration",
+                          "marker": "-",
+                          "content": "proceeds à la mise en recouvrement des droits, des redevances et autres ressources du centre;"
+                        },
+                        {
+                          "type": "enumeration",
+                          "marker": "-",
+                          "content": "fournir les informations nécessaires à l'alimentation du site internet et à l'elaboration des rapports annuels du centre."
+                        }
+                      ]
+                    },
+                    {
+                      "type": "Article",
+                      "numero": "35",
+                      "texte": [
+                        {
+                          "type": "alinea",
+                          "content": "La direction des'affaires administratives et financières comprend :"
+                        },
+                        {
+                          "type": "enumeration",
+                          "marker": "-",
+                          "content": "le service de l'administration et du personnel;"
+                        },
+                        {
+                          "type": "enumeration",
+                          "marker": "-",
+                          "content": "le service des finances et de l'équipement ;"
+                        },
+                        {
+                          "type": "enumeration",
+                          "marker": "-",
+                          "content": "le service de la comptabilité et du patrimoine ;"
+                        },
+                        {
+                          "type": "enumeration",
+                          "marker": "-",
+                          "content": "le service de gestion des archives et de la documentation."
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "Section",
+                  "intitule": "SECTION 8 : De la direction de la coopération, de la réglementation et du contentieux",
+                  "elements": [
+                    {
+                      "type": "Article",
+                      "numero": "36",
+                      "texte": [
+                        {
+                          "type": "alinea",
+                          "content": "La direction de la coopération, de la règlementation et du contentieux est dirigée et animée par un directeur."
+                        },
+                        {
+                          "type": "alinea",
+                          "content": "A ce titre, il est chargé notamment, de :"
+                        },
+                        {
+                          "type": "enumeration",
+                          "marker": "-",
+                          "content": "identifier et étabir des partenariats stratégiques avec des institutions académiques, des centres de recherche, des entreprises technologiques et des organisations internationales;"
+                        },
+                        {
+                          "type": "enumeration",
+                          "marker": "-",
+                          "content": "négocier et formaliser les accords de collaboration et les protocoles d'entente ;"
+                        },
+                        {
+                          "type": "enumeration",
+                          "marker": "-",
+                          "content": "représentier le centre lors des conférences, des symposiums et d'événements internationaux ;"
+                        },
+                        {
+                          "type": "enumeration",
+                          "marker": "-",
+                          "content": "facilitier les échanges dechercheurs, d'experts et d'étudiants avec des institutions partenaires;"
+                        },
+                        {
+                          "type": "enumeration",
+                          "marker": "-",
+                          "content": "coordonnier les projets de recherche en coopération avec des partenaires externes ;"
+                        },
+                        {
+                          "type": "enumeration",
+                          "marker": "-",
+                          "content": "identifier les opportunités de financement national et international;"
+                        },
+                        {
+                          "type": "enumeration",
+                          "marker": "-",
+                          "content": "préparer des propositions de projets pour obtenir des subventions et des financements ;"
+                        },
+                        {
+                          "type": "alinea",
+                          "content": "surveiller les évolution de la réglementation en identifient les nouvelles lois, règlements et directives qui pourraient avoir un impact sur les activités du centre ;"
+                        },
+                        {
+                          "type": "alinea",
+                          "content": "assurer la conformité du centre aux lois et règlements applicables, en élaborant des politiques et des procédures internes pour garantir le respect des normes juridiques en vigueur;"
+                        },
+                        {
+                          "type": "enumeration",
+                          "marker": "-",
+                          "content": "gérer les demandes d'autorisations, de permis et de licences nécessaires à l'exercice des activités du centre, en veillant à ce que tous les documents légaux requis soient obtenus et maintainus à jour;"
+                        },
+                        {
+                          "type": "enumeration",
+                          "marker": "-",
+                          "content": "fournir des conseils juridiques à la direction générale et aux différents départements du centre sur les questions légales et réglementaires, en évaluant les risques juridiques et en proposant des solutions pour les éciter ou les atténuer ;"
+                        },
+                        {
+                          "type": "enumeration",
+                          "marker": "-",
+                          "content": "gérer les litiges pour lesquels le centre est mis en cause, en coordonnant les activités de défense légale, en travaillant avec des avocats, si nécessaire, devant les tribunaux ou les autorités compétentes;"
+                        },
+                        {
+                          "type": "enumeration",
+                          "marker": "-",
+                          "content": "intervenir dans les négociations et les litiges, en protégeant les intérêts légaux du centre et en recherchant des solutions lorsque cela est passible ;"
+                        },
+                        {
+                          "type": "alinea",
+                          "content": "protégier les droits de la propriété intellectuelle du centre, en enregistrant les marques, les brevets et les droits d'auteur, et en poursuivant les contrevenants en cas d'infraction ;"
+                        },
+                        {
+                          "type": "enumeration",
+                          "marker": "-",
+                          "content": "développer et:gérer les partenariats stratégiques avec d'autres organisations, institutions, et partenaires externes, tels que des entreprises, des organismes gouvernementaux, des organisations non gouvernentales ;"
+                        },
+                        {
+                          "type": "enumeration",
+                          "marker": "-",
+                          "content": "négocier et faciliter la conclusion des accords de coopération, de contrats, et d'autres accords avec des tiers, en veillant à ce qu'ils soient mutuellesment bénéfiques et conformes aux objectifs du centre ;"
+                        },
+                        {
+                          "type": "enumeration",
+                          "marker": "-",
+                          "content": "participer au processus de lobbying et d'influence politique pour défendre les intérêts du centre et influencer les décisions politiques et règlementaires."
+                        }
+                      ]
+                    },
+                    {
+                      "type": "Article",
+                      "numero": "37",
+                      "texte": [
+                        {
+                          "type": "alinea",
+                          "content": "La direction de la coopération, de la réglementation et du contentieux comprend :"
+                        },
+                        {
+                          "type": "enumeration",
+                          "marker": "-",
+                          "content": "le service de la coopération ;"
+                        },
+                        {
+                          "type": "enumeration",
+                          "marker": "-",
+                          "content": "le service de la réglementation ;"
+                        },
+                        {
+                          "type": "enumeration",
+                          "marker": "-",
+                          "content": "le service juridique et du contentieux."
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "Section",
+                  "intitule": "SECTION 9 : De la direction des systèmes d'information",
+                  "elements": [
+                    {
+                      "type": "Article",
+                      "numero": "38",
+                      "texte": [
+                        {
+                          "type": "alinea",
+                          "content": "La direction des systèmes d'information est dirigée et animée par un directeur."
+                        },
+                        {
+                          "type": "alinea",
+                          "content": "A ce titre, elle est chargée, notamment, de :"
+                        },
+                        {
+                          "type": "enumeration",
+                          "marker": "-",
+                          "content": "supervise la mise en œuvre des projets informatiques majorés, tels que le déploiement de nouveaux logiciels, la mise en place de systèmes d'information intégrés, ou la migration vers les infrastructures cloud ;"
+                        },
+                        {
+                          "type": "enumeration",
+                          "marker": "-",
+                          "content": "conceiveir la mise en place, la gestion et la sécurité des infrastructures informatiques du"
+                        },
+                        {
+                          "type": "alinea",
+                          "content": "centre, y compris les réseaux, les serveurs, les systèmes de stockage de données, pour répondre aux besoines opérationnels ;"
+                        },
+                        {
+                          "type": "enumeration",
+                          "marker": "-",
+                          "content": "mesure de sécurité informatique pour protégger les données et les systèmes informatiques du centre contre les menaces telles que les cyberattaques, les piratages, les logiciels malveillants;"
+                        },
+                        {
+                          "type": "enumeration",
+                          "marker": "-",
+                          "content": "gérer les données, y compris leur collecte, leur stockage, leur analyse et leur utilisation en mettant en place des bases de données et des outils d'analyse de données pour aider le centre à prendre des décisions basées sur lesdites données ;"
+                        },
+                        {
+                          "type": "enumeration",
+                          "marker": "-",
+                          "content": "fournir le support technique aux utilisateurs, en résolvant les problèmes informatiques et en répondant aux demandes d'assistance technique;"
+                        },
+                        {
+                          "type": "enumeration",
+                          "marker": "-",
+                          "content": "explorer et évaluer les nouvelles technologies émergentes dont le centre pourrait bénéfier, en identifient les opportunités d'innovation et en proposant des solutions technologiques novatrices pour améliorer les processus et la Productivité ;"
+                        },
+                        {
+                          "type": "enumeration",
+                          "marker": "-",
+                          "content": "veiller à ce que les systèmes d'information du centre soient conformes aux réglementations et aux normes en vigueur, en matière de protection des données, de confidentialité, de sécurité."
+                        }
+                      ]
+                    },
+                    {
+                      "type": "Article",
+                      "numero": "39",
+                      "texte": [
+                        {
+                          "type": "alinea",
+                          "content": "La direction des systèmes d'information comprend :"
+                        },
+                        {
+                          "type": "enumeration",
+                          "marker": "-",
+                          "content": "le service administration systèmes, réseaux et sécurité ;"
+                        },
+                        {
+                          "type": "enumeration",
+                          "marker": "-",
+                          "content": "le service exploitation, maintenance et support utiliser."
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "Section",
+                  "intitule": "SECTION 10 : Des antennes départementales",
+                  "elements": [
+                    {
+                      "type": "Article",
+                      "numero": "40",
+                      "texte": [
+                        {
+                          "type": "alinea",
+                          "content": "Les antennes départementales du centre african de recherche en intelligence artificielle sont régies par des textes spécifique."
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "Titre",
+          "intitule": "TITRE IV : DU STATUT DU PERSONNEL",
+          "elements": [
+            {
+              "type": "Article",
+              "numero": "41",
+              "texte": [
+                {
+                  "type": "alinea",
+                  "content": "Le centre africain de recherche en intelligence artificielle employe :"
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "-",
+                  "content": "un personnel recruté directement par contrat de droit commun ;"
+                },
+                {
+                  "type": "alinea",
+                  "content": "des fonctionnaires et agents contractuels de l'Etat en position de détachement, conformément au statut général de la fonction publique."
+                },
+                {
+                  "type": "alinea",
+                  "content": "Le personnel du centre african en intelligence artificielle, visé à l'alinéa ci-dessus, doitprésenter un profil en adéquation avec les postes à occuper."
+                }
+              ]
+            },
+            {
+              "type": "Article",
+              "numero": "42",
+              "texte": [
+                {
+                  "type": "alinea",
+                  "content": "Les fonctionnaires et agents contractuels de l'Etat affectés au centre african de recherche en intelligence artificielle sont soumis, pendant toute la durée de leur employi, aux textes régissant le centre et à la législation du travail, sous réserve des disposi"
+                },
+                {
+                  "type": "alinea",
+                  "content": "tions du statut général de la fonction publique, relatives à la retraite et à la fin de la période de détachment, en ce qui concerne les fonctionnaires."
+                }
+              ]
+            },
+            {
+              "type": "Article",
+              "numero": "43",
+              "texte": [
+                {
+                  "type": "alinea",
+                  "content": "Le personnel du centre africain de recherche en intelligence artificielle ne doit, enaucun cas, etree salarie ou beneficier de remuneration,sous quelque forme ouquelque titre,ou avoir des intérêts, directs ou indirects,dans une entreprise relevant du secteur du numérique."
+                }
+              ]
+            },
+            {
+              "type": "Article",
+              "numero": "44",
+              "texte": [
+                {
+                  "type": "alinea",
+                  "content": "L'ensemble du personnel du centre africanen intelligence actificielle est regi par un accordd'établissement."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "Titre",
+          "intitule": "TITRE V : DES DISPOSITIONS FINANCIERES ET COMPTABLES",
+          "elements": [
+            {
+              "type": "Article",
+              "numero": "45",
+              "texte": [
+                {
+                  "type": "alinea",
+                  "content": "Les ressources du centre african en intelligence artificielle sont constituées par :"
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "-",
+                  "content": "la dotation initiale ;"
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "-",
+                  "content": "la subvention de l'Etat ;"
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "-",
+                  "content": "les fonds de concours ;"
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "-",
+                  "content": "les dons et legs."
+                }
+              ]
+            },
+            {
+              "type": "Article",
+              "numero": "46",
+              "texte": [
+                {
+                  "type": "alinea",
+                  "content": "La gestion financière et comptable du centre african en intelligence artificielle obéit aux régles de la comptabilité publique."
+                }
+              ]
+            },
+            {
+              "type": "Article",
+              "numero": "47",
+              "texte": [
+                {
+                  "type": "alinea",
+                  "content": "Le directeur général est l'ordonnateur principal du budget du centre. L'agent comptable en est le comptable public."
+                }
+              ]
+            },
+            {
+              "type": "Article",
+              "numero": "48",
+              "texte": [
+                {
+                  "type": "alinea",
+                  "content": "Le directeur général du centre établit et publie, avant le 30 juin de l'année n+1, un rapport annuel sur les activités de l'année n-1."
+                },
+                {
+                  "type": "alinea",
+                  "content": "Ce rapport présente la situation de l'entrepreneurariat numérique et du développement des compétences numériques au Congo, du point de vue de l'application de la législation, de la règlementation en vigueur et du programme d'action du Gouvernement."
+                },
+                {
+                  "type": "alinea",
+                  "content": "Ce rapport est adressé au Premier ministre, au ministre chargeé des finances, au ministre chargeé du plan, au ministre chargeé de l'économie numérique et au ministre chargeé de l'innovation technologique."
+                }
+              ]
+            },
+            {
+              "type": "Article",
+              "numero": "49",
+              "texte": [
+                {
+                  "type": "alinea",
+                  "content": "Le centre africain de recherche en intelligence artificielle est soumis aux contrôle des organes de contrôle de l'Etat, conformément aux dispositions des textes en vigueur."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "Titre",
+          "intitule": "TITRE VI : DISPOSITIONS DIVERSES ET FINALES",
+          "elements": [
+            {
+              "type": "Article",
+              "numero": "50",
+              "texte": [
+                {
+                  "type": "alinea",
+                  "content": "Les membres du comité de direction, le directeur général et l'ensemble du personnel du centre african de recherche en intelligence artificielle sont tenus au respect du secret professionnel, pour toute information, fait, acte et/ou renseignement dont ils peuvent avoir connaissance en raison de leurs fonctions, pendant la durée de leurs carrières et ultérieurement sans limitation de durée."
+                },
+                {
+                  "type": "alinea",
+                  "content": "Ils sont tenus de signer un engagement sur l'honneur, à la prise de leurs fonctions, sur le respect du principe de la confidentialité."
+                }
+              ]
+            },
+            {
+              "type": "Article",
+              "numero": "51",
+              "texte": [
+                {
+                  "type": "alinea",
+                  "content": "Il est dressé, lors de la mise en place du centre african de recherche en intelligence artificielle, un inventaire évaluatif des actifs et des passifs de la direction générale, qui constituent la dotation ou l'affection initiale du centre."
+                },
+                {
+                  "type": "alinea",
+                  "content": "Cet inventaire fait l'objet d'une prise en charge dans la comptabilité patrimoniale du centre."
+                }
+              ]
+            },
+            {
+              "type": "Article",
+              "numero": "52",
+              "texte": [
+                {
+                  "type": "alinea",
+                  "content": "Le centre africain de recherche en intelligence artificielle recoit, sous forme de cessions gratuites, les terrains ou tout autre élément d'actif appartenant à l'état, qu'il est décidé de lui attribuer pouraccomplir sa mission."
+                }
+              ]
+            },
+            {
+              "type": "Article",
+              "numero": "53",
+              "texte": [
+                {
+                  "type": "alinea",
+                  "content": "Tout manquement à l'obligation prévue à l'article 49 des prêSENTS statuts constitue une faute lourde entrainant revocation, pour les membres du comité de direction et le directeur général, et licenciement, pour le personnel du centre african de recherche en intelligence artificielle, sans préjudice d'éventuelles poursuites judiciaires."
+                }
+              ]
+            },
+            {
+              "type": "Article",
+              "numero": "54",
+              "texte": [
+                {
+                  "type": "alinea",
+                  "content": "Les décisions du centre african de recherche en intelligence artificielle sont applicables au niveau national."
+                }
+              ]
+            },
+            {
+              "type": "Article",
+              "numero": "55",
+              "texte": [
+                {
+                  "type": "alinea",
+                  "content": "Les actes, décisions, injunctions ou sanctions du centre african de recherche en intelligence artificielle sont publiés dans le Journal du centre et sur son site internet."
+                },
+                {
+                  "type": "alinea",
+                  "content": "Ils sont susceptibles de recours juridictionnel."
+                }
+              ]
+            },
+            {
+              "type": "Article",
+              "numero": "56",
+              "texte": [
+                {
+                  "type": "alinea",
+                  "content": "Tout contentieux est régé selon les formes et les conditions prévues par les/textes en vigueur."
+                }
+              ]
+            },
+            {
+              "type": "Article",
+              "numero": "57",
+              "texte": [
+                {
+                  "type": "alinea",
+                  "content": "Le centre africain en intelligence artificielle adopte son règlement interieur."
+                },
+                {
+                  "type": "alinea",
+                  "content": "Ce règlement interieur fixe, notamment en conformité avec les dispositions légales et règlementaires :"
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "-",
+                  "content": "les régles de fonctionnement des organes du centre;"
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "-",
+                  "content": "les droits et obligations des membres du comité de direction et de la direction générale;"
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "-",
+                  "content": "l'organisation détaillée des services ;"
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "-",
+                  "content": "les procédures relatives aux fonctions de gestion."
+                }
+              ]
+            },
+            {
+              "type": "Article",
+              "numero": "58",
+              "texte": [
+                {
+                  "type": "alinea",
+                  "content": "La dissolution ou la liquidation du centre african en intelligence artificielle est prononcée conformément à la législation en vigueur."
+                }
+              ]
+            },
+            {
+              "type": "Article",
+              "numero": "59",
+              "texte": [
+                {
+                  "type": "alinea",
+                  "content": "Les attributions et l'organisation du comité scientifique, des services et des bureaux sont fixés par arrêté du ministre chargé de l'économie numérique."
+                }
+              ]
+            },
+            {
+              "type": "Article",
+              "numero": "60",
+              "texte": [
+                {
+                  "type": "alinea",
+                  "content": "Les chefs de service et les chefs de bureau sont nommés conformément à la réglementation en vigueur."
+                },
+                {
+                  "type": "alinea",
+                  "content": "Ils peroivent les indemnités prévues par les textes en vigueur."
+                }
+              ]
+            },
+            {
+              "type": "Article",
+              "numero": "61",
+              "texte": [
+                {
+                  "type": "alinea",
+                  "content": "Chaque direction centrale dispose d'un secretariat dirigé et animé par un secretaire qui a rang de chef de bureau."
+                }
+              ]
+            },
+            {
+              "type": "Article",
+              "numero": "62",
+              "texte": [
+                {
+                  "type": "alinea",
+                  "content": "Les prêsentes statuts sont approuvés par décret en Conseil des ministres."
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "signatures": [
+        "Denis SASSOU-N'GUESSO, Par le Président de la République",
+        "Anatole Collinet MAKOSSO",
+        "Rigobert MABOUNDOU, Le ministre de la recherche scientifique et de l'innovation technologique",
+        "Christian YOKA, Le ministre des finances, du budget et du portefeuille public",
+        "Delphine Edith EMMANUEL ADOUKI, La ministre de l'enseignement supérieur"
+      ]
+    },
+    {
+      "numero_texte": "Loi n° 69-2022",
+      "date_publication": "2022-08-16",
+      "intitule_long": "fixant la procédure de retrait du label startup du numérique et de l'innovation technologique",
+      "contenu": [
+        {
+          "type": "Article",
+          "numero": "premier",
+          "texte": [
+            {
+              "type": "alinea",
+              "content": "Leprésent décret, pris en application des dispositions de l'article 11 alinéa 3 de la loi n°71-2022 du 16 août 2022 susvisée, fixe la procédure de retrait du label startup du numérique et de l'innovation technologique."
+            }
+          ],
+          "references": [
+            {
+              "type": "loi",
+              "texte_cite": "loi n°71-2022 du 16 août 2022"
+            }
+          ]
+        },
+        {
+          "type": "Article",
+          "numero": "2",
+          "texte": [
+            {
+              "type": "alinea",
+              "content": "La commission de labellisation dresse, conformément à ses attributions, un rapport annuel sur l'etat de développement et de maturation des startups officiement reconnues."
+            },
+            {
+              "type": "alinea",
+              "content": "A cette occasion, elle peut s'auto-saisir pour des faits de non-conformite des startups à la reglementation en vigueur."
+            },
+            {
+              "type": "alinea",
+              "content": "La commission de labellisation peut également être saisie par tout usager du service public pour des faits"
+            },
+            {
+              "type": "alinea",
+              "content": "de non-conformité des startups à la réglementation en vigueur."
+            }
+          ]
+        },
+        {
+          "type": "Article",
+          "numero": "3",
+          "texte": [
+            {
+              "type": "alinea",
+              "content": "L'auto-saisine ou la saisine de la commission de labellisation prévue à l'article précédent donne lieu à l'enclenchement d'une procédure d'enquête."
+            },
+            {
+              "type": "alinea",
+              "content": "A cet effet, leprésident de la commission de labellisation établit aux enquêteurs un ordre de mission."
+            },
+            {
+              "type": "alinea",
+              "content": "L'équipe d'enquêteurs, qui comprend six (6) agents, est composée des agents relevant de l'agence de développement de l'économie numérique et de la direction générale des petites et moyennes entreprises."
+            }
+          ]
+        },
+        {
+          "type": "Article",
+          "numero": "4",
+          "texte": [
+            {
+              "type": "alinea",
+              "content": "Un rapport d'enquête est adressé au président de la commission de labellisation, à la fin de la mission d'enquête."
+            }
+          ]
+        },
+        {
+          "type": "Article",
+          "numero": "5",
+          "texte": [
+            {
+              "type": "alinea",
+              "content": "ÀpRES enquête, la commission de labellisation notification, dans un délambda de quinze (15) jours, par écrit, avec.accuse de réception, à la startup concernée, les irregularités constatées."
+            },
+            {
+              "type": "alinea",
+              "content": "La startup concernée dispose d'un-delai de deux (2) mois pour se conformer à la réglementation en vigueur."
+            },
+            {
+              "type": "alinea",
+              "content": "Exceptionnellement, ce délambda peut être prorogé d'un (1) mois, sur décision motivée du président de la commission de labellisation."
+            }
+          ]
+        },
+        {
+          "type": "Article",
+          "numero": "6",
+          "texte": [
+            {
+              "type": "alinea",
+              "content": "Dans le cas où la startup en cause demeure dans l'irregularité à l'échéance du début fixé à l'article précédent ou en violation des dispositions des articles 3 et 10 de la loi n° 71-2022 du 16 août 2022 susvisée, le label lui est retiree sur la base d'un process-verbal de constat et après audition du représentant légal de la startup ou son mandataires, consignée dans un process-verbal dressé à cet effet."
+            },
+            {
+              "type": "alinea",
+              "content": "L'absence du représentant légal de la startup ou de son mandataires ne fait pas obstacle à la poursuite de la procédure."
+            }
+          ],
+          "references": [
+            {
+              "type": "loi",
+              "texte_cite": "loi n° 71-2022 du 16 août 2022"
+            }
+          ]
+        },
+        {
+          "type": "Article",
+          "numero": "7",
+          "texte": [
+            {
+              "type": "alinea",
+              "content": "Les procès-verbaux prévus à l'article précédent servent de support pour l'établissement de l'avis de la commission de labellisation."
+            }
+          ]
+        },
+        {
+          "type": "Article",
+          "numero": "8",
+          "texte": [
+            {
+              "type": "alinea",
+              "content": "Le label startup est retire par arrêté du ministre chargé de l'économie numérique, sur avis conforme de la commission de labellisation."
+            },
+            {
+              "type": "alinea",
+              "content": "Ce retrait entraine la perte des droits relatifs au statut de startup du numérique."
+            }
+          ]
+        },
+        {
+          "type": "Article",
+          "numero": "9",
+          "texte": [
+            {
+              "type": "alinea",
+              "content": "L'arrêté de retrait du label startup du numéroique est susceptible de recours en annulation, conformément à la procédure prévue par la loi en vigueur."
+            }
+          ]
+        },
+        {
+          "type": "Article",
+          "numero": "10",
+          "texte": [
+            {
+              "type": "alinea",
+              "content": "Leprésent décret sera enregistré et publié au Journal officiel de la République du Congo."
+            },
+            {
+              "type": "alinea",
+              "content": "Fait à Brazzaville, le 2 juillet 2025"
+            },
+            {
+              "type": "alinea",
+              "content": "ParlePrésidentdelaRépublique,"
+            },
+            {
+              "type": "alinea",
+              "content": "Denis SASSOU-N'GUESSO"
+            },
+            {
+              "type": "alinea",
+              "content": "LePremierministre,chef duGouvernement,"
+            },
+            {
+              "type": "alinea",
+              "content": "Anatole Collinet MAKOSSO"
+            },
+            {
+              "type": "alinea",
+              "content": "Le ministre des postes, des télécommunications et de l'économie numérique,"
+            },
+            {
+              "type": "alinea",
+              "content": "Léon Juste IBOMBO"
+            },
+            {
+              "type": "alinea",
+              "content": "Le ministre de la recherche scientifique et de l'innovation technologique,"
+            },
+            {
+              "type": "alinea",
+              "content": "Rigobert MABOUNDOU"
+            },
+            {
+              "type": "alinea",
+              "content": "Le ministre des finances, du budget et du portefeuille public,"
+            },
+            {
+              "type": "alinea",
+              "content": "Christian YOKA"
+            },
+            {
+              "type": "alinea",
+              "content": "La ministre des petites et moyennes entreprises et de l'artisanat,"
+            },
+            {
+              "type": "alinea",
+              "content": "Jacqueline Lydia MIKOLO"
+            }
+          ]
+        }
+      ],
+      "signatures": [
+        "Denis SASSOU-N'GUESSO",
+        "Anatole Collinet MAKOSSO",
+        "Rigobert MABOUNDOU, Le ministre de la recherche scientifique et de l'innovation technologique",
+        "Christian YOKA, Le ministre des finances, du budget et du portefeuille public",
+        "Jacqueline Lydia MIKOLO, La ministre des petites et moyennes entreprises et de l'artisanat"
+      ]
+    },
+    {
+      "numero_texte": "Loi n° 46-2014",
+      "date_publication": "2014-11-03",
+      "intitule_long": "fixant les attributions, la composition et le fonctionnement de la commission de labellisation des startups du numérique et de l'innovation technologique",
+      "contenu": [
+        {
+          "type": "Chapitre",
+          "intitule": "CHAPITRE 1 : Disposition générale",
+          "elements": [
+            {
+              "type": "Article",
+              "numero": "premier",
+              "texte": [
+                {
+                  "type": "alinea",
+                  "content": "Leprésent décret fixe, en application de l'article 9 de la loi n° 71-2022 du 16 août 2022 sus visée, les attributions, la composition et le fonctionnement de la commission de labellisation des startups du numérique de l'innovation technologique."
+                },
+                {
+                  "type": "alinea",
+                  "content": "La commission de labellisation des startups est un organe consultatif placé sous l'autorité du ministre chargé de l'économie numérique."
+                }
+              ],
+              "references": [
+                {
+                  "type": "loi",
+                  "texte_cite": "loi n° 71-2022 du 16 août 2022"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "Chapitre",
+          "intitule": "CHAPITRE 2 : Des attributions",
+          "elements": [
+            {
+              "type": "Article",
+              "numero": "2",
+              "texte": [
+                {
+                  "type": "alinea",
+                  "content": "La commission de labellisation des startups est chargée essentiellement de statuer sur la ou les demandes d'obtention du label « startup » du numéroique et de l'innovation technologique."
+                },
+                {
+                  "type": "alinea",
+                  "content": "A ce titre, elle a pour missions de :"
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "-",
+                  "content": "supervise la procédure de labellisation ;"
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "-",
+                  "content": "calider les outils, les procédures et les processus;"
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "-",
+                  "content": "produit un rapport périodique des statistiques des startups du numérique et de l'innovation technologique en République du Congo ;"
+                },
+                {
+                  "type": "alinea",
+                  "content": "formuler des recommandations sur toutes les questions relatives à l'impact des startups sur la société et sur l'économie ;"
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "-",
+                  "content": "orienter les politiques, programmes et/ou projets de développement des startups à travers le pays;"
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "-",
+                  "content": "encourager et accélérer le rythme de création des entreprises innovantes ;"
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "-",
+                  "content": "dresser un rapport annuel sur l'etat de développement et de maturation des startups officiellement reconnues."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "Chapitre",
+          "intitule": "CHAPITRE 3 : De la composition",
+          "elements": [
+            {
+              "type": "Article",
+              "numero": "3",
+              "texte": [
+                {
+                  "type": "alinea",
+                  "content": "La commission de labellisation des startups est composée ainsi qu'ii suit :"
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "-",
+                  "content": "président : le directeur général de l'agence de développement de l'économie numérique ;"
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "-",
+                  "content": "premier vice-président : le directeur général du centre african de recherche en intelligence artificielle ;"
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "-",
+                  "content": "deuxième vice-président : le directeur général de l'agence de développement des petites et moyennes entreprises ;"
+                },
+                {
+                  "type": "alinea",
+                  "content": "troisième vice-président : le directeur général de l'innovation technologique;"
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "-",
+                  "content": "rapporteur : l'attache juridique et administratif du ministre chargé de l'économie numérique ;"
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "-",
+                  "content": "membres :"
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "-",
+                  "content": "un représentant du ministeré en charge des finances ;"
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "-",
+                  "content": "un représentant du ministeré en charge des investissements ;"
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "-",
+                  "content": "un représentant du ministeré en charge des petites et moyennes entreprises ;"
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "-",
+                  "content": "un représentant du ministeré en charge de l'innovation technologique;"
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "-",
+                  "content": "un représentant du ministeré en charge du développement industriel et de la promotion du secteur privé ;"
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "-",
+                  "content": "un représentant de l'ANSSI ;"
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "-",
+                  "content": "un représentant du FIGA ;"
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "-",
+                  "content": "un représentant du FONEA;"
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "-",
+                  "content": "un expert en développement durable ;"
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "-",
+                  "content": "deux représentants du secteur privé ;"
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "-",
+                  "content": "deux experts dûment reconnus pour leurs compétences dans le développement des startups et de l'innovation technologique."
+                },
+                {
+                  "type": "alinea",
+                  "content": "Les membres de la commission de labellisation des startups du numérique et de l'innovation technologique sont nommés par arrêté du ministre charge du numérique sur proposition des structures qu'ils représentent."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "Chapitre",
+          "intitule": "CHAPITRE 4 : Du fonctionnement",
+          "elements": [
+            {
+              "type": "Article",
+              "numero": "4",
+              "texte": [
+                {
+                  "type": "alinea",
+                  "content": "La commission de labellisation se réunit deux (2) fais par an en session ordinaire, sur convocation de son préident."
+                },
+                {
+                  "type": "alinea",
+                  "content": "Elle peut se réunir, en tant que de besoin, sur convocation de son préident qui fixe l'ordre du jour des séances."
+                },
+                {
+                  "type": "alinea",
+                  "content": "Le rapporteur de la commission assure le secretariat permanent de la commission, notamment la préparation des réunions et toutes autres missions qui lui sont assignées par la commission."
+                },
+                {
+                  "type": "alinea",
+                  "content": "Les convocations arrivagées des dossiers à examiner sont adressées huit (8) jours au moins avant chaque session aux membres de la commission."
+                }
+              ]
+            },
+            {
+              "type": "Article",
+              "numero": "5",
+              "texte": [
+                {
+                  "type": "alinea",
+                  "content": "Toute entreprise ou personne physique peut bénéficier du label startup du numérique et de l'innovation technologique à condition de replir les conditions prévues à l'article 3 de la loi n° 71-2022 du 16 août 2022 susvisée."
+                }
+              ],
+              "references": [
+                {
+                  "type": "loi",
+                  "texte_cite": "loi n° 71-2022 du 16 août 2022"
+                }
+              ]
+            },
+            {
+              "type": "Article",
+              "numero": "6",
+              "texte": [
+                {
+                  "type": "alinea",
+                  "content": "La société souhaitant obtenir le « label startup » est tenue de déposer une demande via la plateforme des startups, accampagnée des pieces suivantes:"
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "-",
+                  "content": "un justificatif de participation au capital d'une société de  $50\\%$ ;"
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "-",
+                  "content": "un justificatif d'un modele economique à force dimension innovante, notamment technologique;"
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "-",
+                  "content": "le justificatif d'un développement basé sur la créativité, l'innovation et l'utilisation des nouvelles technologies;"
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "-",
+                  "content": "le justificatif d'une activité à fort potentiel de croissance économique ;"
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "-",
+                  "content": "une licence unique d'exploitation des entreprises (LUE) ;"
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "-",
+                  "content": "une copie des statuts de la société ;"
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "-",
+                  "content": "une copie de la carte nationale d'identité ou du passéport du ou des fondateur (s) de la société ;"
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "-",
+                  "content": "une presentation détaillée du produit/service et ses aspects d'innovation ;"
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "-",
+                  "content": "une copie des comptes pour les entreprises ayant plus d'une année d'existence."
+                },
+                {
+                  "type": "alinea",
+                  "content": "Toutefois, la demande d'obtention du label peut se faire à !'occasion de l'immatriculation de la société au guichet unique de !'agence congolaise pour la création des entreprises."
+                },
+                {
+                  "type": "alinea",
+                  "content": "Les services compétents du ministeré en charge de l'économie numérique délégués au guichet unique de création d'entreprises assurent les missions de réception et de tri des demandes d'obtention de label du numéroique et de l'innovation technologique."
+                }
+              ]
+            },
+            {
+              "type": "Article",
+              "numero": "7",
+              "texte": [
+                {
+                  "type": "alinea",
+                  "content": "Le « label startup » est attribué pour une durée de cinq (5) ans par arrêté conjoint des ministres charges de l'économie numérique, de l'innovation technologique, des petites et moyennes entreprises, sur avis conforme de la commission de Iabellisation. Il est renouvelable une (1) fois après avis de la commission."
+                }
+              ]
+            },
+            {
+              "type": "Article",
+              "numero": "8",
+              "texte": [
+                {
+                  "type": "alinea",
+                  "content": "Le label est retire à la startup lorsqu'il ne répond plus aux critères d'attribution ou aux obligations et en cas de violation des dispositions des articles 3 et 10 de la loi n° 71-2022 du 16 août 2022 susvisée, sur la base d'un procès-verbal de constat et après audition du représentant légal de la startup ou son mandataires considérée dans un procès-verbal dressé a cet effet."
+                }
+              ],
+              "references": [
+                {
+                  "type": "loi",
+                  "texte_cite": "loi n° 71-2022 du 16 août 2022"
+                }
+              ]
+            },
+            {
+              "type": "Article",
+              "numero": "9",
+              "texte": [
+                {
+                  "type": "alinea",
+                  "content": "Le label startup est retire par arrêté du ministre chargé de l'économie numérique, sur avis conforme de la commission de labellisation, et entraine la perte de tous les avantages liés au statut de startup."
+                }
+              ]
+            },
+            {
+              "type": "Article",
+              "numero": "10",
+              "texte": [
+                {
+                  "type": "alinea",
+                  "content": "Les délibérations de la commission sont prises à la majorité simple. En cas de partage égal des voix, celle du préident est prépondérante."
+                },
+                {
+                  "type": "alinea",
+                  "content": "Les délibérations sont constatées sur procès-verbal cosigné et paraphé par le préident et le rapporteur. Les procès-verbaux sont signés dans un registre spécial tenu à cet effet."
+                },
+                {
+                  "type": "alinea",
+                  "content": "Ces procès-verbaux mentionnent les noms des membres ainsi que ceux des personnes invitees à titre consultatif."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "Chapitre",
+          "intitule": "CHAPITRE 5 : Dispositions diverses et finales",
+          "elements": [
+            {
+              "type": "Article",
+              "numero": "11",
+              "texte": [
+                {
+                  "type": "alinea",
+                  "content": "Les membres de la commission de labellisation ne peuvent pas se faire représentier. En cas d' indisponibilité prolongée ou définitive, il est procédé à leur remplacement dans les conditions prévues par les dispositions de l'article 3 du présence décret."
+                },
+                {
+                  "type": "alinea",
+                  "content": "Les membres de la commission de labellisation sont assujettis à l'obligation de réserve et de confidentialité sur les débats auxquels ils participent et sur les informations auxquelles ils ont accès dans l'exercice ou à l'occasion de leurs fonctions."
+                }
+              ]
+            },
+            {
+              "type": "Article",
+              "numero": "12",
+              "texte": [
+                {
+                  "type": "alinea",
+                  "content": "Les fonctions de membre de la commission de labellisation sont gratuites."
+                }
+              ]
+            },
+            {
+              "type": "Article",
+              "numero": "13",
+              "texte": [
+                {
+                  "type": "alinea",
+                  "content": "Les frais de fonctionnement de la commission de labelisation sont imputés au budget de l'Etat."
+                }
+              ]
+            },
+            {
+              "type": "Article",
+              "numero": "14",
+              "texte": [
+                {
+                  "type": "alinea",
+                  "content": "La commission de labellisation dresse, chaque semestre, un rapport de ses activités adressé au ministre chargé de l'économie numérique."
+                },
+                {
+                  "type": "alinea",
+                  "content": "Une copie de ce rapport est transmise au Premier ministre, aux ministres charges de l'innovation technologique et des petites et moyennes entreprises."
+                }
+              ]
+            },
+            {
+              "type": "Article",
+              "numero": "15",
+              "texte": [
+                {
+                  "type": "alinea",
+                  "content": "Leprésent décret sera enregistré et publié au Journal officiel de la République du Congo."
+                },
+                {
+                  "type": "alinea",
+                  "content": "Fait à Brazzaville, le 2 juillet 2025"
+                },
+                {
+                  "type": "alinea",
+                  "content": "Par le Président de la République,"
+                },
+                {
+                  "type": "alinea",
+                  "content": "Denis SASSOU-N'GUESSO"
+                },
+                {
+                  "type": "alinea",
+                  "content": "LePremierministre,chef duGouvernement,"
+                },
+                {
+                  "type": "alinea",
+                  "content": "Anatole Collinet MAKOSSO"
+                },
+                {
+                  "type": "alinea",
+                  "content": "Le ministre des postes, des télécommunications et de l'économie numérique,"
+                },
+                {
+                  "type": "alinea",
+                  "content": "Léon Juste IBOMBO"
+                },
+                {
+                  "type": "alinea",
+                  "content": "Le ministre de la recherche scientifique et de l'innovation technologique,"
+                },
+                {
+                  "type": "alinea",
+                  "content": "Rigobert MABOUNDOU"
+                },
+                {
+                  "type": "alinea",
+                  "content": "Le ministre des finances, du budget et du portefeuille public,"
+                },
+                {
+                  "type": "alinea",
+                  "content": "Christian YOKA"
+                },
+                {
+                  "type": "alinea",
+                  "content": "Le ministre des petites et moyennes entreprises et de l'artisanat,"
+                },
+                {
+                  "type": "alinea",
+                  "content": "Jacqueline Lydia MIKOLO"
+                },
+                {
+                  "type": "alinea",
+                  "content": "# MINISTERE DE L'ASSAINISSEMENT URBAIN, DU DEVELOPPEMENT LOCAL ET DE L'ENTRETIEN ROUTIER"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "signatures": [
+        "Denis SASSOU-N'GUESSO, Par le Président de la République",
+        "Anatole Collinet MAKOSSO",
+        "Rigobert MABOUNDOU, Le ministre de la recherche scientifique et de l'innovation technologique",
+        "Christian YOKA, Le ministre des finances, du budget et du portefeuille public",
+        "Jacqueline Lydia MIKOLO, Le ministre des petites et moyennes entreprises et de l'artisanat"
+      ]
+    },
+    {
+      "numero_texte": "Loi n° 8-2003",
+      "date_publication": "2003-02-06",
+      "intitule_long": "portant attributions, composition et fonctionnement du comité interminériel de la decentralisation en matière d'entretien routier",
+      "contenu": [
+        {
+          "type": "Chapitre",
+          "intitule": "CHAPITRE 1 : Disposition générale",
+          "elements": [
+            {
+              "type": "Article",
+              "numero": "premier",
+              "texte": [
+                {
+                  "type": "alinea",
+                  "content": "Leprésent décret fixe, en application de l'article 33 alinéa 2 de la loi n° 15-2019 du 21 mai 2019 susvisée, les attributions, la composition et le fonctionnement du comité interminériel de la decentralisation en matière d'entretien routier."
+                },
+                {
+                  "type": "alinea",
+                  "content": "Le comité interminériel de la décentralisation en matière d'entretien routier est placé sous l'autorité du Premier ministre."
+                }
+              ],
+              "references": [
+                {
+                  "type": "loi",
+                  "texte_cite": "loi n° 15-2019 du 21 mai 2019"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "Chapitre",
+          "intitule": "CHAPITRE 2 : Des attributions",
+          "elements": [
+            {
+              "type": "Article",
+              "numero": "2",
+              "texte": [
+                {
+                  "type": "alinea",
+                  "content": "Le comité interminériel de la décentralisation en matière d'entretien routier est l'organe chargé de suivre la mise en œuvre des programmes d'accompagnement du processus de décentralisation en matière d'entretien routier."
+                },
+                {
+                  "type": "alinea",
+                  "content": "A ce titre, il est chargé, notamment, de :"
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "-",
+                  "content": "adopter les programmes d'accompagnement du transfert des compétences et des ressources aux collectivités locales ;"
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "-",
+                  "content": "proposer les modalités d'exercice par les départements et les communes des compétences transférées;"
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "-",
+                  "content": "suivre l'exécution des chronogrammes d'activités des ministères en matière de transfert de compétences et de ressources ;"
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "-",
+                  "content": "évaluer l'exécution des crédits budgétaires alloués ;"
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "-",
+                  "content": "approuver l'évaluation et la répartition entre les collectivités locales des ressources financières, matérielles et humaines que l'Etat utiliseit pour l'exercice des compétences à transférer ;"
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "-",
+                  "content": "veiller à la mise en œuvre du transfert progressif des compétences aux collectivités locales ;"
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "-",
+                  "content": "veiller à la mise en cohérence des modalités d'opérationnalisation du transfert des compétences et des ressources de l'Etat aux collectivités locales;"
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "-",
+                  "content": "examiner les difficultés rencontres dans la mise en œuvre des compétences et donner des orientations pour leurs solutions."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "Chapitre",
+          "intitule": "CHAPITRE 3 : De la composition",
+          "elements": [
+            {
+              "type": "Article",
+              "numero": "3",
+              "texte": [
+                {
+                  "type": "alinea",
+                  "content": "Le comité interminériel de la decentralisation en matière d'entretien routier comprend :"
+                },
+                {
+                  "type": "alinea",
+                  "content": "-unecoordination;"
+                },
+                {
+                  "type": "enumeration",
+                  "marker": "-",
+                  "content": "un secretariat technique permanent."
+                }
+              ]
+            },
+            {
+              "type": "Section",
+              "intitule": "SECTION 1 : De la coordination",
+              "elements": [
+                {
+                  "type": "Article",
+                  "numero": "4",
+                  "texte": [
+                    {
+                      "type": "alinea",
+                      "content": "La coordination du comité interminériel délibéré sur toutes les questions qui relevant du comité interminériel de la décentralisation, citées à l'article 2 duprésent décret."
+                    }
+                  ]
+                },
+                {
+                  "type": "Article",
+                  "numero": "5",
+                  "texte": [
+                    {
+                      "type": "alinea",
+                      "content": "La coordination du comité interminériel est composée ainsi qu'il suit :"
+                    },
+                    {
+                      "type": "enumeration",
+                      "marker": "-",
+                      "content": "président : le Premier ministre, chef du Gouvernement ;"
+                    },
+                    {
+                      "type": "enumeration",
+                      "marker": "-",
+                      "content": "premier vice-président : le ministre charge de la decentralisation ;"
+                    },
+                    {
+                      "type": "enumeration",
+                      "marker": "-",
+                      "content": "deuxième vice-président : le ministre chargé de l'aménagement du territoire ;"
+                    },
+                    {
+                      "type": "alinea",
+                      "content": "troisième vice-président : le ministre chargé des finances et du budget ;"
+                    },
+                    {
+                      "type": "enumeration",
+                      "marker": "-",
+                      "content": "quatrième vice-président : le ministre chargé de la réforme de l'Etat ;"
+                    },
+                    {
+                      "type": "enumeration",
+                      "marker": "-",
+                      "content": "securitaire-rapporteur : le ministre charge de l'entretien routier ;"
+                    },
+                    {
+                      "type": "alinea",
+                      "content": "# members :"
+                    },
+                    {
+                      "type": "enumeration",
+                      "marker": "-",
+                      "content": "le ministre chargé de la fonction publique ;"
+                    },
+                    {
+                      "type": "enumeration",
+                      "marker": "-",
+                      "content": "le ministre chargé de la coopération internationale;"
+                    },
+                    {
+                      "type": "enumeration",
+                      "marker": "-",
+                      "content": "le représentant de la République ;"
+                    },
+                    {
+                      "type": "enumeration",
+                      "marker": "-",
+                      "content": "le représentant de la Primature ;"
+                    },
+                    {
+                      "type": "enumeration",
+                      "marker": "-",
+                      "content": "le représentant du ministère en charge de l'entretien routier."
+                    }
+                  ]
+                },
+                {
+                  "type": "Article",
+                  "numero": "6",
+                  "texte": [
+                    {
+                      "type": "alinea",
+                      "content": "La coordination du comité interminériel peut faire appel à toute personne ressource, désisie en raison de sa compétence et de son expérience, sur les questions de decentralisation en matière d'entretien routier."
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "Section",
+              "intitule": "SECTION 2 : Du secretariat technique permanent",
+              "elements": [
+                {
+                  "type": "Article",
+                  "numero": "7",
+                  "texte": [
+                    {
+                      "type": "alinea",
+                      "content": "Le secretariat technique permanent du comité interminériel de la décentralisation en matière d'entretien routier est place sous la responsabilité du ministre chargé de la décentralisation."
+                    }
+                  ]
+                },
+                {
+                  "type": "Article",
+                  "numero": "8",
+                  "texte": [
+                    {
+                      "type": "alinea",
+                      "content": "Le secretariat technique permanent est chargé de préparer les dossiers à soumettre à la délibération du comité interminériel de la décentralisation dans les matières citées à l'article 2 du present décret."
+                    }
+                  ]
+                },
+                {
+                  "type": "Article",
+                  "numero": "9",
+                  "texte": [
+                    {
+                      "type": "alinea",
+                      "content": "Le secretariat technique permanent du comité interminériel de la décentralisation est compose ainsi qu'il suit :"
+                    },
+                    {
+                      "type": "enumeration",
+                      "marker": "-",
+                      "content": "secrete technique permanent : le directeur général des collectivités locales ;"
+                    },
+                    {
+                      "type": "enumeration",
+                      "marker": "-",
+                      "content": "secrete technique permanent adjoint : le directeur général de l'entretien routier ;"
+                    },
+                    {
+                      "type": "enumeration",
+                      "marker": "-",
+                      "content": "secreteaire-rapporteur : le directeur général de l'administration du territoire ;"
+                    },
+                    {
+                      "type": "alinea",
+                      "content": "# members :"
+                    },
+                    {
+                      "type": "enumeration",
+                      "marker": "-",
+                      "content": "l'inspecteur général de l'administration du territoire ;"
+                    },
+                    {
+                      "type": "enumeration",
+                      "marker": "-",
+                      "content": "le directeur général de la fonction publique territoriale;"
+                    },
+                    {
+                      "type": "enumeration",
+                      "marker": "-",
+                      "content": "les dirteurs généraux des administrations centrales de l'Etat concernées par le transfert des compétences en matière d'entretien routier ;"
+                    },
+                    {
+                      "type": "enumeration",
+                      "marker": "-",
+                      "content": "le représentant du ministeré en charge de la réforme de l'Etat."
+                    }
+                  ]
+                },
+                {
+                  "type": "Article",
+                  "numero": "10",
+                  "texte": [
+                    {
+                      "type": "alinea",
+                      "content": "Le secretariat technique permanent du comité interminériel peut faire appel à toute personne resource."
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "Chapitre",
+          "intitule": "CHAPITRE 4 : Du fonctionnement",
+          "elements": [
+            {
+              "type": "Section",
+              "intitule": "SECTION 1 : Du fonctionnement de la coordination",
+              "elements": [
+                {
+                  "type": "Article",
+                  "numero": "11",
+                  "texte": [
+                    {
+                      "type": "alinea",
+                      "content": "Le président de la coordination du comité interminériel convoque et dirige les réunions du comité."
+                    }
+                  ]
+                },
+                {
+                  "type": "Article",
+                  "numero": "12",
+                  "texte": [
+                    {
+                      "type": "alinea",
+                      "content": "Le premier vice-président supplée leprésident en cas d'absence cu d'empêchement."
+                    }
+                  ]
+                },
+                {
+                  "type": "Article",
+                  "numero": "13",
+                  "texte": [
+                    {
+                      "type": "alinea",
+                      "content": "Le deuxième vice-président supplée le premier vice-président en cas d'absence ou d'empêche-ment et vice-versa."
+                    }
+                  ]
+                },
+                {
+                  "type": "Article",
+                  "numero": "14",
+                  "texte": [
+                    {
+                      "type": "alinea",
+                      "content": "Le troisième vice-président supplée le deuxième vice-président en cas d'absence ou d'empêchement et vice-versa."
+                    }
+                  ]
+                },
+                {
+                  "type": "Article",
+                  "numero": "15",
+                  "texte": [
+                    {
+                      "type": "alinea",
+                      "content": "Le quatrième vice-président supplée le troisième vice-président en cas d'absence ou d'empêchement et vice-versa."
+                    }
+                  ]
+                },
+                {
+                  "type": "Article",
+                  "numero": "16",
+                  "texte": [
+                    {
+                      "type": "alinea",
+                      "content": "Les vice-présidents peuvent receivevoir délegation expressée duprésident de la coordination, en vue de l'accompilissement d'une mission précise."
+                    },
+                    {
+                      "type": "alinea",
+                      "content": "Le secretaire-rapporteur élaboré les rapportés péri-diques ainsi que les comptes rendus des réunions et en assure la conservation."
+                    }
+                  ]
+                },
+                {
+                  "type": "Article",
+                  "numero": "17",
+                  "texte": [
+                    {
+                      "type": "alinea",
+                      "content": "La coordination du comité interminériel se réunit une fois par semester, sur convocation de son préident."
+                    },
+                    {
+                      "type": "alinea",
+                      "content": "Toutefois, la coordination peut se réunir en session extraordinaire, lorsque les circonstances l'exigent."
+                    }
+                  ]
+                },
+                {
+                  "type": "Article",
+                  "numero": "18",
+                  "texte": [
+                    {
+                      "type": "alinea",
+                      "content": "L'ordre du jour, accompagné, le cas échéant, des dossiers à examiner, est transmis sept jours avant, pour les réunions ordinaires."
+                    },
+                    {
+                      "type": "alinea",
+                      "content": "Ce délambda est ramené à trois (3) jours, pour les réunions extraordinaires."
+                    }
+                  ]
+                },
+                {
+                  "type": "Article",
+                  "numero": "19",
+                  "texte": [
+                    {
+                      "type": "alinea",
+                      "content": "Les rapportes de la coordination du comité interminériel sont adressés au Conseil de cabinet."
+                    }
+                  ]
+                },
+                {
+                  "type": "Article",
+                  "numero": "20",
+                  "texte": [
+                    {
+                      "type": "alinea",
+                      "content": "Le coordination du comité interminériel peut constituer des commissions ad hoc charges de l'instruction de questions précises."
+                    },
+                    {
+                      "type": "alinea",
+                      "content": "Ces commissions ad hoc cessent d'exister ds la remise de leurs rapport."
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "Section",
+              "intitule": "SECTION 2 : Du fonctionnement du secretariat technique permanent",
+              "elements": [
+                {
+                  "type": "Article",
+                  "numero": "21",
+                  "texte": [
+                    {
+                      "type": "alinea",
+                      "content": "Le préident du secretariat technique permanent du comité interminériel convoque et dirige les réunions du secretariat,ès la remise de leurs rapports."
+                    }
+                  ]
+                },
+                {
+                  "type": "Article",
+                  "numero": "22",
+                  "texte": [
+                    {
+                      "type": "alinea",
+                      "content": "Le secretaire technique permanent du comité interminériel supplée levr president en cas d'absence ou d'empêchement."
+                    }
+                  ]
+                },
+                {
+                  "type": "Article",
+                  "numero": "23",
+                  "texte": [
+                    {
+                      "type": "alinea",
+                      "content": "Le secretaire-rapporteur élaboré les rapports périodiques ainsi que les comptes rendus des réunions et en assure la conservation."
+                    },
+                    {
+                      "type": "alinea",
+                      "content": "II prépare, sous l'autorité duprésident du secretariat technique permanent, l'ordre du jour des réunions et les dossiers à soumettre à l'examen du secretariat technique permanent."
+                    }
+                  ]
+                },
+                {
+                  "type": "Article",
+                  "numero": "24",
+                  "texte": [
+                    {
+                      "type": "alinea",
+                      "content": "Le secretariat technique permanent du comité interminériel se réunit une (1) fais par trimestre, sur convocation de son préident."
+                    },
+                    {
+                      "type": "alinea",
+                      "content": "Toutefois, le secretariat technique permanent du comité interminériel peut se réunir en session extraordinaire, lorsque les circonstances l'exigent."
+                    },
+                    {
+                      "type": "alinea",
+                      "content": "Arilde 25: L'ordre du jour accompagné, le cas échéant, des dossiers à examiner, est transmis sept (7) jours avant pour les réunions ordinaires."
+                    },
+                    {
+                      "type": "alinea",
+                      "content": "Ce délambda est ramené à trois (3) jours pour les réunions extraordinaires."
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "Chapitre",
+          "intitule": "CHAPITRE 5 : Dispositions diverses et finales",
+          "elements": [
+            {
+              "type": "Article",
+              "numero": "26",
+              "texte": [
+                {
+                  "type": "alinea",
+                  "content": "Les fonctions de membre du comité interminériel sont gratuites."
+                }
+              ]
+            },
+            {
+              "type": "Article",
+              "numero": "27",
+              "texte": [
+                {
+                  "type": "alinea",
+                  "content": "Les frais de fonctionnement du comité interminériel de la décentralisation en matière d'entretien routier sont imputables au budget de l'Etat."
+                }
+              ]
+            },
+            {
+              "type": "Article",
+              "numero": "28",
+              "texte": [
+                {
+                  "type": "alinea",
+                  "content": "Leprésent décret sera enregistré et publié au Journal officiel de la République du Congo."
+                },
+                {
+                  "type": "alinea",
+                  "content": "Fait à Brazzaville, le 21 août 2025"
+                },
+                {
+                  "type": "alinea",
+                  "content": "Le Premier ministre, chef du Gouvernement,"
+                },
+                {
+                  "type": "alinea",
+                  "content": "Anatole Collinet MAKOSSO"
+                },
+                {
+                  "type": "alinea",
+                  "content": "Le ministre d'Etat, ministre de l'aménagement du territoire et des grands travaux,"
+                },
+                {
+                  "type": "alinea",
+                  "content": "Jean-Jacques BOUYA"
+                },
+                {
+                  "type": "alinea",
+                  "content": "Le ministre de l'intérieur et de la decentralisation,"
+                },
+                {
+                  "type": "alinea",
+                  "content": "Raymond Zéphirin MBOULOU"
+                },
+                {
+                  "type": "alinea",
+                  "content": "Le ministre des finances, du budget et du portefeuille public,"
+                },
+                {
+                  "type": "alinea",
+                  "content": "Christian YOKA"
+                },
+                {
+                  "type": "alinea",
+                  "content": "Le ministre de l'assainissement urbain, du développement local et de l'entretien routier,"
+                },
+                {
+                  "type": "alinea",
+                  "content": "Juste Désiré MONDELE"
+                },
+                {
+                  "type": "alinea",
+                  "content": "# B - TEXTES PARTICULIERS"
+                },
+                {
+                  "type": "alinea",
+                  "content": "# PRESIDENCE DE LA REPUBLICIQUE"
+                },
+                {
+                  "type": "alinea",
+                  "content": "Actes en abrégés"
+                },
+                {
+                  "type": "alinea",
+                  "content": "NOMINATION (RECTIFICATIF)"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "signatures": [
+        "Anatole Collinet MAKOSSO, Le Premier ministre, chef du Gouvernement",
+        "Jean-Jacques BOUYA, Le ministre d'Etat, ministre de l'aménagement du territoire et des grands travaux",
+        "Christian YOKA, Le ministre des finances, du budget et du portefeuille public"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,1172 @@
+{
+    "titre_officiel": "Constitution de la République du Congo (2015)",
+    "type_code": "CONST",
+    "date_signature": "2015-11-06",
+    "source_url": "Republique-du-Congo-Constitution-2015.md",
+    "structure": [
+        {
+            "type_unite": "PREAMBULE",
+            "numero": null,
+            "titre": "Préambule",
+            "articles": [
+                {
+                    "numero": "PREAMBULE",
+                    "contenu": "Le Peuple congolais, Conscient de la nécessité de préserver la paix et la stabilité, la forme unitaire et le caractère indivisible de l'Etat, l'unité nationale et la cohésion sociale; Soucieux de bâtir une République fondée sur les principes d'égalité, de fraternité, de partage et de solidarité d'une part, et d'assurer l'épanouissement de chacun et de tous dans le cadre d'une République respectue des droits intangibles de la personne humaine d'autre part; Interpellé par l'imperieuse nécessité de concilier les valeurs universelles de la démocratie et les réalisés politiques, sociales et culturelles nationales ; Affirme son attachment aux vertus du dialogue comme moyen de règlement pacifique des différencs dans le cadre d'une République apaisée ; Réaffirme solenlientement son droit permanent de souveriné et inalienable sur toutes les richesses nationales et les ressources naturelles comme éléments fondamentaux de son développement ; Déclare partie intégrante de la presente Constitution les principes fondamentaux proclamés et garantis par : - la Charte des Nations unies du 24 octobre 1945 ; - la Déclaration universelle des droits de l'homme du 10 décembre 1948 ; - la Charte africaine des droits de l'homme et des peuples du 26 juin 1981 ; - la Charte de l'unité nationale et la Charte des droits et des libertés adoptées par la Conférence nationale souveraine, le 29 mai 1991 ; - tous les textes internationaux pertinents dûment ratifiés relatifs aux droits humains ; Condamne le coup d'Etat, l'exercice tyrannique du pouvoir et l'usage de la violence politique, sous toutes ses formes, comme moyens d'accession au pouvoir ou de sa conservation. Ordonne et établit pour le Congo la présente Constitution qui énonce les principes fondamentaux de la République, définit les droits et les devoirs des citoyens et fixe les formes d'organisation et les règes de fonctionnement de l'État."
+                }
+            ],
+            "children": []
+        },
+        {
+            "type_unite": "TITRE",
+            "numero": "premier",
+            "titre": "De l'Etat et de la souveraineté.",
+            "articles": [
+                {
+                    "numero": "1",
+                    "contenu": "La République du Congo est un État de droit, souverain, unitaire et indivisible, décentralisé, laïc et démocratique. Sa capitale est Brazzaville."
+                },
+                {
+                    "numero": "2",
+                    "contenu": "Le principe de la République est : Gouvernement du peuple par le peuple et pour le peuple."
+                },
+                {
+                    "numero": "3",
+                    "contenu": "L'emblème national est le drapeau tricolore, vert, jaune, rouge. De forme rectangulaire, il est composé de deux triangles rectangles de couleur verte et rouge, séparés par une bande jaune en diagonale, le vert étant du côte de la hampe. La loi précise les dimensions, les tons des couleurs et les autres détails du drapeau national."
+                },
+                {
+                    "numero": "4",
+                    "contenu": "L'hymne national est « La Congolaise » La devise de la République est « Unité, Travail, Progrès » Le sceau de l'Etat et les armoires de la République sont déterminés par la loi. La langue officielle est le français. Les langues nationales vehiculaires sont le lingala et le kituba."
+                },
+                {
+                    "numero": "5",
+                    "contenu": "La souverinete nationale appartient au peuple qui l'exce au moyen du suffrage universal, par ses représentants élus ou par voie de réferendum. Aucune fraction du peuple, notamment corps de l'Etat ni notamment individu ne peut s'en attribuer l'exercice. L'initiative du référendum apparaite au Président de la République."
+                },
+                {
+                    "numero": "6",
+                    "contenu": "Le suffrage est universal, direct ou indirect, libre, égal et secret. Sont électeurs dans les conditions fixées par la loi, tous les Congolais âgés de dix-huit (18) ans révolus et jouissant de leurs droits civils et politiques."
+                },
+                {
+                    "numero": "7",
+                    "contenu": "La République du Congo consacre le pluralisme politique."
+                }
+            ],
+            "children": []
+        },
+        {
+            "type_unite": "TITRE",
+            "numero": "II",
+            "titre": "Des droits, libertés et devoirs des citoyens.",
+            "articles": [
+                {
+                    "numero": "8",
+                    "contenu": "La personne humaine est sacrée et a droit à la vie. L'Etat a l'obligation de la respecter et de la protégger. Chaque citoyen a le droit au plein épanouissement de sa personne dans le respect des droits d'autrui, de l'ordre public, de la morale et des bonnes moeurs. La peine de mort est abolie."
+                },
+                {
+                    "numero": "9",
+                    "contenu": "La liberté de la personne humaine est inviable. Nul ne peut être arbitraiment accuse, arrêté ou détenu. Tout prévenu est presumé innocent jusqu'à ce que sa culpabilité ait été établie à la suite d'un procès juste et équitable garantissant les droits de la défense. Les droits de la victime sont également garantis."
+                },
+                {
+                    "numero": "10",
+                    "contenu": "Sauf en cas de perte ou de déchéance de la nationalité,aucun citoyen congolais ne peut être ni extradé, ni livre à une puissance ou organisation étrangère, pour quelque motif que ce soit. L'Etat a le devoir de porter assistance à tout citoyen congolais poursuivi devant une juridiction étrangère ou internationale."
+                },
+                {
+                    "numero": "11",
+                    "contenu": "Toute personne arrêtée est informée du motif de son arrestation et de ses droits dans une langue qu'elle comprend. Tout acte de torture, tout traitement cruel, inhumain ou dégradant est interdit. Le pouvoir judiciaire, gardien des libertés individuelles, assure le respect de ce principe dans les conditions fixées par la loi."
+                },
+                {
+                    "numero": "12",
+                    "contenu": "Les crimes de guerre, les crimes contre l'humanité, le crime de génocide, sont punis dans les conditions déterminées par la loi. Ils sont imprescriptibles."
+                },
+                {
+                    "numero": "13",
+                    "contenu": "Toute propaganda ou toute incitation à la haine ethnique, à la violence ou à la guerre civile constitue un crime puni par la loi."
+                },
+                {
+                    "numero": "14",
+                    "contenu": "Tout individu, tout agent de l'Etat, tout agent des collectivités locales, toute autorite publique qui se rendrait coupable d'acte de torture ou de traitement cruel, inhumain ou degradant, soit de sa propre initiative, soit sur instruction, est puni conformément à la loi."
+                },
+                {
+                    "numero": "15",
+                    "contenu": "Tous les citoyens congolais sont égaux devant la loi et ont droit à la protection de l'Etat. Nul ne peut être favorisé ou désavantageé en raison de son origine familiale, ethnique, de sa condition sociale, de ses convictions politiques, religieuses, philosophiques ou autres."
+                },
+                {
+                    "numero": "16",
+                    "contenu": "La loi garantit et assure la promotion et la protection des droits des peuples autochtones."
+                },
+                {
+                    "numero": "17",
+                    "contenu": "La femme a les mêmes droits que l'homme. La loi garantit la parité et assure la promotion ainsi que la représentativité de la femme à toutes les fonctions politiques, électives et administratives."
+                },
+                {
+                    "numero": "18",
+                    "contenu": "Tout citoyen a droit, en tout lieu, à la reconnaissance de sa personnalité juridique."
+                },
+                {
+                    "numero": "19",
+                    "contenu": "La citoyennete congolaise est garantie par la loi. Tout Congolais a le droit de changer de nationalite ou d'en accuperir une seconde."
+                },
+                {
+                    "numero": "20",
+                    "contenu": "Le domicile est inviolable. Il ne peut être ordonné de perquisition que dans les formes et les conditions prévues par la loi."
+                },
+                {
+                    "numero": "21",
+                    "contenu": "Le droit d'asile est accordé aux ressortissants étrangers dans les conditions déterminées par la loi."
+                },
+                {
+                    "numero": "22",
+                    "contenu": "Tout citoyen a le droit de circulier librement sur l'ensemble du territoire national. Il a le droit de sortir librement du territoire national et d'y revenir sauf si cette liberté fait l'objet de restriction par voie judiciaire ou administrative."
+                },
+                {
+                    "numero": "23",
+                    "contenu": "Les droits de propriété et de succession sont garantis. Nul ne peut être privé de sa propriété que pour cause d'utilité publique, moyonnant une juste et préalable indemnité, dans les conditions prévues par la loi."
+                },
+                {
+                    "numero": "24",
+                    "contenu": "La liberté de croyance et la liberté de conscience sont garanties. L'usage de la religion à des fins politiques est interdit. Toute manipulation, tout embrigadement des consciences, toutes sujétions de toutes natures imposées par tout fanatisme religieux, philosophique, politique ou sectaire sont interdits et punis par la loi."
+                },
+                {
+                    "numero": "25",
+                    "contenu": "Tout citoyen a le droit d'exprimer et de diffuser librement son opinion par la parole, l'écrit, l'image ou par tout autre moyen de communication. La liberté de l'information et de la communication est garantie. Elle s'exce dans le respect de la loi. La censure est probibée. L'accès aux sources d'information est libre et protégé dans les conditions déterminées par la loi."
+                },
+                {
+                    "numero": "26",
+                    "contenu": "Le secret des correspondances, des télécommunications ou de toute autre forme de communication ne peut être violé, sauf dans les cas et les conditions prévus par la loi."
+                },
+                {
+                    "numero": "27",
+                    "contenu": "L'Etat reconnait et garantit, dans les conditions fixées par la loi, les libertés d'association, de réunion, de cortège et de manifestation."
+                },
+                {
+                    "numero": "28",
+                    "contenu": "Le droit à la culture et au respect de l'identité culturelle de chaque citoyen est garantie. L'exercice de ce droit ne doit porter préjudice ni à l'ordre public, ni à autre et à l'unité nationale."
+                },
+                {
+                    "numero": "29",
+                    "contenu": "L'Etat assure l'épanouissement de la jeunesse. A ce titre il garantit notamment : - le droit à l'éducation et l'égal accès à l'enseignement et à la formation ; - la scolarité obligatoire jusqu'à l'âge de seize ans."
+                },
+                {
+                    "numero": "30",
+                    "contenu": "L'Etat reconnait à tous les citoyens le droit au travail et create les conditions qui en rendent effective la jouissance."
+                },
+                {
+                    "numero": "31",
+                    "contenu": "Les personnes âgées et les personnes vivant avec handicap ont droit à des mesures de protection en rapport avec leurs besoin physiques, moraux ou autres, en vue de leur plein épanouissement dans les conditions déterminées par la loi. L'Etat a le devoir de promouvoir la presence de la personne vivant avec handicap au sein des institutions et administrations nationales et locales."
+                },
+                {
+                    "numero": "32",
+                    "contenu": "A l'exception des magistrats et des agents de la force publique, les libertés syndicales et le droit de grève sont garantis dans les conditions fixées par la loi."
+                },
+                {
+                    "numero": "33",
+                    "contenu": "Nul ne peut être astreint à un travail force, sauf dans le cas d'une peine privative de liberté prononcée par une juridiction légalement établie. Nul ne peut être soumis à l'esclavage."
+                },
+                {
+                    "numero": "34",
+                    "contenu": "Toute personne a droit au repos et aux loisirs, notamment à une limitation de la durée de travail et à des congés périodiques ainsi qu'à la rémunération des jours fériés dans les conditions fixées par la loi."
+                },
+                {
+                    "numero": "35",
+                    "contenu": "Tout citoyen a droit à la protection des intérêts moraux et matériels découlant de toute oeuvre scientifique, litteraire ou artistique dont il est l'auteur. La mise sous séquestre, la saisie, la confiscation, l'interdiction de tout ou partie de toute publication, de tout enregistrement ou d'autres moyens d'information ou de communication ne peut se faire qu'en vertu d'une décision de justice."
+                },
+                {
+                    "numero": "36",
+                    "contenu": "L'Etat est garant de la santé publique. L'Etat garantit le droit de creator des établissements socio-sanitaires privés dans les conditions fixées par la loi."
+                },
+                {
+                    "numero": "37",
+                    "contenu": "L'Etat a l'obligation d'assister la famille dans sa mission de gardienne de la morale et des valeurs compatibles avec l'ordre republicain. Les droits de la mère et de l'enfant sont garantis."
+                },
+                {
+                    "numero": "38",
+                    "contenu": "Le mariage et la famille sont sous la protection de la loi. Tous les enfants nés dans le mariage ou hors mariage ont, à l'égard de leurs parents, les mêmes droits et devoirs. Ils jouissent de la même protection aux termes de la loi. Les parents ont, à l'égard de leurs enfants nés dans le marriage ou hors marriage, les mêmes obligations et les mêmes devoirs."
+                },
+                {
+                    "numero": "39",
+                    "contenu": "Tout enfant, sans discrimination, a droit, de la part de sa famille, de la société et de l'Etat, aux mesures de protection qu'exige sa condition."
+                },
+                {
+                    "numero": "40",
+                    "contenu": "L'Etat a l'obligation de protégger les enfants et les adolescents contre l'exploitation économique ou sociale. Le travail des enfants de moins de seize ans est interdit."
+                },
+                {
+                    "numero": "41",
+                    "contenu": "Tout citoyen a droit à un environnement sain, satisfaisant et durable et a le devoir de le défendre. L'Etat veille à la protection et à la conservation de l'environnement."
+                },
+                {
+                    "numero": "42",
+                    "contenu": "Les conditions de stockage, de manipulation, d'incinération et d'évacuation des déchets toxiques, polluants ou radioactifs, provenant des usines et autres unités industrielles ouartisanales installées sur le territoire national, sont fixées par la loi. Toute pollution ou destruction resultant d'une activité économique, donne lieu à compensation. La loi détermine la nature des mesures compensatoires et les modalités de leur exécution."
+                },
+                {
+                    "numero": "43",
+                    "contenu": "Le transit, l'importation, le stockage, l'enfouissement, le déversement dans les eaux continentales et les espaces maritimes sous juridiction nationale, l'épandage dans l'espace aérien des déchets toxiques, polluants, radioactifs ou de tout autre produit dangereux en provenance ou non de l'étranger, constituent des crimes punis par la loi."
+                },
+                {
+                    "numero": "44",
+                    "contenu": "Tout acte, tout accord, toute convention, tout arrangement administratif ou tout autre fait, qui a pour conséquence de priver la Nation de tout ou partie de ses propres moyens d'existence, tirés de ses ressources naturelles ou de ses richeses, est considéré comme crime de pillage et puni par la loi."
+                },
+                {
+                    "numero": "45",
+                    "contenu": "Les actes visés à l'article précédent, ainsi que leur tentative, quelles qu'en soient les modalités, s'ils sont le fait d'une autorité constituée, sont, selon les cas, punis comme crime de pillage ou comme acte de forfaiture."
+                },
+                {
+                    "numero": "46",
+                    "contenu": "Tout citoyen a le droit de presenter des requêtes aux organes appropriés de l'Etat."
+                },
+                {
+                    "numero": "47",
+                    "contenu": "Tout citoyen qui subit un préjudice du fait de l'administration a le droit d'agir en justice, dans les formes déterminées par la loi."
+                },
+                {
+                    "numero": "48",
+                    "contenu": "Toute personne a le droit, dans le respect de la loi, d'entrepreneire dans les secteurs de son besoin."
+                },
+                {
+                    "numero": "49",
+                    "contenu": "Tout étranger régulièrement établi sur le territoire de la République du Congo bénéficia des mêmes droits et libertés que les nationaux dans les conditions déterminées par les traités et les lois, sous réserve de reciprocité. # Sous-titre II. Des devoirs."
+                },
+                {
+                    "numero": "50",
+                    "contenu": "Tout citoyen a le devoir de se conformer à la Constitution, aux lois et règlements de la République et de s'acquitter de ses obligations envers l'État et la société."
+                },
+                {
+                    "numero": "51",
+                    "contenu": "Tout citoyen a le devoir de respect des droits et libertés des autres citoyens et de sauvegarde de la sécurité et de l'ordre public. Il oèuvre à la promotion de la tolérance et du dialogue dans ses rapports avec autres. Il a l'obligation de préserver l'intérêt national, l'ordre social, la paix et la cohésion nationale. Tout acte ou toute manifestation à caractère ethnique, raciste ou xénophobe est puni par la loi."
+                },
+                {
+                    "numero": "52",
+                    "contenu": "Tout étranger régulièrement établi sur le territoire de la République du Congo est soumis aux obligations énoncées aux articles 50 et 51."
+                },
+                {
+                    "numero": "53",
+                    "contenu": "Les biens de l'Etat sont sacrés. Les biens du domaine public sont inalienables, incessibles, imprescriptibles et insaisissables. Tout citoyen doit les respecter et les protégger. La loi fixe les conditions d'alénation des biens publics, dans l'intérêt général."
+                },
+                {
+                    "numero": "54",
+                    "contenu": "Tout acte de sabotage, de vandalisme, de corruption ou de dilapidation des deniers publics est interdit et reprimedans les conditions prevues par la loi."
+                },
+                {
+                    "numero": "55",
+                    "contenu": "Tout citoyen, élu ou nommé à une haute fonction publique, est tenu de déclarer son patrimoine lors de sa prise de fonction et à la cessation de celle-ci, conformément à la loi. La loi déterminé les fonctions soumises à l'obligation ci-dessus indiquée ainsi que les modalités de déclaration du patrimoine."
+                },
+                {
+                    "numero": "56",
+                    "contenu": "Tout citoyen élu ou nommé à une fonction publique a le devoir d'accomplir sa mission sans discrimination."
+                }
+            ],
+            "children": []
+        },
+        {
+            "type_unite": "TITRE",
+            "numero": "III",
+            "titre": "Des partis politiques et du statut de l'opposition.",
+            "articles": [
+                {
+                    "numero": "57",
+                    "contenu": "Le parti politique est une association dotée de la personnalité morale qui rassemble des citoyens pour la conquête et la gestion pacifiques du pouvoir autour d'un projet de société dicté par le souci de réaliser l'intérêt général."
+                },
+                {
+                    "numero": "58",
+                    "contenu": "Les partis politiques se créent librement autour d'un idéal de paix, d'unité nationale et de développement socio-economique. Ils jouissent de la personnalité morale. L'adhésion à un parti politique est libre. Nul ne peut faire l'objet de mesures discriminatoires en raison de son appartenance à un parti politique ou du fait qu'il n'appartient à aucune formation politique. Il est interdit aux partis politiques de s'identifier à un département, à une commune, à un district, à une communauté urbaine ou rurale, à une religion, à une ethnie ou à un clan. Les magistrats et les agents de la force publique ne peuvent adhérer aux partis politiques."
+                },
+                {
+                    "numero": "59",
+                    "contenu": "Les partis politiques bénéficient du concours financier de l'Etat."
+                },
+                {
+                    "numero": "60",
+                    "contenu": "Il est interdit aux partis politiques de receivevoir toute forme de concours de nature à porter atteinte à l'indépendance et à la souveraineté nationales."
+                },
+                {
+                    "numero": "61",
+                    "contenu": "Les partis politiques doivent, pour être reconnus, se conformer aux principes suivants : - le respect, la sauvegarde et la consolidation de l'unité nationale ; - la protection et la promotion des droits fondamentaux de la personne humaine ; - la poursuite de la satisfaction de l'intérêt général du peuple congolais ; - la promotion d'un État de droit fondé sur le respect et la défense de la démocratie, des libertés individuelles et collectives ; - la défense de l'intégrité du territoire et de la souverinéte nationale ; - la proscription de l'intolérance, de l'éthnicisme, du sectarisme et du recours à la violence sous toutes ses formes ; - le respect du caractère républicain, laïc et indivisible de l'État."
+                },
+                {
+                    "numero": "62",
+                    "contenu": "La loi déterminée les autres conditions d'existence des partis politiques ainsi que les modalités de leur financement."
+                },
+                {
+                    "numero": "63",
+                    "contenu": "L'opposition politique est reconnaue en République du Congo. Elle ne peut subir de limites, quant à son existence et à ses activités démocratiques, que celles imposées à tous les partis politiques par la présente Constitution et la loi. La loi détermine le statut de l'opposition politique."
+                }
+            ],
+            "children": []
+        },
+        {
+            "type_unite": "TITRE",
+            "numero": "IV",
+            "titre": "Du pouvoir exécutif.",
+            "articles": [
+                {
+                    "numero": "64",
+                    "contenu": "Le Président de la République est le Chef de l'État. Il est garant de l'indépendance nationale, de l'intégrité du territoire et de l'unité nationale, du respect de la Constitution, des traits et accords internationaux. Il détermine la politique étrangère et de défense de la Nation. Le Président de la République est garant du fonctionnement régulier des pouvoirs publics et de la continuité de l'Etat."
+                },
+                {
+                    "numero": "65",
+                    "contenu": "Le Président de la République est élu pour un mandat de cinq (5) ans renouvelable deux (2) fois. Le Président de la République reste en fonction jusqu'à la fin de son mandat qui, sauf cas de force majeure reconna et déclarée par la Cour constitutionnelle, doit coïncider avec la prise de fonction effective de son successeur élu."
+                },
+                {
+                    "numero": "66",
+                    "contenu": "Nul ne peut être candidat aux fonctions de Président de la République s'il : - n'est de nationalité congolaise d'origine ; - ne jouit de ses droits civils et politiques ; - n'est de bonne moralité ; - n'atteste d'une expérience professionnelle de huit (8) ans au moins ; - n'est âgé de trente (30) ans révolus ; - ne jouit d'un état de bien-être physique et mental dûment consté par un collège de trois médecins assermentés désignés par la Cour constitutionnelle."
+                },
+                {
+                    "numero": "67",
+                    "contenu": "Le Président de la République est élu au suffrage universel direct, au scrutin uninominal, à la majorité absolue des suffrages exprimés. Si celle-ci n'est pas obtenue au premier tour du scrutin, il est procédé vingt et un (21) jours après la proclamation des résultats par la Cour constitutionnelle, à un second tour. Ne peuvent seprésenter au second tour que les deux candidats ayant obtenu le plus grand nombre de suffrages exprimés au premier tour. Est déclaré élu au second tour, le candidat ayant recueilli la majorité des suffrages exprimés."
+                },
+                {
+                    "numero": "68",
+                    "contenu": "Le corps électoral est convoqué par décret en Conseil des ministres."
+                },
+                {
+                    "numero": "69",
+                    "contenu": "Le premier tour du scrutin a lieu trente (30) jours au moins, et quarante (40) jours au plus, avant la date d'expiration du mandat du Président en exercice."
+                },
+                {
+                    "numero": "70",
+                    "contenu": "Si avant le premier tour, un des candidats decéde ou se trouve définitivement empêché, la Cour constitutionnelle prononce le report de l'élection. En cas de décès ou d'empêchement définitif de l'un des candidats restés en lice pour le second tour, la Cour constitutionnelle déclare qu'il soit procédé de nouveau à l'ensemble des opérations électorales. Dans les cas visés aux alinéas 1er et 2 ci-dessus, la Cour constitutionnelle, saisie soit par le Président de la République, soit par le Président de l'une ou de l'autre,chambre du Parlement, soit par tout intersexé, peut proroger les délais prévus à l'article 67. Le scrutin doit avoir lieu dans les quatre-vingt-dix (90) jours à compter de la date de la décid tion de la Cour constitutionnelle. Si l'application des dispositions du present alinea a eu pour effet de reporter I'election presidentielle au dela de la date d'expiration du mandat du President de la République en exercice, celui-ci demeure en fonction jusqu'à la prestation de serment de son successeur elu. En cas de désistement de l'un des deux candidats qualifiés pour le second tour, l'élection se poursuit avec le candidat resté en lice."
+                },
+                {
+                    "numero": "71",
+                    "contenu": "La loi fixe les conditions et la procédure d'éligibilité, de presentation des candidatures, de déroulement du scrutin, de dépouillagement et de proclamation des résultats de l'élection du Président de la République. Elle prévoit également les conditions requises pour une élection libre, transparente, juste et régulière."
+                },
+                {
+                    "numero": "72",
+                    "contenu": "Si aucune contestation n'a eté soulevée dans le délambda de cinq (5) jours suivant la proclamation des résultats provisoires de l'élection du Président de la République et si la Cour constitutionnelle saisie d'office estime que l'élection n'est entachée d'aucune irregularité de nature à entrainer l'annulation du scrutin, elle proclame les résultats définitifs de celle-ci dans les quinze (15) jours suivant sa saisine. En cas de contestation, la Cour constitutionnelle statue dans un délié de quinze (15) jours à compter de sa saisine et proclame les résultats définitifs."
+                },
+                {
+                    "numero": "73",
+                    "contenu": "En cas d'annulation de l'élection par la Cour constitutionnelle, de nouvelles élections sont organises dans un délais de quarante-cinq (45) à quatre-vingt-dix (90) jours. Dans ce cas, le Président de la République en exercice reste en fonction jusqu'à la prestation de serment du nouveau Président de la République élu."
+                },
+                {
+                    "numero": "74",
+                    "contenu": "En cas de décès ou d'empêchement définitif du Président de la République élu avant son entrée en fonction, il est procédé à de nouvelles élections dans un début de quarante-cinq (45) à quatre-vingt-dix (90) jours. Le Président de la République en exercice reste en fonction jusqu'à la prestation de serment du nouveau Président de la République élu."
+                },
+                {
+                    "numero": "75",
+                    "contenu": "Les candidats à l'élection du Président de la République ayant obtenu au moins dix pour cent (10%) des suffrages exprimés ont droit au remboursement des frais et dépenses de campagne. La loi fixe le plafond autorisé pour le remboursement des frais et dépenses de campagne."
+                },
+                {
+                    "numero": "76",
+                    "contenu": "Le mandat du Président de la République début le jour de sa prestation de serment et prend fin à l'expiration de la cinquième (5e) année suivant le début de celui-ci. La prestation de serment du Président de la République élu intervent vingt (20) jours au plus tard après la proclamation des résultats définitifs de l'élection par la Cour constitutionnelle."
+                },
+                {
+                    "numero": "77",
+                    "contenu": "Lors de son entrée en fonction, le Président de la République prête le serment suivant : « Devant la Nation et le peuple congolais moi : (nom de l'élu), Président de la République, je jure solenlientement : - de respecter et de faire respecter la Constitution, et de défendre la Nation et la forme républicaine de l'État ; - de replir loyalement les haute fonctions que la Nation et le peuple m'ont confiees ; - de garantir la paix et la justice à tous ; - de préserver l'unité nationale, l'intégrité territoriale, la souveriné et l'indépendance nationales $\\gg$ Le serment est reçu par la Cour constitutionnelle, en audience publique et solonnelle, en présence de l'Assemblée nationale, du Sénat et de la Cour suprème."
+                },
+                {
+                    "numero": "78",
+                    "contenu": "En cas de vacance de la fonction de Président de la République, par décès ou par toute autre cause d'empêchement définitif, les fonctions de Président de la République, à l'exception des attributions mentionnées aux articles 82, 83, 86, 87, 88 alinéa 2, 89, 91, 92, 138, 162, 217 et 240, sont provisoirement exercées par le Président du Sénat ; en cas d'empêchement du Président du Sénat, elles sont assurées par le Président de l'Assemblée nationale, et en cas d'empêchement de l'un et de l'autre, par le Premier Ministre. La vacance est constatée et déclarée par la Cour constitutionnelle saisie par le Premier Ministre. Si dans les vingt-quatre heures suivant la vacance, le Premier Ministre n'a pas saisi la Cour constitutionnelle, celle-ci se saisit d'office, constate et déclare la vacance. Dans les deux cas, la Cour constitutionnelle désigne le Président du Sénéat ou le Président de l'Assemblée nationale, et en cas d'empêchement de ceux-ci, le Premier Ministre, Président de la République par interim. Le Président du Sénéat, le Président de l'Assemblée nationale ou le Premier Ministre assurant l'intérim de la fonction de Président de la République, ne peut être candidat à l'élection française."
+                },
+                {
+                    "numero": "79",
+                    "contenu": "Lors de son entree en fonction, le Président de la République par interim prête le serment prévu à l'article 77. L'intérim ne peut excéder quatre-vingt-dix (90) jours. L'élection du nouveau Président de la République a lieu, sauf cas de force majeure dûment constatée par la Cour constitutionnelle, quarante-cinq (45) jours au moins et quatre-vingt-dix (90) jours au plus suivant l'ouverture de la vacance."
+                },
+                {
+                    "numero": "80",
+                    "contenu": "Les fonctions de Président de la République sont incompatibles avec l'exercice de tout autre mandat électif, de tout employ public, civil ou militaire et de toute autre activité professionnelle. Le mandat du Président de la République est également incompatible avec toute responsabilité au sein d'un parti politique."
+                },
+                {
+                    "numero": "81",
+                    "contenu": "Pendant l'exercice de ses fonctions, le Président de la République ne peut, par lui-même ou par intermédiaire, acheter ou prendre en bail les biens appartenant au domaine de l'État et des collectivités locales. Il ne peut prendre part aux marchés publics et aux adjudications dans les administrations ou les institutions dans lesquelles l'Etat a des intérêts."
+                },
+                {
+                    "numero": "82",
+                    "contenu": "Le Président de la République perçoit un traitement dont le montant est déterminé par voie réglementaire. Il occupe une résidence officielle."
+                },
+                {
+                    "numero": "83",
+                    "contenu": "Le Président de la République nomme le Premier Ministre et met fin à ses fonctions. Sur proposition du Premier Ministre, il nomme les autres membres du Gouvernement et met fin à leurs fonctions. Le Président de la République fixe par décret les attributions des membres du Gouvernement."
+                },
+                {
+                    "numero": "84",
+                    "contenu": "Le Président de la République préside le Conseil des ministres."
+                },
+                {
+                    "numero": "85",
+                    "contenu": "Le Président de la République promulgue les bois dans les quinze (15) jours suivant leur transmission par l'Assemblée nationale au Gouvernement. Ce délambda est réduit à cinq (5) jours en cas d'urgence déclarée par les deux (2) chambres du Parlement. Le Président de la République peut, avant l'expiration de ces délays, demander à l'une et l'autre chambre du Parlement une seconde délibération de la loi ou de certains de ses articles. Cette seconde délibération ne peut être refusée. Si le Parlement est en fin de session, cette seconde délibération a lieu, d'office, lors de la session suivante. Le vote, pour cette seconde délibération, est acquis à la majorité des deux tiers (2/3) des membres composant l'Assemblée nationale et le Sénat réunis en Congrès. Si, après ce dernier vote, le Président de la République refuse de promulguer la loi, la Cour constitutionnelle, saisie par le Président de la République ou par le Président de l'une ou de l'autre,chambre du Parlement,procède à un contrôle de conformité de la loi. Si la Cour constitutionnelle déclare la loi conforme à la Constitution, le Président de la République la promulgue."
+                },
+                {
+                    "numero": "86",
+                    "contenu": "Le Président de la République a seuil l'initiative du référendum."
+                },
+                {
+                    "numero": "87",
+                    "contenu": "Le Président de la République peut soumettre au réferendum, après avis de conformité de la Cour constitutionnelle, tout projet de loi quand il le juge nécessaire. En cas d'avis de non-conformité, il ne peut être procédé au réferendum. Lorsque le referendum a conclus à l'adoption du projet, la loi est promulgée dans les quinze (15) jours suivant la proclamation des résultats de celui-ci."
+                },
+                {
+                    "numero": "88",
+                    "contenu": "Le Président de la République signe les ordonnances et les décrets délibérés en Conseil des ministres. Il nomme en Conseil des ministres aux hautsemploi civils et militaires. La loi détermine les fonctions et les employés civils et militaires auxquels il est pourvu par décret en Conseil des ministres."
+                },
+                {
+                    "numero": "89",
+                    "contenu": "Le Président de la République nomme les ambassadeurs et les envoyés extraordinaires auprès des puissances étrangères et des organisations internationales. Les ambassadeurs et les envoyés extraordinaires étrangers sont accréédités auprès de lui."
+                },
+                {
+                    "numero": "90",
+                    "contenu": "Le Président de la République est le chef supérieur des armées. Il prend le Comité de défense ainsi que les organes supérieurs d'orientation, de suivi et de décision stratégique en matière de défense et de sécurité."
+                },
+                {
+                    "numero": "91",
+                    "contenu": "Le Président de la République préside le Conseil supérieur de la magistrature."
+                },
+                {
+                    "numero": "92",
+                    "contenu": "Le Président de la République exerce le droit de grâce."
+                },
+                {
+                    "numero": "93",
+                    "contenu": "Lorsque les institutions de la République, l'indépendance de la nation, l'intégrité du territoire national ou l'exécution des engagements internationaux sont menacées de manière grave et imminente et que le fonctionnement régulier des pouvoirs publics est interrompu, le Président de la République prend les mesures exigées par ces circonstances, après consultation du Premier Ministre et des Présidents des deux chambres du Parlement. Il en informe la nation par un message. Le Parlement se réunit de plein droit en session extraordinaire. Le Parlement fixe le salarié au-delà duquel le Président de la République ne peut plus prendre des mesures exceptionnelles."
+                },
+                {
+                    "numero": "94",
+                    "contenu": "Le Président de la République adresse, une fois par an, un message sur l'état de la Nation au Parlement réuni en congrès. Il peut, à tout moment, adresser des messages à l'une ou l'autre,chambre du Parlement. Ces messages ne donnent lieu àaucun débat."
+                },
+                {
+                    "numero": "95",
+                    "contenu": "Le Président de la République est justiciable devant la Haute Cour de justice. La responsabilité pénale du Président de la République peut être engagée en cas de manquement grave à ses devoirs, manifestement incompatibleles avec l'exercice de sa haute fonction. Dans ce cas, le Président de la République est mis en accusation par le Parlement réuni en congrès statuant à la majorité des trois quarts (3/4) de ses membres. Une loi organique fixe les conditions et la procédure de mise en accusation du Président de la République."
+                },
+                {
+                    "numero": "96",
+                    "contenu": "Aucune poursuite pour des faits qualifiés crime ou délit ou pour manquement grave à ses devoirs commis à l'occasion de l'exercice de sa fonction ne peut plus être exercée contre le Président de la République après la cessation de ses fonctions. La violation des dispositions ci-dessus constitue le crime de forfaiture ou de haute trahison conformément à la loi."
+                },
+                {
+                    "numero": "97",
+                    "contenu": "Les actes du Président de la République autres que ceux précus aux articles 82, 87 et 93 sont contrésignés par le Premier Ministre et les ministres chargés de leur exécution. # Sous-titre II. Du Gouvernement."
+                },
+                {
+                    "numero": "98",
+                    "contenu": "Le Gouvernement comprend le Premier Ministre, Chef du Gouvernement et les ministres."
+                },
+                {
+                    "numero": "99",
+                    "contenu": "Le Premier Ministre, en concertation avec le Président de la République, détermine la politique économique et sociale de la Nation."
+                },
+                {
+                    "numero": "100",
+                    "contenu": "Le Premier Ministre est responsable de la conduite de la politique économique et sociale de la Nation devant l'Assemblée nationale."
+                },
+                {
+                    "numero": "101",
+                    "contenu": "Le Premier Ministre assure l'exécution des lois et exerce le pouvoir réglementaire dans les matières autres que celles relevant des décrets en Conseil des ministres. Il nomme aux employés civils et militaires autres que ceux pourvus en Conseil des ministres ou par décret simple du Président de la République. Il supplée le Président de la République dans la presidence des Conseils de défense ainsi que des organes supérieurs d'orientation, de suivi et de décision stratégique en matière de défense et de sécurité."
+                },
+                {
+                    "numero": "102",
+                    "contenu": "Le Premier Ministre convoque et tient le Conseil de cabinet. Il preside les comités interminétériels."
+                },
+                {
+                    "numero": "103",
+                    "contenu": "A son entree en fonction, le Premier Ministre presente devant l'Assemblée nationale le programme d'action du Gouvernement. La presentation du programme d'action du Gouvernement ne donne lieu ni à début, ni à vote."
+                },
+                {
+                    "numero": "104",
+                    "contenu": "Les actes du Premier Ministre sont contrésignés par les ministres charges de leur exécution."
+                },
+                {
+                    "numero": "105",
+                    "contenu": "Les fonctions de membre du Gouvernement sont incompatibles avec l'exercice de tout mandat electif, de toute fonction de representation professionnelle à caractère national et de tout employe privé ou public, civil ou militaire ou de toute autre activité professionnelle. Les membres du Gouvernement peuvent exercer des activités agricoles, culturelles, de conseiller local, d'enseignement et de recherche."
+                },
+                {
+                    "numero": "106",
+                    "contenu": "Pendant l'exercice de leurs fonctions, le Premier Ministre et les autres membres du Gouvernement ne peuvent, par eux-mêmes ou par intermédiaire, acheter ou prendre en bail les biens appartenant au domaine de l'Etat et des collectivités locales. Ils ne peuvent prendre part aux marchés publics et aux adjudications dans les administrations ou les institutions dans lesquelles l'Etat a des intérêts. Ils ne peuvent, à titre onéreux ou gracieux, acquerir, ni pour leur compte, ni pour le compte de hierces personnes, les résidences de fonction mises à leur disposition."
+                }
+            ],
+            "children": []
+        },
+        {
+            "type_unite": "TITRE",
+            "numero": "V",
+            "titre": "Du pouvoir législatif.",
+            "articles": [
+                {
+                    "numero": "107",
+                    "contenu": "Le Parlement est composé de deux chambs : l'Assemblée nationale et le Sénat. Le Parlement exerce le pouvoir législatif et contrôle l'action du Gouvernement. Les moyens d'information et de contrôle du Parlement sur l'action du Gouvernement sont : - l'interpellation ; - la question orale ; - la question écrite ; - la question d'actualité ; - l'audition en commission ; - l'enquête parlementaire ; - la motion de censure."
+                },
+                {
+                    "numero": "108",
+                    "contenu": "Les fonctions de député et de sénéur donnent droit au remboursement des frais de transport et au paiement des indemnités prises en charge par la dotation affectée par la loi de finances."
+                },
+                {
+                    "numero": "109",
+                    "contenu": "Les mandats de député et de sénéur peuvent être prolongés par la Cour constitutionnelle saisie par le Président de la République, en cas de circonstances exceptionnellement graves empêchant le déroulement normal des élections."
+                },
+                {
+                    "numero": "110",
+                    "contenu": "La loi déterminée : - les circonscriptions électorales ; - le nombre de sièges et leur répartition par circonscription administrative ; - le mode de scrutin ; - les conditions d'organisation de nouvelles élections en cas de vacance de siècle, ainsi que le régime des inéligibilités ; - le statut des députés et des senators."
+                },
+                {
+                    "numero": "111",
+                    "contenu": "Les candidats aux élections législatives ou sénéioriales sontprésentés par les partis politiques ou par les groupements politiques. Ils peuvent aussi seprésenter comme candidats indépendants."
+                },
+                {
+                    "numero": "112",
+                    "contenu": "Les députés et les senators们都 perdant leur mandat s'ils font l'objet d'une condemnation à une peine infamante. En ce cas, la décision de condemnation est transmise par le Procureur général pres la Cour suprême, pour notification, au Président de la chambre à laquelle appartient l'élu. Un député ou un sénéur élu, présente par un parti politique ou un groupement politique, qui démissionne du parti ou du groupement en cours de législation, perd sa qualité de député ou de sénéur. Toute inéligibilité à la date des élections connue ultérieurement, de même que les incapacités prévues par la loi, entraînant la perte du mandat de député ou de senator. Dans les trois cas, il est procédé à des élections partielles."
+                },
+                {
+                    "numero": "113",
+                    "contenu": "La Cour constitutionnelle statue, en cas de contestation, sur la recevabilité des candidatures et sur la validité de l'élection des députés et des senators."
+                },
+                {
+                    "numero": "114",
+                    "contenu": "Le droit de vote des députés et des sénéurs est personnel. Le vote par procuration est autorisé. Les règlements interieurs de l'Assemblée nationale et du Sénat, déclarés conformes à la Constitution par la Cour constitutionnelle, fixent les conditions d'exercice du vote par procuration."
+                },
+                {
+                    "numero": "115",
+                    "contenu": "Les mandats des députés et des senators commencer le deuxième mardi suivant leur élection. Chaque,chambre du Parlement se réunit de plein droit. Si cette réunion a lieu en dehors des périodes prévues pour les sessions ordinaires, une session extraordinaire est ouverte de plein droit pour une durée de quinze (15) jours. Le mandat des députés prend fin à l'entrée en fonction de la nouvelle Assemblée nationale. Les élections ont lieu vingt (20) jours au moins, et cinquante (50) jours au plus, avant l'expiration du mandat des députés. Le mandat des senators prend fin à l'entrée en fonction du nouveau Sénat. Les élections ont lieu vingt (20) jours au moins, et cinquante (50) jours au plus, avant l'expiration du mandat des senators."
+                },
+                {
+                    "numero": "116",
+                    "contenu": "Il ne peut être procédé à une élection partielle dans le dernier semestre de la législature."
+                },
+                {
+                    "numero": "117",
+                    "contenu": "Chaque,chambre du Parlement se réunit de plein droit en trois sessions ordinaires par an sur convocation de son Président. - La première session s'ouvre le 15 octobre et se termine le 23 décembre ; - La deuxieme session s'ouvre le 1er février et se termine le 10 avril ; - La troisième session s'ouvre le 2 juin et se termine le 13 août. Si le 15 octobre, le 1er février ou le 2 juin est un jour férié, l'ouverture de la session a lieu le premier jour ouvrable qui suit."
+                },
+                {
+                    "numero": "118",
+                    "contenu": "L'ordre du jour de chaque session est fixé par la conférence des Présidents."
+                },
+                {
+                    "numero": "119",
+                    "contenu": "Chaque,chambre du Parlement est convoquée en session extraordinaire par son Président sur un ordre du jour déterminé à la demande du Président de la République ou de la majorité absolue de ses membres. La clôture intervient dés que la chambre a épuisé l'ordre du jour pour lequel elle a été convoquée et, au plus tard, quinze jours à compter de la date du début de la session."
+                },
+                {
+                    "numero": "120",
+                    "contenu": "L'Assemblée nationale et le Sénat sont diriges chacun par un bureau qui comprend : - un Président ; - deux vice-présidents - deux secretaires ; - deux questeurs."
+                },
+                {
+                    "numero": "121",
+                    "contenu": "Chaque,chambre du Parlement adopte un reglement interieur qui détermine son fonctionnement, fixe la procEDURE législative et les modalités de contrôle de l'action gouvernentale. Le règlement interieur de chaque chambre du Parlement, déclaré conforme à la Constitution par la Cour constitutionnelle, a force de loi organique. Le Président de l'Assemblée nationale ouvre et clôture les sessions ordinaires et extraordinaires de l'Assemblée nationale. Le Président du Sénat ouvre et clôture les sessions ordinaires et extraordinaires du Sénat."
+                },
+                {
+                    "numero": "122",
+                    "contenu": "Les séances de chaque chambre du Parlement sont publiques. Le compte rendu intégral des débats est créé au journal des débats. Toutefois, l'Assemblée nationale ou le Sénat peut siéger à lui clos, à la demande du Président de la République, du Président de chaque chambre ou d'un tiers de ses membres."
+                },
+                {
+                    "numero": "123",
+                    "contenu": "En cas de vacance de la presidence de l'Assemblée nationale ou du Sénat, par décès, démission ou toute autre cause, la chambre concernée élit un nouveau Président dans les quinze (15) jours suivant la vacance si elle est en session ; dans le cas contraire, elle se réunit de plein droit dans les conditions fixées par le règlement interieur. En cas de nécessité, il est pourvu au remplacement des autres membres du bureau conformément aux dispositions du règlement interieur de chaque,chambre."
+                },
+                {
+                    "numero": "124",
+                    "contenu": "Le Parlement vote seul la loi. Il consent l'impôt, vote le budget de l'État et en contrôle l'exécution. Il est saisi du projet de loi de finances dés l'ouverture de la session d'octobre."
+                },
+                {
+                    "numero": "125",
+                    "contenu": "Sont du domaine de la loi : - la citoyennete, les droits civiques et l'exercice des libertés publiques ; - les sujetions imposées aux citoyens, en leurs biens et en leurs personnes, dans l'intérêt de la défense nationale et de la sécurité publique ; - la nationalité, l'etat et la capacité des personnes, les régimes matrimoniaux, les successions et les libéralités ; - la détermination des crimes, des déliits et des contraventions ainsi que des peines qui leur sont applicables ; - l'organisation de la justice et de la procédure suivie devant les juridictions, le statut de la magistrature et le régime juridique du Conseil supérieur de la magistrature ; - l'organisation et les règles de fonctionnement concernant les offices ministeriériels et les professions libérales ; - l'assiette, le taux et les modalités de recouvrement des impositions de toute nature, les emprunts et les engagements financiers de l'Etat ; - le régime d'émission de la monnaie ; - l'approbation des contrats de partage de production des hydrocarbures liquides ou gazeux ou des autres ressources minières; La loi fixe également les règles concernant : - la réforme de l'État ; - la création des établissements publics ; - le régime des consultations référendaires ; - les découvertes électoraux ; - l'amnistie ; - le statut général de la fonction publique ; - l'organisation administrative du territoire ; - la libre administration des collectivités locales, leurs compétences et leurs ressources ; - l'aménagement du territoire ; - le droit du travail, le droit syndical et les régimes de sécurité sociale; - les nationalisations et les privatisations des entreprises ; - le plan de développement économique et social; - l'environnement et la conservation des ressources naturelles et le développement durable ; - le régime de la propriété, des droits réels et des obligations civiles et commerciales ; - le régime des partis politiques, des associations et des organisations non gouvernementales ; - l'autorisation de ratification des traités et accords internationaux ; - l'organisation de la défense et de la sécurité nationales ; - le régime domianai et fonciér ; - le régime des ressources naturelles ; - la mutualité, l'épargne et le crédit; - le droit et le régime des transports ; - le droit et le régime des communications et de l'information ; - le droit et le régime pénitentiaires ; - les lois de finances ; - les lois de programme qui fixent les objectifs de l'action économique et sociale de l'Etat, l'organisation des activités productives de l'Etat et les grandes orientations de la défense et de la sécurité nationales. La loi déterminé en outre les principes fondamentaux de : - l'enseignement ; - la santé ; - l'action sociale ; - la science, la technologie et l'innovation ; - l'industrie ; - le commerce ; - les télécommunications ; - l'électricité ; - l'eaue ; - la culture, les arts et les sports ; - l'agriculture, l'élevage, la pêche et les eaux et forestes."
+                },
+                {
+                    "numero": "126",
+                    "contenu": "Les matieres autres que celles qui sont du domaine de la loi ont un caractete reglementaire."
+                },
+                {
+                    "numero": "127",
+                    "contenu": "L'Assemblée nationale et le Sénat peuvent se réunir en congrès sur convocation du Président de la République. Lorsque le Parlement se réunit en congrès, le bureau de l'Assemblée nationale préside les débats. Un règlement interieur détermine l'organisation et le fonctionnement du Parlement réuni en congrès. # Sous-titre II. De l'Assemblée nationale."
+                },
+                {
+                    "numero": "128",
+                    "contenu": "Les membres de l'Assemblée nationale portent le titre de député. Ils sont élus au suffrage universel direct. Chaque député élu dans une circonscription électorale est le représentant de la Nation toute entière. Tout mandat impératif est nul. Chaque député est élu avec un suppluant."
+                },
+                {
+                    "numero": "129",
+                    "contenu": "La durée du mandat des députés est de cinq (5) ans renouvelable."
+                },
+                {
+                    "numero": "130",
+                    "contenu": "Aucun député ne peut être poursuivi, ni recherche, ni detenu ou jugé, pour des opinions ou votes émis par lui dans l'exercice de ses fonctions. Aucun député ne peut, pendant la durée des sessions, être poursuivi ou arrêté sans l'autorisation de l'Assemblée nationale, sauf cas de crime ou de délit flagrant, de poursuites autorisées ou de condamnation définitive. Aucun député ne peut, hors session, être poursuivi ou arrêté sans l'autorisation du bureau de l'Assemblée nationale, sauf cas de crime ou délit flagrant, de poursuites autorisées ou de condamnation définitive."
+                },
+                {
+                    "numero": "131",
+                    "contenu": "Le mandat de député est incompatible avec toute autre fonction à caractère public. Les autres incompatibilités sont fixées par la loi. En cas d'incompatibilité, le député est remplaced par son supplieur. Il retrouve de plein droit son siège à la fin de l'incompatibilité."
+                },
+                {
+                    "numero": "132",
+                    "contenu": "Les candidats aux élections à l'Assemblée nationale doivent : - être de nationalité congolaise ; - être âgés de dix-huit (18) ans au moins ; - résider sur le territoire national au moment de la presentation des candidatures ; - jourir de tous leurs droits civils et politiques ; - ne pas avoir eté condamnés pour crimes ou déliits volontaires. # Sous-titre III. Du Sénat."
+                },
+                {
+                    "numero": "133",
+                    "contenu": "Les membres du Sénat portent le titre de sénéateur. Ils sont élus au suffrage universal indirect par les conseillers départementaux et municipaux. Les sénéuteurs représentent les collectivités locales de la République. Le Sénat exerce, outre sa fonction législative, celle de moderateur et de conseil de la Nation."
+                },
+                {
+                    "numero": "134",
+                    "contenu": "La durée du mandat des senators est de six (6) ans renouvelable."
+                },
+                {
+                    "numero": "135",
+                    "contenu": "Aucun membre du Senat ne peut etre poursuivi, ni recherche, ni detenu ou juge, pour des opinions ou votes émis par lui dans l'exercice de ses fonctions. Aucun sénéateur ne peut, pendant la durée des sessions, être poursuivi ou arrêté sans l'autorisation du Sénat, sauf cas de crime ou de délit flagrant, de poursuites autorisées ou de condamnation définitive. Aucun sénéateur ne peut, hors session, être poursuivi ou arrêté sans l'autorisation du bureau du Sénat, sauf cas de crime ou délit flagrant, de poursuites autorisées ou de condamnation définitive."
+                },
+                {
+                    "numero": "136",
+                    "contenu": "Le mandat de sénéur est incompatible avec toute autre fonction à caractère public. Les autres incompatibilités sont fixées par la loi. En cas d'incompatibilité survenue en cours de mandat, il est procédé à une élection senatoriale partielle pour pouvoir le siège devenu vacant."
+                },
+                {
+                    "numero": "137",
+                    "contenu": "Les candidats aux élections sénéatoriales doivent : - être de nationalité congolaise ; - être âgés de quarante-cinq ans (45) au moins ; - résider sur le territoire national au moment de la presentation des candidatures ; - jour de tous leurs droits civils et politiques ; - ne pas avoir eté condamnés pour crimes ou délits volontaires."
+                }
+            ],
+            "children": []
+        },
+        {
+            "type_unite": "TITRE",
+            "numero": "VI",
+            "titre": "",
+            "articles": [
+                {
+                    "numero": "138",
+                    "contenu": "Le Président de la République peut dissoudre l'Assemblée nationale."
+                },
+                {
+                    "numero": "139",
+                    "contenu": "L'Assemblée nationale peut, par le vote d'une motion de censure, renverser le Gouvernement."
+                },
+                {
+                    "numero": "140",
+                    "contenu": "Chaque,chambre du Parlement arrête l'ordre du jour de ses sessions. Le Président de chaque chambre en informé le Gouvernement."
+                },
+                {
+                    "numero": "141",
+                    "contenu": "Le Premier Ministre et les autres membres du Gouvernement ont accès aux travaux de l'Assemblée nationale et du Sénéat ainsi qu'à ceux de leurs commissions. Lorsqu'ils sont invités par l'une ou l'autre,chambre du Parlement, le Premier Ministre et les autres membres du Gouvernement ont l'obligation d'assister aux séances de la chambre qui en a fait la demande et de fournir aux parlementaires toutes explications en rapport avec leurs activités. Ils peuvent être entendus sur leur demande. Ils peuvent être également entendus sur interpellation, sur des questions écrites ou orales qui leur sont adressées."
+                },
+                {
+                    "numero": "142",
+                    "contenu": "Le Parlement contrôle l'action du Gouvernement."
+                },
+                {
+                    "numero": "143",
+                    "contenu": "L'initiative des lois apparient concurrentment au Gouvernement et aux membres du Parlement."
+                },
+                {
+                    "numero": "144",
+                    "contenu": "Les projets de loi sont délibérés en Conseil des ministres après avis de la Cour suprème et transmis à l'une ou l'autre,chambre du Parlement. Les propositions de loi sont, avant délibération et vote, communiquées pour information au Premier Ministre."
+                },
+                {
+                    "numero": "145",
+                    "contenu": "Les propositions de loi et les amendements déposés par les membres du Parlement et tendant à augmenter ou à diminuer les dépenses de l'État doivent être assortis de propositions dégageant les recettes ou les économies correspondantes."
+                },
+                {
+                    "numero": "146",
+                    "contenu": "Les projets, les propositions de loi et amendements qui ne sont pas du domaine de la loi, sont irrecevables. L'irrecevabilité est prononcée par le Président de la chambre intéressée, après délibération du bureau. En cas de contestation, la Cour constitutionnelle, saisie par le Premier Ministre ou par le Président de la chambre interessée, statue dans un délai de quinze (15) jours."
+                },
+                {
+                    "numero": "147",
+                    "contenu": "La discussion des projets de loi porte, devant la première chambre saisie, sur le texte presenté par le Gouvernement. Une chambre, saisie d'un texte voté par l'autre,chambre, délibéré sur le texte qui lui a été transmis par celle-ci."
+                },
+                {
+                    "numero": "148",
+                    "contenu": "Les projets et les propositions de loi sont envoyés à l'une des commissions permanentes que compte chaque chambre du Parlement. Les projets et les propositions de loi peuvent, à la demande du Gouvernement ou de la chambre qui en est saisie, etre envoyes, pour examen, a des commissions specialement designees a cet effet. Le nombre et la nature des commissions permanentes sont déterminés par le règlement interieur de chaque,chambre du Parlement. Les commissions permanentes sont constituées de manière à reflérer, autant que possible, la configuration politique de chaque chambre du Parlement."
+                },
+                {
+                    "numero": "149",
+                    "contenu": "Le Gouvernement et les membres du Parlement ont le droit d'amendement. Tout projet de loi, toute proposition de loi, presenté devant l'une ou l'autre,chambre du Parlement, peut faire l'objet d'un retrait au cours des débats ou avant l'ouverture de ceux-ci."
+                },
+                {
+                    "numero": "150",
+                    "contenu": "Tout projet ou toute proposition de loi est examé, successivement, par les deux chambres en vue de l'adoption d'un texte identique. Lorsque, par la suite d'un désaccord entre les deux chambs, un projet ou une proposition de loi n'a pu été adopté après une lecture par chaque chambre, le Premier Ministre, a la faculty de provoquer la réunion d'une commission mixte paritaire chargée de proposer un texte sur les dispositions restant en discussion. Le texte élaboré par la commission mixte paritaire est soumis, par le Premier Ministre, pour approbation aux deux chambres du Parlement. Aucun amendement n'est receivable, sauf accord du Gouvernement. Si la commission mixte paritaire ne parvient pas à l'adoption d'un texte commun, le Premier Ministre, après une nouvelle lecture par l'Assemblée nationale et le Sénat, demande à l'Assemblée nationale de statuer définitivement. Dans ce cas, l'Assemblée nationale peut reprendre soit le texte élaboré par la commission mixte paritaire, soit le dernier texte voté par elle, modifié, le cas échéant, par un ou plusieurs amendements adoptés par le Sénat."
+                },
+                {
+                    "numero": "151",
+                    "contenu": "Les lois auxquelles la Constitution confère le caractère de lois organiques, hormis la loi de finances, sont votes et modifiées dans les conditions suivantes : - le projet ou la proposition de loi n'est soumis à la délibération et au vote de la première chambre saisie qu'à l'expiration d'un début de quinze (15) jours après son dépôt ; - la procédure des articles 147 à 150 est applicable. Toutefois, faute d'accord entre les deux chambres, le texte ne peut être adopté par l'Assemblée nationale en dernier lecture qu'à la majorité absolue de ses membres ; - les lois organiques ne peuvent être promulgées qu'après déclaration par la Cour constitutionnelle de leur conformité à la Constitution."
+                },
+                {
+                    "numero": "152",
+                    "contenu": "Le Parlement est saisi du projet de loi de finances au plus tard une semaine avant l'ouverture de la session d'octobre. L'Assemblée nationale est saisie en premier lieu du projet de loi de finances de l'année, des projets de loi de finances rectificatives et des projets de loi de règlement."
+                },
+                {
+                    "numero": "153",
+                    "contenu": "Si le Parlement n'a pas voté le budget à la fin de la session d'octobre, le Premier Ministre demande une session extraordinaire dont la durée ne peut excéder quinze (15) jours. Passé ce décai, le budget est établi, définitivement, par ordonnance après avis de la Cour constitutionnelle. Si le Parlement n'a pas eté saisi du projet de loi de finances dans les délays prévus à l'article 152 et que le budget n'a pas eté voté à l'issue de cette première session extraordinaire, une deuxième session extraordinaire est convoquee à la demande du Premier Ministre."
+                },
+                {
+                    "numero": "154",
+                    "contenu": "Une loi organique règle le mode de presentation du budget de l'État. Le Parlement règle les comptes de la Nation. Il est assisté, à cette fin, par la Cour des comptes et de discipline budgêtaire."
+                },
+                {
+                    "numero": "155",
+                    "contenu": "Le projet de loi de règlement est déposé et distribué, au plus tard, à la fin de l'année qui suit l'année d'exécution du budget."
+                },
+                {
+                    "numero": "156",
+                    "contenu": "La déclaration de guerre est autorisée par le Parlement réuni en congrès. Lorsque, à la suite de circonstances exceptionnelles, le Parlement ne peut siéger utillement, la décision de déclaration de guerre est prise en Conseil des ministres par le Président de la République. Il en informe immédiatement la Nation."
+                },
+                {
+                    "numero": "157",
+                    "contenu": "L'etat d'urgence comme l'état de siège est dérétré par le Président de la République en Conseil des ministres. Le Parlement se réunit de plein droit. L'etat d'urgence comme l'état de siège peut être proclamé sur tout ou partie de la République pour une durée qui ne peut excéder vingt (20) jours. Dans les deux cas, le Président de la République informe la Nation par un message. Le Parlement se réunit de plein droit, s'il n'est pas en session, pour, le cas échéant, autoriser la prorogation de l'etat d'urgence ou de l'ariat de siege au-delà de vingt (20) jours. Lorsque, à la suite de circonstances exceptionnelles, le Parlement ne peut siéger, le Président de la République peut decide du maintain de l'état d'urgence ou de l'état de siege. Il en informe la Nation par un message. Une loi déterminé les conditions de mise en œuvre de l'etat d'urgence ou de l'ariat de siège."
+                },
+                {
+                    "numero": "158",
+                    "contenu": "Le Gouvernement peut, pour exécuter son programme, demander au Parlement de voter une loi l'autorisant à prendre, par ordonnance, pendant un-delai limite, des mesures qui sont normalement du domaine de la loi. Cette autorisation est accordée à la majorité simple des membres du Parlement. La demande indique la matière dans laquelle le Gouvernement souhaite que des ordonnances soient prises. Les ordonnances sont prises en Conseil des ministres, après avis de la Cour suprême. Elles rentrent en vigueur des leur publication mais deviennent caduques si le projet de loi de ratification n'est pas déposé au Parlement avant la date fixée par la loi d'habilitation. Lorsque la demande d'habilitation est rejetée, le Président de la République peut, sur décision conforme de la Cour constitutionnelle, légiférer par ordonnance. A l'expiration du début mentionné au présent article, les ordonnances ne peuvent plus être modifiées que par la loi dans leurs dispositions qui sont du domaine législatif."
+                },
+                {
+                    "numero": "159",
+                    "contenu": "Le Premier Ministre peut, après délibération du Conseil des ministres, engager devant l'Assemblée nationale la responsabilité du Gouvernement sur son programme, sur une déclaration de politique générale ou sur un projet de texte. L'Assemblée nationale, après début, émet un vote. La confiance ne peut être refusée au Gouvernement qu'à la majorité des deux tiers (2/3) des députés composant l'Assemblée nationale. Lorsque la confiance est refusée, le Premier Ministre remet au Président de la République la démission du Gouvernement."
+                },
+                {
+                    "numero": "160",
+                    "contenu": "L'Assemblée nationale peutmettre encause la responsabilité duPremier Ministre et des autres membres du Gouvernement parle vote d'une motion de censure. Pour être receivable, la motion de censure doit être signée par un quart (1/4) au moins des députés composant l'Assemblée nationale. Le début et le vote de la motion de censure ont lieu dans les quarante-huit (48) heures qui suivent son dépôt devant l'Assemblée nationale. Lors du vote, seules sont prises en compte les voix favorables à la motion de censure. La motion de censure est adoptée à la majorité des deux tiers (2/3) des membres composant l'Assemblée nationale. Le vote est individuel. Le vote par procuration est autorisé dans les conditions fixées par le règlement interieur de l'Assemblée nationale."
+                },
+                {
+                    "numero": "161",
+                    "contenu": "Lorsque la motion de censure est adoptée, le Premier Ministre remet au Président de la République la démission du Gouvernement."
+                },
+                {
+                    "numero": "162",
+                    "contenu": "Le Président de la République, après avoir constaté les changements intervenus à l'Assemblée nationale et après consultation des Présidents des chambres du Parlement et du Premier Ministre, peut prononcer la dissolution de l'Assemblée nationale. Dans ce cas, de nouvelles élections législatives sont organises conformément aux textes en vigueur."
+                },
+                {
+                    "numero": "163",
+                    "contenu": "Si la motion de censure est rejetée, ses signataires ne peuvent en déposer une autre au cours de la même session."
+                },
+                {
+                    "numero": "164",
+                    "contenu": "Il ne peut y avoir plus d'une motion de censure au cours d'une même session. Pendant l'année précédant la fin de la législation, aucune motion de censure ne peut etre déposée."
+                },
+                {
+                    "numero": "165",
+                    "contenu": "En cas de crise persistante entre le Gouvernement et l'Assemblée nationale rendant impossible le fonctionnement régulier des institutions, le Président de la République, après avoir informé les Présidents des deux chambres et le Premier Ministre, prononce la dissolution de l'Assemblée nationale. De nouvelles élections sont organises conformément aux textes en vigueur. Il ne peut être procédé à aucune dissolution de l'Assemblée Nationale au cours de la première année de la législature."
+                }
+            ],
+            "children": []
+        },
+        {
+            "type_unite": "TITRE",
+            "numero": "VII",
+            "titre": "Du pouvoir judiciaire.",
+            "articles": [
+                {
+                    "numero": "166",
+                    "contenu": "Il est institué un pouvoir judiciaire exercé par la Cour suprême, les Cours d'applé et les autres juridictions nationales. La Cour suprême, les Cours d'appoint, les Tribunaux de grande instance, les Tribunaux administratifs, les Tribunaux du travail, les Tribunaux de commerce, les Tribunaux d'instance ainsi que toutes autres juridictions nationales sont créés par des lois organiques qui fixent leur ressort, composition, organisation et fonctionnement."
+                },
+                {
+                    "numero": "167",
+                    "contenu": "La justice est rendue sur le territoire national au nom du peuple congolais."
+                },
+                {
+                    "numero": "168",
+                    "contenu": "Le pouvoir judiciaire est indépendant du pouvoir exécutif et du pouvoir législatif. Le pouvoir judiciaire statue sur les litiges nés entre les citoyens ou entre les citoyens et l'Etat. Les juges ne sont soumis, dans l'exercice de leurs fonctions, qu'à l'autorité de la loi."
+                },
+                {
+                    "numero": "169",
+                    "contenu": "Le pouvoir judiciaire ne peut empieter ni sur les attributions du pouvoir exécutif, ni sur celles du pouvoir législatif. Le pouvoir exécutif ne peut ni statuer sur les différencs, ni entraver le cours de la justice ou s'opposer à l'exécution d'une décision de justice. Le pouvoir législatif ne peut ni statuer sur les différencs, ni entraver le cours de la justice ou s'opposer à l'exécution d'une décision de justice. Toute loi dont le but est de fournir la solution à un procès en cours est nulle et de nul effet."
+                },
+                {
+                    "numero": "170",
+                    "contenu": "Il est institué un Conseil supérieur de la magistrature présidé par le Président de la République. Le Ministre de la Justice en est le Premier Vice-président. Il peut supplérer le Président de la République dans la presidence des réunions du Conseil supérieur de la magistrature. Le Premier Président de la Cour suprème, le Procureur général, le Vice-président, le Premier Avocat général sont membres de droit du Conseil supérieur de la magistature. Ils sont places magistrats hors convention. La loi fixe les modalités de cessation des fonctions des magistrats placés hors convention."
+                },
+                {
+                    "numero": "171",
+                    "contenu": "Le Président de la République garantit l'indépendance du pouvoir judiciaire à travers le Conseil supérieur de la magistature. Le Conseil supérieur de la magistrature statue comme conseil de discipline et comme organe de gestion de la carrière des magistrats. Le Conseil supérieur de la magistature, sous l'autorité du Président de la République, peut prendre toutes mesures pouvant contribuer au fonctionnement régulier des Cours et Tribunaux."
+                },
+                {
+                    "numero": "172",
+                    "contenu": "Les membres de la Cour suprême et les magistrats des autres juridictions nationales sont nommés par le Président de la République, par décret en Conseil supérieur de la magistrature. Les magistrats du siège sont inamovibles."
+                },
+                {
+                    "numero": "173",
+                    "contenu": "La loi fixe le statut spécial du corps unique des magistrats de la Cour suprème, des Cours d'appe et de toutes les autres juridictions nationales."
+                },
+                {
+                    "numero": "174",
+                    "contenu": "Une loi organique fixe l'organisation, la composition et le fonctionnement du Conseil Supérieur de la magistature."
+                }
+            ],
+            "children": []
+        },
+        {
+            "type_unite": "TITRE",
+            "numero": "VIII",
+            "titre": "De la Cour constitutionnelle.",
+            "articles": [
+                {
+                    "numero": "175",
+                    "contenu": "La Cour constitutionnelle est la haute juridiction de l'Etat en matière constitutionnelle. El est juge de la constitutionnalité des lois, des traités et accords internationaux. La Cour constitutionnelle est l'organe régulateur du fonctionnement des institutions et des activités des pouvoirs publics."
+                },
+                {
+                    "numero": "176",
+                    "contenu": "La Cour constitutionnelle veille à la régularité de l'élection du Président de la République. Elle examine les réclamations et proclame les résultats définitifs du scrutin. La Cour constitutionnelle veille à la régularité des opérations du réferendum et en proclaim les résultats définitifs."
+                },
+                {
+                    "numero": "177",
+                    "contenu": "La Cour constitutionnelle est juge du contentieux des élections législatives et sénéatoriales. A ce titre, elle examine les recours relatifs à la contestation des candidatures et aux résultats de ces élections. Le contentieux des élections autres que celles prévues dans la presente Constitution relève des juridictions ordinaires."
+                },
+                {
+                    "numero": "178",
+                    "contenu": "La Cour constitutionnelle est saisie par le Président de la République, le Président de l'Assemblée nationale, le Président du Sénat, le Premier Ministre ou par un tiers des membres de chaque,chambre du Parlement."
+                },
+                {
+                    "numero": "179",
+                    "contenu": "La Cour constitutionnelle est saisie, pour avis de conformité, avant la promulgation des lois organiques ou la mise en application du règlement interieur de chaque,chambre du Parlement. Dans ce cas, la Cour constitutionnelle statue dans le décai d'un mois. Toute fois, à la demande expresse du requérant, ce délambda peut être raméné à dix (10) jours s'il y a vergence. La saisine de la Cour constitutionnelle suspend le délambda de promulgation de la loi ou de la mise en application du règlement interieur."
+                },
+                {
+                    "numero": "180",
+                    "contenu": "Tout particulier peut, soit directement, soit par la procédure de l'exception d'inconstitutionnalité invoquee devant une juridiction dans une'affaire qui le concerne, saisir la Cour constitutionnelle sur la constitutionnalité des lois et des traités. En cas d'exception d'inconstitutionnalité, la juridiction saisie sursoit à statuer et impartic au requérant un-delai d'un mois à partir de la signification de sa décision pour saisir la Cour constitutionnelle."
+                },
+                {
+                    "numero": "181",
+                    "contenu": "Une disposition déclarée inconstitutionnelle ne peut être ni promulgue, ni mise en application. Les décisions de la Cour constitutionnelle ne sont susceptibles d'aucun recours. Elles s'imposent aux pouvoirs publics, à toutes les autorités administratives, juridictionnelles et aux particuliers."
+                },
+                {
+                    "numero": "182",
+                    "contenu": "La Cour constitutionnelle est composée de neuf(9) membres nommés ainsi qu'il suit : - trois (3) par le Président de la République ; - deux (2) par le Président du Sénéat ; - deux (2) par le Président de l'Assemblée nationale ; - deux (2) par la Cour supérieur parmi les membres de cette juridiction."
+                },
+                {
+                    "numero": "183",
+                    "contenu": "Le Président de la Cour constitutionnelle est nommé par le Président de la République parmi ses membres. Il a voix prépondérante en cas de partage égal des voix."
+                },
+                {
+                    "numero": "184",
+                    "contenu": "Les fonctions de membre de la Cour constitutionnelle sont incompatibles avec celles de membres du Gouvernement, du Parlement ou de la Cour suprreme."
+                },
+                {
+                    "numero": "185",
+                    "contenu": "Les personnalités condemnées pour forfaiture, haute trahison, parjure ou tout autre crime ne peuvent être membres de la Cour constitutionnelle. Les autres incompatibilités sont fixées par la loi."
+                },
+                {
+                    "numero": "186",
+                    "contenu": "Le mandat des membres de la Cour constitutionnelle est de quatre (4) ans renouvelable deux fois. La loi déterminé les modalités du renouvellement des mandats des membres de la Cour constitutionnelle."
+                },
+                {
+                    "numero": "187",
+                    "contenu": "La Cour constitutionnelle est composée d'au moins six (6) personnalités jouissant d'une expérience dans le domaine du droit."
+                },
+                {
+                    "numero": "188",
+                    "contenu": "Une loi organique déterminé l'organisation et le fonctionnement de la Cour constitutionnelle ainsi que la procédure à suivre."
+                }
+            ],
+            "children": []
+        },
+        {
+            "type_unite": "TITRE",
+            "numero": "IX",
+            "titre": "De la Cour des comptes et de discipline budgétaire.",
+            "articles": [
+                {
+                    "numero": "189",
+                    "contenu": "Il est institue une Cour des comptes et de discipline budgêtaire."
+                },
+                {
+                    "numero": "190",
+                    "contenu": "Une loi organique détermine les attributions, l'organisation, la composition et le fonctionnement de la Cour des comptes et de discipline budgêtaire ainsi que la méthode à suivre."
+                }
+            ],
+            "children": []
+        },
+        {
+            "type_unite": "TITRE",
+            "numero": "X",
+            "titre": "De la Haute Cour de justice.",
+            "articles": [
+                {
+                    "numero": "191",
+                    "contenu": "Il est instituted une Haute Cour de justice. La Haute Cour de justice est composée de députés et de sénéateurs élus en nombre égal par leurs pairs, et de membres issus de la Cour suprême également élus par leurs pairs. La représentation des parlementaires au sein de la Haute Cour de justice doit reflérer, autant que possible, la configuration politique de chaque,chambre du Parlement. La Haute Cour de justice est présidée par le Premier Président de la Cour supréme."
+                },
+                {
+                    "numero": "192",
+                    "contenu": "La Haute Cour de justice est compétente pour juger le Président de la République en cas de manquements à ses devoirs manifestement incompatibles avec l'exercice de son mandat."
+                },
+                {
+                    "numero": "193",
+                    "contenu": "Les membres de l'Assemblée nationale et du Sénat, les ministres, les membres de la Cour suprème et les membres de la Cour constitutionnelle, sont justiciaibles devant la Haute Cour de justice, pour les actes qualifiés crimes ou déliès commis dans l'exercice de leurs fonctions. Ils sont mis en accusation par le Parlement réuni en congrès statuant par un vote au scrutin secret, à la majorité des deux tiers de ses membres."
+                },
+                {
+                    "numero": "194",
+                    "contenu": "Les co-auteurs et les complices des personnes visées aux articles 192 et 193 ci-dessus sont également justiciables devant la Haute Cour de justice, sans qu'il soit nécessaire que l'acte de mise en accusation les concernant émane du Parlement."
+                },
+                {
+                    "numero": "195",
+                    "contenu": "Une loi organique détermine l'organisation et le fonctionnement de la Haute Cour de justice ainsi que la procédure à suivre."
+                }
+            ],
+            "children": []
+        },
+        {
+            "type_unite": "TITRE",
+            "numero": "XI",
+            "titre": "Du Conseil économique, social et environnemental.",
+            "articles": [
+                {
+                    "numero": "196",
+                    "contenu": "Il est institue un Conseil économique, social et environnemental."
+                },
+                {
+                    "numero": "197",
+                    "contenu": "Le Conseil économique, social et environnemental est, auprès des pouvoirs publics, une assemblée consultative. Il peut, de sa propre initiative, se saisir de tout problème à caractère économique, social ou environnemental. Il peut également être saisi par le Président de la République, le Président de l'Assemblée nationale ou le Président du Sénat. Le Conseil économique, social et environnemental peut, en outre, être consulté sur les projets de traitsés ou d'accords internationaux, les projets ou les propositions de lois, ainsi que les projets de décrets en raison de leur caractère économique, social ou environnemental. Le Conseil économique, social et environnemental est saisi de tout projet de loi de programme et plan de développement à caractère économique, social ou environnemental, à l'exception du budget de l'Etat."
+                },
+                {
+                    "numero": "198",
+                    "contenu": "La fonction de membre du Conseil economique, social et environnemental est incompatible avec. elle de parlementaire, de membre du Gouvernement, de nombre de la Cour constitutionnelle, de préfet, de maire, de sous-préfet et de conseiller local."
+                },
+                {
+                    "numero": "199",
+                    "contenu": "Une loi organique fixe l'organisation, la composition, les règes de fonctionnement et les modalités de désignation des membres du Conseil économique, social et environnemental."
+                }
+            ],
+            "children": []
+        },
+        {
+            "type_unite": "TITRE",
+            "numero": "XII",
+            "titre": "Du mediateur de la République.",
+            "articles": [
+                {
+                    "numero": "200",
+                    "contenu": "Il est instituted un Mediateur de la République."
+                },
+                {
+                    "numero": "201",
+                    "contenu": "Le Médiateur de la République est une autorité indépendante, chargée de simplifier et d'humaniser les rapports entre l'administration et les administrés."
+                },
+                {
+                    "numero": "202",
+                    "contenu": "Toute personne physique ou morale, qui estime, à l'occasion d'une affaire la concernant, qu'un organisme public n'a pas fonctionné conformément à la mission de service public qui lui est devolue peut, par une requête individuelle, saisir le Mediateur de la République."
+                },
+                {
+                    "numero": "203",
+                    "contenu": "Une loi organique définit les attributions et fixe les conditions d'organisation, de nomination, de fonctionnement et de saisine du Mediateur de la République."
+                }
+            ],
+            "children": []
+        },
+        {
+            "type_unite": "TITRE",
+            "numero": "XIII",
+            "titre": "De la Force publique.",
+            "articles": [
+                {
+                    "numero": "204",
+                    "contenu": "La Force publique est composée de la Police nationale, de la Gendarmerie nationale et des Forces Armées Congolaises."
+                },
+                {
+                    "numero": "205",
+                    "contenu": "La Force publique est apolitique. Elle est soumise aux lois et règlements de la République. Elle est instuuee dans l'intérêt général. Nul ne doit l'utiliser a des fins personnelles. La Force publique est subordonnée à l'autorité civile. Elle n'agit que dans le cadre des lois et règlements. Les conditions de sa mise en oeuvre sont fixées par la loi."
+                },
+                {
+                    "numero": "206",
+                    "contenu": "La loi fixe les missions, détermine l'organisation et le fonctionnement, ainsi que les statuts spéciaux des personnels de Police, de Gendarmerie et des Forces Armées Congolaises."
+                },
+                {
+                    "numero": "207",
+                    "contenu": "La création des milices est un crime puni par la loi."
+                }
+            ],
+            "children": []
+        },
+        {
+            "type_unite": "TITRE",
+            "numero": "XIV",
+            "titre": "Des collectivités locales.",
+            "articles": [
+                {
+                    "numero": "208",
+                    "contenu": "Les collectivités locales de la République du Congo sont le département et la commune. D'autres collectivités locales peuvent être créées par la loi."
+                },
+                {
+                    "numero": "209",
+                    "contenu": "Les collectivités locales s'administrent librement par des conseils élus et dans les conditions prévues par la loi, notamment en ce qui concerne leurs compétences et leurs ressources. En plus de leurs ressources propres, l'Etat alloue, chaque année, aux collectivités locales une contribution conséquence de développement. Toute imputation des dépenses de souverinété de l'État sur les budgets des collectivités décentralisées est interdite."
+                },
+                {
+                    "numero": "210",
+                    "contenu": "Sont de la compétence des collectivités locales : - la planification, le développement et l'aménagement du département ; - l'urbanisme et l'habitat ; - l'enseignement préscolaire, primaire et secondaire ; - la santé de base, l'action sociale et la protection civile; - la prévention, la réduction des risques et la gestion des catastrophes ; - l'environnement, le tourisme et les loisirs ; - le sport et l'action culturelle ; - l'agriculture, l'élevage, la pêche et la pisciculture; - l'administration et les finances ; - le commerce et l'artisanat ; - les transports ; - l'entretien routier ; - le budget de la collectivité locale. La loi déterminée également le régime financier des collectivités locales ainsi que les principes fondamentaux de la fonction publique territoriale."
+                },
+                {
+                    "numero": "211",
+                    "contenu": "Une loi organique fixe les conditions dans lesquelles l'Etat exerce sa tutelle sur les collectivités locales décentralisées ainsi que la liste des autres compétences à transférer, non visées par la présente loi."
+                }
+            ],
+            "children": []
+        },
+        {
+            "type_unite": "TITRE",
+            "numero": "XV",
+            "titre": "Du Conseil supérieur de la liberté de communication.",
+            "articles": [
+                {
+                    "numero": "212",
+                    "contenu": "Il est institué un Conseil supérieur de la liberté de communication. Le Conseil supérieur de la liberté de communication est chargé de veiller au bon exercice de la liberté de l'information et de la communication. Il émet également des avis techniques et formule des commandations sur les questions touchant au domaine de l'information et de la communication."
+                },
+                {
+                    "numero": "213",
+                    "contenu": "Une loi organique détermine les missions, l'organisation, la composition et le fonctionnement du Conseil supérieur de la liberté de communication."
+                }
+            ],
+            "children": []
+        },
+        {
+            "type_unite": "TITRE",
+            "numero": "XVI",
+            "titre": "De la Commission nationale des droits de l'homme.",
+            "articles": [
+                {
+                    "numero": "214",
+                    "contenu": "Il est instituted une Commission nationale des droits de l'homme."
+                },
+                {
+                    "numero": "215",
+                    "contenu": "La Commission nationale des droits de l'homme est un organe de suivi de la promotion et de la protection des droits de l'homme."
+                },
+                {
+                    "numero": "216",
+                    "contenu": "La loi déterminée les missions et fixe l'organisation et le fonctionnement de la Commission nationale des droits de l'homme."
+                }
+            ],
+            "children": []
+        },
+        {
+            "type_unite": "TITRE",
+            "numero": "XVII",
+            "titre": "Des traits et des accords internationaux.",
+            "articles": [
+                {
+                    "numero": "217",
+                    "contenu": "Le Président de la République négocie, signe et ratifie les traités et les accords internationaux. La ratification ne peut intervenir qu'après autorisation du Parlement, notamment en ce qui concerne les traités de paix, les traits de défense, les traits de commerce, les traits relatifs aux ressources naturelles ou les accords relatifs aux organisations internationales, ceux qui engagent les finances de l'État, ceux qui modifient les dispositions de nature législate, ceux qui sont relatifs à l'état des personnes, ceux qui comportent cession, échange ou adjonction du territoire."
+                },
+                {
+                    "numero": "218",
+                    "contenu": "La loi déterminé les accords dispensés de la procédure de ratification. Le Président de la République et les Présidents des deux chambres du Parlement sont informés de touteNEGociation tendant à la conclusion d'un accord international non soumis à ratification"
+                },
+                {
+                    "numero": "219",
+                    "contenu": "Nulle cession, nul échange, nulle adjonction du territoire n'est valable sans le consentement du Peuple congolais appelé à se pronouncer par voie de réferendum."
+                },
+                {
+                    "numero": "220",
+                    "contenu": "A l'exception du Président de la République et du ministre des'affaires étrangères, tout représentant de l'État doit, pour l'adoption ou l'authentication d'un engagement international, produit des pleins pouvoirs."
+                },
+                {
+                    "numero": "221",
+                    "contenu": "La République du Congo peut conclure des accords d'association avec d'autres États. Elle accepte de creator, avec ces États, des organismes inter-gouvernementaux de gestion commune, de coordination, de libre coopération et d'intégration."
+                },
+                {
+                    "numero": "222",
+                    "contenu": "Si la Cour constitutionnelle a déclaré qu'un engagement international comporte une clause contraire à la Constitution, l'autorisation de le ratifier ou de l'approver ne peut intervenir qu'après révision de la Constitution."
+                },
+                {
+                    "numero": "223",
+                    "contenu": "Les traités ou les accords, régulièrement ratifiés ou approuvés, ontès leur publication, une autorité supérieure à celle des lois, sous réserve, pour chaque accord outraité de son application par l'autre Partie."
+                }
+            ],
+            "children": []
+        },
+        {
+            "type_unite": "TITRE",
+            "numero": "XVIII",
+            "titre": "Du statut des anciens dirigeants.",
+            "articles": [
+                {
+                    "numero": "224",
+                    "contenu": "Les ancients Présidents de la République ont droit, à la fin de leur mandat, à la protection de l'Etat tant en leur personne qu'en leurs biens. Il leur est versé mensuellement, à titre de pension, une allocation viagère dont le montant est fixé par voie réglementaire. Les autres avantages et les modalités de la protection des ancients chefs d'Etat sont déterminés par la loi."
+                },
+                {
+                    "numero": "225",
+                    "contenu": "Les ancients Présidents des Assemblées parlementaires, les ancients Premiers Ministres, à l'exception de ceux qui ont étécondnés pour forfaiture,benéficient de la reconnaissance de la Nation. La loi déterminé la nature et les formes de cette reconnaissance."
+                },
+                {
+                    "numero": "226",
+                    "contenu": "La loi détermine les autres ancients dirigeants pouvant bénéficier de la reconnaissance de la Nation ainsi que les avantages qui leur sont accordés."
+                }
+            ],
+            "children": []
+        },
+        {
+            "type_unite": "TITRE",
+            "numero": "XIX",
+            "titre": "Des conseils consultatifs nationaux.",
+            "articles": [
+                {
+                    "numero": "227",
+                    "contenu": "Il est institue un Conseil national du dialogue placé sous l'autorité du Président de la République."
+                },
+                {
+                    "numero": "228",
+                    "contenu": "Le Conseil national du dialogue est un organe de concertation, d'apaisement et de recherche du consensus entre les forces vives de la nation, sur les grands problèmes politiques d'intérêt national."
+                },
+                {
+                    "numero": "229",
+                    "contenu": "Une loi organique détermine l'organisation, la composition et le fonctionnement du conseil national du dialogue. # Sous-titre II. Du Conseil consultatif des sages et des notabilités traditionnelles."
+                },
+                {
+                    "numero": "230",
+                    "contenu": "Il est institue un Conseil consultatif des sages et des notabilités traditionnelles chargé d'émettre des avis sur la gouvernance démocratique, culturelle et sociale de l'État et de faire au Gouvernement des suggestions pouvant contribuer à une gestion politique solidaire."
+                },
+                {
+                    "numero": "231",
+                    "contenu": "Une loi organique détermine l'organisation, la composition et le fonctionnement du Conseil consultatif des sages et des notabilités traditionnelles. # Sous-titre III. Du Conseil consultatif des femmes."
+                },
+                {
+                    "numero": "232",
+                    "contenu": "Il est institué un Conseil consultatif des femmes chargé d'émettre des avis sur la condition de la femme et de faire au Gouvernement des suggestions visant à promouvoir l'intégration de la femme au développement."
+                },
+                {
+                    "numero": "233",
+                    "contenu": "Une loi organique détermine l'organisation, la composition et le fonctionnement du Conseil consultatif des femmes. # Sous-titre IV. Du Conseil consultatif des personnes vivant avec handicap."
+                },
+                {
+                    "numero": "234",
+                    "contenu": "Il est institue un Conseil consultatif des personnes vivant avec handicap charge d'emmettre des avis sur la condition de la personne vivant avec handicap et de faire au Gouvernement des suggestions visant une(Meilleure prise en charge de la personne vivant avec handicap."
+                },
+                {
+                    "numero": "235",
+                    "contenu": "Une loi organique détermine l'organisation, la composition et le fonctionnement du Conseil consultatif des personnes vivant avec handicap. # Sous-titre V. Du Conseil consultatif de la jeunesse."
+                },
+                {
+                    "numero": "236",
+                    "contenu": "Il est institué un Conseil consultatif de la jeunesse chargé d'émettre des avis sur les questions liées au plein épanouissement de la jeunesse dans le cadre d'une gouvernance intergénérationnelle."
+                },
+                {
+                    "numero": "237",
+                    "contenu": "Une loi organique détermine l'organisation, la composition et le fonctionnement du Conseil consultatif de la jeunesse. # Sous-titre VI. Du Conseil consultatif des ONG et de la société civile."
+                },
+                {
+                    "numero": "238",
+                    "contenu": "Il est institue un Conseil consultatif des ONG et de la société civile chargé d'émettre des avis sur les questions liées à la participation des citoyens à la vie de la nation en vue de la promotion des droits et libertés des citoyens et des valeurs républicaines."
+                },
+                {
+                    "numero": "239",
+                    "contenu": "Une loi organique détermine l'organisation, la composition et le fonctionnement du Conseil consultatif des ONG et de la société civile."
+                }
+            ],
+            "children": []
+        },
+        {
+            "type_unite": "TITRE",
+            "numero": "XX",
+            "titre": "De la révision.",
+            "articles": [
+                {
+                    "numero": "240",
+                    "contenu": "L'initiative de la révision de la Constitution appartient concurrentment au Président de la République et aux membres du Parlement. Aucune procédure de révision ne peut être engagée ou poursuivie en période d'intérim ou lorsqu'il est porté atteinte à l'intégrité du territoire national. La forme républicaine et le caractère laïc de l'État ne peuvent faire l'objet de révision."
+                },
+                {
+                    "numero": "241",
+                    "contenu": "Lorsqu'il émane du Président de la République, le projet de révision est soumis directement au réferendum, après avis de la Cour suprème. Il peut aussi être soumis, après avis de la Cour suprème, au Parlement réuni en congrès, qui se prononce par un vote à la majorité des trois quarts de ses membres. Lorsque la proposition de révision émane d'un membre du Parlement, elle est votée par les trois quarts (3/4) des membres des deux chambres du Parlement réuni en congrès. Le Président de la République est préalablement informé de toute proposition de révision de la Constitution. Il fait parvenir son avis au Parlement réuni en congrès."
+                },
+                {
+                    "numero": "242",
+                    "contenu": "Une loi organique fixe la procEDURE de révision de la Constitution."
+                }
+            ],
+            "children": []
+        },
+        {
+            "type_unite": "TITRE",
+            "numero": "XXI",
+            "titre": "Dispositions transitoires et finales.",
+            "articles": [
+                {
+                    "numero": "243",
+                    "contenu": "Les traités et accords internationaux, les lois, les ordonnances et les règlements actuellement en vigueur, lorsqu'ils ne sont pas contraires à la présente loi, demeurent applicables tant qu'ils ne sont pas expressément modifiés ou abrogés."
+                },
+                {
+                    "numero": "244",
+                    "contenu": "Les institutions issues de la Constitution du 20 janvier 2002 fonctionnent jusqu'à la mise en place des nouvelles institutions sans pouvoir dépasser, pour les institutions poursuives par voie élective, l'expiration de leur mandat."
+                },
+                {
+                    "numero": "245",
+                    "contenu": "Tout citoyen congolais, sans exclusive, qui remplit les conditions d'éligibilité, peut faire acte de candidature aux fonctions publiques électives prévues par la presente Constitution."
+                },
+                {
+                    "numero": "246",
+                    "contenu": "La présente loi, qui entre en vigueur des sa promulgation, sera exécutée comme Constitution de la République du Congo. Pour obtenir davantage d'informations sur le pays et sur le texte ci-dessus, voir la fiche Congo. ©-2015 - Pour toute information complémentaire, signaler une erreur, correspondre avec nous, adressez-nous un message électronique. Retour à la liste des pays. [Haut de la page] Jean-Pierre Maury"
+                }
+            ],
+            "children": []
+        }
+    ]
+}
