@@ -1,0 +1,21 @@
+# Ignorer tout par défaut dans ce dossier et les sous-dossiers
+*
+
+# Ne pas ignorer ce fichier .gitignore
+!.gitignore
+
+# Autoriser l'exploration des dossiers json et pdf
+!json/
+!pdf/
+
+# Ignorer tout le contenu des dossiers json et pdf par défaut
+json/*
+pdf/*
+
+# Exceptions : Fichiers Constitution
+!json/republique-du-congo-constitution-2015.json
+!pdf/republique-du-congo-constitution-2015.pdf
+
+# Exceptions : Fichiers JO 2025-26
+!json/congo-jo-2025-26.json
+!pdf/congo-jo-2025-26.pdf
