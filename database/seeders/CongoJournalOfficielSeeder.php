@@ -105,8 +105,17 @@ class CongoJournalOfficielSeeder extends Seeder
 
             $textes = $jsonData['textes'] ?? [$jsonData];
 
-            foreach ($textes as $texteData) {
-                $refNor = Str::slug($texteData['numero_texte'] ?? $baseName . '-' . Str::random(5));
+            foreach ($textes as $index => $texteData) {
+                $refNor = $texteData['reference_nor']
+                    ?? (isset($texteData['numero_texte']) ? Str::slug($texteData['numero_texte']) : null);
+
+                if (!$refNor) {
+                    // Fallback: Use filename. If multiple texts in file, append index.
+                    $refNor = Str::slug($baseName);
+                    if (count($textes) > 1) {
+                        $refNor .= '-' . ($index + 1);
+                    }
+                }
 
                 if (LegalDocument::where('reference_nor', $refNor)->exists()) {
                     continue;
@@ -158,30 +167,110 @@ class CongoJournalOfficielSeeder extends Seeder
 
     private function importDocument(array $data, ?string $pdfPath, string $refNor): void
     {
-        $typeCode = 'LOI';
-        $num = strtolower($data['numero_texte'] ?? '');
-        if (str_contains($num, 'décret')) $typeCode = 'DEC';
-        if (str_contains($num, 'arrêté')) $typeCode = 'ARR';
-        if (str_contains($num, 'constitution')) $typeCode = 'CONST';
-        if (str_contains($num, 'ordonnance')) $typeCode = 'ORD';
+        // 1. Determine Type Code
+        $typeCode = $data['type_code'] ?? 'LOI';
 
-        $publicationDate = $this->parseSafeDate($data['date_publication'] ?? null);
+        if (!isset($data['type_code'])) {
+            $num = strtolower($data['numero_texte'] ?? '');
+            if (str_contains($num, 'décret')) $typeCode = 'DEC';
+            if (str_contains($num, 'arrêté')) $typeCode = 'ARR';
+            if (str_contains($num, 'constitution')) $typeCode = 'CONST';
+            if (str_contains($num, 'ordonnance')) $typeCode = 'ORD';
+        }
 
+        $publicationDate = $this->parseSafeDate($data['date_publication'] ?? $data['date_signature'] ?? null);
+
+        // 2. Determine Title
+        $title = $data['titre_officiel'] ?? $data['intitule_long'] ?? 'Document sans titre';
+
+        // 3. Create Document
         $document = LegalDocument::create([
             'type_code' => $typeCode,
             'reference_nor' => $refNor,
-            'titre_officiel' => $data['intitule_long'] ?? 'Document sans titre',
+            'titre_officiel' => $title,
             'date_publication' => $publicationDate,
-            'date_signature' => $publicationDate,
+            'date_signature' => $this->parseSafeDate($data['date_signature'] ?? null),
             'statut' => 'vigueur',
             'curation_status' => 'published',
-            'source_url' => $pdfPath,
         ]);
 
-        if (isset($data['contenu'])) {
+        if ($pdfPath) {
+            $document->mediaFiles()->create([
+                'file_path' => $pdfPath,
+                'mime_type' => 'application/pdf',
+                'description' => 'Original signé',
+            ]);
+        }
+
+        // 4. Process Content
+        if (isset($data['structure'])) {
+            $this->processStructureNodes($data['structure'], $document, null);
+        } elseif (isset($data['contenu'])) {
             $this->processContentElements($data['contenu'], $document, null);
         }
     }
+
+    private function processStructureNodes(array $nodes, LegalDocument $document, ?StructureNode $parentNode): void
+    {
+        foreach ($nodes as $index => $nodeData) {
+            // Create StructureNode
+            $node = $this->createStructureNodeFromSchema2($nodeData, $document, $parentNode, $index);
+
+            // Process Articles inside this structure node
+            if (isset($nodeData['articles']) && is_array($nodeData['articles'])) {
+                foreach ($nodeData['articles'] as $artIndex => $articleData) {
+                    $this->createArticleFromSchema2($articleData, $document, $node, $artIndex);
+                }
+            }
+
+            // Process Children (nested structure nodes)
+            if (!empty($nodeData['children'])) {
+                $this->processStructureNodes($nodeData['children'], $document, $node);
+            }
+        }
+    }
+
+    private function createStructureNodeFromSchema2(array $data, LegalDocument $document, ?StructureNode $parentNode, int $sortOrder): StructureNode
+    {
+        $nodeId = (string) Str::uuid();
+        $safeId = str_replace('-', '_', $nodeId);
+
+        $treePath = $parentNode
+            ? $parentNode->tree_path . '.' . $safeId
+            : $safeId;
+
+        return StructureNode::create([
+            'id' => $nodeId,
+            'document_id' => $document->id,
+            'type_unite' => $data['type_unite'] ?? 'Section',
+            'numero' => $data['numero'] ?? null,
+            'titre' => $data['titre'] ?? null,
+            'tree_path' => $treePath,
+            'sort_order' => $sortOrder,
+            'validation_status' => 'validated',
+        ]);
+    }
+
+    private function createArticleFromSchema2(array $data, LegalDocument $document, ?StructureNode $parentNode, int $sortOrder): void
+    {
+        $article = Article::create([
+            'document_id' => $document->id,
+            'parent_node_id' => $parentNode?->id,
+            'numero_article' => $data['numero'] ?? '?',
+            'ordre_affichage' => $sortOrder,
+            'validation_status' => 'validated',
+        ]);
+
+        $content = $data['contenu'] ?? '';
+
+        ArticleVersion::create([
+            'article_id' => $article->id,
+            'contenu_texte' => $content,
+            'validity_period' => ArticleVersion::makeValidityPeriod($document->date_publication->format('Y-m-d')),
+            'validation_status' => 'validated',
+        ]);
+    }
+
 
     private function processContentElements(array $elements, LegalDocument $document, ?StructureNode $parentNode): void
     {

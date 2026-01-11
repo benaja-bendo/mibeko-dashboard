@@ -32,6 +32,16 @@ class LegalDocumentResource extends JsonResource
             'structure' => StructureNodeResource::collection($this->whenLoaded('structureNodes')),
             'articles' => ArticleSyncResource::collection($this->whenLoaded('articles')),
             'relations' => DocumentRelationResource::collection($this->whenLoaded('relations')),
+            'media_files' => $this->whenLoaded('mediaFiles', function () {
+                return $this->mediaFiles->map(fn ($file) => [
+                    'id' => $file->id,
+                    'path' => $file->file_path,
+                    'mime_type' => $file->mime_type,
+                    'size' => $file->file_size,
+                    'description' => $file->description,
+                    'created_at' => $file->created_at->toIso8601String(),
+                ]);
+            }),
             'updated_at' => $this->updated_at->toIso8601String(),
         ];
     }

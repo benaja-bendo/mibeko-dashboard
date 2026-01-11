@@ -7,11 +7,13 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\MorphToMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use OwenIt\Auditing\Contracts\Auditable;
 
 class LegalDocument extends Model implements Auditable
 {
-    use HasFactory, HasUuids, \OwenIt\Auditing\Auditable;
+    use HasFactory, HasUuids, SoftDeletes, \OwenIt\Auditing\Auditable;
 
     protected $auditExclude = [
         'created_at',
@@ -26,7 +28,6 @@ class LegalDocument extends Model implements Auditable
         'date_signature',
         'date_publication',
         'date_entree_vigueur',
-        'source_url',
         'statut',
         'curation_status',
     ];
@@ -71,5 +72,25 @@ class LegalDocument extends Model implements Auditable
     public function relations(): HasMany
     {
         return $this->hasMany(DocumentRelation::class, 'source_doc_id');
+    }
+
+    /**
+     * Récupère les fichiers médias associés au document.
+     *
+     * @return HasMany
+     */
+    public function mediaFiles(): HasMany
+    {
+        return $this->hasMany(MediaFile::class, 'document_id');
+    }
+
+    /**
+     * Récupère tous les tags du document juridique.
+     *
+     * @return MorphToMany
+     */
+    public function tags(): MorphToMany
+    {
+        return $this->morphToMany(Tag::class, 'taggable');
     }
 }

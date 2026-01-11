@@ -39,8 +39,8 @@ class CurationController extends Controller
             ->paginate(20)
             ->withQueryString()
             ->through(function ($doc) {
-                $progression = $doc->articles_count > 0 
-                    ? round(($doc->validated_articles_count / $doc->articles_count) * 100) 
+                $progression = $doc->articles_count > 0
+                    ? round(($doc->validated_articles_count / $doc->articles_count) * 100)
                     : 0;
 
                 // Mock quality score logic
@@ -79,11 +79,19 @@ class CurationController extends Controller
             'titre_officiel' => 'required|string|max:1000',
             'reference_nor' => 'nullable|string|max:100',
             'date_publication' => 'nullable|date',
-            'source_url' => 'nullable|string|max:2048',
+            'file_path' => 'nullable|string|max:2048',
             'curation_status' => 'required|string|in:draft,review,validated,published',
         ]);
 
-        $document = LegalDocument::create($validated);
+        $document = LegalDocument::create($request->except('file_path'));
+
+        if ($request->filled('file_path')) {
+            $document->mediaFiles()->create([
+                'file_path' => $request->file_path,
+                'mime_type' => 'application/pdf',
+                'description' => 'Original importé',
+            ]);
+        }
 
         return redirect()->route('curation.show', $document)->with('success', 'Document créé avec succès.');
     }
@@ -97,7 +105,7 @@ class CurationController extends Controller
 
     public function show(LegalDocument $document)
     {
-        $document->load(['type', 'structureNodes' => function ($query) {
+        $document->load(['type', 'mediaFiles', 'structureNodes' => function ($query) {
             $query->orderBy('sort_order')->orderBy('tree_path');
         }, 'articles' => function ($query) {
             $query->orderBy('ordre_affichage'); // Use ordre_affichage for articles as per schema, maybe aliased to order in frontend
@@ -107,7 +115,7 @@ class CurationController extends Controller
             'document' => [
                 'id' => $document->id,
                 'title' => $document->titre_officiel,
-                'source_url' => $document->source_url,
+                'source_url' => $document->mediaFiles->first()?->file_path,
                 'status' => $document->curation_status,
                 'date_signature' => $document->date_signature?->format('Y-m-d'),
                 'date_publication' => $document->date_publication?->format('Y-m-d'),
@@ -371,11 +379,15 @@ class CurationController extends Controller
             'source_url' => ['nullable', 'string', 'max:2048'],
         ]);
 
-        $document->update([
-            'source_url' => $validated['source_url'],
-        ]);
+        if ($request->filled('source_url')) {
+            $document->mediaFiles()->create([
+                'file_path' => $validated['source_url'],
+                'mime_type' => 'application/pdf',
+                'description' => 'Nouvelle version',
+            ]);
+        }
 
-        return back()->with('success', 'URL source mise à jour');
+        return back()->with('success', 'Fichier média mis à jour');
     }
 
     // Kept for backward compatibility if needed, but updateArticle covers it

@@ -19,9 +19,8 @@ import {
 import { updateSourceUrl } from '@/actions/App/Http/Controllers/CurationController';
 
 // Helper function to build the PDF proxy URL
-const getPdfProxyUrl = (path: string | null): string | null => {
-    if (!path) return null;
-    return `/pdf-proxy?path=${encodeURIComponent(path)}`;
+const getPdfProxyUrl = (documentId: string): string => {
+    return `/pdf-proxy/${documentId}`;
 };
 
 interface Document {
@@ -80,7 +79,7 @@ export default function PdfViewer({ document, collapsed, onToggle }: PdfViewerPr
                     </Button>
                     {document.source_url && (
                         <a
-                            href={`${getPdfProxyUrl(document.source_url)}&download=1`}
+                            href={`${getPdfProxyUrl(document.id)}?download=1`}
                             className="inline-flex items-center justify-center h-8 w-8 rounded-md text-zinc-400 hover:text-zinc-100 hover:bg-zinc-700"
                             title="Télécharger le PDF"
                         >
@@ -89,7 +88,7 @@ export default function PdfViewer({ document, collapsed, onToggle }: PdfViewerPr
                     )}
                     {document.source_url && (
                         <a
-                            href={getPdfProxyUrl(document.source_url) || '#'}
+                            href={getPdfProxyUrl(document.id)}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="inline-flex items-center justify-center h-8 w-8 rounded-md text-zinc-400 hover:text-zinc-100 hover:bg-zinc-700"
@@ -104,7 +103,7 @@ export default function PdfViewer({ document, collapsed, onToggle }: PdfViewerPr
             <div className="flex-1 relative bg-black/50 overflow-hidden">
                 {document.source_url ? (
                     <iframe
-                        src={getPdfProxyUrl(document.source_url) || undefined}
+                        src={getPdfProxyUrl(document.id)}
                         className="h-full w-full border-0"
                         title="PDF Viewer"
                     />

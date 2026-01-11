@@ -30,11 +30,13 @@ class ArticleSearchController extends Controller
             'q' => ['nullable', 'string', 'min:2'],
             'document_id' => ['nullable', 'string', 'exists:legal_documents,id'],
             'tag' => ['nullable', 'string'],
+            'type' => ['nullable', 'string', 'exists:document_types,code'],
         ]);
 
         $query = $request->input('q');
         $documentId = $request->input('document_id');
         $tag = $request->input('tag');
+        $type = $request->input('type');
 
         if (empty($query) && empty($tag)) {
             return response()->json(['data' => [], 'meta' => []]);
@@ -62,14 +64,22 @@ class ArticleSearchController extends Controller
 
         // Apply Tag Filter
         if ($tag) {
-            $results->join('article_tag as at', 'a.id', '=', 'at.article_id')
-                ->join('tags as t', 'at.tag_id', '=', 't.id')
+            $results->join('taggables as tgb', function ($join) {
+                $join->on('a.id', '=', 'tgb.taggable_id')
+                    ->where('tgb.taggable_type', '=', 'App\Models\Article');
+            })
+                ->join('tags as t', 'tgb.tag_id', '=', 't.id')
                 ->where('t.slug', $tag);
         }
 
         // Apply Document Filter
         if ($documentId) {
             $results->where('a.document_id', $documentId);
+        }
+
+        // Apply Type Filter
+        if ($type) {
+            $results->where('ld.type_code', $type);
         }
 
         // Apply Search Logic if query is present
@@ -98,7 +108,8 @@ class ArticleSearchController extends Controller
                 ->where(function ($q) use ($query, $embeddingString) {
                     $q->whereRaw("av.search_tsv @@ websearch_to_tsquery('french', ?)", [$query])
                       ->orWhereRaw("av.embedding <=> ?::vector < 0.5", [$embeddingString])
-                      ->orWhere('ld.titre_officiel', 'ILIKE', "%$query%");
+                      ->orWhere('ld.titre_officiel', 'ILIKE', "%$query%")
+                      ->orWhere('a.numero_article', '=', $query);
                 })
                 ->orderByDesc('total_score');
         } else {

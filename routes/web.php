@@ -59,7 +59,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     });
 
     // PDF Proxy for inline display (fixes Minio/S3 download issue)
-    Route::get('/pdf-proxy', [App\Http\Controllers\PdfProxyController::class, 'show'])->name('pdf.proxy');
+    Route::get('/pdf-proxy/{id}', [App\Http\Controllers\PdfProxyController::class, 'show'])->name('pdf.proxy');
 
     // Auditing
     Route::get('/auditing', [App\Http\Controllers\AuditController::class, 'index'])->name('auditing.index');

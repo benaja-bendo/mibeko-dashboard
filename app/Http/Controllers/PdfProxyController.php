@@ -15,8 +15,9 @@ class PdfProxyController extends Controller
      */
     public function show(Request $request, string $id): StreamedResponse
     {
-        $document = LegalDocument::findOrFail($id);
-        $path = $document->source_url;
+        $document = LegalDocument::with('mediaFiles')->findOrFail($id);
+        $mediaFile = $document->mediaFiles->first();
+        $path = $mediaFile?->file_path;
         $download = filter_var($request->query('download'), FILTER_VALIDATE_BOOLEAN);
 
         if (! $path) {

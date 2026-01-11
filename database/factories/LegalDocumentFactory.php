@@ -26,7 +26,6 @@ class LegalDocumentFactory extends Factory
             'date_signature' => $this->faker->date(),
             'date_publication' => $this->faker->date(),
             'date_entree_vigueur' => $this->faker->date(),
-            'source_url' => $this->faker->url(),
             'statut' => $this->faker->randomElement(['vigueur', 'abroge', 'projet']),
         ];
     }
