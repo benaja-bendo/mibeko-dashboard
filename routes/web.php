@@ -63,6 +63,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     // Auditing
     Route::get('/auditing', [App\Http\Controllers\AuditController::class, 'index'])->name('auditing.index');
+
+    // Media Management
+    Route::get('/api/media/files', [App\Http\Controllers\MediaController::class, 'listAvailableFiles'])->name('api.media.files');
+    Route::post('/curation/{document}/attach-media', [App\Http\Controllers\MediaController::class, 'attachFile'])->name('curation.attach-media');
 });
 
 

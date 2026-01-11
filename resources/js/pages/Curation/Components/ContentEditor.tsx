@@ -27,7 +27,7 @@ import {
     Settings,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import StatusBadge from '@/pages/Curation/Components/StatusBadge';
+import StatusBadge from '@/Pages/Curation/Components/StatusBadge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
     Tooltip,
@@ -221,11 +221,11 @@ export default function ContentEditor({
                         </div>
                     </div>
                 </div>
-                
+
                 <div className="p-4 border border-blue-100 bg-blue-50/50 dark:bg-blue-900/10 dark:border-blue-900/30 rounded-lg flex gap-3">
                     <AlertCircle className="h-5 w-5 text-blue-500 shrink-0" />
                     <p className="text-xs text-blue-700 dark:text-blue-300 leading-relaxed">
-                        Ces dates sont essentielles pour le calcul de la validité temporelle des articles. 
+                        Ces dates sont essentielles pour le calcul de la validité temporelle des articles.
                         La date de publication est utilisée par défaut comme date d'entrée en vigueur si non spécifiée autrement.
                     </p>
                 </div>

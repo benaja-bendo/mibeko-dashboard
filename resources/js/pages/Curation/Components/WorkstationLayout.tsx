@@ -13,10 +13,10 @@ import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, us
 import { sortableKeyboardCoordinates } from '@dnd-kit/sortable';
 
 // Components
-import PdfViewer from '@/pages/Curation/Components/PdfViewer';
-import StructureTree, { StructureNode, Article, TreeActions } from '@/pages/Curation/Components/StructureTree';
-import ContentEditor from '@/pages/Curation/Components/ContentEditor';
-import EditableHeaderTitle from '@/pages/Curation/Components/EditableHeaderTitle';
+import PdfViewer from '@/Pages/Curation/Components/PdfViewer';
+import StructureTree, { StructureNode, Article, TreeActions } from '@/Pages/Curation/Components/StructureTree';
+import ContentEditor from '@/Pages/Curation/Components/ContentEditor';
+import EditableHeaderTitle from '@/Pages/Curation/Components/EditableHeaderTitle';
 
 interface Document {
     id: string;
@@ -69,7 +69,7 @@ export default function WorkstationLayout({
 
     const selectedNode = useMemo(() => {
         // Flatten tree to find node if needed, or search in props if we had flat structure.
-        // workstation.tsx has flat structure as `initialStructure`. 
+        // workstation.tsx has flat structure as `initialStructure`.
         // For simplicity, let's assume we can find it in the articles' parents or just search the tree.
         const findInTree = (nodes: StructureNode[], id: string): StructureNode | null => {
             for (const n of nodes) {
@@ -128,7 +128,7 @@ export default function WorkstationLayout({
                         </Button>
                     </Link>
                     <div className="flex-1 min-w-0">
-                            <div 
+                            <div
                                 className="flex items-center gap-2.5 overflow-hidden cursor-pointer hover:opacity-80 transition-opacity"
                                 onClick={onSelectDocument}
                             >
@@ -213,7 +213,6 @@ export default function WorkstationLayout({
                         >
                             <PdfViewer
                                 document={document}
-                                collapsed={isPdfCollapsed}
                                 onToggle={() => setIsPdfCollapsed(!isPdfCollapsed)}
                             />
                         </ResizablePanel>

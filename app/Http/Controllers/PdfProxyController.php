@@ -33,7 +33,7 @@ class PdfProxyController extends Controller
         $isPdf = str_ends_with(strtolower($path), '.pdf');
         $contentType = $isPdf ? 'application/pdf' : 'application/octet-stream';
         $filename = basename($path);
-        
+
         // Si le nom du fichier est un UUID obscur, on peut proposer un nom plus lisible
         // $filename = Str::slug($document->titre_officiel) . '.pdf';
 
@@ -41,7 +41,9 @@ class PdfProxyController extends Controller
             'Content-Type' => $contentType,
             'Content-Disposition' => $download ? ('attachment; filename="'.$filename.'"') : 'inline',
             'Content-Length' => $disk->size($path),
-            'Cache-Control' => 'public, max-age=3600',
+            'Cache-Control' => 'no-cache, no-store, must-revalidate',
+            'Pragma' => 'no-cache',
+            'Expires' => '0',
             'X-Frame-Options' => 'SAMEORIGIN',
             'Accept-Ranges' => 'bytes',
         ];

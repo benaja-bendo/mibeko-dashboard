@@ -379,11 +379,14 @@ class CurationController extends Controller
             'source_url' => ['nullable', 'string', 'max:2048'],
         ]);
 
+        // Clean up previous media files to ensure the new one is the only reference
+        $document->mediaFiles()->delete();
+
         if ($request->filled('source_url')) {
             $document->mediaFiles()->create([
                 'file_path' => $validated['source_url'],
                 'mime_type' => 'application/pdf',
-                'description' => 'Nouvelle version',
+                'description' => 'Mis à jour manuellement',
             ]);
         }
 

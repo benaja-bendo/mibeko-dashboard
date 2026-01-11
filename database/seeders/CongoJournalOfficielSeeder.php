@@ -135,12 +135,16 @@ class CongoJournalOfficielSeeder extends Seeder
     {
         try {
             $filename = "sources/{$baseName}.pdf";
-            if (config('filesystems.disks.s3.bucket')) {
-                 Storage::disk('s3')->put($filename, File::get($localPath));
-                 return $filename;
+
+            // Check if file already exists in S3 to avoid re-uploading every time
+            if (Storage::disk('s3')->exists($filename)) {
+                return $filename;
             }
-            return null;
+
+            Storage::disk('s3')->put($filename, File::get($localPath));
+            return $filename;
         } catch (\Exception $e) {
+            $this->command->error("Erreur lors de l'upload PDF pour {$baseName}: " . $e->getMessage());
             return null;
         }
     }
