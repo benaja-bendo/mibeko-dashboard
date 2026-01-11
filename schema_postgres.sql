@@ -164,7 +164,6 @@ CREATE INDEX IF NOT EXISTS idx_audits_auditable ON audits(auditable_type, audita
 
 -- ===========================================================
 -- 1. TABLE : METADONNÉES DES DOCUMENTS (Le contenant)
--- Inspiré de schema02 pour la richesse
 -- ===========================================================
 -- Types de textes (Lois, Codes, Décrets...)
 CREATE TABLE document_types (
@@ -216,8 +215,10 @@ CREATE TABLE structure_nodes (
     -- Le "Label" du noeud (ex: "Livre", "Titre", "Chapitre")
     type_unite VARCHAR(50) NOT NULL,
 
-    -- Le numéro/titre (ex: "I", "Dispositions Générales")
+    -- Le numéro/titre (ex: "I", "Dispositions Générales", "Chapitre I", "Article 1", "Alinéa 1")
     numero VARCHAR(50),
+
+    -- Le titre officiel (ex: "Dispositions Générales", "Chapitre I", "Article 1", "Alinéa 1")
     titre TEXT,
 
     -- LA MAGIE LTREE : Chemin matérialisé
@@ -249,11 +250,15 @@ CREATE TABLE articles (
     numero_article VARCHAR(50) NOT NULL, -- "1", "2 bis", "Art. 4"
     ordre_affichage INT DEFAULT 0,
 
-    validation_status VARCHAR(20) DEFAULT 'pending',
+    validation_status VARCHAR(20) DEFAULT 'pending', -- pending, in_progress, validated
 
+    deleted_at TIMESTAMP,
     created_at TIMESTAMP DEFAULT NOW(),
     updated_at TIMESTAMP DEFAULT NOW()
 );
+
+CREATE INDEX IF NOT EXISTS idx_articles_updated_at ON articles(updated_at);
+
 
 -- ===========================================================
 -- 4. TABLE : VERSIONS D'ARTICLES (Le contenu & RAG)
@@ -263,39 +268,46 @@ CREATE TABLE article_versions (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     article_id UUID NOT NULL REFERENCES articles(id) ON DELETE CASCADE,
 
-    -- Période de validité (Daterange est natif PG)
-    -- '[2020-01-01, 2024-01-01)' veut dire valide de 2020 inclus à 2024 exclu.
+    -- Période de validité (ex: version active de 2020 à 2024)
     validity_period DATERANGE NOT NULL,
 
-    -- Contenu
+    -- 1. Le contenu brut (affiché à l'utilisateur)
     contenu_texte TEXT NOT NULL,
 
-    -- Recherche : Hybride (Full Text + Vector)
-    -- search_tsv TSVECTOR GENERATED ALWAYS AS (to_tsvector('french', contenu_texte)) STORED,
+    -- 2. Le contexte enrichi (ce qui a été vectorisé)
+    -- Contient : "Titre Code > Livre > Chapitre > Contenu"
+    -- C'est utile pour vérifier ce que l'IA "voit" vraiment.
+    embedding_context TEXT, 
+
+    -- 3. Le Vecteur (Ada-002 ou text-embedding-3-small = 1536 dim)
+    embedding VECTOR(1536),
+
+    -- Recherche Full Text (Lexicale)
     search_tsv TSVECTOR,
-    -- embedding VECTOR(1536), -- Dimension 1536 pour OpenAI ada-002 (à adapter selon votre modèle)
 
-    -- Métadonnées de modification
-    modifie_par_document_id UUID REFERENCES legal_documents(id), -- Quelle loi a créé cette version ?
-
-    validation_status VARCHAR(50) DEFAULT 'pending' CHECK (validation_status IN ('pending', 'in_progress', 'validated', 'rejected')),
-
-    is_verified BOOLEAN DEFAULT FALSE, -- Document validé (QA Status)
+    -- Métadonnées
+    modifie_par_document_id UUID REFERENCES legal_documents(id), -- Document qui a modifié l'article
+    validation_status VARCHAR(50) DEFAULT 'pending', -- pending, in_progress, validated
+    is_verified BOOLEAN DEFAULT FALSE,
 
     created_at TIMESTAMP DEFAULT NOW(),
     updated_at TIMESTAMP DEFAULT NOW(),
 
-    -- CONTRAINTE D'INTEGRITÉ TEMPORELLE
-    -- Empêche d'avoir deux versions valides en même temps pour le même article
+    -- Empêche le chevauchement de dates pour un même article
     EXCLUDE USING GIST (
         article_id WITH =,
         validity_period WITH &&
     )
 );
 
+-- Index pour la recherche textuelle classique (mots-clés)
 CREATE INDEX idx_versions_search ON article_versions USING GIN(search_tsv);
--- Index HNSW pour la recherche vectorielle rapide
--- CREATE INDEX idx_versions_embedding ON article_versions USING hnsw (embedding vector_cosine_ops);
+
+-- Index pour la recherche vectorielle (IA) - CRITIQUE POUR LA VITESSE
+-- lists = 100 est une bonne valeur par défaut pour < 1M lignes
+CREATE INDEX idx_versions_embedding ON article_versions 
+USING hnsw (embedding vector_cosine_ops) 
+WITH (m = 16, ef_construction = 64);
 
 -- ===========================================================
 -- 5. TABLE : LIENS ET CITATIONS (Le Graph Juridique)

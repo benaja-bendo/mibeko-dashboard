@@ -22,6 +22,7 @@
         "league/flysystem-aws-s3-v3": "^3.0",
         "openai-php/laravel": "^0.18.0",
         "owen-it/laravel-auditing": "^14.0",
+        "pgvector/pgvector": "^0.2.2",
         "spatie/laravel-backup": "^9.3",
         "spatie/laravel-query-builder": "^6.3"
     },

@@ -25,8 +25,25 @@ class ArticleVersion extends Model implements Auditable
         'article_id',
         'validity_period',
         'contenu_texte',
+        'embedding_context',
+        'embedding',
         'modifie_par_document_id',
+        'validation_status',
+        'is_verified',
     ];
+
+    /**
+     * Get the attributes that should be cast.
+     *
+     * @return array<string, string>
+     */
+    protected function casts(): array
+    {
+        return [
+            'embedding' => \Pgvector\Laravel\Vector::class,
+            'is_verified' => 'boolean',
+        ];
+    }
 
     public function article(): BelongsTo
     {
