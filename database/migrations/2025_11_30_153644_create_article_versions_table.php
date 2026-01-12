@@ -42,12 +42,13 @@ return new class extends Migration
         });
 
         // 3. Ajout des colonnes complexes et contraintes via RAW SQL
-        DB::statement('
+        $dimension = config('ai.default') === 'mistral' ? 1024 : 1536;
+        DB::statement("
             ALTER TABLE article_versions
             ADD COLUMN validity_period DATERANGE NOT NULL,
-            ADD COLUMN embedding vector(1536),
+            ADD COLUMN embedding vector($dimension),
             ADD COLUMN search_tsv tsvector;
-        ');
+        ");
 
         // 4. Ajout de la contrainte d'exclusion (Empêcher le chevauchement de dates)
         DB::statement('
@@ -66,8 +67,8 @@ return new class extends Migration
 
         // Index Vectoriel (HNSW) - Le plus important pour ton RAG
         DB::statement('
-            CREATE INDEX idx_versions_embedding 
-            ON article_versions 
+            CREATE INDEX idx_versions_embedding
+            ON article_versions
             USING hnsw (embedding vector_cosine_ops)
             WITH (m = 16, ef_construction = 64);
         ');

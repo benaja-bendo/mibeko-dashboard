@@ -200,14 +200,21 @@ CREATE TABLE legal_documents (
     date_entree_vigueur DATE,
 
     -- source_url supprimé, déplacé vers media_files
-    
+
     statut VARCHAR(20) CHECK (statut IN ('vigueur', 'abroge', 'projet')) DEFAULT 'vigueur',
     curation_status VARCHAR(50) DEFAULT 'draft', -- draft, curated, published
+
+    -- METADONNÉES FLEXIBLES (Spécifique Jurisprudence ou autre)
+    -- Ex: {"parties": ["X vs Y"], "chambre": "Civile", "avocats": ["Me Dupont"], "numero_pourvoi": "12-34.567"}
+    metadata JSONB DEFAULT '{}'::jsonb,
 
     created_at TIMESTAMP DEFAULT NOW(),
     updated_at TIMESTAMP DEFAULT NOW(),
     deleted_at TIMESTAMP -- Soft Delete
 );
+
+-- Index pour rechercher rapidement dans le JSONB (ex: trouver un avocat ou une partie)
+CREATE INDEX idx_legal_docs_metadata ON legal_documents USING GIN (metadata);
 
 -- ===========================================================
 -- 1.1 TABLE : FICHIERS MÉDIAS (PDFs, etc.)
@@ -297,7 +304,7 @@ CREATE TABLE article_versions (
     -- 2. Le contexte enrichi (ce qui a été vectorisé)
     -- Contient : "Titre Code > Livre > Chapitre > Contenu"
     -- C'est utile pour vérifier ce que l'IA "voit" vraiment.
-    embedding_context TEXT, 
+    embedding_context TEXT,
 
     -- 3. Le Vecteur (Ada-002 ou text-embedding-3-small = 1536 dim)
     embedding VECTOR(1536),
@@ -325,8 +332,8 @@ CREATE INDEX idx_versions_search ON article_versions USING GIN(search_tsv);
 
 -- Index pour la recherche vectorielle (IA) - CRITIQUE POUR LA VITESSE
 -- lists = 100 est une bonne valeur par défaut pour < 1M lignes
-CREATE INDEX idx_versions_embedding ON article_versions 
-USING hnsw (embedding vector_cosine_ops) 
+CREATE INDEX idx_versions_embedding ON article_versions
+USING hnsw (embedding vector_cosine_ops)
 WITH (m = 16, ef_construction = 64);
 
 -- ===========================================================
@@ -424,7 +431,7 @@ BEGIN
         );
         RETURN NEW;
     ELSE
-        UPDATE article_versions 
+        UPDATE article_versions
         SET search_tsv = (
             setweight(to_tsvector('french', COALESCE(contenu_texte, '')), 'A') ||
             setweight(to_tsvector('french', tags_text), 'B')

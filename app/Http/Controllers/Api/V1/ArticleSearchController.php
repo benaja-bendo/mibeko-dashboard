@@ -5,9 +5,12 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\V1\ArticleResource;
 use App\Models\Article;
+use App\Models\LegalDocument;
+use App\Contracts\AiServiceInterface;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 /**
  * @group Article Search
@@ -16,8 +19,15 @@ use Illuminate\Support\Facades\DB;
  */
 class ArticleSearchController extends Controller
 {
+    protected AiServiceInterface $aiService;
+
+    public function __construct(AiServiceInterface $aiService)
+    {
+        $this->aiService = $aiService;
+    }
+
     /**
-     * Search articles (Hybrid: Vector + Full-Text).
+     * Search articles (Hybrid: Vector + Full-Text) and provide AI answer (RAG).
      *
      * Combines `ts_rank` (keyword search) and `cosine_distance` (semantic search).
      *
@@ -85,7 +95,16 @@ class ArticleSearchController extends Controller
         // Apply Search Logic if query is present
         if (!empty($query)) {
             // 1. Generate Embedding
-            $embedding = $this->generateEmbedding($query);
+            try {
+                $embedding = $this->aiService->generateEmbedding($query);
+            } catch (\Exception $e) {
+                return $this->error([], 'Erreur lors de la génération de l\'embedding via le service d\'IA', 500);
+            }
+
+            if (empty($embedding)) {
+                return $this->error([], 'Erreur lors de la génération de l\'embedding via le service d\'IA', 500);
+            }
+
             $embeddingString = '[' . implode(',', $embedding) . ']';
 
             // 2. Add scoring and search conditions
@@ -139,11 +158,60 @@ class ArticleSearchController extends Controller
                 'node_title' => $item->node_title ?? '',
                 'breadcrumb' => $breadcrumb,
                 'validation_status' => $item->validation_status ?? 'validated',
-                'score' => round((float) $item->total_score, 4),
+                'score' => isset($item->total_score) ? round((float) $item->total_score, 4) : 0,
             ];
         });
 
+        // 4. Generate AI Answer (RAG) if it's a direct question
+        $aiAnswer = null;
+        if (!empty($query)) {
+            $topArticles = $paginator->items();
+            $sources = array_slice($topArticles, 0, 5); // Take top 3-5
+            $aiAnswer = $this->generateAiAnswer($query, $sources);
+        }
+
+        if ($aiAnswer) {
+            return $this->success([
+                'answer' => $aiAnswer,
+                'sources' => $paginator->items(),
+                'pagination' => [
+                    'total' => $paginator->total(),
+                    'per_page' => $paginator->perPage(),
+                    'current_page' => $paginator->currentPage(),
+                    'last_page' => $paginator->lastPage(),
+                ],
+            ], 'Réponse générée avec succès');
+        }
+
         return $this->paginatedSuccess($paginator, null, 'Résultats de recherche récupérés avec succès');
+    }
+
+    /**
+     * Generate AI answer using AI service (RAG).
+     */
+    private function generateAiAnswer(string $query, array $articles): ?string
+    {
+        if (empty($articles)) {
+            return null;
+        }
+
+        // Construction du contexte à partir des articles trouvés
+        $context = "";
+        foreach ($articles as $index => $article) {
+            $context .= "Source " . ($index + 1) . " (" . $article['document_title'] . ", Art. " . $article['number'] . "):\n";
+            $context .= $article['content'] . "\n\n";
+        }
+
+        $prompt = "Tu es un expert juridique spécialisé dans le droit congolais. Réponds à la question suivante en te basant uniquement sur les extraits de loi fournis ci-dessous.\n\n"
+                . "Si les extraits ne contiennent pas la réponse, indique poliment que tu ne trouves pas l'information dans les documents actuels.\n\n"
+                . "Extraits de loi :\n" . $context . "\n"
+                . "Question : " . $query . "\n\n"
+                . "Réponse directe, précise et structurée :";
+
+        return $this->aiService->generateChatCompletion([
+            ['role' => 'system', 'content' => 'Tu es un assistant juridique rigoureux qui aide les citoyens à comprendre leurs droits.'],
+            ['role' => 'user', 'content' => $prompt],
+        ]);
     }
 
     /**
@@ -155,25 +223,5 @@ class ArticleSearchController extends Controller
         // Using 'plainto_tsquery' logic simulation or just strict AND
         $parts = array_filter(explode(' ', trim($query)));
         return implode(' & ', $parts);
-    }
-
-    /**
-     * Generate embedding using OpenAI
-     */
-    private function generateEmbedding(string $text): array
-    {
-        // Mock for MVP if OpenAI key not set, or use real call
-        // Using OpenAI Laravel client
-        try {
-            $response = \OpenAI\Laravel\Facades\OpenAI::embeddings()->create([
-                'model' => 'text-embedding-3-small',
-                'input' => $text,
-            ]);
-            return $response->embeddings[0]->embedding;
-        } catch (\Exception $e) {
-            // Fallback mock (all zeros) or error handling
-            // For dev without API key:
-            return array_fill(0, 1536, 0.0);
-        }
     }
 }

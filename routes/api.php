@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\V1\ArticleSearchController;
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\CatalogController;
+use App\Http\Controllers\Api\V1\HomeController;
 use App\Http\Controllers\Api\V1\DocumentTypeController;
 use App\Http\Controllers\Api\V1\InstitutionController;
 use App\Http\Controllers\Api\V1\LegalDocumentController;
@@ -22,6 +23,7 @@ Route::prefix('v1')->group(function () {
     });
 
     // Resources
+    Route::get('home', [HomeController::class, 'index']);
     Route::get('catalog', [CatalogController::class, 'index']); // BE1
     Route::get('catalog/stats', [CatalogController::class, 'stats']);
 
@@ -30,13 +32,13 @@ Route::prefix('v1')->group(function () {
 
     Route::apiResource('legal-documents', LegalDocumentController::class)->only(['index', 'show']);
     Route::get('legal-documents/{document}/tree', [StructureNodeController::class, 'tree']);
-    
+
     // BE2 - Flat List Download
     Route::get('legal-documents/{id}/download', [LegalDocumentDownloadController::class, 'download']);
-    
+
     // BE4 - PDF Proxy
     Route::get('legal-documents/{id}/pdf', [PdfProxyController::class, 'show']);
-    
+
     // BE5 - PDF Export
     Route::get('legal-documents/{id}/export', [LegalDocumentExportController::class, 'export']);
     Route::get('articles/{id}/export', [LegalDocumentExportController::class, 'exportArticle']);
