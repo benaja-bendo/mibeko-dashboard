@@ -19,13 +19,15 @@ DROP TABLE IF EXISTS password_reset_tokens CASCADE;
 DROP TABLE IF EXISTS users CASCADE;
 DROP TABLE IF EXISTS migrations CASCADE;
 
-DROP TABLE IF EXISTS article_tag CASCADE;
+DROP TABLE IF EXISTS taggables CASCADE;
+DROP TABLE IF EXISTS article_tag CASCADE; -- Old table
 DROP TABLE IF EXISTS tags CASCADE;
 DROP TABLE IF EXISTS curation_flags CASCADE;
 DROP TABLE IF EXISTS document_relations CASCADE;
 DROP TABLE IF EXISTS article_versions CASCADE;
 DROP TABLE IF EXISTS articles CASCADE;
 DROP TABLE IF EXISTS structure_nodes CASCADE;
+DROP TABLE IF EXISTS media_files CASCADE;
 DROP TABLE IF EXISTS legal_documents CASCADE;
 DROP TABLE IF EXISTS institutions CASCADE;
 DROP TABLE IF EXISTS document_types CASCADE;
@@ -56,7 +58,8 @@ CREATE TABLE IF NOT EXISTS users (
     two_factor_confirmed_at TIMESTAMP(0) WITHOUT TIME ZONE,
     remember_token VARCHAR(100),
     created_at TIMESTAMP(0) WITHOUT TIME ZONE,
-    updated_at TIMESTAMP(0) WITHOUT TIME ZONE
+    updated_at TIMESTAMP(0) WITHOUT TIME ZONE,
+    deleted_at TIMESTAMP(0) WITHOUT TIME ZONE
 );
 
 -- Réinitialisation de mot de passe
@@ -196,13 +199,30 @@ CREATE TABLE legal_documents (
     date_publication DATE,
     date_entree_vigueur DATE,
 
-    source_url TEXT,              -- Lien PDF original
+    -- source_url supprimé, déplacé vers media_files
+    
     statut VARCHAR(20) CHECK (statut IN ('vigueur', 'abroge', 'projet')) DEFAULT 'vigueur',
     curation_status VARCHAR(50) DEFAULT 'draft', -- draft, curated, published
 
     created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW(),
+    deleted_at TIMESTAMP -- Soft Delete
+);
+
+-- ===========================================================
+-- 1.1 TABLE : FICHIERS MÉDIAS (PDFs, etc.)
+-- ===========================================================
+CREATE TABLE media_files (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    document_id UUID NOT NULL REFERENCES legal_documents(id) ON DELETE CASCADE,
+    file_path VARCHAR(255) NOT NULL, -- Chemin S3 ou local
+    mime_type VARCHAR(100),          -- application/pdf
+    file_size BIGINT,
+    description VARCHAR(255),        -- "Original signé", "Annexe 1"
+    created_at TIMESTAMP DEFAULT NOW(),
     updated_at TIMESTAMP DEFAULT NOW()
 );
+
 
 -- ===========================================================
 -- 2. TABLE : SQUELETTE STRUCTUREL (Materialized Path)
@@ -346,7 +366,7 @@ CREATE TABLE curation_flags (
 );
 
 -- ===========================================================
--- 7. TABLE : TAGS (Pour Sandrine / Simplification)
+-- 7. TAGS POLYMORPHES (Pour Sandrine / Simplification)
 -- ===========================================================
 CREATE TABLE tags (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -356,14 +376,15 @@ CREATE TABLE tags (
     updated_at TIMESTAMP DEFAULT NOW()
 );
 
-CREATE TABLE article_tag (
-    article_id UUID NOT NULL REFERENCES articles(id) ON DELETE CASCADE,
+CREATE TABLE taggables (
     tag_id UUID NOT NULL REFERENCES tags(id) ON DELETE CASCADE,
-    PRIMARY KEY (article_id, tag_id)
+    taggable_id UUID NOT NULL,
+    taggable_type VARCHAR(255) NOT NULL,
+    created_at TIMESTAMP DEFAULT NOW(),
+    PRIMARY KEY (tag_id, taggable_id, taggable_type)
 );
 
-CREATE INDEX idx_article_tag_article ON article_tag(article_id);
-CREATE INDEX idx_article_tag_tag ON article_tag(tag_id);
+CREATE INDEX idx_taggables_item ON taggables(taggable_id, taggable_type);
 
 -- ===========================================================
 -- 8. TRIGGERS : REFRESH SEARCH TSV (Full Text Search)
@@ -378,19 +399,22 @@ BEGIN
     IF (TG_RELNAME = 'article_versions') THEN
         article_id_to_update := NEW.article_id;
     ELSE
-        -- We are in article_tag
+        -- We are in taggables
         IF (TG_OP = 'DELETE') THEN
-            article_id_to_update := OLD.article_id;
+            IF (OLD.taggable_type != 'App\Models\Article') THEN RETURN NULL; END IF;
+            article_id_to_update := OLD.taggable_id;
         ELSE
-            article_id_to_update := NEW.article_id;
+            IF (NEW.taggable_type != 'App\Models\Article') THEN RETURN NEW; END IF;
+            article_id_to_update := NEW.taggable_id;
         END IF;
     END IF;
 
     -- Get all tags for this article
     SELECT COALESCE(string_agg(name, ' '), '') INTO tags_text
     FROM tags
-    JOIN article_tag ON tags.id = article_tag.tag_id
-    WHERE article_tag.article_id = article_id_to_update;
+    JOIN taggables ON tags.id = taggables.tag_id
+    WHERE taggables.taggable_id = article_id_to_update
+      AND taggables.taggable_type = 'App\Models\Article';
 
     -- Update search index
     IF (TG_RELNAME = 'article_versions') THEN
@@ -416,6 +440,5 @@ BEFORE INSERT OR UPDATE OF contenu_texte ON article_versions
 FOR EACH ROW EXECUTE FUNCTION fn_refresh_article_version_tsv();
 
 CREATE TRIGGER trg_refresh_tsv_on_tags
-AFTER INSERT OR DELETE OR UPDATE ON article_tag
+AFTER INSERT OR DELETE OR UPDATE ON taggables
 FOR EACH ROW EXECUTE FUNCTION fn_refresh_article_version_tsv();
-
