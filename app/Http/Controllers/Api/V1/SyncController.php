@@ -35,7 +35,7 @@ class SyncController extends Controller
         // To keep it simple and consistent with standard sync, we might paginate.
         // But for the split return, pagination is trickier.
         // Let's grab a chunk or paginate and split the collection.
-        
+
         $paginator = $query->paginate(500); // Larger pages for sync
         $items = $paginator->getCollection();
 
@@ -51,6 +51,7 @@ class SyncController extends Controller
                 'current_page' => $paginator->currentPage(),
                 'last_page' => $paginator->lastPage(),
                 'total' => $paginator->total(),
+                'server_time' => now()->toIso8601String(),
             ],
         ]);
     }
