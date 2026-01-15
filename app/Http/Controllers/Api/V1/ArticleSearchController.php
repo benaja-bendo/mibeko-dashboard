@@ -166,8 +166,19 @@ class ArticleSearchController extends Controller
         $aiAnswer = null;
         if (!empty($query)) {
             $topArticles = $paginator->items();
-            $sources = array_slice($topArticles, 0, 5); // Take top 3-5
-            $aiAnswer = $this->generateAiAnswer($query, $sources);
+            $sources = array_slice($topArticles, 0, 5); // Take top 5 for context
+
+            Log::info("AI Search Decision", [
+                'query' => $query,
+                'source_count' => count($sources),
+                'top_score' => count($sources) > 0 ? $sources[0]['score'] : null
+            ]);
+
+            if (empty($sources)) {
+                $aiAnswer = "Désolé, je ne trouve aucune information pertinente dans la base de données Mibeko concernant votre demande. Ma base de connaissances est limitée aux textes de loi officiels de la République du Congo intégrés dans l'application.";
+            } else {
+                $aiAnswer = $this->generateAiAnswer($query, $sources);
+            }
         }
 
         if ($aiAnswer) {
@@ -198,19 +209,28 @@ class ArticleSearchController extends Controller
         // Construction du contexte à partir des articles trouvés
         $context = "";
         foreach ($articles as $index => $article) {
-            $context .= "Source " . ($index + 1) . " (" . $article['document_title'] . ", Art. " . $article['number'] . "):\n";
-            $context .= $article['content'] . "\n\n";
+            $context .= "--- SOURCE " . ($index + 1) . " ---\n";
+            $context .= "Document : " . $article['document_title'] . "\n";
+            $context .= "Article : " . $article['number'] . "\n";
+            $context .= "Contenu : " . $article['content'] . "\n\n";
         }
 
-        $prompt = "Tu es un expert juridique spécialisé dans le droit congolais. Réponds à la question suivante en te basant uniquement sur les extraits de loi fournis ci-dessous.\n\n"
-                . "Si les extraits ne contiennent pas la réponse, indique poliment que tu ne trouves pas l'information dans les documents actuels.\n\n"
-                . "Extraits de loi :\n" . $context . "\n"
-                . "Question : " . $query . "\n\n"
-                . "Réponse directe, précise et structurée :";
+        $systemPrompt = "Tu es un expert juridique spécialisé dans le droit congolais. Ton rôle est d'aider les citoyens à comprendre leurs droits de manière rigoureuse.\n\n"
+                      . "RÈGLES CRITIQUES :\n"
+                      . "1. Réponds UNIQUEMENT en te basant sur les extraits de loi fournis.\n"
+                      . "2. N'utilise JAMAIS tes propres connaissances externes ou des informations qui ne sont pas dans les sources fournies.\n"
+                      . "3. Si les extraits fournis ne permettent pas de répondre précisément à la question, indique clairement que tu ne trouves pas l'information spécifique dans la base de données Mibeko.\n"
+                      . "4. Pour chaque point de ta réponse, cite le document et le numéro d'article utilisé.\n"
+                      . "5. Garde un ton professionnel, neutre et pédagogique.";
+
+        $userPrompt = "Voici les extraits de loi pertinents trouvés dans la base Mibeko :\n\n"
+                    . $context
+                    . "Question de l'utilisateur : " . $query . "\n\n"
+                    . "Réponse (en français) :";
 
         return $this->aiService->generateChatCompletion([
-            ['role' => 'system', 'content' => 'Tu es un assistant juridique rigoureux qui aide les citoyens à comprendre leurs droits.'],
-            ['role' => 'user', 'content' => $prompt],
+            ['role' => 'system', 'content' => $systemPrompt],
+            ['role' => 'user', 'content' => $userPrompt],
         ]);
     }
 
