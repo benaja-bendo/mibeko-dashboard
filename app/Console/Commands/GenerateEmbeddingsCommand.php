@@ -22,14 +22,17 @@ class GenerateEmbeddingsCommand extends Command
      *
      * @var string
      */
-    protected $signature = 'mibeko:generate-embeddings {--limit=100 : Nombre d\'articles à traiter} {--batch=20 : Taille du batch pour OpenAI}';
+    protected $signature = 'mibeko:process-rag 
+                            {--limit=100 : Nombre d\'articles à traiter} 
+                            {--batch=20 : Taille du batch pour l\'IA}
+                            {--delay=500 : Délai en millisecondes entre les batches pour éviter le rate limit}';
 
     /**
      * The console command description.
      *
      * @var string
      */
-    protected $description = 'Génère les embeddings manquants pour les articles en utilisant le batching.';
+    protected $description = 'Génère les embeddings (RAG) manquants pour les articles en utilisant le batching et la gestion du rate limit.';
 
     /**
      * Execute the console command.
@@ -38,6 +41,7 @@ class GenerateEmbeddingsCommand extends Command
     {
         $limit = $this->option('limit');
         $batchSize = $this->option('batch');
+        $delay = $this->option('delay') * 1000; // convert to microseconds
 
         $versions = ArticleVersion::whereNull('embedding')
             ->whereNotNull('contenu_texte')
@@ -69,9 +73,9 @@ class GenerateEmbeddingsCommand extends Command
 
                 $bar->advance($chunk->count());
 
-                // Petit délai pour le rate limit s'il y a beaucoup de batches
-                if ($chunks->count() > 1) {
-                    usleep(500000);
+                // Délai pour le rate limit
+                if ($chunks->count() > 1 && $delay > 0) {
+                    usleep($delay);
                 }
 
             } catch (\Exception $e) {

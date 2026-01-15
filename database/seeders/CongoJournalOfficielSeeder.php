@@ -7,6 +7,7 @@ use App\Models\ArticleVersion;
 use App\Models\DocumentType;
 use App\Models\LegalDocument;
 use App\Models\StructureNode;
+use App\Observers\ArticleVersionObserver;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
@@ -30,6 +31,9 @@ class CongoJournalOfficielSeeder extends Seeder
 
     public function run(): void
     {
+        // Disable automatic embedding generation during seeding
+        ArticleVersionObserver::$shouldSkipEmbeddings = true;
+
         $this->command->info('🚀 Démarrage du seeding Mibeko...');
 
         // 1. Ensure directories exist

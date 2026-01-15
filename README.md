@@ -75,6 +75,53 @@ Assurez-vous d'avoir installé les outils suivants sur votre machine :
     ./vendor/bin/sail artisan migrate --seed
     ```
 
+## 🧠 RAG & génération des embeddings
+
+Par défaut, le seeding ne fait **aucun appel à l'API d'IA** : les seeders remplissent la base (`articles`, `article_versions`, etc.) sans générer d'embeddings. Cela permet d'initialiser la base de données sans coût externe.
+
+### 1. Peupler la base sans IA
+
+Vous pouvez réinitialiser et peupler la base comme d'habitude :
+
+```bash
+./vendor/bin/sail artisan migrate:fresh --seed
+```
+
+ou, pour lancer un seeder spécifique (ex. données réalistes) :
+
+```bash
+./vendor/bin/sail artisan db:seed --class=RealisticLegalSeeder
+```
+
+Dans tous les cas, les embeddings ne seront **pas** générés pendant ces seeders.
+
+### 2. Générer les embeddings (RAG) plus tard
+
+Une fois la base peuplée, vous pouvez lancer la génération des embeddings manquants via une commande dédiée :
+
+```bash
+./vendor/bin/sail artisan mibeko:process-rag \
+    --limit=200 \
+    --batch=20 \
+    --delay=500
+```
+
+- `--limit` : nombre maximum d'articles à traiter lors de cet appel
+- `--batch` : taille des lots envoyés à l'API d'IA
+- `--delay` : délai **en millisecondes** entre chaque batch pour éviter le rate limit
+
+Vous pouvez relancer la commande plusieurs fois (par exemple avec un `--limit` plus élevé) : seuls les articles **sans embedding** seront pris en compte.
+
+### 3. Tester le RAG sur un petit échantillon (optionnel)
+
+Pour vérifier la configuration IA sur un faible volume, un seeder de test est disponible :
+
+```bash
+./vendor/bin/sail artisan db:seed --class=TestEmbeddingSeeder
+```
+
+Ce seeder ne traite qu'un nombre limité de documents, ce qui permet de valider les embeddings et le RAG avant de lancer un traitement complet.
+
 ## ⚙️ Configuration MinIO (Stockage Local)
 
 Le projet utilise MinIO pour simuler un stockage S3 en local. Le fichier `docker-compose.yml` inclut un service `createbuckets` qui configure automatiquement le bucket par défaut.

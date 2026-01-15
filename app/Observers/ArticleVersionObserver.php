@@ -10,6 +10,12 @@ class ArticleVersionObserver
 {
     protected AiServiceInterface $aiService;
 
+    /**
+     * Flag to globally disable embedding generation.
+     * Useful for seeders or bulk imports.
+     */
+    public static bool $shouldSkipEmbeddings = false;
+
     public function __construct(AiServiceInterface $aiService)
     {
         $this->aiService = $aiService;
@@ -21,6 +27,10 @@ class ArticleVersionObserver
      */
     public function saved(ArticleVersion $articleVersion): void
     {
+        if (static::$shouldSkipEmbeddings) {
+            return;
+        }
+
         // On ne génère l'embedding que si le contenu a changé ou si c'est une nouvelle version
         if ($articleVersion->wasChanged('contenu_texte') || $articleVersion->wasRecentlyCreated) {
             $this->generateEmbedding($articleVersion);

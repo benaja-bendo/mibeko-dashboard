@@ -9,6 +9,7 @@ use App\Models\Institution;
 use App\Models\LegalDocument;
 use App\Models\StructureNode;
 use App\Models\Tag;
+use App\Observers\ArticleVersionObserver;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Str;
 
@@ -16,6 +17,9 @@ class RealisticLegalSeeder extends Seeder
 {
     public function run(): void
     {
+        // Disable automatic embedding generation during seeding
+        ArticleVersionObserver::$shouldSkipEmbeddings = true;
+
         // 0. Create Life Themes Tags
         $tagFamille = Tag::firstOrCreate(['slug' => 'famille'], ['name' => 'Famille & Personnes', 'slug' => 'famille']);
         $tagTravail = Tag::firstOrCreate(['slug' => 'travail'], ['name' => 'Travail & Entreprise', 'slug' => 'travail']);
