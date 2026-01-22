@@ -21,6 +21,7 @@ class DocumentTypeController extends Controller
         $types = QueryBuilder::for(DocumentType::class)
             ->allowedFilters(['nom', 'code', 'niveau_hierarchique'])
             ->allowedSorts(['nom', 'niveau_hierarchique', 'code'])
+            ->defaultSort('niveau_hierarchique')
             ->get();
 
         return $this->success(
