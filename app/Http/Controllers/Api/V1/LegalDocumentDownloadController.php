@@ -3,21 +3,42 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\V1\ArticleSyncResource;
 use App\Models\LegalDocument;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 /**
  * @group Download
+ * 
+ * Enpoints related to downloading legal content for offline synchronization.
  */
 class LegalDocumentDownloadController extends Controller
 {
     /**
      * Download legal document data (Flat List).
      *
-     * Returns a flat list of structure nodes and articles for offline sync.
+     * Returns a flat list of structure nodes and articles for offline sync. 
+     * This is optimized for the mobile application's local database insertion.
      * 
-     * @queryParam node_id string Optional. Filter by specific structure node UUID.
+     * @param string $id The UUID of the legal document.
+     * @queryParam node_id string Optional. Filter by specific structure node UUID to download only a sub-tree.
+     * 
+     * @response 200 {
+     *  "success": true,
+     *  "message": "Téléchargement préparé avec succès",
+     *  "data": {
+     *    "resource_id": "uuid",
+     *    "node_id": "uuid-optional",
+     *    "generated_at": "2026-01-23T10:00:00Z",
+     *    "nodes": [
+     *      { "id": "uuid", "type": "TITRE", "number": "I", "title": "Nom du titre", "order": 1 }
+     *    ],
+     *    "articles": [
+     *      { "id": "uuid", "document_id": "uuid", "parent_node_id": "uuid", "number": "1", "order": 1, "content": "Texte...", "tags": ["loi", "congo"], "updated_at": "2026-01-23T10:00:00Z" }
+     *    ]
+     *  }
+     * }
      */
     public function download(Request $request, string $id): JsonResponse
     {
@@ -30,13 +51,6 @@ class LegalDocumentDownloadController extends Controller
         $nodesQuery = $document->structureNodes()->orderBy('sort_order');
         
         if ($nodeId) {
-            // Use Ltree logic if available, otherwise simple recursive check or path check
-            // Assuming 'path' column exists and is Ltree compatible as per PRD
-            // For MVP without strict Ltree class usage, we might depend on database support
-            // Here we will implement a basic retrieval. If Ltree is strictly implemented, we'd use mapped queries.
-            // For now, let's fetch all and filter in memory if volume is low, or use 'path' like 'Root.Title.%'
-            
-            // To be safe and compliant with PRD "Ltree logic", we assume there is a 'path' column on structure_nodes
              $nodesQuery->whereRaw("path <@ (SELECT path FROM structure_nodes WHERE id = ?)", [$nodeId]);
         }
         
@@ -47,37 +61,23 @@ class LegalDocumentDownloadController extends Controller
                 'number' => $node->numero,
                 'title' => $node->titre,
                 'order' => $node->sort_order,
-                // Note: articles are returned separately in flat list format
             ];
         });
 
         // Fetch Articles (Latest Active Version)
-        // We need articles that belong to the fetched nodes
         $nodeIds = $nodes->pluck('id');
         
         $articles = $document->articles()
             ->whereIn('parent_node_id', $nodeIds)
             ->with(['activeVersion', 'tags'])
-            ->get()
-            ->map(function ($article) use ($document) {
-                return [
-                    'id' => $article->id,
-                    'document_id' => $document->id,
-                    'parent_node_id' => $article->parent_node_id,
-                    'number' => $article->numero_article ?? '',
-                    'order' => $article->ordre_affichage,
-                    'content' => $article->activeVersion?->contenu_texte,
-                    'tags' => $article->tags->pluck('name')->toArray(),
-                    'updated_at' => $article->updated_at->toIso8601String(),
-                ];
-            });
+            ->get();
 
         return $this->success([
             'resource_id' => $document->id,
             'node_id' => $nodeId,
             'generated_at' => now()->toIso8601String(),
             'nodes' => $nodes,
-            'articles' => $articles,
+            'articles' => ArticleSyncResource::collection($articles),
         ], 'Téléchargement préparé avec succès');
     }
 }

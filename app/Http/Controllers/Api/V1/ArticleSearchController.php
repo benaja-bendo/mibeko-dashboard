@@ -29,10 +29,35 @@ class ArticleSearchController extends Controller
     /**
      * Search articles (Hybrid: Vector + Full-Text) and provide AI answer (RAG).
      *
-     * Combines `ts_rank` (keyword search) and `cosine_distance` (semantic search).
+     * This endpoint performs a sophisticated hybrid search:
+     * 1. **Full-Text Search**: Uses PostgreSQL `ts_rank` for precise keyword matching.
+     * 2. **Semantic Search**: Uses `pgvector` and OpenAI embeddings to find conceptually related articles.
+     * 3. **AI Answer**: If a query is provided, it uses the top results as context for a RAG (Retrieval-Augmented Generation) answer.
      *
-     * @queryParam q string required The search query.
-     * @queryParam document_id string Optional. Filter by specific document UUID.
+     * @queryParam q string required The search query or question (e.g., "quels sont mes droits au travail ?").
+     * @queryParam document_id string Optional. UUID of a specific document to search within.
+     * @queryParam tag string Optional. Slug of a tag to filter by.
+     * @queryParam type string Optional. Code of a document type (e.g., "LOI", "CODE") to filter by.
+     * @queryParam per_page integer Optional. Results per page. Default: 20.
+     * 
+     * @response 200 {
+     *  "success": true,
+     *  "message": "Réponse générée avec succès",
+     *  "data": {
+     *    "answer": "Selon le Code du travail congolais...",
+     *    "sources": [
+     *      {
+     *        "id": "uuid",
+     *        "number": "12",
+     *        "content": "Texte de l'article...",
+     *        "document_title": "Code du Travail",
+     *        "breadcrumb": "Code > Code du Travail > Titre I",
+     *        "score": 0.85
+     *      }
+     *    ],
+     *    "pagination": { "total": 1, "per_page": 20, "current_page": 1, "last_page": 1 }
+     *  }
+     * }
      */
     public function search(Request $request): JsonResponse
     {

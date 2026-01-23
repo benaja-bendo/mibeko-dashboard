@@ -14,8 +14,11 @@ class LegalDocumentExportController extends Controller
 {
     /**
      * Export a full legal document to PDF.
-     * 
-     * Generates a PDF version of the document with all its articles.
+     *
+     * Generates a high-quality PDF version of the complete document including all its articles and structure.
+     *
+     * @param string $id The UUID of the legal document.
+     * @response 200 binary The generated PDF file.
      */
     public function export(string $id): Response
     {
@@ -37,7 +40,7 @@ class LegalDocumentExportController extends Controller
             ->findOrFail($id);
 
         $pdf = Pdf::loadView('documents.pdf', compact('document'));
-        
+
         $filename = \Illuminate\Support\Str::slug($document->titre_officiel ?? 'document') . '.pdf';
 
         return $pdf->download($filename);
@@ -45,6 +48,11 @@ class LegalDocumentExportController extends Controller
 
     /**
      * Export a single article to PDF.
+     *
+     * Generates a PDF version of a specific article with its metadata and parent document info.
+     *
+     * @param string $id The UUID of the article.
+     * @response 200 binary The generated PDF file.
      */
     public function exportArticle(string $id): Response
     {
@@ -55,7 +63,7 @@ class LegalDocumentExportController extends Controller
         $document = $article->document;
 
         $pdf = Pdf::loadView('documents.article_pdf', compact('article', 'document'));
-        
+
         $filename = 'Article-' . $article->numero_article . '-' . \Illuminate\Support\Str::slug($document->titre_officiel ?? 'document') . '.pdf';
 
         return $pdf->download($filename);

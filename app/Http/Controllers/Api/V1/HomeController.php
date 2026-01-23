@@ -16,7 +16,20 @@ class HomeController extends Controller
     /**
      * Get home page data.
      *
-     * Returns popular codes, recently added documents, and AI search suggestions.
+     * Returns a curated list of data for the mobile home screen:
+     * - **Popular Codes**: Priority legal documents.
+     * - **Recently Added**: Latest documents published.
+     * - **AI Suggestions**: Example questions to ask the AI search.
+     * 
+     * @response 200 {
+     *  "success": true,
+     *  "message": "Données de la page d'accueil récupérées avec succès",
+     *  "data": {
+     *    "popular_codes": [ { "id": "uuid", "titre_officiel": "Code Civil" } ],
+     *    "recently_added": [ { "id": "uuid", "titre_officiel": "Loi n°..." } ],
+     *    "ai_suggestions": [ "Comment créer une entreprise ?" ]
+     *  }
+     * }
      */
     public function index(Request $request): JsonResponse
     {

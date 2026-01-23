@@ -21,6 +21,12 @@ class LegalDocumentController extends Controller
      * List legal documents.
      *
      * Returns a paginated list of legal documents with their institutions and types.
+     * Supports filtering and sorting via query parameters.
+     * 
+     * @queryParam filter[titre_officiel] string Filter by partial official title.
+     * @queryParam filter[type_code] string Filter by document type code (e.g., "LOI", "CODE").
+     * @queryParam filter[institution_id] string UUID of the institution.
+     * @queryParam sort string Sort field (e.g., "titre_officiel", "-created_at").
      */
     public function index(Request $request): JsonResponse
     {

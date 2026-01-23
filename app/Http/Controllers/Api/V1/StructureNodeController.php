@@ -18,7 +18,10 @@ class StructureNodeController extends Controller
     /**
      * Get document hierarchy.
      * 
-     * Returns the structure tree for a specific document.
+     * Returns the structure tree for a specific document. This is useful for displaying 
+     * a table of contents or navigating through the document's divisions (Books, Titles, etc.).
+     * 
+     * @param string $documentId The UUID of the legal document.
      */
     public function tree(string $documentId): \Illuminate\Http\JsonResponse
     {
