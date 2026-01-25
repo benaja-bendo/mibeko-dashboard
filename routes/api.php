@@ -9,6 +9,8 @@ use App\Http\Controllers\Api\V1\InstitutionController;
 use App\Http\Controllers\Api\V1\LegalDocumentController;
 use App\Http\Controllers\Api\V1\LegalDocumentDownloadController;
 use App\Http\Controllers\Api\V1\LegalDocumentExportController;
+use App\Http\Controllers\Api\V1\DeviceController;
+use App\Http\Controllers\Api\V1\NotificationController;
 use App\Http\Controllers\Api\V1\StructureNodeController;
 use App\Http\Controllers\Api\V1\SyncController;
 use App\Http\Controllers\PdfProxyController;
@@ -17,9 +19,20 @@ use Illuminate\Support\Facades\Route;
 Route::prefix('v1')->group(function () {
     // Auth
     Route::post('login', [AuthController::class, 'login']);
+
+    // Device Registration (No Auth required)
+    Route::post('devices/register', [DeviceController::class, 'register']);
+    Route::post('devices/unregister', [DeviceController::class, 'unregister']);
+
     Route::middleware('auth:sanctum')->group(function () {
         Route::get('me', [AuthController::class, 'me']);
         Route::post('logout', [AuthController::class, 'logout']);
+
+        // Notifications
+        Route::get('notifications', [NotificationController::class, 'index']);
+        Route::patch('notifications/{id}/read', [NotificationController::class, 'markAsRead']);
+        Route::post('notifications/read-all', [NotificationController::class, 'markAllAsRead']);
+        Route::delete('notifications/{id}', [NotificationController::class, 'destroy']);
     });
 
     // Resources
