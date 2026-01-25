@@ -167,6 +167,20 @@ class CurationController extends Controller
             $updateData['date_publication'] = $validated['date_publication'];
         }
 
+        if (isset($updateData['curation_status']) && $updateData['curation_status'] === 'published') {
+            $popularTitles = [
+                'Constitution de la République du Congo',
+                'Code Civil',
+                'Code Pénal',
+                'Code du Travail',
+                'Code de la Famille'
+            ];
+
+            if (!in_array($document->titre_officiel, $popularTitles) && $document->articles()->count() === 0) {
+                return back()->withErrors(['status' => 'Impossible de publier un document vide (sans articles), sauf pour les Codes Populaires.']);
+            }
+        }
+
         if (! empty($updateData)) {
             $document->update($updateData);
         }

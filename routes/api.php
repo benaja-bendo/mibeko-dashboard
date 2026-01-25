@@ -60,6 +60,9 @@ Route::prefix('v1')->group(function () {
     Route::get('search', [ArticleSearchController::class, 'search']);
     Route::get('articles/search', [ArticleSearchController::class, 'search']);
 
+    // BE6 - Dossier PDF Export
+    Route::post('dossiers/export-pdf', [\App\Http\Controllers\Api\V1\DossierExportController::class, 'exportPdf']);
+
     // Sync - @deprecated by CatalogController but kept for backward compatibility if any
     Route::get('sync/updates', [SyncController::class, 'updates']);
 });

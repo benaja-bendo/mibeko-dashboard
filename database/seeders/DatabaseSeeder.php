@@ -23,6 +23,7 @@ class DatabaseSeeder extends Seeder
 
         // Call other seeders
         $this->call([
+            PopularCodesSeeder::class,
             // RealisticLegalSeeder::class, // Désactivé pour la prod : on utilise uniquement les vrais JSON
             CongoJournalOfficielSeeder::class,
         ]);
