@@ -22,24 +22,30 @@ class LegalDocumentExportController extends Controller
      */
     public function export(string $id): Response
     {
-        // Increase timeout for large documents
-        set_time_limit(300);
+        // Increase timeout and memory for large legal documents
+        set_time_limit(600);
+        ini_set('memory_limit', '512M');
 
         $document = LegalDocument::query()
             ->with([
                 'institution',
                 'type',
                 'structureNodes' => function($q) {
-                    $q->orderBy('sort_order');
+                    $q->orderByRaw('tree_path');
                 },
                 'articles' => function($q) {
                     $q->orderBy('ordre_affichage');
                 },
                 'articles.activeVersion',
+                'articles.latestVersion',
             ])
             ->findOrFail($id);
 
-        $pdf = Pdf::loadView('documents.pdf', compact('document'));
+        if (ob_get_length()) ob_end_clean();
+        $pdf = Pdf::loadView('documents.pro_document_pdf', compact('document'));
+        $pdf->setPaper('a4');
+        $pdf->setOption('isHtml5ParserEnabled', true);
+        $pdf->setOption('isRemoteEnabled', true);
 
         $filename = \Illuminate\Support\Str::slug($document->titre_officiel ?? 'document') . '.pdf';
 
@@ -56,13 +62,15 @@ class LegalDocumentExportController extends Controller
      */
     public function exportArticle(string $id): Response
     {
+        ini_set('memory_limit', '256M');
         $article = Article::query()
             ->with(['document', 'document.institution', 'document.type', 'parentNode', 'activeVersion'])
             ->findOrFail($id);
 
         $document = $article->document;
 
-        $pdf = Pdf::loadView('documents.article_pdf', compact('article', 'document'));
+        $pdf = Pdf::loadView('documents.pro_article_pdf', compact('article', 'document'));
+        $pdf->setPaper('a4');
 
         $filename = 'Article-' . $article->numero_article . '-' . \Illuminate\Support\Str::slug($document->titre_officiel ?? 'document') . '.pdf';
 

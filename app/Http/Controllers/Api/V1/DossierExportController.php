@@ -19,6 +19,9 @@ class DossierExportController extends Controller
      */
     public function exportPdf(Request $request)
     {
+        ini_set('memory_limit', '512M');
+        set_time_limit(300);
+        
         $validated = $request->validate([
             'title' => 'required|string|max:255',
             'description' => 'nullable|string',
@@ -36,7 +39,7 @@ class DossierExportController extends Controller
         $articleIds = $items->where('type', 'article')->pluck('id');
         // $documentIds = $items->where('type', 'document')->pluck('id'); // Future support
 
-        $articles = Article::with(['activeVersion', 'document', 'parentNode.parent'])
+        $articles = Article::with(['activeVersion', 'latestVersion', 'document', 'parentNode.parent'])
             ->whereIn('id', $articleIds)
             ->get()
             ->keyBy('id');
@@ -57,14 +60,23 @@ class DossierExportController extends Controller
             return null;
         })->filter();
 
-        $pdf = Pdf::loadView('exports.dossier_pdf', [
+        if (ob_get_length()) ob_end_clean();
+        $pdf = Pdf::loadView('exports.pro_dossier_pdf', [
             'title' => $title,
             'description' => $description,
             'items' => $exportItems,
             'generated_at' => now()->format('d/m/Y H:i'),
         ]);
 
-        return $pdf->download($this->slugify($title) . '.pdf');
+        $pdf->setPaper('a4');
+        $pdf->setOption('isHtml5ParserEnabled', true);
+        $pdf->setOption('isRemoteEnabled', true);
+
+        // Return raw PDF bytes for API consumption (mobile apps)
+        return response($pdf->output(), 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'attachment; filename="' . $this->slugify($title) . '.pdf"',
+        ]);
     }
 
     private function slugify($text)

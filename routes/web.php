@@ -10,6 +10,17 @@ Route::get('/', function () {
     ]);
 })->name('home');
 
+// Public routes for Deep Linking / Web Share
+Route::get('/article/{articleId}', function (string $articleId) {
+    $article = App\Models\Article::with(['document', 'activeVersion'])->findOrFail($articleId);
+    return view('share.article', compact('article'));
+})->name('share.article');
+
+Route::get('/document/{documentId}', function (string $documentId) {
+    $document = App\Models\LegalDocument::with(['type', 'institution'])->findOrFail($documentId);
+    return view('share.document', compact('document'));
+})->name('share.document');
+
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('dashboard', function () {
         return Inertia::render('dashboard', [

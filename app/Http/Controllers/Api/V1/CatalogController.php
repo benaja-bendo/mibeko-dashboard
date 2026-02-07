@@ -40,8 +40,6 @@ class CatalogController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
-        // For MVP, we consider everything essential needs update if it changed recently
-        // In real impl, we would check $request->input('last_sync_date')
 
         $documents = LegalDocument::query()
             ->with(['type'])
