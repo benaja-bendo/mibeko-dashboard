@@ -16,6 +16,7 @@ services:
     depends_on: [app]
     volumes:
       - /opt/docker/mibeko-app/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+      - /opt/docker/mibeko-app/public:/var/www/html/public:ro
       - mibeko_storage:/var/www/html/storage:ro
     networks: [internal, proxy]
     labels:

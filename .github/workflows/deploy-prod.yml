@@ -155,6 +155,15 @@ jobs:
 
             # ── Déploiement ─────────────────────
             docker compose pull
+
+            # Extraire le dossier public de l'image pour Nginx
+            docker create --name temp-app ghcr.io/$REPO_LC:latest
+            rm -rf ./public
+            mkdir -p ./public
+            # Copier le contenu du dossier public
+            docker cp temp-app:/var/www/html/public/. ./public/
+            docker rm temp-app
+
             docker compose up -d --remove-orphans
 
             # ── Post-déploiement ─────────────────
