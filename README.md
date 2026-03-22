@@ -22,7 +22,10 @@ Ce projet utilise les dernières technologies de l'écosystème Laravel et React
 * **Institutions** : Gestion des entités émettrices des textes.
 * **Audit** : Traçabilité des actions utilisateurs via `laravel-auditing`.
 * **Sécurité** : Authentification complète avec support de l'authentification à deux facteurs (2FA).
-* **Recherche** : Intégration de fonctionnalités de recherche avancée.
+* **Recherche** : Intégration de fonctionnalités de recherche avancée avec RAG (Mistral/OpenAI).
+* **Notifications Push** : Envoi de notifications mobiles via Firebase Cloud Messaging (FCM).
+* **Sauvegardes Automatisées** : Sauvegardes planifiées (DB & fichiers) via `spatie/laravel-backup` (voir [BACKUP.md](BACKUP.md)).
+* **Monitoring** : Surveillance applicative intégrée avec Nightwatch.
 
 ## 🚀 Prérequis
 
@@ -147,6 +150,36 @@ Pour lancer l'analyse statique et le formatage du code :
 ./vendor/bin/pint                 # Laravel Pint
 
 ```
+
+## 🌍 Déploiement en Production
+
+Le projet est configuré pour un déploiement automatisé et conteneurisé sur un VPS.
+
+### 🏗 Architecture Docker
+L'application en production utilise une image Docker optimisée (multi-stage build) construite via le `Dockerfile` à la racine, qui inclut :
+- La compilation du frontend (Vite/React).
+- L'installation des dépendances backend (Composer).
+- L'environnement d'exécution basé sur PHP 8.2 FPM (avec OPcache et extensions nécessaires).
+
+L'orchestration s'effectue via le fichier `docker-compose.prod.yml` composé de 4 services :
+- `app` : Serveur PHP-FPM.
+- `nginx` : Serveur web (reverse proxy).
+- `queue` : Worker pour les files d'attente (background jobs).
+- `scheduler` : Planificateur de tâches (cron).
+
+Ces services communiquent avec les instances **PostgreSQL** et **MinIO** hébergées directement sur le VPS (via un réseau Docker `proxy`). Le trafic entrant (HTTPS) est géré par **Traefik** (domaine `app.mibeko.benaja-bendo.fr`).
+
+### 🚀 CI/CD avec GitHub Actions
+Un workflow de déploiement continu (`deploy-prod.yml`) se déclenche automatiquement lors d'un push sur la branche `main` :
+1. **Build & Push** : Construction de l'image Docker et publication sur GitHub Container Registry (GHCR).
+2. **Déploiement VPS (SSH)** : 
+   - Connexion au serveur de production.
+   - Génération dynamique de la configuration (`.env`, `docker-compose.yml`, config Nginx) à l'aide des GitHub Secrets.
+   - Téléchargement (pull) de la nouvelle image et redémarrage des conteneurs sans interruption (`docker compose up -d`).
+   - Exécution des commandes d'optimisation Laravel (migrations, cache des routes/vues/configs).
+
+### 🔑 Variables d'environnement
+Le fichier `.env.vps` sert de référence pour les variables requises en production, notamment les identifiants de la base de données, les accès S3 (MinIO), les clés d'API (Mistral/OpenAI) et les credentials Firebase pour les notifications Push.
 
 ## 📂 Structure du Projet
 

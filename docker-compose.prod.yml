@@ -1,0 +1,105 @@
+# docker-compose.yml — Production Mibeko Tableau de Bord
+# Ne contient PAS de Postgres/MinIO (déjà sur le VPS via Ansible)
+# L'image est pull depuis ghcr.io par GitHub Actions avant chaque déploiement
+
+services:
+
+  # ─── PHP-FPM (application Laravel) ───────────────────────────────────────────
+  app:
+    image: ghcr.io/${GITHUB_REPOSITORY:-mibeko/mibeko-tableau-de-bord}:latest
+    container_name: mibeko-app
+    restart: unless-stopped
+    env_file:
+      - .env
+    volumes:
+      # Storage persistant (uploads, logs, cache)
+      - mibeko_storage:/var/www/html/storage
+      # Credentials Firebase (monté depuis un secret sur le VPS)
+      - /opt/docker/mibeko-app/secrets/firebase-credentials.json:/var/www/html/storage/app/mibeko-mobile-34c01-firebase-adminsdk-fbsvc-570bc4918b.json:ro
+    networks:
+      - internal
+      - proxy   # nécessaire pour accéder aux services du VPS (minio, traefik)
+      - db_internal # nécessaire pour accéder à Postgres
+    healthcheck:
+      test: ["CMD", "php", "artisan", "about", "--only=Environment"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # ─── Nginx (reverse proxy HTTP vers PHP-FPM) ─────────────────────────────────
+  nginx:
+    image: nginx:1.27-alpine
+    container_name: mibeko-nginx
+    restart: unless-stopped
+    depends_on:
+      - app
+    volumes:
+      # Config Nginx
+      - /opt/docker/mibeko-app/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+      # Partage du volume storage pour servir les fichiers publics
+      - mibeko_storage:/var/www/html/storage:ro
+    networks:
+      - internal
+      - proxy
+    labels:
+      # ─ Traefik routing ──────────────────────────────────────────────────────
+      - "traefik.enable=true"
+      - "traefik.docker.network=proxy"
+      - "traefik.http.routers.mibeko.rule=Host(`${APP_DOMAIN:-app.mibeko.benaja-bendo.fr}`)"
+      - "traefik.http.routers.mibeko.entrypoints=websecure"
+      - "traefik.http.routers.mibeko.tls.certresolver=myresolver"
+      # Port cible
+      - "traefik.http.services.mibeko.loadbalancer.server.port=80"
+
+  # ─── Queue Worker ─────────────────────────────────────────────────────────────
+  queue:
+    image: ghcr.io/${GITHUB_REPOSITORY:-mibeko/mibeko-tableau-de-bord}:latest
+    container_name: mibeko-queue
+    restart: unless-stopped
+    command: ["php", "artisan", "queue:work", "--sleep=3", "--tries=3", "--max-time=3600"]
+    env_file:
+      - .env
+    volumes:
+      - mibeko_storage:/var/www/html/storage
+    networks:
+      - internal
+      - proxy
+      - db_internal
+    depends_on:
+      - app
+
+  # ─── Scheduler ────────────────────────────────────────────────────────────────
+  scheduler:
+    image: ghcr.io/${GITHUB_REPOSITORY:-mibeko/mibeko-tableau-de-bord}:latest
+    container_name: mibeko-scheduler
+    restart: unless-stopped
+    # Boucle toutes les 60s — Laravel n'a pas de démon cron natif dans Docker
+    command: >
+      sh -c "while true; do php artisan schedule:run --verbose --no-interaction; sleep 60; done"
+    env_file:
+      - .env
+    volumes:
+      - mibeko_storage:/var/www/html/storage
+    networks:
+      - internal
+      - proxy
+      - db_internal
+    depends_on:
+      - app
+
+# ─── Volumes ──────────────────────────────────────────────────────────────────
+volumes:
+  mibeko_storage:
+    driver: local
+
+# ─── Réseaux ──────────────────────────────────────────────────────────────────
+networks:
+  # Réseau Traefik déjà présent sur le VPS (créé par le rôle Ansible traefik)
+  proxy:
+    external: true
+  db_internal:
+    external: true
+  # Réseau privé interne entre app, nginx, queue, scheduler
+  internal:
+    driver: bridge

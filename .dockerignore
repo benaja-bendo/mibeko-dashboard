@@ -1,0 +1,41 @@
+# Dépendances (reconstruites dans le Dockerfile)
+node_modules/
+vendor/
+
+# Variables d'environnement (injectées via secrets)
+.env
+.env.*
+!.env.example
+
+# Git
+.git/
+.gitignore
+.gitattributes
+.github/
+
+# Tests
+tests/
+phpunit.xml
+
+# Docs et configs IDE
+*.md
+docs/
+.idea/
+.vscode/
+.junie/
+.trae/
+.gemini/
+
+# Logs
+storage/logs/*
+
+# Build local
+public/hot
+
+# Cache Laravel
+bootstrap/cache/*.php
+
+# Docker (évite la récursion)
+# On a besoin du dossier docker pour opcache.ini
+
+# Node
