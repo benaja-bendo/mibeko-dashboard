@@ -162,6 +162,8 @@ jobs:
             mkdir -p ./public
             # Copier le contenu du dossier public
             docker cp temp-app:/var/www/html/public/. ./public/
+            # S'assurer que les permissions sont correctes pour Nginx
+            chmod -R 755 ./public
             docker rm temp-app
 
             docker compose up -d --remove-orphans
