@@ -33,8 +33,8 @@ RUN apk add --no-cache php php-phar php-mbstring php-openssl php-json php-tokeni
 WORKDIR /app
 
 # Copier les dépendances node
-COPY package.json package-lock.json ./
-RUN npm ci
+COPY package.json ./
+RUN npm install
 
 # Copier tout le projet (incluant artisan)
 COPY . .
