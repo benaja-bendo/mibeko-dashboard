@@ -33,8 +33,8 @@ import {
     Article,
     StructureNode,
     TreeActions,
-} from '@/Pages/Curation/Components/StructureTree';
-import WorkstationLayout from '@/Pages/Curation/Components/WorkstationLayout';
+} from './Components/StructureTree';
+import WorkstationLayout from './Components/WorkstationLayout';
 
 interface Document {
     id: string;

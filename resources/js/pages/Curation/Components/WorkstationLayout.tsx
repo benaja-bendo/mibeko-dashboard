@@ -13,10 +13,10 @@ import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, us
 import { sortableKeyboardCoordinates } from '@dnd-kit/sortable';
 
 // Components
-import PdfViewer from '@/Pages/Curation/Components/PdfViewer';
-import StructureTree, { StructureNode, Article, TreeActions } from '@/Pages/Curation/Components/StructureTree';
-import ContentEditor from '@/Pages/Curation/Components/ContentEditor';
-import EditableHeaderTitle from '@/Pages/Curation/Components/EditableHeaderTitle';
+import PdfViewer from './PdfViewer';
+import StructureTree, { StructureNode, Article, TreeActions } from './StructureTree';
+import ContentEditor from './ContentEditor';
+import EditableHeaderTitle from './EditableHeaderTitle';
 
 interface Document {
     id: string;

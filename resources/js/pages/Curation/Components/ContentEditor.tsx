@@ -27,7 +27,7 @@ import {
     Settings,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import StatusBadge from '@/Pages/Curation/Components/StatusBadge';
+import StatusBadge from './StatusBadge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
     Tooltip,
