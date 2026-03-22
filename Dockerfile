@@ -44,8 +44,7 @@ COPY --from=composer-builder /app/vendor ./vendor
 
 # Build des assets
 RUN cp .env.example .env \
-    && echo "MISTRAL_API_KEY=dummy" >> .env \
-    && echo "OPENAI_API_KEY=dummy" >> .env \
+    && php artisan key:generate \
     && php artisan wayfinder:generate --with-form \
     && npm run build
 
