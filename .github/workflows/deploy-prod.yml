@@ -158,8 +158,9 @@ jobs:
 
             # Extraire le dossier public de l'image pour Nginx
             docker create --name temp-app ghcr.io/$REPO_LC:latest
-            rm -rf ./public
             mkdir -p ./public
+            # On vide le dossier sans le supprimer pour ne pas casser le bind mount Docker de Nginx
+            find ./public -mindepth 1 -delete
             # Copier le contenu du dossier public
             docker cp temp-app:/var/www/html/public/. ./public/
             # S'assurer que les permissions sont correctes pour Nginx
@@ -167,6 +168,8 @@ jobs:
             docker rm temp-app
 
             docker compose up -d --remove-orphans
+            # Redémarrer Nginx pour s'assurer qu'il prend bien en compte les nouveaux fichiers
+            docker compose restart nginx
 
             # ── Post-déploiement ─────────────────
             sleep 5
