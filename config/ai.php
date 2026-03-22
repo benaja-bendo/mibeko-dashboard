@@ -24,7 +24,7 @@ return [
         ],
 
         'mistral' => [
-            'class' => \App\Services\Ai\MistralAiService::class, // À implémenter plus tard
+            'class' => \App\Services\Ai\MistralAiService::class,
             'api_key' => env('MISTRAL_API_KEY', ''),
             'embedding_model' => env('MISTRAL_EMBEDDING_MODEL', 'mistral-embed'),
             'chat_model' => env('MISTRAL_CHAT_MODEL', 'mistral-tiny'),

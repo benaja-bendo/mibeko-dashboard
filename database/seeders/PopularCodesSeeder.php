@@ -2,9 +2,9 @@
 
 namespace Database\Seeders;
 
+use App\Models\DocumentType;
 use App\Models\LegalDocument;
 use Illuminate\Database\Seeder;
-use App\Models\DocumentType;
 
 class PopularCodesSeeder extends Seeder
 {
@@ -26,7 +26,7 @@ class PopularCodesSeeder extends Seeder
                 'type' => 'CODE',
                 'ref' => 'CODE-FAMILLE',
             ],
-             [
+            [
                 'title' => 'Code du Travail',
                 'type' => 'CODE',
                 'ref' => 'CODE-TRAVAIL',
@@ -38,13 +38,16 @@ class PopularCodesSeeder extends Seeder
             ],
         ];
 
-        // Ensure CODE type exists if we use it, otherwise fallback
-        if (!DocumentType::where('code', 'CODE')->exists()) {
-             DocumentType::firstOrCreate(
-                ['code' => 'CODE'],
-                ['nom' => 'Code', 'niveau_hierarchique' => 50]
-            );
-        }
+        // Ensure CODE and CONST type exists if we use it, otherwise fallback
+        DocumentType::firstOrCreate(
+            ['code' => 'CODE'],
+            ['nom' => 'Code', 'niveau_hierarchique' => 50]
+        );
+
+        DocumentType::firstOrCreate(
+            ['code' => 'CONST'],
+            ['nom' => 'Constitution', 'niveau_hierarchique' => 10]
+        );
 
         foreach ($codes as $data) {
             LegalDocument::firstOrCreate(
