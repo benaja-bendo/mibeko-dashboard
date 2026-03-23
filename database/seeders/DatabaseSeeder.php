@@ -19,7 +19,7 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         // Disable automatic embedding generation during seeding
-        ArticleVersionObserver::$shouldSkipEmbeddings = true;
+        ArticleVersionObserver::$shouldSkipEmbeddings = app()->environment('production');
 
         // Call other seeders
         $this->call([

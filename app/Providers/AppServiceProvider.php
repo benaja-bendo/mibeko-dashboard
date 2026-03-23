@@ -29,5 +29,10 @@ class AppServiceProvider extends ServiceProvider
         JsonResource::withoutWrapping();
 
         ArticleVersion::observe(ArticleVersionObserver::class);
+
+        \Illuminate\Support\Facades\Gate::define('viewApiDocs', function ($user = null) {
+            // Autoriser tout le monde (ou mettre une condition spécifique, par ex: return true;)
+            return true;
+        });
     }
 }

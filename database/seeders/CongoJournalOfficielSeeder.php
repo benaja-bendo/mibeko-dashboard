@@ -140,12 +140,15 @@ class CongoJournalOfficielSeeder extends Seeder
         try {
             $filename = "sources/{$baseName}.pdf";
 
-            // Check if file already exists in S3 to avoid re-uploading every time
-            if (Storage::disk('s3')->exists($filename)) {
+            // On utilise le disque par défaut configuré (local ou s3)
+            $disk = Storage::disk(config('filesystems.default'));
+
+            // Check if file already exists to avoid re-uploading every time
+            if ($disk->exists($filename)) {
                 return $filename;
             }
 
-            Storage::disk('s3')->put($filename, File::get($localPath));
+            $disk->put($filename, File::get($localPath));
             return $filename;
         } catch (\Exception $e) {
             $this->command->error("Erreur lors de l'upload PDF pour {$baseName}: " . $e->getMessage());
@@ -191,16 +194,23 @@ class CongoJournalOfficielSeeder extends Seeder
         // 2. Determine Title
         $title = $data['titre_officiel'] ?? $data['intitule_long'] ?? 'Document sans titre';
 
-        // 3. Create Document
-        $document = LegalDocument::create([
-            'type_code' => $typeCode,
-            'reference_nor' => $refNor,
-            'titre_officiel' => $title,
-            'date_publication' => $publicationDate,
-            'date_signature' => $this->parseSafeDate($data['date_signature'] ?? null),
-            'statut' => 'vigueur',
-            'curation_status' => 'published',
-        ]);
+        // 3. Create Document (using firstOrCreate)
+        $document = LegalDocument::firstOrCreate(
+            ['reference_nor' => $refNor],
+            [
+                'type_code' => $typeCode,
+                'titre_officiel' => $title,
+                'date_publication' => $publicationDate,
+                'date_signature' => $this->parseSafeDate($data['date_signature'] ?? null),
+                'statut' => 'vigueur',
+                'curation_status' => 'published',
+            ]
+        );
+
+        // If the document already existed, don't recreate articles/nodes
+        if (!$document->wasRecentlyCreated) {
+            return;
+        }
 
         if ($pdfPath) {
             $document->mediaFiles()->create([
