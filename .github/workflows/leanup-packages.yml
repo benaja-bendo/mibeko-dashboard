@@ -2,21 +2,25 @@ name: Nettoyage des anciennes images Docker
 
 on:
   schedule:
-    # S'exécute tous les dimanches à minuit
     - cron: '0 0 * * 0'
-  workflow_dispatch: # Permet de lancer le nettoyage manuellement depuis GitHub
+  workflow_dispatch:
 
 jobs:
   clean:
     runs-on: ubuntu-latest
+
+    # --- AJOUTE CE BLOC ICI ---
+    permissions:
+      packages: write
+      contents: read
+    # --------------------------
+
     steps:
       - name: Supprimer les anciennes versions du package
         uses: actions/delete-package-versions@v5
         with:
           package-name: 'mibeko-dashboard'
           package-type: 'container'
-          # Nombre de versions récentes à conserver (garde les 5 plus récentes)
           min-versions-to-keep: 5
-          # Supprime uniquement les versions qui n'ont pas de tags importants
           delete-only-untagged-versions: 'true'
           token: ${{ secrets.GITHUB_TOKEN }}
