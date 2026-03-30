@@ -27,6 +27,20 @@ yarn-error.log
 /.vscode
 /.zed
 
+# Laravel Boost & AI Agents
+.mcp.json
+opencode.json
+boost.json
+CLAUDE.md
+AGENTS.md
+GEMINI.md
+
 .gemini
 .junie
 .trae
+.codex
+.claude
+.amp
+.agents
+/.github/skills
+

@@ -4,15 +4,25 @@
         "copilot",
         "gemini",
         "opencode",
-        "phpstorm"
-    ],
-    "editors": [
+        "junie",
         "claude_code",
-        "codex",
-        "gemini",
-        "opencode",
-        "phpstorm",
-        "vscode"
+        "amp"
     ],
-    "guidelines": true
+    "guidelines": true,
+    "mcp": true,
+    "nightwatch_mcp": true,
+    "packages": [
+        "laravel/fortify",
+        "spatie/laravel-backup"
+    ],
+    "sail": false,
+    "skills": [
+        "laravel-best-practices",
+        "wayfinder-development",
+        "pest-testing",
+        "inertia-react-development",
+        "tailwindcss-development",
+        "fortify-development",
+        "laravel-backup"
+    ]
 }
