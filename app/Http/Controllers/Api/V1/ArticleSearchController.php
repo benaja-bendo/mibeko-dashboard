@@ -2,11 +2,8 @@
 
 namespace App\Http\Controllers\Api\V1;
 
-use App\Http\Controllers\Controller;
-use App\Http\Resources\V1\ArticleResource;
-use App\Models\Article;
-use App\Models\LegalDocument;
 use App\Contracts\AiServiceInterface;
+use App\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -39,7 +36,7 @@ class ArticleSearchController extends Controller
      * @queryParam tag string Optional. Slug of a tag to filter by.
      * @queryParam type string Optional. Code of a document type (e.g., "LOI", "CODE") to filter by.
      * @queryParam per_page integer Optional. Results per page. Default: 20.
-     * 
+     *
      * @response 200 {
      *  "success": true,
      *  "message": "Réponse générée avec succès",
@@ -77,7 +74,6 @@ class ArticleSearchController extends Controller
             return response()->json(['data' => [], 'meta' => []]);
         }
 
-        // Base query with common joins
         $results = DB::table('article_versions as av')
             ->join('articles as a', 'av.article_id', '=', 'a.id')
             ->join('legal_documents as ld', 'a.document_id', '=', 'ld.id')
@@ -97,7 +93,6 @@ class ArticleSearchController extends Controller
                 'sn.titre as node_title',
             ]);
 
-        // Apply Tag Filter
         if ($tag) {
             $results->join('taggables as tgb', function ($join) {
                 $join->on('a.id', '=', 'tgb.taggable_id')
@@ -107,39 +102,33 @@ class ArticleSearchController extends Controller
                 ->where('t.slug', $tag);
         }
 
-        // Apply Document Filter
         if ($documentId) {
             $results->where('a.document_id', $documentId);
         }
 
-        // Apply Type Filter
         if ($type) {
             $results->where('ld.type_code', $type);
         }
 
-        // Apply Search Logic if query is present
-        if (!empty($query)) {
-            // 1. Generate Embedding (avec Fallback gracieux)
+        if (! empty($query)) {
             $embeddingString = null;
             try {
-                // Pour éviter le rate limit sur les petites requêtes d'autocomplétion (1-2 lettres)
                 if (strlen($query) > 2) {
                     $embedding = $this->aiService->generateEmbedding($query);
-                    if (!empty($embedding)) {
-                        $embeddingString = '[' . implode(',', $embedding) . ']';
+                    if (! empty($embedding)) {
+                        $embeddingString = '['.implode(',', $embedding).']';
                     }
                 }
             } catch (\Exception $e) {
-                Log::warning('Erreur lors de la génération de l\'embedding (fallback sur la recherche textuelle): ' . $e->getMessage());
+                Log::warning('Erreur lors de la génération de l\'embedding (fallback sur la recherche textuelle): '.$e->getMessage());
             }
 
-            // 2. Add scoring and search conditions
             $results->selectRaw("ts_rank(av.search_tsv, websearch_to_tsquery('french', ?)) as rank_score", [$query])
-                ->selectRaw("CASE WHEN ld.titre_officiel ILIKE ? THEN 1.0 ELSE 0.0 END as title_exact_match", ["%$query%"])
-                ->selectRaw("CASE WHEN a.numero_article = ? THEN 1.0 ELSE 0.0 END as article_num_match", [$query]);
+                ->selectRaw('CASE WHEN ld.titre_officiel ILIKE ? THEN 1.0 ELSE 0.0 END as title_exact_match', ["%$query%"])
+                ->selectRaw('CASE WHEN a.numero_article = ? THEN 1.0 ELSE 0.0 END as article_num_match', [$query]);
 
             if ($embeddingString) {
-                $results->selectRaw("COALESCE(1 - (av.embedding <=> ?::vector), 0) as similarity_score", [$embeddingString])
+                $results->selectRaw('COALESCE(1 - (av.embedding <=> ?::vector), 0) as similarity_score', [$embeddingString])
                     ->selectRaw("
                         (CASE WHEN ld.titre_officiel ILIKE ? THEN 0.4 ELSE 0.0 END) +
                         (ts_rank(av.search_tsv, websearch_to_tsquery('french', ?)) * 0.3) +
@@ -149,12 +138,12 @@ class ArticleSearchController extends Controller
                     ", ["%$query%", $query, $embeddingString, $query])
                     ->where(function ($q) use ($query, $embeddingString) {
                         $q->whereRaw("av.search_tsv @@ websearch_to_tsquery('french', ?)", [$query])
-                          ->orWhereRaw("av.embedding <=> ?::vector < 0.5", [$embeddingString])
-                          ->orWhere('ld.titre_officiel', 'ILIKE', "%$query%")
-                          ->orWhere('a.numero_article', '=', $query);
+                            ->orWhereRaw('av.embedding <=> ?::vector < 0.5', [$embeddingString])
+                            ->orWhere('ld.titre_officiel', 'ILIKE', "%$query%")
+                            ->orWhere('a.numero_article', '=', $query);
                     });
             } else {
-                $results->selectRaw("0 as similarity_score")
+                $results->selectRaw('0 as similarity_score')
                     ->selectRaw("
                         (CASE WHEN ld.titre_officiel ILIKE ? THEN 0.5 ELSE 0.0 END) +
                         (ts_rank(av.search_tsv, websearch_to_tsquery('french', ?)) * 0.4) +
@@ -163,20 +152,18 @@ class ArticleSearchController extends Controller
                     ", ["%$query%", $query, $query])
                     ->where(function ($q) use ($query) {
                         $q->whereRaw("av.search_tsv @@ websearch_to_tsquery('french', ?)", [$query])
-                          ->orWhere('ld.titre_officiel', 'ILIKE', "%$query%")
-                          ->orWhere('a.numero_article', '=', $query);
+                            ->orWhere('ld.titre_officiel', 'ILIKE', "%$query%")
+                            ->orWhere('a.numero_article', '=', $query);
                     });
             }
-            
+
             $results->orderByDesc('total_score');
         } else {
-            // Default ordering for browsing by tag
             $results->orderBy('a.ordre_affichage');
         }
 
         $paginator = $results->paginate($request->integer('per_page', 20));
 
-        // 3. Transform for Response - Flat format matching RemoteSearchResult
         $paginator->getCollection()->transform(function ($item) {
             // Build breadcrumb: DocumentType > DocumentTitle > NodeTitle
             $breadcrumb = implode(' > ', array_filter([
@@ -200,28 +187,23 @@ class ArticleSearchController extends Controller
             ];
         });
 
-        // 4. Generate AI Answer (RAG) if it's a direct question
         $aiAnswer = null;
-        
-        // On déclenche le RAG uniquement si :
-        // - L'application le demande explicitement (rag=true ou autocomplete=false)
-        // - OU la requête ressemble à une question (finit par ? ou contient plus de 3 mots)
         $wantsRag = $request->boolean('rag', false);
         $isAutocomplete = $request->boolean('autocomplete', false);
-        
+
         $wordCount = str_word_count($query);
         $isQuestion = str_ends_with(trim($query), '?') || preg_match('/^(comment|pourquoi|quel|quelle|quels|quelles|qui|que|combien|est-ce que)/i', trim($query));
-        
-        $shouldRunRag = !$isAutocomplete && ($wantsRag || $isQuestion || $wordCount >= 4);
 
-        if (!empty($query) && $shouldRunRag) {
+        $shouldRunRag = ! $isAutocomplete && ($wantsRag || $isQuestion || $wordCount >= 4);
+
+        if (! empty($query) && $shouldRunRag) {
             $topArticles = $paginator->items();
             $sources = array_slice($topArticles, 0, 5); // Take top 5 for context
 
-            Log::info("AI Search Decision", [
+            Log::info('AI Search Decision', [
                 'query' => $query,
                 'source_count' => count($sources),
-                'top_score' => count($sources) > 0 ? $sources[0]['score'] : null
+                'top_score' => count($sources) > 0 ? $sources[0]['score'] : null,
             ]);
 
             if (empty($sources)) {
@@ -231,7 +213,6 @@ class ArticleSearchController extends Controller
             }
         }
 
-        // Si on a une réponse RAG, on utilise la structure demandée par l'app (Objet)
         if ($aiAnswer) {
             return $this->success([
                 'answer' => $aiAnswer,
@@ -245,7 +226,6 @@ class ArticleSearchController extends Controller
             ], 'Réponse générée avec succès');
         }
 
-        // Sinon (autocomplétion ou recherche classique), on retourne le format paginé standard (Tableau)
         return $this->paginatedSuccess($paginator, null, 'Résultats de recherche récupérés avec succès');
     }
 
@@ -259,26 +239,26 @@ class ArticleSearchController extends Controller
         }
 
         // Construction du contexte à partir des articles trouvés
-        $context = "";
+        $context = '';
         foreach ($articles as $index => $article) {
-            $context .= "--- SOURCE " . ($index + 1) . " ---\n";
-            $context .= "Document : " . $article['document_title'] . "\n";
-            $context .= "Article : " . $article['number'] . "\n";
-            $context .= "Contenu : " . $article['content'] . "\n\n";
+            $context .= '--- SOURCE '.($index + 1)." ---\n";
+            $context .= 'Document : '.$article['document_title']."\n";
+            $context .= 'Article : '.$article['number']."\n";
+            $context .= 'Contenu : '.$article['content']."\n\n";
         }
 
         $systemPrompt = "Tu es un expert juridique spécialisé dans le droit congolais. Ton rôle est d'aider les citoyens à comprendre leurs droits de manière rigoureuse.\n\n"
-                      . "RÈGLES CRITIQUES :\n"
-                      . "1. Réponds UNIQUEMENT en te basant sur les extraits de loi fournis.\n"
-                      . "2. N'utilise JAMAIS tes propres connaissances externes ou des informations qui ne sont pas dans les sources fournies.\n"
-                      . "3. Si les extraits fournis ne permettent pas de répondre précisément à la question, indique clairement que tu ne trouves pas l'information spécifique dans la base de données Mibeko.\n"
-                      . "4. Pour chaque point de ta réponse, cite le document et le numéro d'article utilisé.\n"
-                      . "5. Garde un ton professionnel, neutre et pédagogique.";
+                      ."RÈGLES CRITIQUES :\n"
+                      ."1. Réponds UNIQUEMENT en te basant sur les extraits de loi fournis.\n"
+                      ."2. N'utilise JAMAIS tes propres connaissances externes ou des informations qui ne sont pas dans les sources fournies.\n"
+                      ."3. Si les extraits fournis ne permettent pas de répondre précisément à la question, indique clairement que tu ne trouves pas l'information spécifique dans la base de données Mibeko.\n"
+                      ."4. Pour chaque point de ta réponse, cite le document et le numéro d'article utilisé.\n"
+                      .'5. Garde un ton professionnel, neutre et pédagogique.';
 
         $userPrompt = "Voici les extraits de loi pertinents trouvés dans la base Mibeko :\n\n"
-                    . $context
-                    . "Question de l'utilisateur : " . $query . "\n\n"
-                    . "Réponse (en français) :";
+                    .$context
+                    ."Question de l'utilisateur : ".$query."\n\n"
+                    .'Réponse (en français) :';
 
         return $this->aiService->generateChatCompletion([
             ['role' => 'system', 'content' => $systemPrompt],
@@ -294,6 +274,7 @@ class ArticleSearchController extends Controller
         // Simple sanitization: replace spaces with & (AND) for strict search, or | (OR) for loose
         // Using 'plainto_tsquery' logic simulation or just strict AND
         $parts = array_filter(explode(' ', trim($query)));
+
         return implode(' & ', $parts);
     }
 }

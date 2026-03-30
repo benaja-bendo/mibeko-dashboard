@@ -2,8 +2,8 @@
 
 namespace App\Console\Commands;
 
-use App\Models\ArticleVersion;
 use App\Contracts\AiServiceInterface;
+use App\Models\ArticleVersion;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Log;
 
@@ -42,6 +42,7 @@ class GenerateEmbeddingsCommand extends Command
         $limit = $this->option('limit');
         $batchSize = $this->option('batch');
         $delay = $this->option('delay') * 1000; // convert to microseconds
+        $hadErrors = false;
 
         $versions = ArticleVersion::whereNull('embedding')
             ->whereNotNull('contenu_texte')
@@ -50,6 +51,7 @@ class GenerateEmbeddingsCommand extends Command
 
         if ($versions->isEmpty()) {
             $this->info('✅ Tous les articles ont déjà des embeddings.');
+
             return 0;
         }
 
@@ -80,11 +82,17 @@ class GenerateEmbeddingsCommand extends Command
 
             } catch (\Exception $e) {
                 $this->newLine();
-                $this->error("❌ Erreur AI : " . $e->getMessage());
-                Log::error("Erreur Batch Embedding: " . $e->getMessage());
+                $this->error('❌ Erreur AI : '.$e->getMessage());
+                Log::error('Erreur Batch Embedding: '.$e->getMessage());
+                $hadErrors = true;
+
+                if (str_contains(strtolower($e->getMessage()), 'unauthorized')) {
+                    $this->warn('Unauthorized: vérifiez MISTRAL_API_KEY dans le .env du conteneur et exécutez php artisan optimize:clear.');
+                    break;
+                }
 
                 if (str_contains(strtolower($e->getMessage()), 'rate limit')) {
-                    $this->warn("Rate limit atteint. Essayez avec un batch plus petit ou attendez un peu.");
+                    $this->warn('Rate limit atteint. Essayez avec un batch plus petit ou attendez un peu.');
                     break;
                 }
             }
@@ -92,8 +100,8 @@ class GenerateEmbeddingsCommand extends Command
 
         $bar->finish();
         $this->newLine(2);
-        $this->info('✅ Traitement terminé.');
+        $this->info($hadErrors ? '⚠️ Traitement terminé avec erreurs.' : '✅ Traitement terminé.');
 
-        return 0;
+        return $hadErrors ? 1 : 0;
     }
 }
