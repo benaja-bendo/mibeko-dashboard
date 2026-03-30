@@ -119,43 +119,56 @@ class ArticleSearchController extends Controller
 
         // Apply Search Logic if query is present
         if (!empty($query)) {
-            // 1. Generate Embedding
+            // 1. Generate Embedding (avec Fallback gracieux)
+            $embeddingString = null;
             try {
-                $embedding = $this->aiService->generateEmbedding($query);
+                // Pour éviter le rate limit sur les petites requêtes d'autocomplétion (1-2 lettres)
+                if (strlen($query) > 2) {
+                    $embedding = $this->aiService->generateEmbedding($query);
+                    if (!empty($embedding)) {
+                        $embeddingString = '[' . implode(',', $embedding) . ']';
+                    }
+                }
             } catch (\Exception $e) {
-                return $this->error([], 'Erreur lors de la génération de l\'embedding via le service d\'IA', 500);
+                Log::warning('Erreur lors de la génération de l\'embedding (fallback sur la recherche textuelle): ' . $e->getMessage());
             }
-
-            if (empty($embedding)) {
-                return $this->error([], 'Erreur lors de la génération de l\'embedding via le service d\'IA', 500);
-            }
-
-            $embeddingString = '[' . implode(',', $embedding) . ']';
 
             // 2. Add scoring and search conditions
-            // Boost matches in document title
             $results->selectRaw("ts_rank(av.search_tsv, websearch_to_tsquery('french', ?)) as rank_score", [$query])
-                ->selectRaw("COALESCE(1 - (av.embedding <=> ?::vector), 0) as similarity_score", [$embeddingString])
-                // New: Title match score (high priority)
                 ->selectRaw("CASE WHEN ld.titre_officiel ILIKE ? THEN 1.0 ELSE 0.0 END as title_exact_match", ["%$query%"])
-                // New: Article number boost
-                ->selectRaw("CASE WHEN a.numero_article = ? THEN 1.0 ELSE 0.0 END as article_num_match", [$query])
-                // Combined score with weights:
-                // 40% Document Title match, 30% Keyword rank, 20% Semantic similarity, 10% Article number
-                ->selectRaw("
-                    (CASE WHEN ld.titre_officiel ILIKE ? THEN 0.4 ELSE 0.0 END) +
-                    (ts_rank(av.search_tsv, websearch_to_tsquery('french', ?)) * 0.3) +
-                    (COALESCE(1 - (av.embedding <=> ?::vector), 0) * 0.2) +
-                    (CASE WHEN a.numero_article = ? THEN 0.1 ELSE 0.0 END)
-                    as total_score
-                ", ["%$query%", $query, $embeddingString, $query])
-                ->where(function ($q) use ($query, $embeddingString) {
-                    $q->whereRaw("av.search_tsv @@ websearch_to_tsquery('french', ?)", [$query])
-                      ->orWhereRaw("av.embedding <=> ?::vector < 0.5", [$embeddingString])
-                      ->orWhere('ld.titre_officiel', 'ILIKE', "%$query%")
-                      ->orWhere('a.numero_article', '=', $query);
-                })
-                ->orderByDesc('total_score');
+                ->selectRaw("CASE WHEN a.numero_article = ? THEN 1.0 ELSE 0.0 END as article_num_match", [$query]);
+
+            if ($embeddingString) {
+                $results->selectRaw("COALESCE(1 - (av.embedding <=> ?::vector), 0) as similarity_score", [$embeddingString])
+                    ->selectRaw("
+                        (CASE WHEN ld.titre_officiel ILIKE ? THEN 0.4 ELSE 0.0 END) +
+                        (ts_rank(av.search_tsv, websearch_to_tsquery('french', ?)) * 0.3) +
+                        (COALESCE(1 - (av.embedding <=> ?::vector), 0) * 0.2) +
+                        (CASE WHEN a.numero_article = ? THEN 0.1 ELSE 0.0 END)
+                        as total_score
+                    ", ["%$query%", $query, $embeddingString, $query])
+                    ->where(function ($q) use ($query, $embeddingString) {
+                        $q->whereRaw("av.search_tsv @@ websearch_to_tsquery('french', ?)", [$query])
+                          ->orWhereRaw("av.embedding <=> ?::vector < 0.5", [$embeddingString])
+                          ->orWhere('ld.titre_officiel', 'ILIKE', "%$query%")
+                          ->orWhere('a.numero_article', '=', $query);
+                    });
+            } else {
+                $results->selectRaw("0 as similarity_score")
+                    ->selectRaw("
+                        (CASE WHEN ld.titre_officiel ILIKE ? THEN 0.5 ELSE 0.0 END) +
+                        (ts_rank(av.search_tsv, websearch_to_tsquery('french', ?)) * 0.4) +
+                        (CASE WHEN a.numero_article = ? THEN 0.1 ELSE 0.0 END)
+                        as total_score
+                    ", ["%$query%", $query, $query])
+                    ->where(function ($q) use ($query) {
+                        $q->whereRaw("av.search_tsv @@ websearch_to_tsquery('french', ?)", [$query])
+                          ->orWhere('ld.titre_officiel', 'ILIKE', "%$query%")
+                          ->orWhere('a.numero_article', '=', $query);
+                    });
+            }
+            
+            $results->orderByDesc('total_score');
         } else {
             // Default ordering for browsing by tag
             $results->orderBy('a.ordre_affichage');
@@ -189,7 +202,19 @@ class ArticleSearchController extends Controller
 
         // 4. Generate AI Answer (RAG) if it's a direct question
         $aiAnswer = null;
-        if (!empty($query)) {
+        
+        // On déclenche le RAG uniquement si :
+        // - L'application le demande explicitement (rag=true ou autocomplete=false)
+        // - OU la requête ressemble à une question (finit par ? ou contient plus de 3 mots)
+        $wantsRag = $request->boolean('rag', false);
+        $isAutocomplete = $request->boolean('autocomplete', false);
+        
+        $wordCount = str_word_count($query);
+        $isQuestion = str_ends_with(trim($query), '?') || preg_match('/^(comment|pourquoi|quel|quelle|quels|quelles|qui|que|combien|est-ce que)/i', trim($query));
+        
+        $shouldRunRag = !$isAutocomplete && ($wantsRag || $isQuestion || $wordCount >= 4);
+
+        if (!empty($query) && $shouldRunRag) {
             $topArticles = $paginator->items();
             $sources = array_slice($topArticles, 0, 5); // Take top 5 for context
 
@@ -206,6 +231,7 @@ class ArticleSearchController extends Controller
             }
         }
 
+        // Si on a une réponse RAG, on utilise la structure demandée par l'app (Objet)
         if ($aiAnswer) {
             return $this->success([
                 'answer' => $aiAnswer,
@@ -219,6 +245,7 @@ class ArticleSearchController extends Controller
             ], 'Réponse générée avec succès');
         }
 
+        // Sinon (autocomplétion ou recherche classique), on retourne le format paginé standard (Tableau)
         return $this->paginatedSuccess($paginator, null, 'Résultats de recherche récupérés avec succès');
     }
 
