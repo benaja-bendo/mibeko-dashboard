@@ -39,7 +39,7 @@ class DossierExportController extends Controller
         $articleIds = $items->where('type', 'article')->pluck('id');
         // $documentIds = $items->where('type', 'document')->pluck('id'); // Future support
 
-        $articles = Article::with(['activeVersion', 'latestVersion', 'document', 'parentNode.parent'])
+        $articles = Article::with(['activeVersion', 'latestVersion', 'document', 'parentNode'])
             ->whereIn('id', $articleIds)
             ->get()
             ->keyBy('id');

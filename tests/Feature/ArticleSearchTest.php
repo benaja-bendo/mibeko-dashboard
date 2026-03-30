@@ -56,21 +56,21 @@ beforeEach(function () {
     ]);
 });
 
-it('can search articles by content', function () {
+it('can search articles by content (without RAG)', function () {
     $response = $this->getJson('/api/v1/articles/search?q=licenciement');
 
     $response->assertStatus(200)
-        ->assertJsonCount(1, 'data.sources')
-        ->assertJsonPath('data.sources.0.number', '123')
-        ->assertJsonPath('data.sources.0.content', 'Ceci est un article sur le licenciement.');
+        ->assertJsonCount(1, 'data')
+        ->assertJsonPath('data.0.number', '123')
+        ->assertJsonPath('data.0.content', 'Ceci est un article sur le licenciement.');
 });
 
 it('can search articles by number', function () {
     $response = $this->getJson('/api/v1/articles/search?q=456');
 
     $response->assertStatus(200)
-        ->assertJsonCount(1, 'data.sources')
-        ->assertJsonPath('data.sources.0.number', '456');
+        ->assertJsonCount(1, 'data')
+        ->assertJsonPath('data.0.number', '456');
 });
 
 it('can filter search results by document type', function () {
@@ -78,18 +78,49 @@ it('can filter search results by document type', function () {
     $response = $this->getJson('/api/v1/articles/search?q=article&type=LOI');
 
     $response->assertStatus(200)
-        ->assertJsonCount(1, 'data.sources')
-        ->assertJsonPath('data.sources.0.document_type', 'LOI');
+        ->assertJsonCount(1, 'data')
+        ->assertJsonPath('data.0.document_type', 'LOI');
 
     $response = $this->getJson('/api/v1/articles/search?q=article&type=DEC');
 
     $response->assertStatus(200)
-        ->assertJsonCount(1, 'data.sources')
-        ->assertJsonPath('data.sources.0.document_type', 'DEC');
+        ->assertJsonCount(1, 'data')
+        ->assertJsonPath('data.0.document_type', 'DEC');
 });
 
-it('returns the correct resource structure', function () {
+it('returns the correct resource structure without RAG', function () {
     $response = $this->getJson('/api/v1/articles/search?q=licenciement');
+
+    $response->assertStatus(200)
+        ->assertJsonStructure([
+            'success',
+            'message',
+            'data' => [
+                '*' => [
+                    'id',
+                    'number',
+                    'order',
+                    'content',
+                    'document_id',
+                    'document_title',
+                    'document_type',
+                    'node_title',
+                    'breadcrumb',
+                    'validation_status',
+                ],
+            ],
+            'pagination' => [
+                'total',
+                'per_page',
+                'current_page',
+                'last_page',
+            ],
+        ]);
+});
+
+it('returns the correct resource structure with RAG', function () {
+    // Adding rag=true to force RAG execution
+    $response = $this->getJson('/api/v1/articles/search?q=licenciement&rag=true');
 
     $response->assertStatus(200)
         ->assertJsonStructure([
