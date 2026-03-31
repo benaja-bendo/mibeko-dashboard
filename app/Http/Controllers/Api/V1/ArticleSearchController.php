@@ -2,12 +2,13 @@
 
 namespace App\Http\Controllers\Api\V1;
 
-use App\Contracts\AiServiceInterface;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
+use function Laravel\Ai\agent;
 
 /**
  * @group Article Search
@@ -16,13 +17,6 @@ use Illuminate\Support\Facades\Log;
  */
 class ArticleSearchController extends Controller
 {
-    protected AiServiceInterface $aiService;
-
-    public function __construct(AiServiceInterface $aiService)
-    {
-        $this->aiService = $aiService;
-    }
-
     /**
      * Search articles (Hybrid: Vector + Full-Text) and provide AI answer (RAG).
      *
@@ -114,7 +108,7 @@ class ArticleSearchController extends Controller
             $embeddingString = null;
             try {
                 if (strlen($query) > 2) {
-                    $embedding = $this->aiService->generateEmbedding($query);
+                    $embedding = Str::of($query)->toEmbeddings();
                     if (! empty($embedding)) {
                         $embeddingString = '['.implode(',', $embedding).']';
                     }
@@ -260,10 +254,13 @@ class ArticleSearchController extends Controller
                     ."Question de l'utilisateur : ".$query."\n\n"
                     .'Réponse (en français) :';
 
-        return $this->aiService->generateChatCompletion([
-            ['role' => 'system', 'content' => $systemPrompt],
-            ['role' => 'user', 'content' => $userPrompt],
-        ]);
+        try {
+            $response = agent(instructions: $systemPrompt)->prompt($userPrompt);
+            return $response->text;
+        } catch (\Exception $e) {
+            Log::error('Erreur lors de la génération de la réponse IA: '.$e->getMessage());
+            return null;
+        }
     }
 
     /**

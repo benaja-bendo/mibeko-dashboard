@@ -3,23 +3,16 @@
 namespace App\Observers;
 
 use App\Models\ArticleVersion;
-use App\Contracts\AiServiceInterface;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 
 class ArticleVersionObserver
 {
-    protected AiServiceInterface $aiService;
-
     /**
      * Flag to globally disable embedding generation.
      * Useful for seeders or bulk imports.
      */
     public static bool $shouldSkipEmbeddings = false;
-
-    public function __construct(AiServiceInterface $aiService)
-    {
-        $this->aiService = $aiService;
-    }
 
     /**
      * Handle the ArticleVersion "saved" event.
@@ -51,7 +44,7 @@ class ArticleVersionObserver
 
         while ($retryCount < $maxRetries) {
             try {
-                $embedding = $this->aiService->generateEmbedding($articleVersion->contenu_texte);
+                $embedding = Str::of($articleVersion->contenu_texte)->toEmbeddings();
 
                 // On utilise saveQuietly pour éviter une boucle infinie avec l'événement 'saved'
                 $articleVersion->embedding = $embedding;

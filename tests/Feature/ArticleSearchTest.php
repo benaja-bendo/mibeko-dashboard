@@ -1,13 +1,13 @@
 <?php
 
-use App\Contracts\AiServiceInterface;
 use App\Models\Article;
 use App\Models\ArticleVersion;
 use App\Models\DocumentType;
 use App\Models\LegalDocument;
 use App\Observers\ArticleVersionObserver;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Mockery\MockInterface;
+use Laravel\Ai\Embeddings;
+use Laravel\Ai\AnonymousAgent;
 
 uses(RefreshDatabase::class);
 
@@ -16,11 +16,8 @@ beforeEach(function () {
     ArticleVersionObserver::$shouldSkipEmbeddings = true;
 
     // Mock the AI service to avoid real API calls during search
-    $this->mock(AiServiceInterface::class, function (MockInterface $mock) {
-        // Return a dummy embedding vector (e.g., 1024 or 1536 dimensions, depending on the model, we just need a valid array)
-        $mock->shouldReceive('generateEmbedding')->andReturn(array_fill(0, 1024, 0.1));
-        $mock->shouldReceive('generateChatCompletion')->andReturn('Réponse IA mockée');
-    });
+    Embeddings::fake();
+    AnonymousAgent::fake(['Réponse IA mockée']);
 
     $this->typeLoi = DocumentType::create(['code' => 'LOI', 'nom' => 'Loi']);
     $this->typeDec = DocumentType::create(['code' => 'DEC', 'nom' => 'Décret']);

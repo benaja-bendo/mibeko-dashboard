@@ -2,28 +2,20 @@
 
 namespace App\Console\Commands;
 
-use App\Contracts\AiServiceInterface;
 use App\Models\ArticleVersion;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Log;
+use Laravel\Ai\Embeddings;
 
 class GenerateEmbeddingsCommand extends Command
 {
-    protected AiServiceInterface $aiService;
-
-    public function __construct(AiServiceInterface $aiService)
-    {
-        parent::__construct();
-        $this->aiService = $aiService;
-    }
-
     /**
      * The name and signature of the console command.
      *
      * @var string
      */
-    protected $signature = 'mibeko:process-rag 
-                            {--limit=100 : Nombre d\'articles à traiter} 
+    protected $signature = 'mibeko:process-rag
+                            {--limit=100 : Nombre d\'articles à traiter}
                             {--batch=20 : Taille du batch pour l\'IA}
                             {--delay=500 : Délai en millisecondes entre les batches pour éviter le rate limit}';
 
@@ -65,7 +57,8 @@ class GenerateEmbeddingsCommand extends Command
             $inputs = $chunk->pluck('contenu_texte')->toArray();
 
             try {
-                $embeddings = $this->aiService->generateEmbeddings($inputs);
+                $response = Embeddings::for($inputs)->generate();
+                $embeddings = $response->embeddings;
 
                 foreach ($embeddings as $index => $embedding) {
                     $version = $chunk->values()[$index];

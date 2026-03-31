@@ -14,11 +14,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        $this->app->singleton(\App\Contracts\AiServiceInterface::class, function ($app) {
-            $default = config('ai.default', 'openai');
-            $class = config("ai.providers.{$default}.class", \App\Services\Ai\OpenAiService::class);
-            return new $class();
-        });
+        //
     }
 
     /**
