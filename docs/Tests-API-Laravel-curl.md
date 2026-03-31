@@ -2,7 +2,7 @@
 
 Ce document contient des requêtes `curl` prêtes à l’emploi pour tester l’API Laravel (v1), avec un accent particulier sur les endpoints “IA” (recherche hybride + RAG) exposés via `GET /api/v1/search` (alias `GET /api/v1/articles/search`).
 
----
+***
 
 ## 1) Variables et prérequis
 
@@ -26,13 +26,13 @@ Si tu envoies du JSON (POST/PATCH), ajoute aussi :
 export JSON_CT='Content-Type: application/json'
 ```
 
----
+***
 
 ## 2) Endpoints “IA” (recherche hybride + RAG)
 
 ### 2.1 Test “autocomplete” (désactive le RAG)
 
-Objectif : vérifier que la recherche remonte des articles sans générer de réponse IA.  
+Objectif : vérifier que la recherche remonte des articles sans générer de réponse IA.\
 Astuce : `autocomplete=true` empêche explicitement le RAG.
 
 ```bash
@@ -44,23 +44,25 @@ curl -sS -G "$BASE_URL/api/v1/search" \
 ```
 
 Ce que tu dois observer :
+
 - La réponse est au format paginé standard : `success`, `message`, `data` (liste), `pagination`.
 - Pas de champ `data.answer`.
 
 ### 2.2 Test RAG explicite (force la génération IA)
 
-Objectif : forcer une réponse IA basée sur les meilleures sources trouvées (top résultats).  
+Objectif : forcer une réponse IA basée sur les meilleures sources trouvées (top résultats).\
 Astuce : `rag=true` force le RAG même si ta requête ne ressemble pas “assez” à une question.
 
 ```bash
 curl -sS -G "$BASE_URL/api/v1/search" \
   -H "$JSON_HEADERS" \
-  --data-urlencode "q=Quels sont mes droits au travail ?" \
+  --data-urlencode "q=C'est quoi l'article 1 de la constitution ?" \
   --data-urlencode "rag=true" \
   | jq .
 ```
 
 Ce que tu dois observer :
+
 - La réponse est au format “RAG” (objet) : `success=true`, `message="Réponse générée avec succès"`.
 - `data.answer` contient le texte généré.
 - `data.sources` contient la liste des articles (avec `document_title`, `number`, `content`, `breadcrumb`, `score`).
@@ -69,10 +71,11 @@ Ce que tu dois observer :
 ### 2.3 Test RAG “auto” (déclenchement automatique)
 
 Le RAG peut se déclencher sans `rag=true` si :
+
 - la requête finit par `?`, ou
 - elle ressemble à une question (ex: “comment”, “pourquoi”, “quel…”, “est-ce que…”), ou
 - elle contient au moins 4 mots,
-et que `autocomplete=false`.
+  et que `autocomplete=false`.
 
 ```bash
 curl -sS -G "$BASE_URL/api/v1/search" \
@@ -84,6 +87,7 @@ curl -sS -G "$BASE_URL/api/v1/search" \
 ### 2.4 Valider les filtres IA (document, type, tag)
 
 L’endpoint IA supporte des filtres utiles pour “contraindre” le contexte RAG :
+
 - `document_id` : limite à un document (UUID)
 - `type` : limite à un type de document (code, ex: `CODE`, `LOI`)
 - `tag` : limite aux articles taggés (slug)
@@ -125,6 +129,7 @@ curl -sS -G "$BASE_URL/api/v1/search" \
 ```
 
 Ce que tu dois observer :
+
 - Les `sources` proviennent bien du document / type ciblé.
 - Le texte de `data.answer` cite des éléments présents dans les sources.
 
@@ -143,10 +148,11 @@ curl -sS -G "$BASE_URL/api/v1/search" \
 ```
 
 Ce que tu dois observer :
+
 - Soit peu/pas de résultats (normal), mais l’API répond correctement.
 - Pas d’erreur serveur (pas de 500).
 
----
+***
 
 ## 3) Endpoints API v1 “classiques” (pour valider le socle)
 
@@ -194,7 +200,7 @@ curl -sS -I "$BASE_URL/api/v1/legal-documents/$DOC_ID/export"
 curl -sS -I "$BASE_URL/api/v1/legal-documents/$DOC_ID/pdf"
 ```
 
----
+***
 
 ## 4) Auth (Sanctum) + endpoints protégés
 
@@ -272,7 +278,7 @@ curl -sS "$BASE_URL/api/v1/logout" \
   | jq .
 ```
 
----
+***
 
 ## 5) Notes utiles pour diagnostiquer rapidement
 

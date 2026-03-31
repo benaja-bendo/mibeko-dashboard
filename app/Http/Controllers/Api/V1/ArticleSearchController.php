@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
+
 use function Laravel\Ai\agent;
 
 /**
@@ -117,37 +118,51 @@ class ArticleSearchController extends Controller
                 Log::warning('Erreur lors de la génération de l\'embedding (fallback sur la recherche textuelle): '.$e->getMessage());
             }
 
+            $orTsQuery = $this->formatTsQuery($query);
+            $articleNum = $query;
+            if (preg_match('/article\s+(\d+)/i', $query, $matches)) {
+                $articleNum = $matches[1];
+            }
+
             $results->selectRaw("ts_rank(av.search_tsv, websearch_to_tsquery('french', ?)) as rank_score", [$query])
                 ->selectRaw('CASE WHEN ld.titre_officiel ILIKE ? THEN 1.0 ELSE 0.0 END as title_exact_match', ["%$query%"])
-                ->selectRaw('CASE WHEN a.numero_article = ? THEN 1.0 ELSE 0.0 END as article_num_match', [$query]);
+                ->selectRaw('CASE WHEN a.numero_article = ? THEN 1.0 ELSE 0.0 END as article_num_match', [$articleNum]);
 
             if ($embeddingString) {
                 $results->selectRaw('COALESCE(1 - (av.embedding <=> ?::vector), 0) as similarity_score', [$embeddingString])
                     ->selectRaw("
                         (CASE WHEN ld.titre_officiel ILIKE ? THEN 0.4 ELSE 0.0 END) +
                         (ts_rank(av.search_tsv, websearch_to_tsquery('french', ?)) * 0.3) +
+                        (CASE WHEN ? != '' THEN ts_rank(av.search_tsv, to_tsquery('french', ?)) * 0.1 ELSE 0.0 END) +
                         (COALESCE(1 - (av.embedding <=> ?::vector), 0) * 0.2) +
-                        (CASE WHEN a.numero_article = ? THEN 0.1 ELSE 0.0 END)
+                        (CASE WHEN a.numero_article = ? THEN 0.2 ELSE 0.0 END)
                         as total_score
-                    ", ["%$query%", $query, $embeddingString, $query])
-                    ->where(function ($q) use ($query, $embeddingString) {
-                        $q->whereRaw("av.search_tsv @@ websearch_to_tsquery('french', ?)", [$query])
-                            ->orWhereRaw('av.embedding <=> ?::vector < 0.5', [$embeddingString])
+                    ", ["%$query%", $query, $orTsQuery, $orTsQuery, $embeddingString, $articleNum])
+                    ->where(function ($q) use ($query, $embeddingString, $orTsQuery, $articleNum) {
+                        $q->whereRaw("av.search_tsv @@ websearch_to_tsquery('french', ?)", [$query]);
+                        if ($orTsQuery !== '') {
+                            $q->orWhereRaw("av.search_tsv @@ to_tsquery('french', ?)", [$orTsQuery]);
+                        }
+                        $q->orWhereRaw('av.embedding <=> ?::vector < 0.5', [$embeddingString])
                             ->orWhere('ld.titre_officiel', 'ILIKE', "%$query%")
-                            ->orWhere('a.numero_article', '=', $query);
+                            ->orWhere('a.numero_article', '=', $articleNum);
                     });
             } else {
                 $results->selectRaw('0 as similarity_score')
                     ->selectRaw("
                         (CASE WHEN ld.titre_officiel ILIKE ? THEN 0.5 ELSE 0.0 END) +
                         (ts_rank(av.search_tsv, websearch_to_tsquery('french', ?)) * 0.4) +
-                        (CASE WHEN a.numero_article = ? THEN 0.1 ELSE 0.0 END)
+                        (CASE WHEN ? != '' THEN ts_rank(av.search_tsv, to_tsquery('french', ?)) * 0.2 ELSE 0.0 END) +
+                        (CASE WHEN a.numero_article = ? THEN 0.2 ELSE 0.0 END)
                         as total_score
-                    ", ["%$query%", $query, $query])
-                    ->where(function ($q) use ($query) {
-                        $q->whereRaw("av.search_tsv @@ websearch_to_tsquery('french', ?)", [$query])
-                            ->orWhere('ld.titre_officiel', 'ILIKE', "%$query%")
-                            ->orWhere('a.numero_article', '=', $query);
+                    ", ["%$query%", $query, $orTsQuery, $orTsQuery, $articleNum])
+                    ->where(function ($q) use ($query, $orTsQuery, $articleNum) {
+                        $q->whereRaw("av.search_tsv @@ websearch_to_tsquery('french', ?)", [$query]);
+                        if ($orTsQuery !== '') {
+                            $q->orWhereRaw("av.search_tsv @@ to_tsquery('french', ?)", [$orTsQuery]);
+                        }
+                        $q->orWhere('ld.titre_officiel', 'ILIKE', "%$query%")
+                            ->orWhere('a.numero_article', '=', $articleNum);
                     });
             }
 
@@ -256,9 +271,11 @@ class ArticleSearchController extends Controller
 
         try {
             $response = agent(instructions: $systemPrompt)->prompt($userPrompt);
+
             return $response->text;
         } catch (\Exception $e) {
             Log::error('Erreur lors de la génération de la réponse IA: '.$e->getMessage());
+
             return null;
         }
     }
@@ -268,10 +285,17 @@ class ArticleSearchController extends Controller
      */
     private function formatTsQuery(string $query): string
     {
-        // Simple sanitization: replace spaces with & (AND) for strict search, or | (OR) for loose
-        // Using 'plainto_tsquery' logic simulation or just strict AND
-        $parts = array_filter(explode(' ', trim($query)));
+        // Nettoyage de la ponctuation et caractères spéciaux
+        $clean = preg_replace('/[^\p{L}\p{N}]+/u', ' ', $query);
+        $parts = array_filter(explode(' ', trim($clean)), function ($w) {
+            // Ignorer les petits mots (le, la, de, un, est, quoi...)
+            return mb_strlen($w) > 3;
+        });
 
-        return implode(' & ', $parts);
+        if (empty($parts)) {
+            return '';
+        }
+
+        return implode(' | ', $parts);
     }
 }

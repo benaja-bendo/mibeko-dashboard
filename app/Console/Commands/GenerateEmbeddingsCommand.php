@@ -5,6 +5,7 @@ namespace App\Console\Commands;
 use App\Models\ArticleVersion;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 use Laravel\Ai\Embeddings;
 
 class GenerateEmbeddingsCommand extends Command
@@ -54,7 +55,11 @@ class GenerateEmbeddingsCommand extends Command
         $bar->start();
 
         foreach ($chunks as $chunk) {
-            $inputs = $chunk->pluck('contenu_texte')->toArray();
+            // Tronquer le texte pour éviter l'erreur de limite de tokens (ex: Mistral 8192 tokens max)
+            // 8192 tokens ~ 24000-28000 caractères. On se limite prudemment à 20000.
+            $inputs = $chunk->pluck('contenu_texte')->map(function ($text) {
+                return Str::limit($text, 20000, '');
+            })->toArray();
 
             try {
                 $response = Embeddings::for($inputs)->generate();
@@ -74,19 +79,46 @@ class GenerateEmbeddingsCommand extends Command
                 }
 
             } catch (\Exception $e) {
-                $this->newLine();
-                $this->error('❌ Erreur AI : '.$e->getMessage());
-                Log::error('Erreur Batch Embedding: '.$e->getMessage());
-                $hadErrors = true;
+                $errorMessage = strtolower($e->getMessage());
 
-                if (str_contains(strtolower($e->getMessage()), 'unauthorized')) {
-                    $this->warn('Unauthorized: vérifiez MISTRAL_API_KEY dans le .env du conteneur et exécutez php artisan optimize:clear.');
+                if (str_contains($errorMessage, 'unauthorized')) {
+                    $this->newLine();
+                    $this->error('❌ Erreur AI : Unauthorized');
+                    $this->warn('Vérifiez la clé API (MISTRAL_API_KEY ou autre) dans le .env et exécutez php artisan optimize:clear.');
+                    $hadErrors = true;
                     break;
                 }
 
-                if (str_contains(strtolower($e->getMessage()), 'rate limit')) {
-                    $this->warn('Rate limit atteint. Essayez avec un batch plus petit ou attendez un peu.');
-                    break;
+                if (str_contains($errorMessage, 'rate limit') || str_contains($errorMessage, 'too many requests')) {
+                    $this->newLine();
+                    $this->warn('⚠️ Rate limit atteint. On attend 5 secondes avant de réessayer...');
+                    sleep(5);
+                    // On pourrait réessayer ici, mais pour l'instant on skip ce batch
+                    $hadErrors = true;
+
+                    continue;
+                }
+
+                // Fallback: Traitement individuel si le batch échoue (ex: un texte est encore trop long)
+                $this->newLine();
+                $this->warn('⚠️ Erreur sur le batch, tentative de traitement individuel... ('.$e->getMessage().')');
+
+                foreach ($chunk as $version) {
+                    try {
+                        $singleInput = Str::limit($version->contenu_texte, 15000, '');
+                        $response = Embeddings::for([$singleInput])->generate();
+                        $version->embedding = $response->embeddings[0];
+                        $version->saveQuietly();
+                        $bar->advance();
+                        if ($delay > 0) {
+                            usleep($delay);
+                        }
+                    } catch (\Exception $subE) {
+                        $this->newLine();
+                        $this->error('❌ Erreur sur l\'article '.$version->article_id.' : '.$subE->getMessage());
+                        Log::error('Erreur Embedding Individuel (Article '.$version->article_id.'): '.$subE->getMessage());
+                        $hadErrors = true;
+                    }
                 }
             }
         }
