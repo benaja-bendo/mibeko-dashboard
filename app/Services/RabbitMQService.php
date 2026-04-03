@@ -29,7 +29,7 @@ class RabbitMQService
                     null,
                     'en_US',
                     3.0,
-                    3.0,
+                    60.0,
                     null,
                     true,
                     60
