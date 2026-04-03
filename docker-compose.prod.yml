@@ -90,6 +90,45 @@ services:
     depends_on:
       - app
 
+  # ─── RabbitMQ Consumer ────────────────────────────────────────────────────────
+  rabbitmq-consumer:
+    image: ghcr.io/${GITHUB_REPOSITORY:-mibeko/mibeko-tableau-de-bord}:latest
+    container_name: mibeko-rabbitmq-consumer
+    restart: unless-stopped
+    command: ["php", "artisan", "rabbitmq:consume-extraction-status"]
+    env_file:
+      - .env
+    volumes:
+      - mibeko_storage:/var/www/html/storage
+    networks:
+      - internal
+      - proxy
+      - db_internal
+    depends_on:
+      - app
+
+  # ─── Reverb (WebSockets) ──────────────────────────────────────────────────────
+  reverb:
+    image: ghcr.io/${GITHUB_REPOSITORY:-mibeko/mibeko-tableau-de-bord}:latest
+    container_name: mibeko-reverb
+    restart: unless-stopped
+    command: ["php", "artisan", "reverb:start", "--host=0.0.0.0", "--port=8080"]
+    env_file:
+      - .env
+    networks:
+      - internal
+      - proxy
+      - db_internal
+    depends_on:
+      - app
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=proxy"
+      - "traefik.http.routers.mibeko-ws.rule=Host(`${APP_DOMAIN:-app.mibeko.benaja-bendo.fr}`)"
+      - "traefik.http.routers.mibeko-ws.entrypoints=websecure"
+      - "traefik.http.routers.mibeko-ws.tls.certresolver=myresolver"
+      - "traefik.http.services.mibeko-ws.loadbalancer.server.port=8080"
+
 # ─── Volumes ──────────────────────────────────────────────────────────────────
 volumes:
   mibeko_storage:
