@@ -17,14 +17,29 @@ class RabbitMQService
     protected function getChannel()
     {
         if (!$this->channel) {
-            $this->connection = new AMQPStreamConnection(
-                config('services.rabbitmq.host'),
-                config('services.rabbitmq.port'),
-                config('services.rabbitmq.user'),
-                config('services.rabbitmq.password')
-            );
+            try {
+                $this->connection = new AMQPStreamConnection(
+                    config('services.rabbitmq.host'),
+                    config('services.rabbitmq.port'),
+                    config('services.rabbitmq.user'),
+                    config('services.rabbitmq.password'),
+                    '/',
+                    false,
+                    'AMQPLAIN',
+                    null,
+                    'en_US',
+                    3.0,
+                    3.0,
+                    null,
+                    true,
+                    60
+                );
 
-            $this->channel = $this->connection->channel();
+                $this->channel = $this->connection->channel();
+            } catch (\Exception $e) {
+                \Illuminate\Support\Facades\Log::error('RabbitMQ Connection Error: ' . $e->getMessage());
+                throw $e;
+            }
         }
 
         return $this->channel;
@@ -65,8 +80,19 @@ class RabbitMQService
             $msg->ack();
         });
 
-        while ($channel->is_open()) {
-            $channel->wait();
+        try {
+            while ($channel->is_open()) {
+                $channel->wait(null, false, 60); // Wait for messages, timeout after 60 seconds
+            }
+        } catch (\PhpAmqpLib\Exception\AMQPTimeoutException $e) {
+            // This is expected if no messages arrive within the timeout period
+            // It allows the loop to continue and check if the channel is still open
+            // and allows signal handlers (like for graceful shutdown) to run.
+            $this->connection->checkHeartBeat(); // Send heartbeat to keep connection alive
+            $this->consume($queue, $callback); // Resume consuming
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('RabbitMQ Consume Error: ' . $e->getMessage());
+            throw $e;
         }
     }
 
