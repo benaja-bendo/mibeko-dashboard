@@ -62,6 +62,11 @@ it('filters documents by search query', function () {
 });
 
 it('creates a new legal document', function () {
+    $this->mock(\App\Services\RabbitMQService::class, function ($mock) {
+        // Mock to prevent real RabbitMQ connection during tests
+        $mock->shouldReceive('publish')->andReturnNull();
+    });
+
     $data = [
         'titre_officiel' => 'Nouvelle Loi de Test',
         'type_code' => $this->type->code,
@@ -72,6 +77,8 @@ it('creates a new legal document', function () {
 
     $response = $this->actingAs($this->user)
         ->post('/curation', $data);
+
+    $response->assertSessionHasNoErrors();
 
     $document = LegalDocument::where('titre_officiel', 'Nouvelle Loi de Test')->first();
     expect($document)->not->toBeNull();

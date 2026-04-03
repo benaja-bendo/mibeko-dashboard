@@ -12,18 +12,22 @@ class RabbitMQService
     protected $channel;
 
     /**
-     * Initialize the RabbitMQ connection.
+     * Initialize the RabbitMQ connection lazily.
      */
-    public function __construct()
+    protected function getChannel()
     {
-        $this->connection = new AMQPStreamConnection(
-            config('services.rabbitmq.host'),
-            config('services.rabbitmq.port'),
-            config('services.rabbitmq.user'),
-            config('services.rabbitmq.password')
-        );
+        if (!$this->channel) {
+            $this->connection = new AMQPStreamConnection(
+                config('services.rabbitmq.host'),
+                config('services.rabbitmq.port'),
+                config('services.rabbitmq.user'),
+                config('services.rabbitmq.password')
+            );
 
-        $this->channel = $this->connection->channel();
+            $this->channel = $this->connection->channel();
+        }
+
+        return $this->channel;
     }
 
     /**
@@ -31,8 +35,10 @@ class RabbitMQService
      */
     public function publish(string $queue, array $data): void
     {
+        $channel = $this->getChannel();
+
         // Ensure the queue exists (durable = true as per python app)
-        $this->channel->queue_declare($queue, false, true, false, false);
+        $channel->queue_declare($queue, false, true, false, false);
 
         $messageBody = json_encode($data);
         $message = new AMQPMessage(
@@ -41,7 +47,7 @@ class RabbitMQService
         );
 
         // Publish to default exchange with routing key as queue name
-        $this->channel->basic_publish($message, '', $queue);
+        $channel->basic_publish($message, '', $queue);
     }
 
     /**
@@ -49,16 +55,18 @@ class RabbitMQService
      */
     public function consume(string $queue, callable $callback): void
     {
-        $this->channel->queue_declare($queue, false, true, false, false);
+        $channel = $this->getChannel();
 
-        $this->channel->basic_consume($queue, '', false, false, false, false, function ($msg) use ($callback) {
+        $channel->queue_declare($queue, false, true, false, false);
+
+        $channel->basic_consume($queue, '', false, false, false, false, function ($msg) use ($callback) {
             $data = json_decode($msg->body, true);
             $callback($data, $msg);
             $msg->ack();
         });
 
-        while ($this->channel->is_open()) {
-            $this->channel->wait();
+        while ($channel->is_open()) {
+            $channel->wait();
         }
     }
 
