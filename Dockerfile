@@ -14,7 +14,8 @@ RUN composer install \
     --no-interaction \
     --no-scripts \
     --prefer-dist \
-    --optimize-autoloader
+    --optimize-autoloader \
+    --ignore-platform-reqs
 
 # Copier le reste des sources
 COPY . .
@@ -28,7 +29,7 @@ RUN composer run-script post-autoload-dump 2>/dev/null || true
 FROM node:22-alpine AS node-builder
 
 # Installer PHP car requis par @laravel/vite-plugin-wayfinder pendant le build
-RUN apk add --no-cache php php-phar php-mbstring php-openssl php-json php-tokenizer php-dom php-xml php-xmlwriter php-session php-pdo php-fileinfo php-iconv php-simplexml php-zip php-curl
+RUN apk add --no-cache php php-phar php-mbstring php-openssl php-json php-tokenizer php-dom php-xml php-xmlwriter php-session php-pdo php-fileinfo php-iconv php-simplexml php-zip php-curl php-sockets
 
 WORKDIR /app
 
@@ -76,6 +77,7 @@ RUN apk add --no-cache \
         exif \
         pcntl \
         intl \
+        sockets \
         opcache \
     && pecl install redis \
     && docker-php-ext-enable redis \
