@@ -66,16 +66,17 @@ class ArticleVersionObserver
                             echo "\033[33m⏳ Rate limit atteint, nouvelle tentative dans {$delay}s...\033[0m\n";
                         }
                         sleep($delay);
+
                         continue;
                     }
                 }
 
-                $errorMessage = 'Erreur lors de la génération de l\'embedding pour l\'article version ' . $articleVersion->id . ': ' . $e->getMessage();
+                $errorMessage = 'Erreur lors de la génération de l\'embedding pour l\'article version '.$articleVersion->id.': '.$e->getMessage();
                 Log::error($errorMessage);
 
                 // Si on est en ligne de commande (ex: seeders), on l'affiche directement
                 if (app()->runningInConsole()) {
-                    echo "\033[31m⚠️  [AI Error] " . $e->getMessage() . "\033[0m\n";
+                    echo "\033[31m⚠️  [AI Error] ".$e->getMessage()."\033[0m\n";
                 }
                 break;
             }

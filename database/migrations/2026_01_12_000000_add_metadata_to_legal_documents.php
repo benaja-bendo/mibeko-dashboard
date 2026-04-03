@@ -2,8 +2,8 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
@@ -41,8 +41,8 @@ return new class extends Migration
         Schema::table('legal_documents', function (Blueprint $table) {
             $table->dropColumn('metadata');
         });
-        
-        // L'index est supprimé automatiquement avec la colonne, 
+
+        // L'index est supprimé automatiquement avec la colonne,
         // mais pour être propre en cas de rollback manuel :
         // DB::statement('DROP INDEX IF EXISTS idx_legal_docs_metadata');
     }

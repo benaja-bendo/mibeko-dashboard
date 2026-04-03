@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources\V1;
 
+use App\Models\DocumentRelation;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -14,7 +15,7 @@ class DocumentRelationResource extends JsonResource
      */
     public function toArray(Request $request): array
     {
-        /** @var \App\Models\DocumentRelation $this */
+        /** @var DocumentRelation $this */
         return [
             'id' => $this->id,
             'source_document_id' => $this->source_doc_id,

@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Models\Notification;
 use App\Traits\HttpResponses;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
 class NotificationController extends Controller
@@ -32,7 +31,7 @@ class NotificationController extends Controller
         $notification = Auth::user()->notifications()->findOrFail($id);
 
         $notification->update([
-            'read_at' => now()
+            'read_at' => now(),
         ]);
 
         return $this->success($notification, 'Notification marquée comme lue.');
@@ -44,7 +43,7 @@ class NotificationController extends Controller
     public function markAllAsRead()
     {
         Auth::user()->notifications()->whereNull('read_at')->update([
-            'read_at' => now()
+            'read_at' => now(),
         ]);
 
         return $this->success(null, 'Toutes les notifications ont été marquées comme lues.');

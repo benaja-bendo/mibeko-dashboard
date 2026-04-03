@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources\V1;
 
+use App\Models\Article;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -18,7 +19,7 @@ class ArticleBriefResource extends JsonResource
      */
     public function toArray(Request $request): array
     {
-        /** @var \App\Models\Article $this */
+        /** @var Article $this */
         return [
             'id' => $this->id,
             'number' => $this->numero_article ?? '',

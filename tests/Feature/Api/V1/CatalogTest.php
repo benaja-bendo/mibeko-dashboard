@@ -46,9 +46,9 @@ class CatalogTest extends TestCase
                             'version_hash',
                             'last_updated',
                             'download_size_kb',
-                        ]
-                    ]
-                ]
+                        ],
+                    ],
+                ],
             ]);
     }
 }

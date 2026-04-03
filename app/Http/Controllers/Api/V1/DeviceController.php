@@ -57,6 +57,7 @@ class DeviceController extends Controller
 
         if ($device) {
             $device->update(['status' => 'inactive']);
+
             return $this->success(null, 'Appareil désinscrit avec succès.');
         }
 

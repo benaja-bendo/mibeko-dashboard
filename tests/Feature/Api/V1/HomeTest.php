@@ -1,7 +1,7 @@
 <?php
 
-use App\Models\LegalDocument;
 use App\Models\DocumentType;
+use App\Models\LegalDocument;
 use App\Observers\ArticleVersionObserver;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
@@ -33,6 +33,6 @@ it('can fetch home page data', function () {
                 'popular_codes',
                 'recently_added',
                 'ai_suggestions',
-            ]
+            ],
         ]);
 });

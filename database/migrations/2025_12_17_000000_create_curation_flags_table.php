@@ -27,7 +27,7 @@ return new class extends Migration
         });
 
         // Add QA status column to article_versions if it doesn't exist
-        if (!Schema::hasColumn('article_versions', 'is_verified')) {
+        if (! Schema::hasColumn('article_versions', 'is_verified')) {
             Schema::table('article_versions', function (Blueprint $table) {
                 $table->boolean('is_verified')->default(false);
             });

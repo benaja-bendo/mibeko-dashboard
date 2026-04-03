@@ -4,10 +4,11 @@ namespace Database\Factories;
 
 use App\Models\DocumentType;
 use App\Models\Institution;
+use App\Models\LegalDocument;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
- * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\LegalDocument>
+ * @extends Factory<LegalDocument>
  */
 class LegalDocumentFactory extends Factory
 {

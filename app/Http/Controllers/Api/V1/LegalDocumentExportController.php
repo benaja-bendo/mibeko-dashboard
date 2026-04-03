@@ -3,12 +3,11 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
-use App\Http\Resources\V1\LegalDocumentResource;
-use App\Models\LegalDocument;
 use App\Models\Article;
-
+use App\Models\LegalDocument;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Response;
+use Illuminate\Support\Str;
 
 class LegalDocumentExportController extends Controller
 {
@@ -17,7 +16,8 @@ class LegalDocumentExportController extends Controller
      *
      * Generates a high-quality PDF version of the complete document including all its articles and structure.
      *
-     * @param string $id The UUID of the legal document.
+     * @param  string  $id  The UUID of the legal document.
+     *
      * @response 200 binary The generated PDF file.
      */
     public function export(string $id): Response
@@ -30,10 +30,10 @@ class LegalDocumentExportController extends Controller
             ->with([
                 'institution',
                 'type',
-                'structureNodes' => function($q) {
+                'structureNodes' => function ($q) {
                     $q->orderByRaw('tree_path');
                 },
-                'articles' => function($q) {
+                'articles' => function ($q) {
                     $q->orderBy('ordre_affichage');
                 },
                 'articles.activeVersion',
@@ -41,13 +41,15 @@ class LegalDocumentExportController extends Controller
             ])
             ->findOrFail($id);
 
-        if (ob_get_length()) ob_end_clean();
+        if (ob_get_length()) {
+            ob_end_clean();
+        }
         $pdf = Pdf::loadView('documents.pro_document_pdf', compact('document'));
         $pdf->setPaper('a4');
         $pdf->setOption('isHtml5ParserEnabled', true);
         $pdf->setOption('isRemoteEnabled', true);
 
-        $filename = \Illuminate\Support\Str::slug($document->titre_officiel ?? 'document') . '.pdf';
+        $filename = Str::slug($document->titre_officiel ?? 'document').'.pdf';
 
         return $pdf->download($filename);
     }
@@ -57,7 +59,8 @@ class LegalDocumentExportController extends Controller
      *
      * Generates a PDF version of a specific article with its metadata and parent document info.
      *
-     * @param string $id The UUID of the article.
+     * @param  string  $id  The UUID of the article.
+     *
      * @response 200 binary The generated PDF file.
      */
     public function exportArticle(string $id): Response
@@ -72,7 +75,7 @@ class LegalDocumentExportController extends Controller
         $pdf = Pdf::loadView('documents.pro_article_pdf', compact('article', 'document'));
         $pdf->setPaper('a4');
 
-        $filename = 'Article-' . $article->numero_article . '-' . \Illuminate\Support\Str::slug($document->titre_officiel ?? 'document') . '.pdf';
+        $filename = 'Article-'.$article->numero_article.'-'.Str::slug($document->titre_officiel ?? 'document').'.pdf';
 
         return $pdf->download($filename);
     }

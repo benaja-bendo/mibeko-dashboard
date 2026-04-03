@@ -102,7 +102,7 @@ return new class extends Migration
     {
         // Drop trigger and function
         DB::unprepared('DROP TRIGGER IF EXISTS trg_refresh_tsv_on_tags ON taggables');
-        
+
         // Re-create article_tag
         Schema::create('article_tag', function (Blueprint $table) {
             $table->foreignUuid('article_id')->constrained('articles')->onDelete('cascade');

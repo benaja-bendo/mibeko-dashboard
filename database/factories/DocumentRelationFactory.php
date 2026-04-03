@@ -2,11 +2,12 @@
 
 namespace Database\Factories;
 
+use App\Models\DocumentRelation;
 use App\Models\LegalDocument;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
- * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\DocumentRelation>
+ * @extends Factory<DocumentRelation>
  */
 class DocumentRelationFactory extends Factory
 {

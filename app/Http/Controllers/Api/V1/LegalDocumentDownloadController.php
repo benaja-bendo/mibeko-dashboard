@@ -10,7 +10,7 @@ use Illuminate\Http\Request;
 
 /**
  * @group Download
- * 
+ *
  * Enpoints related to downloading legal content for offline synchronization.
  */
 class LegalDocumentDownloadController extends Controller
@@ -18,12 +18,13 @@ class LegalDocumentDownloadController extends Controller
     /**
      * Download legal document data (Flat List).
      *
-     * Returns a flat list of structure nodes and articles for offline sync. 
+     * Returns a flat list of structure nodes and articles for offline sync.
      * This is optimized for the mobile application's local database insertion.
-     * 
-     * @param string $id The UUID of the legal document.
+     *
+     * @param  string  $id  The UUID of the legal document.
+     *
      * @queryParam node_id string Optional. Filter by specific structure node UUID to download only a sub-tree.
-     * 
+     *
      * @response 200 {
      *  "success": true,
      *  "message": "Téléchargement préparé avec succès",
@@ -49,11 +50,11 @@ class LegalDocumentDownloadController extends Controller
 
         // Fetch Nodes (Flattened)
         $nodesQuery = $document->structureNodes()->orderBy('sort_order');
-        
+
         if ($nodeId) {
-             $nodesQuery->whereRaw("path <@ (SELECT path FROM structure_nodes WHERE id = ?)", [$nodeId]);
+            $nodesQuery->whereRaw('path <@ (SELECT path FROM structure_nodes WHERE id = ?)', [$nodeId]);
         }
-        
+
         $nodes = $nodesQuery->get()->map(function ($node) {
             return [
                 'id' => $node->id,
@@ -66,7 +67,7 @@ class LegalDocumentDownloadController extends Controller
 
         // Fetch Articles (Latest Active Version)
         $nodeIds = $nodes->pluck('id');
-        
+
         $articles = $document->articles()
             ->whereIn('parent_node_id', $nodeIds)
             ->with(['activeVersion', 'tags'])

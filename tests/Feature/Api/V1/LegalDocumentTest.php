@@ -1,11 +1,11 @@
 <?php
 
-use App\Models\LegalDocument;
 use App\Models\Institution;
-use App\Models\Article;
-use App\Models\ArticleVersion;
-use Illuminate\Support\Facades\Hash;
+use App\Models\LegalDocument;
+use App\Models\StructureNode;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Hash;
 
 uses(RefreshDatabase::class);
 
@@ -42,8 +42,8 @@ it('can list institutions', function () {
 
 it('can get document tree hierarchy', function () {
     $document = LegalDocument::factory()->create();
-    \App\Models\StructureNode::factory()->count(2)->create([
-        'document_id' => $document->id
+    StructureNode::factory()->count(2)->create([
+        'document_id' => $document->id,
     ]);
 
     $response = $this->getJson("/api/v1/legal-documents/{$document->id}/tree");
@@ -53,15 +53,15 @@ it('can get document tree hierarchy', function () {
 });
 
 it('can login and get me', function () {
-    $user = \App\Models\User::factory()->create([
+    $user = User::factory()->create([
         'email' => 'test@example.com',
-        'password' => Hash::make('password')
+        'password' => Hash::make('password'),
     ]);
 
     $response = $this->postJson('/api/v1/login', [
         'email' => 'test@example.com',
         'password' => 'password',
-        'device_name' => 'test-device'
+        'device_name' => 'test-device',
     ]);
 
     $response->assertStatus(200)

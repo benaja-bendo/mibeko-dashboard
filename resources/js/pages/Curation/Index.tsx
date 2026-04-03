@@ -1,7 +1,7 @@
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link, router, useForm } from '@inertiajs/react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import {
     Table,
     TableBody,
@@ -36,17 +36,15 @@ import {
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Label } from '@/components/ui/label';
-import { 
-    Plus, 
-    Search, 
-    MoreHorizontal, 
-    ExternalLink, 
-    Trash2, 
-    FileText, 
+import {
+    Plus,
+    Search,
+    MoreHorizontal,
+    ExternalLink,
+    Trash2,
     AlertCircle,
     ChevronLeft,
-    ChevronRight,
-    Star
+    ChevronRight
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
@@ -67,6 +65,7 @@ interface Document {
     date: string | null;
     articles_count: number;
     status: 'draft' | 'review' | 'validated' | 'published';
+    extraction_status: 'pending' | 'processing' | 'completed' | 'failed';
     progression: number;
     quality_score: number;
 }
@@ -112,6 +111,42 @@ const statusLabels: Record<string, string> = {
 export default function CurationIndex({ documents, filters, document_types, institutions }: Props) {
     const [search, setSearch] = useState(filters.search || '');
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+    const [localDocuments, setLocalDocuments] = useState<Document[]>(documents.data);
+
+    // Synchronize local state with props when data changes from server
+    useEffect(() => {
+        setLocalDocuments(documents.data);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [documents.data]);
+
+    useEffect(() => {
+        // @ts-expect-error - Echo is globally available but might not be typed
+        if (typeof window !== 'undefined' && window.Echo) {
+            // @ts-expect-error - Echo typings are missing
+            const channel = window.Echo.channel('curation.documents');
+
+            channel.listen('DocumentExtractionUpdated', (e: {id: string, extraction_status: 'pending' | 'processing' | 'completed' | 'failed', progression: number, articles_count: number}) => {
+                setLocalDocuments(prevDocs =>
+                    prevDocs.map(doc =>
+                        doc.id === e.id
+                            ? {
+                                ...doc,
+                                extraction_status: e.extraction_status,
+                                progression: e.progression,
+                                articles_count: e.articles_count
+                              }
+                            : doc
+                    )
+                );
+            });
+
+            return () => {
+                channel.stopListening('DocumentExtractionUpdated');
+                // @ts-expect-error - Echo typings are missing
+                window.Echo.leaveChannel('curation.documents');
+            };
+        }
+    }, []);
 
     const { data, setData, post, processing, errors, reset } = useForm({
         titre_officiel: '',
@@ -119,14 +154,14 @@ export default function CurationIndex({ documents, filters, document_types, inst
         institution_id: institutions[0]?.id || '',
         reference_nor: '',
         date_publication: '',
-        source_url: '',
+        file: null as File | null,
         curation_status: 'draft',
     });
 
     const handleFilterChange = (key: string, value: string) => {
         const newFilters = { ...filters, [key]: value };
         if (value === 'all') delete (newFilters as any)[key];
-        
+
         router.get('/curation', newFilters, {
             preserveState: true,
             replace: true,
@@ -157,7 +192,7 @@ export default function CurationIndex({ documents, filters, document_types, inst
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Curation Dashboard" />
-            
+
             <div className="flex h-full flex-1 flex-col gap-6 p-6">
                 {/* Header Section */}
                 <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
@@ -167,7 +202,7 @@ export default function CurationIndex({ documents, filters, document_types, inst
                             Analysez, structurez et validez le corpus juridique.
                         </p>
                     </div>
-                    
+
                     <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
                         <DialogTrigger asChild>
                             <Button className="h-10">
@@ -186,8 +221,8 @@ export default function CurationIndex({ documents, filters, document_types, inst
                                 <div className="grid gap-4 py-4">
                                     <div className="grid gap-2">
                                         <Label htmlFor="titre_officiel">Titre Officiel</Label>
-                                        <Input 
-                                            id="titre_officiel" 
+                                        <Input
+                                            id="titre_officiel"
                                             value={data.titre_officiel}
                                             onChange={e => setData('titre_officiel', e.target.value)}
                                             placeholder="ex: Loi n°..."
@@ -228,8 +263,8 @@ export default function CurationIndex({ documents, filters, document_types, inst
                                     <div className="grid grid-cols-2 gap-4">
                                         <div className="grid gap-2">
                                             <Label htmlFor="reference_nor">Référence NOR</Label>
-                                            <Input 
-                                                id="reference_nor" 
+                                            <Input
+                                                id="reference_nor"
                                                 value={data.reference_nor}
                                                 onChange={e => setData('reference_nor', e.target.value)}
                                                 placeholder="ex: JUSX..."
@@ -237,8 +272,8 @@ export default function CurationIndex({ documents, filters, document_types, inst
                                         </div>
                                         <div className="grid gap-2">
                                             <Label htmlFor="date_publication">Date de Publication</Label>
-                                            <Input 
-                                                id="date_publication" 
+                                            <Input
+                                                id="date_publication"
                                                 type="date"
                                                 value={data.date_publication}
                                                 onChange={e => setData('date_publication', e.target.value)}
@@ -246,13 +281,14 @@ export default function CurationIndex({ documents, filters, document_types, inst
                                         </div>
                                     </div>
                                     <div className="grid gap-2">
-                                        <Label htmlFor="source_url">URL Source / Chemin PDF</Label>
-                                        <Input 
-                                            id="source_url" 
-                                            value={data.source_url}
-                                            onChange={e => setData('source_url', e.target.value)}
-                                            placeholder="https://... ou path/to/file.pdf"
+                                        <Label htmlFor="file">Fichier PDF (Source)</Label>
+                                        <Input
+                                            id="file"
+                                            type="file"
+                                            accept="application/pdf"
+                                            onChange={e => setData('file', e.target.files?.[0] || null)}
                                         />
+                                        {errors.file && <p className="text-xs text-destructive">{errors.file}</p>}
                                     </div>
                                 </div>
                                 <DialogFooter>
@@ -268,9 +304,9 @@ export default function CurationIndex({ documents, filters, document_types, inst
                 <div className="flex flex-col gap-4 lg:flex-row lg:items-center">
                     <form onSubmit={handleSearch} className="relative flex-1">
                         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                        <Input 
-                            placeholder="Rechercher par titre..." 
-                            className="pl-10" 
+                        <Input
+                            placeholder="Rechercher par titre..."
+                            className="pl-10"
                             value={search}
                             onChange={e => setSearch(e.target.value)}
                         />
@@ -287,7 +323,7 @@ export default function CurationIndex({ documents, filters, document_types, inst
                                 ))}
                             </SelectContent>
                         </Select>
-                        
+
                         <Select value={filters.status || 'all'} onValueChange={v => handleFilterChange('status', v)}>
                             <SelectTrigger className="w-[180px]">
                                 <SelectValue placeholder="Statut" />
@@ -300,7 +336,7 @@ export default function CurationIndex({ documents, filters, document_types, inst
                                 <SelectItem value="published">Publié</SelectItem>
                             </SelectContent>
                         </Select>
-                        
+
                         {(filters.search || filters.type || filters.status) && (
                             <Button variant="ghost" className="h-9 px-2" onClick={() => router.get('/curation')}>
                                 Réinitialiser
@@ -317,7 +353,6 @@ export default function CurationIndex({ documents, filters, document_types, inst
                                 <TableRow className="bg-muted/50">
                                     <TableHead className="w-[40%] font-semibold">Titre</TableHead>
                                     <TableHead className="font-semibold">Type</TableHead>
-                                    <TableHead className="font-semibold">Qualité</TableHead>
                                     <TableHead className="font-semibold">Publication</TableHead>
                                     <TableHead className="font-semibold">Progression</TableHead>
                                     <TableHead className="font-semibold">Statut</TableHead>
@@ -325,8 +360,8 @@ export default function CurationIndex({ documents, filters, document_types, inst
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {documents.data.length > 0 ? (
-                                    documents.data.map((doc) => (
+                                {localDocuments.length > 0 ? (
+                                    localDocuments.map((doc) => (
                                         <TableRow key={doc.id} className="group transition-colors hover:bg-muted/30">
                                             <TableCell className="font-medium">
                                                 <div className="flex flex-col gap-1">
@@ -341,28 +376,6 @@ export default function CurationIndex({ documents, filters, document_types, inst
                                             <TableCell className="text-xs text-muted-foreground">
                                                 {doc.type}
                                             </TableCell>
-                                            <TableCell>
-                                                <div className="flex items-center gap-1.5">
-                                                    <div className={cn(
-                                                        "flex h-7 w-7 items-center justify-center rounded-full text-[10px] font-bold",
-                                                        doc.quality_score >= 90 ? "bg-green-100 text-green-700" :
-                                                        doc.quality_score >= 70 ? "bg-yellow-100 text-yellow-700" :
-                                                        "bg-red-100 text-red-700"
-                                                    )}>
-                                                        {doc.quality_score}
-                                                    </div>
-                                                    <div className="flex flex-col">
-                                                        <div className="flex gap-0.5">
-                                                            {[1, 2, 3].map(i => (
-                                                                <Star key={i} className={cn(
-                                                                    "h-2.5 w-2.5",
-                                                                    i <= (doc.quality_score / 33) ? "fill-yellow-400 text-yellow-400" : "text-gray-300"
-                                                                )} />
-                                                            ))}
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </TableCell>
                                             <TableCell className="text-xs">
                                                 {doc.date ? new Date(doc.date).toLocaleDateString('fr-FR', {
                                                     day: '2-digit',
@@ -373,7 +386,7 @@ export default function CurationIndex({ documents, filters, document_types, inst
                                             <TableCell>
                                                 <div className="flex w-[100px] flex-col gap-1.5">
                                                     <div className="h-1.5 w-full overflow-hidden rounded-full bg-secondary">
-                                                        <div 
+                                                        <div
                                                             className={cn(
                                                                 "h-full transition-all duration-500",
                                                                 doc.progression === 100 ? "bg-green-500" : "bg-primary"
@@ -387,15 +400,27 @@ export default function CurationIndex({ documents, filters, document_types, inst
                                                 </div>
                                             </TableCell>
                                             <TableCell>
-                                                <Badge 
-                                                    variant={statusVariants[doc.status]}
-                                                    className={cn(
-                                                        "px-2 py-0.5 text-[10px] uppercase font-bold",
-                                                        doc.status === 'published' && "bg-blue-600 hover:bg-blue-700 text-white border-transparent"
+                                                <div className="flex flex-col gap-1 items-start">
+                                                    <Badge
+                                                        variant={statusVariants[doc.status]}
+                                                        className={cn(
+                                                            "px-2 py-0.5 text-[10px] uppercase font-bold",
+                                                            doc.status === 'published' && "bg-blue-600 hover:bg-blue-700 text-white border-transparent"
+                                                        )}
+                                                    >
+                                                        {statusLabels[doc.status]}
+                                                    </Badge>
+                                                    {doc.extraction_status && doc.extraction_status !== 'completed' && (
+                                                        <span className={cn(
+                                                            "text-[10px] font-medium flex items-center gap-1",
+                                                            doc.extraction_status === 'failed' ? "text-red-500" : "text-blue-500 animate-pulse"
+                                                        )}>
+                                                            {doc.extraction_status === 'processing' && "⏳ Extraction IA..."}
+                                                            {doc.extraction_status === 'pending' && "⏳ En attente..."}
+                                                            {doc.extraction_status === 'failed' && "❌ Échec IA"}
+                                                        </span>
                                                     )}
-                                                >
-                                                    {statusLabels[doc.status]}
-                                                </Badge>
+                                                </div>
                                             </TableCell>
                                             <TableCell className="text-right">
                                                 <div className="flex items-center justify-end gap-2">
@@ -405,7 +430,7 @@ export default function CurationIndex({ documents, filters, document_types, inst
                                                             <span className="sr-only">Ouvrir</span>
                                                         </Button>
                                                     </Link>
-                                                    
+
                                                     <DropdownMenu>
                                                         <DropdownMenuTrigger asChild>
                                                             <Button size="icon" variant="ghost" className="h-8 w-8">
@@ -416,7 +441,7 @@ export default function CurationIndex({ documents, filters, document_types, inst
                                                             <DropdownMenuItem onClick={() => router.get(`/curation/${doc.id}`)}>
                                                                 Modifier la structure
                                                             </DropdownMenuItem>
-                                                            <DropdownMenuItem 
+                                                            <DropdownMenuItem
                                                                 className="text-destructive focus:bg-destructive/10 focus:text-destructive"
                                                                 onClick={() => handleDelete(doc.id)}
                                                             >

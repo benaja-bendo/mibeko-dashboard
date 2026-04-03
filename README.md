@@ -117,13 +117,17 @@ Vous pouvez relancer la commande plusieurs fois (par exemple avec un `--limit` p
 
 ### 3. Tester le RAG sur un petit échantillon (optionnel)
 
-Pour vérifier la configuration IA sur un faible volume, un seeder de test est disponible :
+Pour vérifier la configuration IA sur un faible volume, vous pouvez limiter le seeding à un seul JSON via une variable d'environnement :
 
 ```bash
-./vendor/bin/sail artisan db:seed --class=TestEmbeddingSeeder
+MIBEKO_SEED_LIMIT=1 ./vendor/bin/sail artisan db:seed --class=CongoJournalOfficielSeeder
 ```
 
-Ce seeder ne traite qu'un nombre limité de documents, ce qui permet de valider les embeddings et le RAG avant de lancer un traitement complet.
+Puis lancer la génération des embeddings sur un petit batch :
+
+```bash
+./vendor/bin/sail artisan mibeko:process-rag --limit=50 --batch=10 --delay=500
+```
 
 ## ⚙️ Configuration MinIO (Stockage Local)
 

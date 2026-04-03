@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources\V1;
 
+use App\Models\DocumentType;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -14,7 +15,7 @@ class DocumentTypeResource extends JsonResource
      */
     public function toArray(Request $request): array
     {
-        /** @var \App\Models\DocumentType $this */
+        /** @var DocumentType $this */
         return [
             'code' => $this->code,
             'name' => $this->nom,

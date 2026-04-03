@@ -26,8 +26,6 @@ class MediaFile extends Model
 
     /**
      * Récupère le document juridique associé au fichier média.
-     *
-     * @return BelongsTo
      */
     public function document(): BelongsTo
     {

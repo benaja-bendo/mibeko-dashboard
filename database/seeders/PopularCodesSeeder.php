@@ -2,7 +2,6 @@
 
 namespace Database\Seeders;
 
-use App\Models\DocumentType;
 use App\Models\LegalDocument;
 use Illuminate\Database\Seeder;
 
@@ -34,26 +33,16 @@ class PopularCodesSeeder extends Seeder
             [
                 'title' => 'Constitution de la République du Congo',
                 'type' => 'CONST',
-                'ref' => 'CONST-2015',
+                'ref' => 'republique-du-congo-constitution-2015',
             ],
         ];
 
-        // Ensure CODE and CONST type exists if we use it, otherwise fallback
-        DocumentType::firstOrCreate(
-            ['code' => 'CODE'],
-            ['nom' => 'Code', 'niveau_hierarchique' => 50]
-        );
-
-        DocumentType::firstOrCreate(
-            ['code' => 'CONST'],
-            ['nom' => 'Constitution', 'niveau_hierarchique' => 10]
-        );
-
         foreach ($codes as $data) {
             LegalDocument::firstOrCreate(
-                ['titre_officiel' => $data['title']],
+                ['reference_nor' => $data['ref']],
                 [
                     'type_code' => $data['type'],
+                    'titre_officiel' => $data['title'],
                     'reference_nor' => $data['ref'],
                     'statut' => 'vigueur',
                     'curation_status' => 'published', // Pre-published

@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use OwenIt\Auditing\Contracts\Auditable;
+use Pgvector\Laravel\Vector;
 
 class ArticleVersion extends Model implements Auditable
 {
@@ -40,7 +41,7 @@ class ArticleVersion extends Model implements Auditable
     protected function casts(): array
     {
         return [
-            'embedding' => \Pgvector\Laravel\Vector::class,
+            'embedding' => Vector::class,
             'is_verified' => 'boolean',
         ];
     }

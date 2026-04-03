@@ -5,6 +5,7 @@ namespace App\Providers;
 use App\Models\ArticleVersion;
 use App\Observers\ArticleVersionObserver;
 use Illuminate\Http\Resources\Json\JsonResource;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -26,7 +27,7 @@ class AppServiceProvider extends ServiceProvider
 
         ArticleVersion::observe(ArticleVersionObserver::class);
 
-        \Illuminate\Support\Facades\Gate::define('viewApiDocs', function ($user = null) {
+        Gate::define('viewApiDocs', function ($user = null) {
             // Autoriser tout le monde (ou mettre une condition spécifique, par ex: return true;)
             return true;
         });

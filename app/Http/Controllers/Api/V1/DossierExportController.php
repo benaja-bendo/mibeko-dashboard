@@ -4,9 +4,8 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Models\Article;
-use Illuminate\Http\Request;
 use Barryvdh\DomPDF\Facade\Pdf;
-use Illuminate\Support\Collection;
+use Illuminate\Http\Request;
 
 class DossierExportController extends Controller
 {
@@ -21,7 +20,7 @@ class DossierExportController extends Controller
     {
         ini_set('memory_limit', '512M');
         set_time_limit(300);
-        
+
         $validated = $request->validate([
             'title' => 'required|string|max:255',
             'description' => 'nullable|string',
@@ -48,19 +47,24 @@ class DossierExportController extends Controller
         $exportItems = $items->map(function ($item) use ($articles) {
             if ($item['type'] === 'article') {
                 $article = $articles->get($item['id']);
-                if (!$article) return null;
-                
+                if (! $article) {
+                    return null;
+                }
+
                 return [
                     'type' => 'article',
                     'content' => $article,
                     'note' => $item['note'] ?? null,
                 ];
             }
+
             // Add document handling here later
             return null;
         })->filter();
 
-        if (ob_get_length()) ob_end_clean();
+        if (ob_get_length()) {
+            ob_end_clean();
+        }
         $pdf = Pdf::loadView('exports.pro_dossier_pdf', [
             'title' => $title,
             'description' => $description,
@@ -75,7 +79,7 @@ class DossierExportController extends Controller
         // Return raw PDF bytes for API consumption (mobile apps)
         return response($pdf->output(), 200, [
             'Content-Type' => 'application/pdf',
-            'Content-Disposition' => 'attachment; filename="' . $this->slugify($title) . '.pdf"',
+            'Content-Disposition' => 'attachment; filename="'.$this->slugify($title).'.pdf"',
         ]);
     }
 

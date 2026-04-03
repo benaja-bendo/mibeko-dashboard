@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use App\Models\LegalDocument;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
 
 class MediaController extends Controller
 {
@@ -24,7 +23,7 @@ class MediaController extends Controller
                     'size' => Storage::disk('s3')->size($file),
                     'last_modified' => Storage::disk('s3')->lastModified($file),
                 ];
-            }, $files)
+            }, $files),
         ]);
     }
 
@@ -37,7 +36,7 @@ class MediaController extends Controller
             'file_path' => 'required|string',
         ]);
 
-        if (!Storage::disk('s3')->exists($validated['file_path'])) {
+        if (! Storage::disk('s3')->exists($validated['file_path'])) {
             return response()->json(['message' => 'Fichier introuvable sur le stockage.'], 404);
         }
 

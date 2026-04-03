@@ -11,15 +11,15 @@ it('can export a dossier to PDF', function () {
     Pdf::shouldReceive('loadView')
         ->once()
         ->andReturnSelf();
-        
+
     Pdf::shouldReceive('setPaper')
         ->once()
         ->andReturnSelf();
-        
+
     Pdf::shouldReceive('setOption')
         ->twice()
         ->andReturnSelf();
-        
+
     Pdf::shouldReceive('output')
         ->once()
         ->andReturn('fake-pdf-content');
@@ -28,7 +28,7 @@ it('can export a dossier to PDF', function () {
     $article = Article::factory()->create([
         'document_id' => $document->id,
     ]);
-    
+
     $response = $this->postJson('/api/v1/dossiers/export-pdf', [
         'title' => 'Mon Dossier',
         'description' => 'Description du dossier',

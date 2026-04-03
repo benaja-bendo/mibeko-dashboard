@@ -42,7 +42,7 @@ return new class extends Migration
         });
 
         // Try to restore source_url from media_files (taking the first one)
-        DB::statement("
+        DB::statement('
             UPDATE legal_documents ld
             SET source_url = (
                 SELECT file_path 
@@ -51,6 +51,6 @@ return new class extends Migration
                 ORDER BY created_at ASC 
                 LIMIT 1
             )
-        ");
+        ');
     }
 };

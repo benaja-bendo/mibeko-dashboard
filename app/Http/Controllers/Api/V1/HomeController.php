@@ -20,7 +20,7 @@ class HomeController extends Controller
      * - **Popular Codes**: Priority legal documents.
      * - **Recently Added**: Latest documents published.
      * - **AI Suggestions**: Example questions to ask the AI search.
-     * 
+     *
      * @response 200 {
      *  "success": true,
      *  "message": "Données de la page d'accueil récupérées avec succès",
@@ -41,7 +41,7 @@ class HomeController extends Controller
                 'Code Civil',
                 'Code Pénal',
                 'Code du Travail',
-                'Code de la Famille'
+                'Code de la Famille',
             ])
             ->orWhere('type_code', 'CONST')
             ->limit(6)
@@ -60,7 +60,7 @@ class HomeController extends Controller
             'Comment contester un bail commercial ?',
             'Quelle est la procédure pour une faute grave ?',
             'Quelles sont les indemnités de licenciement ?',
-            'Comment créer une entreprise en République du Congo ?'
+            'Comment créer une entreprise en République du Congo ?',
         ];
 
         return $this->success([

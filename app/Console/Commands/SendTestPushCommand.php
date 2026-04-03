@@ -46,7 +46,7 @@ class SendTestPushCommand extends Command
         $result = $pushService->sendToDevices([$token], $title, $message, $data);
 
         if ($result['success'] > 0) {
-            $this->info("Notification envoyée avec succès !");
+            $this->info('Notification envoyée avec succès !');
         } else {
             $this->error("Échec de l'envoi de la notification.");
         }

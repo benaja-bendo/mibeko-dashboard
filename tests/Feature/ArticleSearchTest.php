@@ -6,8 +6,8 @@ use App\Models\DocumentType;
 use App\Models\LegalDocument;
 use App\Observers\ArticleVersionObserver;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Laravel\Ai\Embeddings;
 use Laravel\Ai\AnonymousAgent;
+use Laravel\Ai\Embeddings;
 
 uses(RefreshDatabase::class);
 

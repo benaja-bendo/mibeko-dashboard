@@ -3,13 +3,14 @@
 use App\Http\Controllers\Api\V1\ArticleSearchController;
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\CatalogController;
-use App\Http\Controllers\Api\V1\HomeController;
+use App\Http\Controllers\Api\V1\DeviceController;
 use App\Http\Controllers\Api\V1\DocumentTypeController;
+use App\Http\Controllers\Api\V1\DossierExportController;
+use App\Http\Controllers\Api\V1\HomeController;
 use App\Http\Controllers\Api\V1\InstitutionController;
 use App\Http\Controllers\Api\V1\LegalDocumentController;
 use App\Http\Controllers\Api\V1\LegalDocumentDownloadController;
 use App\Http\Controllers\Api\V1\LegalDocumentExportController;
-use App\Http\Controllers\Api\V1\DeviceController;
 use App\Http\Controllers\Api\V1\NotificationController;
 use App\Http\Controllers\Api\V1\StructureNodeController;
 use App\Http\Controllers\Api\V1\SyncController;
@@ -61,7 +62,7 @@ Route::prefix('v1')->group(function () {
     Route::get('articles/search', [ArticleSearchController::class, 'search']);
 
     // BE6 - Dossier PDF Export
-    Route::post('dossiers/export-pdf', [\App\Http\Controllers\Api\V1\DossierExportController::class, 'exportPdf']);
+    Route::post('dossiers/export-pdf', [DossierExportController::class, 'exportPdf']);
 
     // Sync - @deprecated by CatalogController but kept for backward compatibility if any
     Route::get('sync/updates', [SyncController::class, 'updates']);

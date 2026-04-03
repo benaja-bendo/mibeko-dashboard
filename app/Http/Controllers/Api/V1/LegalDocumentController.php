@@ -22,7 +22,7 @@ class LegalDocumentController extends Controller
      *
      * Returns a paginated list of legal documents with their institutions and types.
      * Supports filtering and sorting via query parameters.
-     * 
+     *
      * @queryParam filter[titre_officiel] string Filter by partial official title.
      * @queryParam filter[type_code] string Filter by document type code (e.g., "LOI", "CODE").
      * @queryParam filter[institution_id] string UUID of the institution.
@@ -36,7 +36,7 @@ class LegalDocumentController extends Controller
                 AllowedFilter::partial('titre_officiel'),
                 'type_code',
                 'institution_id',
-                'statut'
+                'statut',
             ])
             ->allowedSorts(['titre_officiel', 'date_signature', 'created_at'])
             ->latest()

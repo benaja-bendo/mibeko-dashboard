@@ -3,9 +3,8 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
-
 use App\Models\User;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
 
@@ -16,7 +15,7 @@ class AuthController extends Controller
 {
     /**
      * Login.
-     * 
+     *
      * Returns a Sanctum plain-text token.
      */
     public function login(Request $request): array

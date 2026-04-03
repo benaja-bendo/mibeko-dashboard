@@ -7,6 +7,7 @@ use App\Http\Resources\V1\LegalDocumentCatalogResource;
 use App\Models\LegalDocument;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 /**
  * @group Catalog & Sync
@@ -67,9 +68,9 @@ class CatalogController extends Controller
      */
     public function stats(): JsonResponse
     {
-        $stats = \Illuminate\Support\Facades\DB::table('legal_documents')
+        $stats = DB::table('legal_documents')
             ->join('document_types', 'legal_documents.type_code', '=', 'document_types.code')
-            ->select('document_types.nom as type_name', 'document_types.code as type_code', \Illuminate\Support\Facades\DB::raw('count(*) as count'))
+            ->select('document_types.nom as type_name', 'document_types.code as type_code', DB::raw('count(*) as count'))
             ->groupBy('document_types.code', 'document_types.nom')
             ->get();
 

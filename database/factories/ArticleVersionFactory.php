@@ -3,12 +3,11 @@
 namespace Database\Factories;
 
 use App\Models\Article;
+use App\Models\ArticleVersion;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
-use App\Models\ArticleVersion;
-
 /**
- * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\ArticleVersion>
+ * @extends Factory<ArticleVersion>
  */
 class ArticleVersionFactory extends Factory
 {

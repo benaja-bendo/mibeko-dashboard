@@ -25,8 +25,8 @@ services:
               echo 'MinIO non prêt, nouvelle tentative dans 2s...';
               sleep 2;
             done;
-            /usr/bin/mc mb -p myminio/${AWS_BUCKET:-local} || true;
-            /usr/bin/mc anonymous set download myminio/${AWS_BUCKET:-local} || true;
+            /usr/bin/mc mb -p myminio/${AWS_BUCKET:-bucket-mibeko} || true;
+            /usr/bin/mc anonymous set download myminio/${AWS_BUCKET:-bucket-mibeko} || true;
             exit 0;
             "
         networks:
@@ -46,10 +46,37 @@ services:
             - 'postgres_data:/var/lib/postgresql/data'
         networks:
             - sail
+    rabbitmq:
+        image: 'rabbitmq:4-management'
+        container_name: 'rabbitmq-mibeko'
+        ports:
+            - '${FORWARD_RABBITMQ_PORT:-5672}:5672'
+            - '${FORWARD_RABBITMQ_CONSOLE_PORT:-15672}:15672'
+        environment:
+            RABBITMQ_DEFAULT_USER: '${RABBITMQ_USER:-guest}'
+            RABBITMQ_DEFAULT_PASS: '${RABBITMQ_PASSWORD:-guest}'
+        networks:
+            - sail
+
+    dbeaver:
+        image: 'dbeaver/cloudbeaver:latest'
+        container_name: 'dbeaver-mibeko'
+        ports:
+            - '${FORWARD_DBEAVER_PORT:-8978}:8978'
+        volumes:
+            - 'dbeaver_workspace:/opt/cloudbeaver/workspace'
+        networks:
+            - sail
+        depends_on:
+            - postgres
 volumes:
     minio_data:
         driver: local
     postgres_data:
+        driver: local
+    rabbitmq_data:
+        driver: local
+    dbeaver_workspace:
         driver: local
 networks:
     sail:

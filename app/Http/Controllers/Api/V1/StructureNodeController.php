@@ -3,12 +3,9 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
-
-use App\Models\LegalDocument;
-use App\Models\StructureNode;
 use App\Http\Resources\V1\StructureNodeResource;
-use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use App\Models\StructureNode;
+use Illuminate\Http\JsonResponse;
 
 /**
  * @group Document Structure
@@ -17,13 +14,13 @@ class StructureNodeController extends Controller
 {
     /**
      * Get document hierarchy.
-     * 
-     * Returns the structure tree for a specific document. This is useful for displaying 
+     *
+     * Returns the structure tree for a specific document. This is useful for displaying
      * a table of contents or navigating through the document's divisions (Books, Titles, etc.).
-     * 
-     * @param string $documentId The UUID of the legal document.
+     *
+     * @param  string  $documentId  The UUID of the legal document.
      */
-    public function tree(string $documentId): \Illuminate\Http\JsonResponse
+    public function tree(string $documentId): JsonResponse
     {
         $nodes = StructureNode::query()
             ->where('document_id', $documentId)

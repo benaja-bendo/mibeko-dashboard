@@ -1,10 +1,9 @@
 <?php
 
-use App\Models\User;
-use App\Models\LegalDocument;
 use App\Models\DocumentType;
 use App\Models\Institution;
-use App\Models\Article;
+use App\Models\LegalDocument;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
@@ -16,12 +15,12 @@ beforeEach(function () {
     $this->type = DocumentType::create([
         'code' => 'LOI',
         'nom' => 'Loi',
-        'niveau_hierarchique' => 1
+        'niveau_hierarchique' => 1,
     ]);
 
     $this->institution = Institution::create([
         'nom' => 'Assemblée Nationale',
-        'sigle' => 'AN'
+        'sigle' => 'AN',
     ]);
 });
 
@@ -43,14 +42,14 @@ it('filters documents by search query', function () {
         'titre_officiel' => 'Loi Spécifique Alpha',
         'type_code' => $this->type->code,
         'institution_id' => $this->institution->id,
-        'curation_status' => 'draft'
+        'curation_status' => 'draft',
     ]);
 
     LegalDocument::create([
         'titre_officiel' => 'Décret Beta',
         'type_code' => $this->type->code,
         'institution_id' => $this->institution->id,
-        'curation_status' => 'draft'
+        'curation_status' => 'draft',
     ]);
 
     $response = $this->actingAs($this->user)
@@ -85,7 +84,7 @@ it('deletes a legal document', function () {
         'titre_officiel' => 'Document à supprimer',
         'type_code' => $this->type->code,
         'institution_id' => $this->institution->id,
-        'curation_status' => 'draft'
+        'curation_status' => 'draft',
     ]);
 
     $response = $this->actingAs($this->user)
@@ -121,7 +120,7 @@ it('updates document metadata', function () {
         'titre_officiel' => 'Ancien Titre',
         'type_code' => $this->type->code,
         'institution_id' => $this->institution->id,
-        'curation_status' => 'draft'
+        'curation_status' => 'draft',
     ]);
 
     $response = $this->actingAs($this->user)

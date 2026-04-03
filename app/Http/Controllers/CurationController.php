@@ -4,12 +4,14 @@ namespace App\Http\Controllers;
 
 use App\Models\Article;
 use App\Models\ArticleVersion;
+use App\Models\DocumentType;
+use App\Models\Institution;
 use App\Models\LegalDocument;
 use App\Models\StructureNode;
-use App\Models\Institution;
-use App\Models\DocumentType;
+use App\Services\RabbitMQService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
 
 class CurationController extends Controller
@@ -24,7 +26,7 @@ class CurationController extends Controller
 
         // Filtering
         if ($request->filled('search')) {
-            $query->where('titre_officiel', 'ilike', '%' . $request->search . '%');
+            $query->where('titre_officiel', 'ilike', '%'.$request->search.'%');
         }
 
         if ($request->filled('type')) {
@@ -45,9 +47,13 @@ class CurationController extends Controller
 
                 // Mock quality score logic
                 $qualityScore = 85; // Default mock
-                if ($doc->articles_count === 0) $qualityScore = 0;
-                elseif ($progression > 90) $qualityScore = 95;
-                elseif ($progression > 50) $qualityScore = 80;
+                if ($doc->articles_count === 0) {
+                    $qualityScore = 0;
+                } elseif ($progression > 90) {
+                    $qualityScore = 95;
+                } elseif ($progression > 50) {
+                    $qualityScore = 80;
+                }
 
                 return [
                     'id' => $doc->id,
@@ -58,6 +64,7 @@ class CurationController extends Controller
                     'date' => $doc->date_publication?->format('Y-m-d'),
                     'articles_count' => $doc->articles_count,
                     'status' => $doc->curation_status,
+                    'extraction_status' => $doc->extraction_status,
                     'progression' => $progression,
                     'quality_score' => $qualityScore,
                 ];
@@ -71,7 +78,7 @@ class CurationController extends Controller
         ]);
     }
 
-    public function store(Request $request)
+    public function store(Request $request, RabbitMQService $rabbitMQService)
     {
         $validated = $request->validate([
             'type_code' => 'required|exists:document_types,code',
@@ -79,21 +86,44 @@ class CurationController extends Controller
             'titre_officiel' => 'required|string|max:1000',
             'reference_nor' => 'nullable|string|max:100',
             'date_publication' => 'nullable|date',
-            'file_path' => 'nullable|string|max:2048',
+            'file' => 'nullable|file|mimes:pdf|max:51200',
             'curation_status' => 'required|string|in:draft,review,validated,published',
         ]);
 
-        $document = LegalDocument::create($request->except('file_path'));
+        $document = LegalDocument::create($request->except('file'));
 
-        if ($request->filled('file_path')) {
+        if ($request->hasFile('file')) {
+            $file = $request->file('file');
+
+            // Generate a unique filename
+            $filename = time().'_'.$file->getClientOriginalName();
+
+            // Upload to MinIO (using the s3 disk we configured for mibeko-documents)
+            $path = $file->storeAs('documents/pdfs', $filename, 's3');
+
             $document->mediaFiles()->create([
-                'file_path' => $request->file_path,
+                'file_path' => $path,
                 'mime_type' => 'application/pdf',
                 'description' => 'Original importé',
             ]);
+
+            // Mark document as processing
+            $document->extraction_status = 'processing';
+            $document->save();
+
+            // Dispatch to RabbitMQ for extraction
+            try {
+                $rabbitMQService->publish('pdf_extraction_tasks', [
+                    'task_id' => (string) $document->id,
+                    'filename' => $path, // path relative to bucket, e.g., 'sources/filename.pdf'
+                ]);
+                Log::info("Dispatched extraction task for document {$document->id}");
+            } catch (\Exception $e) {
+                Log::error('Failed to dispatch to RabbitMQ: '.$e->getMessage());
+            }
         }
 
-        return redirect()->route('curation.show', $document)->with('success', 'Document créé avec succès.');
+        return redirect()->route('curation.show', $document)->with('success', 'Document créé avec succès et envoyé pour extraction.');
     }
 
     public function destroy(LegalDocument $document)
@@ -173,10 +203,10 @@ class CurationController extends Controller
                 'Code Civil',
                 'Code Pénal',
                 'Code du Travail',
-                'Code de la Famille'
+                'Code de la Famille',
             ];
 
-            if (!in_array($document->titre_officiel, $popularTitles) && $document->articles()->count() === 0) {
+            if (! in_array($document->titre_officiel, $popularTitles) && $document->articles()->count() === 0) {
                 return back()->withErrors(['status' => 'Impossible de publier un document vide (sans articles), sauf pour les Codes Populaires.']);
             }
         }
@@ -215,7 +245,7 @@ class CurationController extends Controller
 
     public function updateNode(Request $request, LegalDocument $document, StructureNode $node)
     {
-        \Illuminate\Support\Facades\Log::info('updateNode payload', $request->all());
+        Log::info('updateNode payload', $request->all());
 
         $validated = $request->validate([
             'type_unite' => 'string',
@@ -274,7 +304,7 @@ class CurationController extends Controller
 
     public function updateArticle(Request $request, LegalDocument $document, Article $article)
     {
-        \Illuminate\Support\Facades\Log::info('updateArticle payload', $request->all());
+        Log::info('updateArticle payload', $request->all());
 
         $validated = $request->validate([
             'numero_article' => 'string',

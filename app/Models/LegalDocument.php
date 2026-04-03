@@ -13,7 +13,7 @@ use OwenIt\Auditing\Contracts\Auditable;
 
 class LegalDocument extends Model implements Auditable
 {
-    use HasFactory, HasUuids, SoftDeletes, \OwenIt\Auditing\Auditable;
+    use HasFactory, HasUuids, \OwenIt\Auditing\Auditable, SoftDeletes;
 
     protected $auditExclude = [
         'created_at',
@@ -30,6 +30,7 @@ class LegalDocument extends Model implements Auditable
         'date_entree_vigueur',
         'statut',
         'curation_status',
+        'extraction_status',
     ];
 
     const STATUS_DRAFT = 'draft';
@@ -76,8 +77,6 @@ class LegalDocument extends Model implements Auditable
 
     /**
      * Récupère les fichiers médias associés au document.
-     *
-     * @return HasMany
      */
     public function mediaFiles(): HasMany
     {
@@ -86,8 +85,6 @@ class LegalDocument extends Model implements Auditable
 
     /**
      * Récupère tous les tags du document juridique.
-     *
-     * @return MorphToMany
      */
     public function tags(): MorphToMany
     {

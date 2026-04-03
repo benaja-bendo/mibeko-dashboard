@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources\V1;
 
+use App\Models\StructureNode;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -14,7 +15,7 @@ class StructureNodeResource extends JsonResource
      */
     public function toArray(Request $request): array
     {
-        /** @var \App\Models\StructureNode $this */
+        /** @var StructureNode $this */
         return [
             'id' => $this->id,
             'type' => $this->type_unite,

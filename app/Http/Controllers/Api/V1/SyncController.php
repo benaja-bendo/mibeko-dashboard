@@ -6,7 +6,6 @@ use App\Http\Controllers\Controller;
 use App\Http\Resources\V1\ArticleSyncResource;
 use App\Models\Article;
 use Illuminate\Http\Request;
-use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
 class SyncController extends Controller
 {
@@ -39,7 +38,7 @@ class SyncController extends Controller
         $paginator = $query->paginate(500); // Larger pages for sync
         $items = $paginator->getCollection();
 
-        $updated = $items->filter(fn ($article) => !$article->trashed());
+        $updated = $items->filter(fn ($article) => ! $article->trashed());
         $deleted = $items->filter(fn ($article) => $article->trashed());
 
         return response()->json([

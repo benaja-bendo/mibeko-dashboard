@@ -20,6 +20,8 @@ class RealisticLegalSeeder extends Seeder
         // Disable automatic embedding generation during seeding
         ArticleVersionObserver::$shouldSkipEmbeddings = true;
 
+        $this->call(SystemRequirementsSeeder::class);
+
         // 0. Create Life Themes Tags
         $tagFamille = Tag::firstOrCreate(['slug' => 'famille'], ['name' => 'Famille & Personnes', 'slug' => 'famille']);
         $tagTravail = Tag::firstOrCreate(['slug' => 'travail'], ['name' => 'Travail & Entreprise', 'slug' => 'travail']);
@@ -47,18 +49,16 @@ class RealisticLegalSeeder extends Seeder
         ]);
 
         // Ensure types exist
-        $constType = DocumentType::firstOrCreate(['code' => 'CONST'], ['code' => 'CONST', 'nom' => 'Constitution', 'niveau_hierarchique' => 0]);
         $traiteType = DocumentType::firstOrCreate(['code' => 'TRAITE'], ['code' => 'TRAITE', 'nom' => 'Traité & Accord International', 'niveau_hierarchique' => 10]);
         $loiOrgType = DocumentType::firstOrCreate(['code' => 'LOI_ORG'], ['code' => 'LOI_ORG', 'nom' => 'Loi Organique', 'niveau_hierarchique' => 20]);
-        $codeType = DocumentType::firstOrCreate(['code' => 'CODE'], ['code' => 'CODE', 'nom' => 'Code', 'niveau_hierarchique' => 30]);
-        $loiType = DocumentType::firstOrCreate(['code' => 'LOI'], ['code' => 'LOI', 'nom' => 'Loi', 'niveau_hierarchique' => 40]);
         $decLoiType = DocumentType::firstOrCreate(['code' => 'DEC_LOI'], ['code' => 'DEC_LOI', 'nom' => 'Décret-Loi', 'niveau_hierarchique' => 50]);
-        $ordType = DocumentType::firstOrCreate(['code' => 'ORD'], ['code' => 'ORD', 'nom' => 'Ordonnance', 'niveau_hierarchique' => 60]);
-        $decType = DocumentType::firstOrCreate(['code' => 'DEC'], ['code' => 'DEC', 'nom' => 'Décret', 'niveau_hierarchique' => 70]);
-        $arrType = DocumentType::firstOrCreate(['code' => 'ARR'], ['code' => 'ARR', 'nom' => 'Arrêté', 'niveau_hierarchique' => 80]);
         $decisType = DocumentType::firstOrCreate(['code' => 'DECIS'], ['code' => 'DECIS', 'nom' => 'Décision', 'niveau_hierarchique' => 90]);
         $circType = DocumentType::firstOrCreate(['code' => 'CIRC'], ['code' => 'CIRC', 'nom' => 'Circulaire', 'niveau_hierarchique' => 100]);
         $jurType = DocumentType::firstOrCreate(['code' => 'JUR'], ['code' => 'JUR', 'nom' => 'Jurisprudence', 'niveau_hierarchique' => 110]);
+
+        $constType = DocumentType::firstOrCreate(['code' => 'CONST'], ['code' => 'CONST', 'nom' => 'Constitution', 'niveau_hierarchique' => 0]);
+        $codeType = DocumentType::firstOrCreate(['code' => 'CODE'], ['code' => 'CODE', 'nom' => 'Code', 'niveau_hierarchique' => 50]);
+        $loiType = DocumentType::firstOrCreate(['code' => 'LOI'], ['code' => 'LOI', 'nom' => 'Loi', 'niveau_hierarchique' => 40]);
 
         // 1. Constitution
         $constitution = LegalDocument::firstOrCreate(
