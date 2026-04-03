@@ -151,8 +151,8 @@ jobs:
             AWS_USE_PATH_STYLE_ENDPOINT=true
             RABBITMQ_HOST=rabbitmq
             RABBITMQ_PORT=5672
-            RABBITMQ_USER=${{ secrets.RABBITMQ_USER }}
-            RABBITMQ_PASSWORD=${{ secrets.RABBITMQ_PASSWORD }}
+            RABBITMQ_USER=${{ secrets.RABBITMQ_USER || 'guest' }}
+            RABBITMQ_PASSWORD=${{ secrets.RABBITMQ_PASSWORD || 'guest' }}
             AI_PROVIDER=mistral
             MISTRAL_API_KEY=${{ secrets.MISTRAL_API_KEY }}
             MAIL_MAILER=${{ secrets.MAIL_MAILER }}

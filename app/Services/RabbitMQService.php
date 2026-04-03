@@ -19,10 +19,10 @@ class RabbitMQService
         if (!$this->channel) {
             try {
                 $this->connection = new AMQPStreamConnection(
-                    config('services.rabbitmq.host'),
-                    config('services.rabbitmq.port'),
-                    config('services.rabbitmq.user'),
-                    config('services.rabbitmq.password'),
+                    config('services.rabbitmq.host', 'rabbitmq'),
+                    config('services.rabbitmq.port', 5672),
+                    config('services.rabbitmq.user') ?: 'guest',
+                    config('services.rabbitmq.password') ?: 'guest',
                     '/',
                     false,
                     'AMQPLAIN',
