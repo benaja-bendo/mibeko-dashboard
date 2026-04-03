@@ -124,7 +124,7 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.docker.network=proxy"
-      - "traefik.http.routers.mibeko-ws.rule=Host(`${APP_DOMAIN:-app.mibeko.benaja-bendo.fr}`)"
+      - "traefik.http.routers.mibeko-ws.rule=Host(`reverb.mibeko.benaja-bendo.fr`)"
       - "traefik.http.routers.mibeko-ws.entrypoints=websecure"
       - "traefik.http.routers.mibeko-ws.tls.certresolver=myresolver"
       - "traefik.http.services.mibeko-ws.loadbalancer.server.port=8080"

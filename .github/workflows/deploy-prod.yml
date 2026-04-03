@@ -135,11 +135,11 @@ jobs:
             REVERB_APP_ID=123456
             REVERB_APP_KEY=mibeko_key
             REVERB_APP_SECRET=mibeko_secret
-            REVERB_HOST=app.mibeko.benaja-bendo.fr
+            REVERB_HOST=reverb.mibeko.benaja-bendo.fr
             REVERB_PORT=443
             REVERB_SCHEME=https
             VITE_REVERB_APP_KEY=mibeko_key
-            VITE_REVERB_HOST=app.mibeko.benaja-bendo.fr
+            VITE_REVERB_HOST=reverb.mibeko.benaja-bendo.fr
             VITE_REVERB_PORT=443
             VITE_REVERB_SCHEME=https
             FILESYSTEM_DISK=s3
