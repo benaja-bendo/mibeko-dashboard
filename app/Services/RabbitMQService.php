@@ -46,14 +46,32 @@ class RabbitMQService
     }
 
     /**
+     * Declare the queue with the correct arguments to avoid PRECONDITION_FAILED errors.
+     */
+    protected function declareQueue(string $queue)
+    {
+        $channel = $this->getChannel();
+        
+        $arguments = [];
+        if ($queue === 'pdf_extraction_tasks') {
+            $arguments = new \PhpAmqpLib\Wire\AMQPTable([
+                'x-dead-letter-exchange' => 'pdf_extraction_tasks_dlx',
+                'x-dead-letter-routing-key' => 'dead_letter'
+            ]);
+        }
+        
+        $channel->queue_declare($queue, false, true, false, false, false, $arguments);
+    }
+
+    /**
      * Publish a message to a specific queue.
      */
     public function publish(string $queue, array $data): void
     {
         $channel = $this->getChannel();
 
-        // Ensure the queue exists (durable = true as per python app)
-        $channel->queue_declare($queue, false, true, false, false);
+        // Ensure the queue exists with correct arguments
+        $this->declareQueue($queue);
 
         $messageBody = json_encode($data);
         $message = new AMQPMessage(
@@ -72,7 +90,8 @@ class RabbitMQService
     {
         $channel = $this->getChannel();
 
-        $channel->queue_declare($queue, false, true, false, false);
+        // Ensure the queue exists with correct arguments
+        $this->declareQueue($queue);
 
         $channel->basic_consume($queue, '', false, false, false, false, function ($msg) use ($callback) {
             $data = json_decode($msg->body, true);
