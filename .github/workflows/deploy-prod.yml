@@ -188,6 +188,7 @@ jobs:
             # ── Post-déploiement ─────────────────
             sleep 5
             docker compose exec -T app php artisan migrate --force
+            docker compose exec -T app php artisan db:seed --class=SystemRequirementsSeeder --force
             docker compose exec -T app php artisan config:cache
             docker compose exec -T app php artisan route:cache
             docker compose exec -T app php artisan view:cache
