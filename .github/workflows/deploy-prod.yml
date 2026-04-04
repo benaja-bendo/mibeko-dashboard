@@ -149,7 +149,7 @@ jobs:
             AWS_BUCKET=mibeko-documents
             AWS_ENDPOINT=http://minio:9000
             AWS_USE_PATH_STYLE_ENDPOINT=true
-            RABBITMQ_HOST=rabbitmq
+            RABBITMQ_HOST=rabbitmq-mibeko
             RABBITMQ_PORT=5672
             RABBITMQ_USER=${{ secrets.RABBITMQ_USER || 'guest' }}
             RABBITMQ_PASSWORD=${{ secrets.RABBITMQ_PASSWORD || 'guest' }}
