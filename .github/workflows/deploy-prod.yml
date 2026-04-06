@@ -56,6 +56,11 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+          build-args: |
+            VITE_REVERB_APP_KEY=mibeko_key
+            VITE_REVERB_HOST=reverb.mibeko.benaja-bendo.fr
+            VITE_REVERB_PORT=443
+            VITE_REVERB_SCHEME=https
 
   # ─────────────────────────────────────────────────────────────────────────────
   # Job 2 : Déployer sur le VPS via SSH

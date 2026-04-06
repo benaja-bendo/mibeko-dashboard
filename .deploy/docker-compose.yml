@@ -75,6 +75,12 @@ services:
       - "traefik.http.routers.mibeko-ws.entrypoints=websecure"
       - "traefik.http.routers.mibeko-ws.tls.certresolver=myresolver"
       - "traefik.http.services.mibeko-ws.loadbalancer.server.port=8080"
+      - "traefik.http.services.mibeko-ws.loadbalancer.responseforwarding.flushinterval=0"
+    healthcheck:
+      test: ["CMD", "php", "-r", "try { new \\SplFileInfo('/tmp'); echo 'ok'; } catch (\\Exception $e) { exit(1); }"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
 
 volumes:
   mibeko_storage:

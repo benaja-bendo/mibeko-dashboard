@@ -47,6 +47,7 @@ import {
     ChevronRight
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
+import { useEchoPublic } from '@laravel/echo-react';
 import { cn } from '@/lib/utils';
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -108,10 +109,37 @@ const statusLabels: Record<string, string> = {
     published: 'Publié',
 };
 
+type DocumentExtractionPayload = {
+    id: string;
+    extraction_status: 'pending' | 'processing' | 'completed' | 'failed';
+    progression: number;
+    articles_count: number;
+};
+
 export default function CurationIndex({ documents, filters, document_types, institutions }: Props) {
     const [search, setSearch] = useState(filters.search || '');
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [localDocuments, setLocalDocuments] = useState<Document[]>(documents.data);
+
+    // Listen to real-time document extraction updates via Reverb
+    useEchoPublic<DocumentExtractionPayload>(
+        'curation.documents',
+        'DocumentExtractionUpdated',
+        (e) => {
+            setLocalDocuments(prevDocs =>
+                prevDocs.map(doc =>
+                    doc.id === e.id
+                        ? {
+                            ...doc,
+                            extraction_status: e.extraction_status,
+                            progression: e.progression,
+                            articles_count: e.articles_count,
+                          }
+                        : doc
+                )
+            );
+        },
+    );
 
     // Synchronize local state with props when data changes from server
     useEffect(() => {
@@ -119,34 +147,7 @@ export default function CurationIndex({ documents, filters, document_types, inst
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [documents.data]);
 
-    useEffect(() => {
-        // @ts-expect-error - Echo is globally available but might not be typed
-        if (typeof window !== 'undefined' && window.Echo) {
-            // @ts-expect-error - Echo typings are missing
-            const channel = window.Echo.channel('curation.documents');
 
-            channel.listen('DocumentExtractionUpdated', (e: {id: string, extraction_status: 'pending' | 'processing' | 'completed' | 'failed', progression: number, articles_count: number}) => {
-                setLocalDocuments(prevDocs =>
-                    prevDocs.map(doc =>
-                        doc.id === e.id
-                            ? {
-                                ...doc,
-                                extraction_status: e.extraction_status,
-                                progression: e.progression,
-                                articles_count: e.articles_count
-                              }
-                            : doc
-                    )
-                );
-            });
-
-            return () => {
-                channel.stopListening('DocumentExtractionUpdated');
-                // @ts-expect-error - Echo typings are missing
-                window.Echo.leaveChannel('curation.documents');
-            };
-        }
-    }, []);
 
     const { data, setData, post, processing, errors, reset } = useForm({
         titre_officiel: '',

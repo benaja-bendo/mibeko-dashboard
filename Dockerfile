@@ -43,6 +43,16 @@ COPY . .
 # Récupérer vendor depuis le stage composer pour que wayfinder puisse s'exécuter
 COPY --from=composer-builder /app/vendor ./vendor
 
+# Variables Vite injectées au build time (overridable via --build-arg dans la CI)
+ARG VITE_REVERB_APP_KEY=shg62qdm61dsnvyzmzpy
+ARG VITE_REVERB_HOST=localhost
+ARG VITE_REVERB_PORT=8080
+ARG VITE_REVERB_SCHEME=http
+ENV VITE_REVERB_APP_KEY=${VITE_REVERB_APP_KEY}
+ENV VITE_REVERB_HOST=${VITE_REVERB_HOST}
+ENV VITE_REVERB_PORT=${VITE_REVERB_PORT}
+ENV VITE_REVERB_SCHEME=${VITE_REVERB_SCHEME}
+
 # Build des assets
 RUN cp .env.example .env \
     && php artisan key:generate \
