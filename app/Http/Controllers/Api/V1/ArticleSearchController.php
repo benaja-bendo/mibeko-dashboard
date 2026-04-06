@@ -77,7 +77,7 @@ class ArticleSearchController extends Controller
             ->where('av.validation_status', 'validated')
             ->whereNull('a.deleted_at')
             ->whereNull('ld.deleted_at')
-            ->where('ld.statut', 'published')
+            ->where('ld.curation_status', 'published')
             ->select([
                 'a.id as article_id',
                 'a.numero_article',

@@ -28,6 +28,7 @@ class LegalDocumentFactory extends Factory
             'date_publication' => $this->faker->date(),
             'date_entree_vigueur' => $this->faker->date(),
             'statut' => $this->faker->randomElement(['vigueur', 'abroge', 'projet']),
+            'curation_status' => 'published',
         ];
     }
 }

@@ -14,7 +14,7 @@ test('unauthenticated users cannot access protected routes', function () {
 });
 
 test('can fetch paginated legal documents', function () {
-    LegalDocument::factory()->count(25)->create();
+    LegalDocument::factory()->count(25)->hasArticles(1)->create();
 
     $response = $this->getJson('/api/v1/legal-documents?page=2');
 
@@ -32,9 +32,9 @@ test('returns 404 for non-existent legal document', function () {
 });
 
 test('can combine filters', function () {
-    LegalDocument::factory()->create(['titre_officiel' => 'Alpha', 'statut' => 'vigueur']);
-    LegalDocument::factory()->create(['titre_officiel' => 'Beta', 'statut' => 'vigueur']);
-    LegalDocument::factory()->create(['titre_officiel' => 'Alpha', 'statut' => 'projet']);
+    LegalDocument::factory()->hasArticles(1)->create(['titre_officiel' => 'Alpha', 'statut' => 'vigueur']);
+    LegalDocument::factory()->hasArticles(1)->create(['titre_officiel' => 'Beta', 'statut' => 'vigueur']);
+    LegalDocument::factory()->hasArticles(1)->create(['titre_officiel' => 'Alpha', 'statut' => 'projet']);
 
     // Filter by Title 'Alpha' AND Status 'vigueur'
     $url = '/api/v1/legal-documents?filter[titre_officiel]=Alpha&filter[statut]=vigueur';

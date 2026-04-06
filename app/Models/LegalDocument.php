@@ -96,7 +96,7 @@ class LegalDocument extends Model implements Auditable
      */
     public function scopePublished($query)
     {
-        return $query->where('statut', self::STATUS_PUBLISHED)
+        return $query->where('curation_status', self::STATUS_PUBLISHED)
                      ->whereHas('articles');
     }
 }

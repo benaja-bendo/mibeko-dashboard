@@ -10,8 +10,8 @@ use Illuminate\Support\Facades\Hash;
 uses(RefreshDatabase::class);
 
 it('can filter legal documents by status', function () {
-    LegalDocument::factory()->create(['statut' => 'vigueur']);
-    LegalDocument::factory()->create(['statut' => 'projet']);
+    LegalDocument::factory()->hasArticles(1)->create(['statut' => 'vigueur']);
+    LegalDocument::factory()->hasArticles(1)->create(['statut' => 'projet']);
 
     $response = $this->getJson('/api/v1/legal-documents?filter[statut]=vigueur');
 
@@ -21,8 +21,8 @@ it('can filter legal documents by status', function () {
 });
 
 it('can search legal documents by title', function () {
-    LegalDocument::factory()->create(['titre_officiel' => 'Unique Title']);
-    LegalDocument::factory()->create(['titre_officiel' => 'Other Title']);
+    LegalDocument::factory()->hasArticles(1)->create(['titre_officiel' => 'Unique Title']);
+    LegalDocument::factory()->hasArticles(1)->create(['titre_officiel' => 'Other Title']);
 
     $response = $this->getJson('/api/v1/legal-documents?filter[titre_officiel]=Unique');
 
