@@ -90,4 +90,13 @@ class LegalDocument extends Model implements Auditable
     {
         return $this->morphToMany(Tag::class, 'taggable');
     }
+
+    /**
+     * Scope a query to only include published documents that have articles.
+     */
+    public function scopePublished($query)
+    {
+        return $query->where('statut', self::STATUS_PUBLISHED)
+                     ->whereHas('articles');
+    }
 }

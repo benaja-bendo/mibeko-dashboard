@@ -43,6 +43,7 @@ class CatalogController extends Controller
     {
 
         $documents = LegalDocument::query()
+            ->published()
             ->with(['type'])
             ->get();
 
@@ -68,9 +69,10 @@ class CatalogController extends Controller
      */
     public function stats(): JsonResponse
     {
-        $stats = DB::table('legal_documents')
+        $stats = LegalDocument::query()
+            ->published()
             ->join('document_types', 'legal_documents.type_code', '=', 'document_types.code')
-            ->select('document_types.nom as type_name', 'document_types.code as type_code', DB::raw('count(*) as count'))
+            ->select('document_types.nom as type_name', 'document_types.code as type_code', DB::raw('count(legal_documents.id) as count'))
             ->groupBy('document_types.code', 'document_types.nom')
             ->get();
 

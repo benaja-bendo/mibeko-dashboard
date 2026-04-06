@@ -35,20 +35,23 @@ class HomeController extends Controller
     {
         // 1. Popular Codes (Priority documents)
         $popularCodes = LegalDocument::query()
+            ->published()
             ->with(['type'])
-            ->whereIn('titre_officiel', [
-                'Constitution de la République du Congo',
-                'Code Civil',
-                'Code Pénal',
-                'Code du Travail',
-                'Code de la Famille',
-            ])
-            ->orWhere('type_code', 'CONST')
+            ->where(function ($query) {
+                $query->whereIn('titre_officiel', [
+                    'Constitution de la République du Congo',
+                    'Code Civil',
+                    'Code Pénal',
+                    'Code du Travail',
+                    'Code de la Famille',
+                ])->orWhere('type_code', 'CONST');
+            })
             ->limit(6)
             ->get();
 
         // 2. Recently Added
         $recentlyAdded = LegalDocument::query()
+            ->published()
             ->with(['type'])
             ->latest()
             ->limit(5)

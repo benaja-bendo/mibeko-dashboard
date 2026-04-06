@@ -25,8 +25,8 @@ services:
               echo 'MinIO non prêt, nouvelle tentative dans 2s...';
               sleep 2;
             done;
-            /usr/bin/mc mb -p myminio/${AWS_BUCKET:-bucket-mibeko} || true;
-            /usr/bin/mc anonymous set download myminio/${AWS_BUCKET:-bucket-mibeko} || true;
+            /usr/bin/mc mb -p myminio/${AWS_BUCKET:-mibeko-documents} || true;
+            /usr/bin/mc anonymous set download myminio/${AWS_BUCKET:-mibeko-documents} || true;
             exit 0;
             "
         networks:

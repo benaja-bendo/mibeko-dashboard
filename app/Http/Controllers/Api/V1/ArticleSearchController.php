@@ -75,6 +75,9 @@ class ArticleSearchController extends Controller
             ->join('document_types as dt', 'ld.type_code', '=', 'dt.code')
             ->leftJoin('structure_nodes as sn', 'a.parent_node_id', '=', 'sn.id')
             ->where('av.validation_status', 'validated')
+            ->whereNull('a.deleted_at')
+            ->whereNull('ld.deleted_at')
+            ->where('ld.statut', 'published')
             ->select([
                 'a.id as article_id',
                 'a.numero_article',

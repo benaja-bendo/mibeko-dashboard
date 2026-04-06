@@ -31,6 +31,7 @@ class LegalDocumentController extends Controller
     public function index(Request $request): JsonResponse
     {
         $documents = QueryBuilder::for(LegalDocument::class)
+            ->published()
             ->with(['institution', 'type'])
             ->allowedFilters([
                 AllowedFilter::partial('titre_officiel'),
@@ -57,6 +58,7 @@ class LegalDocumentController extends Controller
     public function show(string $id): JsonResponse
     {
         $document = QueryBuilder::for(LegalDocument::class)
+            ->published()
             ->with(['institution', 'type', 'articles.latestVersion', 'relations.targetDocument'])
             ->findOrFail($id);
 
