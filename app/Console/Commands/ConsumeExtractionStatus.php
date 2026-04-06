@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use App\Events\DocumentExtractionUpdated;
 use App\Models\LegalDocument;
+use App\Observers\ArticleVersionObserver;
 use App\Services\DocumentImportService;
 use App\Services\RabbitMQService;
 use Illuminate\Console\Command;
@@ -76,16 +77,23 @@ class ConsumeExtractionStatus extends Command
                             ]);
 
                             // Automatically import the extracted JSON content into the database
+                            // Embeddings are NOT generated here — they are handled
+                            // asynchronously by the scheduler via `mibeko:process-rag`
                             try {
                                 $jsonContent = Storage::disk('s3')->get($resultPaths['json']);
                                 if ($jsonContent) {
                                     $jsonData = json_decode($jsonContent, true);
                                     if (json_last_error() === JSON_ERROR_NONE) {
-                                        // Use the service to import StructureNodes and Articles
-                                        DB::transaction(function () use ($importService, $document, $jsonData) {
-                                            $importService->importContent($document, $jsonData);
-                                        });
-                                        Log::info("Successfully imported structured data for Document {$taskId}");
+                                        ArticleVersionObserver::$shouldSkipEmbeddings = true;
+
+                                        try {
+                                            DB::transaction(function () use ($importService, $document, $jsonData) {
+                                                $importService->importContent($document, $jsonData);
+                                            });
+                                            Log::info("Successfully imported structured data for Document {$taskId}");
+                                        } finally {
+                                            ArticleVersionObserver::$shouldSkipEmbeddings = false;
+                                        }
                                     } else {
                                         Log::error("Failed to decode JSON from MinIO for Document {$taskId}: ".json_last_error_msg());
                                     }
