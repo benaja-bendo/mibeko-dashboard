@@ -97,6 +97,7 @@ RUN apk add --no-cache \
 # Configuration OPcache et Uploads pour la production
 COPY docker/php/opcache.ini /usr/local/etc/php/conf.d/opcache.ini
 COPY docker/php/uploads.ini /usr/local/etc/php/conf.d/uploads.ini
+COPY docker/php/zz-fpm.conf /usr/local/etc/php-fpm.d/zz-fpm.conf
 
 WORKDIR /var/www/html
 

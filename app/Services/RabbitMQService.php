@@ -29,10 +29,10 @@ class RabbitMQService
                     null,
                     'en_US',
                     3.0,
-                    60.0,
+                    360.0,
                     null,
                     true,
-                    60
+                    0
                 );
 
                 $this->channel = $this->connection->channel();
