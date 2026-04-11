@@ -14,6 +14,7 @@
         "dedoc/scramble": "^0.13.8",
         "google/apiclient": "^2.19",
         "inertiajs/inertia-laravel": "^2.0",
+        "kreait/laravel-firebase": "^7.1",
         "laravel/ai": "^0.4.2",
         "laravel/fortify": "^1.30",
         "laravel/framework": "^13.0",
@@ -28,6 +29,7 @@
         "pgvector/pgvector": "^0.2.2",
         "php-amqplib/php-amqplib": "^3.7",
         "spatie/laravel-backup": "^10.0",
+        "spatie/laravel-permission": "^7.2",
         "spatie/laravel-query-builder": "^6.3"
     },
     "require-dev": {
