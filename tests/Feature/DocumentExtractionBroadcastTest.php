@@ -1,7 +1,6 @@
 <?php
 
 use App\Events\DocumentExtractionUpdated;
-use App\Models\Article;
 use App\Models\DocumentType;
 use App\Models\Institution;
 use App\Models\LegalDocument;

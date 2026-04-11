@@ -23,6 +23,7 @@ class LegalDocument extends Model implements Auditable
     protected $fillable = [
         'type_code',
         'institution_id',
+        'official_journal_id',
         'titre_officiel',
         'reference_nor',
         'date_signature',
@@ -58,6 +59,14 @@ class LegalDocument extends Model implements Auditable
     public function institution(): BelongsTo
     {
         return $this->belongsTo(Institution::class);
+    }
+
+    /**
+     * Récupère le journal officiel dans lequel ce document a été publié.
+     */
+    public function officialJournal(): BelongsTo
+    {
+        return $this->belongsTo(OfficialJournal::class, 'official_journal_id');
     }
 
     public function structureNodes(): HasMany
@@ -97,6 +106,6 @@ class LegalDocument extends Model implements Auditable
     public function scopePublished($query)
     {
         return $query->where('curation_status', self::STATUS_PUBLISHED)
-                     ->whereHas('articles');
+            ->whereHas('articles');
     }
 }

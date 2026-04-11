@@ -4,6 +4,8 @@ use App\Http\Controllers\AuditController;
 use App\Http\Controllers\CurationController;
 use App\Http\Controllers\MediaController;
 use App\Http\Controllers\PdfProxyController;
+use App\Http\Controllers\UserController;
+use App\Http\Controllers\Web\OfficialJournalController;
 use App\Models\Article;
 use App\Models\LegalDocument;
 use Illuminate\Support\Facades\Route;
@@ -28,6 +30,12 @@ Route::get('/document/{documentId}', function (string $documentId) {
 
     return view('share.document', compact('document'));
 })->name('share.document');
+
+// Legal & Contact public pages
+Route::get('/mentions-legales', fn () => Inertia::render('legal/mentions-legales'))->name('legal.mentions');
+Route::get('/confidentialite', fn () => Inertia::render('legal/confidentialite'))->name('legal.privacy');
+Route::get('/cgu-cgv', fn () => Inertia::render('legal/cgu-cgv'))->name('legal.terms');
+Route::get('/contact', fn () => Inertia::render('contact'))->name('contact');
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('dashboard', function () {
@@ -81,6 +89,19 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     // Auditing
     Route::get('/auditing', [AuditController::class, 'index'])->name('auditing.index');
+
+    // Users Management
+    Route::get('/users', [UserController::class, 'index'])->name('users.index');
+    Route::put('/users/{user}', [UserController::class, 'update'])->name('users.update');
+
+    // Official Journals Management
+    Route::get('/official-journals', [OfficialJournalController::class, 'index'])->name('official-journals.index');
+    Route::post('/official-journals', [OfficialJournalController::class, 'store'])->name('official-journals.store');
+    Route::get('/official-journals/{officialJournal}', [OfficialJournalController::class, 'show'])->name('official-journals.show');
+    Route::post('/official-journals/{officialJournal}', [OfficialJournalController::class, 'update'])->name('official-journals.update');
+    Route::delete('/official-journals/{officialJournal}', [OfficialJournalController::class, 'destroy'])->name('official-journals.destroy');
+    Route::post('/official-journals/{officialJournal}/attach', [OfficialJournalController::class, 'attachDocument'])->name('official-journals.attach');
+    Route::delete('/official-journals/{officialJournal}/detach/{legalDocument}', [OfficialJournalController::class, 'detachDocument'])->name('official-journals.detach');
 
     // Media Management
     Route::get('/api/media/files', [MediaController::class, 'listAvailableFiles'])->name('api.media.files');

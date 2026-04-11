@@ -18,9 +18,10 @@ class DatabaseSeeder extends Seeder
         // Call other seeders
         $this->call([
             SystemRequirementsSeeder::class,
-            // PopularCodesSeeder::class,
-            // RealisticLegalSeeder::class, // Désactivé pour la prod : on utilise uniquement les vrais JSON
-            // CongoJournalOfficielSeeder::class,
+            RolesAndPermissionsSeeder::class,
+            PopularCodesSeeder::class,
+            RealisticLegalSeeder::class, // Désactivé pour la prod : on utilise uniquement les vrais JSON
+            CongoJournalOfficielSeeder::class,
         ]);
 
         // Re-enable it if needed (optional since seeder process ends here)

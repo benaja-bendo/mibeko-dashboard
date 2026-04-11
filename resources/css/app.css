@@ -17,9 +17,9 @@
         'Merriweather', 'Georgia', 'Times New Roman', serif;
 
     /* Enterprise Color Palette */
-    --color-institutional: oklch(0.35 0.15 264);  /* Institutional Blue #1e40af */
-    --color-validation: oklch(0.65 0.17 152);     /* Validation Green #10b981 */
-    --color-enterprise-bg: oklch(0.99 0 0);       /* Light Gray #F9FAFB */
+    --color-institutional: #0D47A1;  /* Mibeko Blue */
+    --color-validation: #C5A059;     /* Mibeko Gold */
+    --color-enterprise-bg: oklch(0.99 0 0);
 
     --radius-lg: var(--radius);
     --radius-md: calc(var(--radius) - 2px);
@@ -80,10 +80,10 @@
     --card-foreground: oklch(0.145 0 0);
     --popover: oklch(1 0 0);
     --popover-foreground: oklch(0.145 0 0);
-    --primary: oklch(0.205 0 0);
+    --primary: #0D47A1;
     --primary-foreground: oklch(0.985 0 0);
-    --secondary: oklch(0.97 0 0);
-    --secondary-foreground: oklch(0.205 0 0);
+    --secondary: #C5A059;
+    --secondary-foreground: #FFFFFF;
     --muted: oklch(0.97 0 0);
     --muted-foreground: oklch(0.556 0 0);
     --accent: oklch(0.97 0 0);
@@ -94,78 +94,67 @@
     --success-foreground: oklch(0.98 0 0);
     --border: oklch(0.922 0 0);
     --input: oklch(0.922 0 0);
-    --ring: oklch(0.87 0 0);
-    --chart-1: oklch(0.646 0.222 41.116);
-    --chart-2: oklch(0.6 0.118 184.704);
+    --ring: #0D47A1;
+    --chart-1: #0D47A1;
+    --chart-2: #C5A059;
     --chart-3: oklch(0.398 0.07 227.392);
     --chart-4: oklch(0.828 0.189 84.429);
     --chart-5: oklch(0.769 0.188 70.08);
     --radius: 0.625rem;
-    --sidebar: oklch(0.985 0 0);
-    --sidebar-black: oklch(0.985 0 0);
+    --sidebar: #FFFFFF;
+    --sidebar-black: #000000;
     --sidebar-foreground: oklch(0.145 0 0);
-    --sidebar-primary: oklch(0.205 0 0);
+    --sidebar-primary: #0D47A1;
     --sidebar-primary-foreground: oklch(0.985 0 0);
     --sidebar-accent: oklch(0.97 0 0);
-    --sidebar-accent-foreground: oklch(0.205 0 0);
+    --sidebar-accent-foreground: #0D47A1;
     --sidebar-border: oklch(0.922 0 0);
-    --sidebar-ring: oklch(0.87 0 0);
+    --sidebar-ring: #0D47A1;
 }
 
 .dark {
-    /* Strict Adherence Palette */
+    --background: #0F172A;
+    --foreground: #F8FAFC;
 
-    /* Deep Dark Grey/Black Background */
-    --background: #121212;
-    --foreground: #FFFFFF;
+    --card: #1E293B;
+    --card-foreground: #F8FAFC;
+    --popover: #1E293B;
+    --popover-foreground: #F8FAFC;
 
-    /* Primary Dark Base (Sidebar/Panels): Slate-Grey #2C2F33 */
-    --card: #2C2F33;
-    --card-foreground: #FFFFFF;
-    --popover: #2C2F33;
-    --popover-foreground: #FFFFFF;
-
-    /* Accent/Alert Color: Vibrant Red #FF4500 */
-    --primary: #FF4500;
+    --primary: #3B82F6;
     --primary-foreground: #FFFFFF;
 
-    /* Secondary Elements (Lighter Slate) */
-    --secondary: #3A3E44;
+    --secondary: #C5A059;
     --secondary-foreground: #FFFFFF;
-    --muted: #202225;
-    --muted-foreground: #A0A0A0;
-    --accent: #35383D;
-    --accent-foreground: #FFFFFF;
+    --muted: #1E293B;
+    --muted-foreground: #94A3B8;
+    --accent: #334155;
+    --accent-foreground: #F8FAFC;
 
-    /* Destructive same as Primary for Alert */
-    --destructive: #FF4500;
-    --destructive-foreground: #FFFFFF;
+    --destructive: oklch(0.577 0.245 27.325);
+    --destructive-foreground: #F8FAFC;
 
-    /* Borders */
-    --border: #3A3E44;
-    --input: #2C2F33;
-    --ring: #FF4500;
+    --border: #334155;
+    --input: #1E293B;
+    --ring: #3B82F6;
 
-    /* Chart colors - Vibrant Red Variations */
-    --chart-1: #FF4500;
-    --chart-2: #CC3700;
-    --chart-3: #992900;
-    --chart-4: #FF6B33;
-    --chart-5: #FF8552;
+    --chart-1: #3B82F6;
+    --chart-2: #C5A059;
+    --chart-3: #93C5FD;
+    --chart-4: #FDE047;
+    --chart-5: #F97316;
 
-    /* Sidebar - Slate-Grey #2C2F33 */
-    --sidebar: #2C2F33;
+    --sidebar: #1E293B;
     --sidebar-black: #000000;
-    --sidebar-foreground: #FFFFFF;
-    --sidebar-primary: #FF4500;
+    --sidebar-foreground: #F8FAFC;
+    --sidebar-primary: #3B82F6;
     --sidebar-primary-foreground: #FFFFFF;
-    --sidebar-accent: #35383D;
-    --sidebar-accent-foreground: #FFFFFF;
-    --sidebar-border: #3A3E44;
-    --sidebar-ring: #FF4500;
+    --sidebar-accent: #334155;
+    --sidebar-accent-foreground: #F8FAFC;
+    --sidebar-border: #334155;
+    --sidebar-ring: #3B82F6;
 
-    /* Success: Bright Green #00C853 */
-    --success: #00C853;
+    --success: #22C55E;
     --success-foreground: #FFFFFF;
 }
 

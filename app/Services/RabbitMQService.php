@@ -2,8 +2,11 @@
 
 namespace App\Services;
 
+use Illuminate\Support\Facades\Log;
 use PhpAmqpLib\Connection\AMQPStreamConnection;
+use PhpAmqpLib\Exception\AMQPTimeoutException;
 use PhpAmqpLib\Message\AMQPMessage;
+use PhpAmqpLib\Wire\AMQPTable;
 
 class RabbitMQService
 {
@@ -16,7 +19,7 @@ class RabbitMQService
      */
     protected function getChannel()
     {
-        if (!$this->channel) {
+        if (! $this->channel) {
             try {
                 $this->connection = new AMQPStreamConnection(
                     config('services.rabbitmq.host', 'rabbitmq'),
@@ -37,7 +40,7 @@ class RabbitMQService
 
                 $this->channel = $this->connection->channel();
             } catch (\Exception $e) {
-                \Illuminate\Support\Facades\Log::error('RabbitMQ Connection Error: ' . $e->getMessage());
+                Log::error('RabbitMQ Connection Error: '.$e->getMessage());
                 throw $e;
             }
         }
@@ -51,15 +54,15 @@ class RabbitMQService
     protected function declareQueue(string $queue)
     {
         $channel = $this->getChannel();
-        
+
         $arguments = [];
         if ($queue === 'pdf_extraction_tasks') {
-            $arguments = new \PhpAmqpLib\Wire\AMQPTable([
+            $arguments = new AMQPTable([
                 'x-dead-letter-exchange' => 'pdf_extraction_tasks_dlx',
-                'x-dead-letter-routing-key' => 'dead_letter'
+                'x-dead-letter-routing-key' => 'dead_letter',
             ]);
         }
-        
+
         $channel->queue_declare($queue, false, true, false, false, false, $arguments);
     }
 
@@ -103,14 +106,14 @@ class RabbitMQService
             while ($channel->is_open()) {
                 $channel->wait(null, false, 60); // Wait for messages, timeout after 60 seconds
             }
-        } catch (\PhpAmqpLib\Exception\AMQPTimeoutException $e) {
+        } catch (AMQPTimeoutException $e) {
             // This is expected if no messages arrive within the timeout period
             // It allows the loop to continue and check if the channel is still open
             // and allows signal handlers (like for graceful shutdown) to run.
             $this->connection->checkHeartBeat(); // Send heartbeat to keep connection alive
             $this->consume($queue, $callback); // Resume consuming
         } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::error('RabbitMQ Consume Error: ' . $e->getMessage());
+            Log::error('RabbitMQ Consume Error: '.$e->getMessage());
             throw $e;
         }
     }

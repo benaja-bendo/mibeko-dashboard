@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\V1\AiAssistantController;
 use App\Http\Controllers\Api\V1\ArticleSearchController;
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\CatalogController;
@@ -12,14 +13,16 @@ use App\Http\Controllers\Api\V1\LegalDocumentController;
 use App\Http\Controllers\Api\V1\LegalDocumentDownloadController;
 use App\Http\Controllers\Api\V1\LegalDocumentExportController;
 use App\Http\Controllers\Api\V1\NotificationController;
+use App\Http\Controllers\Api\V1\OfficialJournalController;
 use App\Http\Controllers\Api\V1\StructureNodeController;
 use App\Http\Controllers\Api\V1\SyncController;
 use App\Http\Controllers\PdfProxyController;
 use Illuminate\Support\Facades\Route;
 
-Route::prefix('v1')->group(function () {
+Route::prefix('v1')->middleware('throttle:api')->group(function () {
     // Auth
     Route::post('login', [AuthController::class, 'login']);
+    Route::post('auth/firebase', [AuthController::class, 'firebaseLogin']);
 
     // Device Registration (No Auth required)
     Route::post('devices/register', [DeviceController::class, 'register']);
@@ -34,6 +37,11 @@ Route::prefix('v1')->group(function () {
         Route::patch('notifications/{id}/read', [NotificationController::class, 'markAsRead']);
         Route::post('notifications/read-all', [NotificationController::class, 'markAllAsRead']);
         Route::delete('notifications/{id}', [NotificationController::class, 'destroy']);
+
+        // Assistant IA (Mibeko IA)
+        Route::get('assistant/conversations', [AiAssistantController::class, 'index']);
+        Route::get('assistant/conversations/{id}', [AiAssistantController::class, 'show']);
+        Route::post('assistant/chat/{id?}', [AiAssistantController::class, 'chat']);
     });
 
     // Resources
@@ -43,6 +51,7 @@ Route::prefix('v1')->group(function () {
 
     Route::apiResource('institutions', InstitutionController::class)->only(['index']);
     Route::apiResource('document-types', DocumentTypeController::class)->only(['index']);
+    Route::apiResource('official-journals', OfficialJournalController::class)->only(['index', 'show']);
 
     Route::apiResource('legal-documents', LegalDocumentController::class)->only(['index', 'show']);
     Route::get('legal-documents/{document}/tree', [StructureNodeController::class, 'tree']);

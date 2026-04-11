@@ -18,6 +18,7 @@ class LegalDocumentResource extends JsonResource
         /** @var LegalDocument $this */
         return [
             'id' => $this->id,
+            'official_journal_id' => $this->official_journal_id,
             'title' => $this->titre_officiel,
             'reference' => $this->reference_nor,
             'status' => $this->statut,
@@ -26,6 +27,11 @@ class LegalDocumentResource extends JsonResource
                 'publication' => $this->date_publication?->toIso8601String(),
             ],
             'institution' => InstitutionResource::make($this->whenLoaded('institution')),
+            'official_journal' => $this->whenLoaded('officialJournal', fn () => [
+                'id' => $this->officialJournal->id,
+                'title' => $this->officialJournal->title,
+                'publication_date' => $this->officialJournal->publication_date?->toIso8601String(),
+            ]),
             'type' => $this->whenLoaded('type', fn () => [
                 'code' => $this->type->code,
                 'name' => $this->type->nom,

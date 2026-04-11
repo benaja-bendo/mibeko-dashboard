@@ -4,6 +4,7 @@ use App\Models\DocumentType;
 use App\Models\Institution;
 use App\Models\LegalDocument;
 use App\Models\User;
+use App\Services\RabbitMQService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
@@ -62,7 +63,7 @@ it('filters documents by search query', function () {
 });
 
 it('creates a new legal document', function () {
-    $this->mock(\App\Services\RabbitMQService::class, function ($mock) {
+    $this->mock(RabbitMQService::class, function ($mock) {
         // Mock to prevent real RabbitMQ connection during tests
         $mock->shouldReceive('publish')->andReturnNull();
     });

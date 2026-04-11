@@ -25,7 +25,7 @@ class DocumentImportService
             foreach ($data['textes'] as $index => $texte) {
                 // Determine the type from numero_texte if possible
                 $type = 'Texte';
-                if (!empty($texte['numero_texte'])) {
+                if (! empty($texte['numero_texte'])) {
                     $parts = explode(' ', $texte['numero_texte']);
                     if (count($parts) > 0) {
                         $type = $parts[0];

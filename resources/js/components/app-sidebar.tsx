@@ -11,45 +11,64 @@ import {
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
 import { dashboard } from '@/routes';
-import { type NavItem } from '@/types';
-import { Link } from '@inertiajs/react';
-import { BookOpen, Folder, LayoutGrid, History } from 'lucide-react';
+import { type NavItem, type SharedData } from '@/types';
+import { Link, usePage } from '@inertiajs/react';
+import { BookOpen, FileText, Folder, History, LayoutGrid, Users } from 'lucide-react';
 import AppLogo from './app-logo';
 
-const mainNavItems: NavItem[] = [
-    {
-        title: 'Dashboard',
-        href: dashboard(),
-        icon: LayoutGrid,
-    },
-    {
-        title: 'Documents',
-        href: '/curation',
-        icon: BookOpen,
-    },
-    {
-        title: 'Auditing',
-        href: '/auditing',
-        icon: History,
-    },
-];
-
-
-
-const footerNavItems: NavItem[] = [
-    {
-        title: 'Repository',
-        href: 'https://github.com/benaja-bendo/mibeko-dashboard',
-        icon: Folder,
-    },
-    {
-        title: 'Documentation API',
-        href: '/docs/api',
-        icon: BookOpen,
-    },
-];
-
 export function AppSidebar() {
+    const { auth } = usePage<SharedData>().props;
+    const roles = (auth.user?.roles as string[]) || [];
+    const isAdmin = roles.includes('admin') || roles.includes('editor');
+    const isSuperAdmin = roles.includes('admin');
+
+    const mainNavItems: NavItem[] = [
+        {
+            title: 'Dashboard',
+            href: dashboard(),
+            icon: LayoutGrid,
+        },
+        ...(isAdmin ? [
+            {
+                title: 'Documents',
+                href: '/curation',
+                icon: BookOpen,
+            },
+            {
+                title: 'Journal Officiel',
+                href: '/official-journals',
+                icon: FileText,
+            },
+            {
+                title: 'Auditing',
+                href: '/auditing',
+                icon: History,
+            },
+        ] : []),
+        ...(isSuperAdmin ? [
+            {
+                title: 'Utilisateurs',
+                href: '/users',
+                icon: Users,
+            },
+        ] : []),
+    ];
+
+    const footerNavItems: NavItem[] = [
+        {
+            title: 'Repository',
+            href: 'https://github.com/benaja-bendo/mibeko-dashboard',
+            icon: Folder,
+        },
+        ...(isAdmin ? [
+            {
+                title: 'Documentation API',
+                href: '/docs/api',
+                icon: BookOpen,
+            },
+        ] : []),
+    ];
+
     return (
         <Sidebar collapsible="icon" variant="inset">
             <SidebarHeader>
