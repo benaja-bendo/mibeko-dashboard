@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -15,12 +16,13 @@ use Kreait\Laravel\Firebase\Facades\Firebase;
  */
 class AuthController extends Controller
 {
+    use \App\Traits\HttpResponses;
     /**
      * Login.
      *
      * Returns a Sanctum plain-text token.
      */
-    public function login(Request $request): array
+    public function login(Request $request): JsonResponse
     {
         $request->validate([
             'email' => 'required|email',
@@ -36,9 +38,10 @@ class AuthController extends Controller
             ]);
         }
 
-        return [
+        return $this->success([
             'token' => $user->createToken($request->device_name)->plainTextToken,
-        ];
+            'user' => $user->load('roles', 'mobileProfile'),
+        ], 'Connexion réussie.');
     }
 
     /**
@@ -46,7 +49,7 @@ class AuthController extends Controller
      *
      * Authenticate or register a user via Firebase ID Token, returning a Sanctum token.
      */
-    public function firebaseLogin(Request $request): array
+    public function firebaseLogin(Request $request): JsonResponse
     {
         $request->validate([
             'id_token' => 'required|string',
@@ -91,10 +94,10 @@ class AuthController extends Controller
             $user->mobileProfile()->create();
         }
 
-        return [
+        return $this->success([
             'token' => $user->createToken($request->device_name)->plainTextToken,
             'user' => $user->load('roles', 'mobileProfile'),
-        ];
+        ], 'Connexion Firebase réussie.');
     }
 
     /**
@@ -108,10 +111,10 @@ class AuthController extends Controller
     /**
      * Logout.
      */
-    public function logout(Request $request): array
+    public function logout(Request $request): JsonResponse
     {
         $request->user()->currentAccessToken()->delete();
 
-        return ['message' => 'Déconnecté avec succès.'];
+        return $this->success(null, 'Déconnecté avec succès.');
     }
 }
