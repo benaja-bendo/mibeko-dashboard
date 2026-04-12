@@ -73,17 +73,27 @@ class AiAssistantController extends Controller
         $stream = $request->boolean('stream', false);
 
         if ($stream) {
-            return $agent->stream($request->input('message'))
-                ->then(function (StreamedAgentResponse $response) use ($id, $request) {
-                    if (! $id) {
-                        $conversation = AgentConversation::find($response->conversationId);
-                        if ($conversation && empty($conversation->title)) {
-                            $conversation->update([
-                                'title' => str($request->input('message'))->limit(50, '...'),
-                            ]);
-                        }
-                    }
+            if (!$id) {
+                $conversation = AgentConversation::create([
+                    'user_id' => $user->id,
+                    'title' => str($request->input('message'))->limit(50, '...'),
+                ]);
+                $id = $conversation->id;
+                $agent->continue($id, as: $user);
+            }
+
+            $agentResponse = $agent->stream($request->input('message'))
+                ->then(function (StreamedAgentResponse $response) {
+                    // Title already set above
                 });
+
+            /** @var \Symfony\Component\HttpFoundation\Response $httpResponse */
+            $httpResponse = $agentResponse->toResponse($request);
+            $httpResponse->headers->set('X-Conversation-Id', $id);
+            $httpResponse->headers->set('X-Accel-Buffering', 'no');
+            $httpResponse->headers->set('Cache-Control', 'no-cache');
+            $httpResponse->headers->set('Content-Type', 'text/event-stream');
+            return $httpResponse;
         }
 
         $response = $agent->prompt($request->input('message'));
