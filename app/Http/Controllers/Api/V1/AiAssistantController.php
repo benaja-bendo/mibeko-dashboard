@@ -8,6 +8,7 @@ use App\Models\AgentConversation;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Laravel\Ai\Responses\StreamedAgentResponse;
+use Symfony\Component\HttpFoundation\Response;
 
 /**
  * @tags Assistant IA
@@ -45,6 +46,23 @@ class AiAssistantController extends Controller
     }
 
     /**
+     * Supprimer une conversation
+     *
+     * Supprime une conversation spécifique et tous ses messages.
+     *
+     * @param  string  $id  L'identifiant de la conversation
+     */
+    public function destroy(Request $request, string $id): JsonResponse
+    {
+        $conversation = AgentConversation::where('user_id', $request->user()->id)
+            ->findOrFail($id);
+
+        $conversation->delete();
+
+        return response()->json(null, Response::HTTP_NO_CONTENT);
+    }
+
+    /**
      * Discuter avec Mibeko IA
      *
      * Envoie un message à l'assistant IA. Si aucun ID de conversation n'est fourni,
@@ -73,7 +91,7 @@ class AiAssistantController extends Controller
         $stream = $request->boolean('stream', false);
 
         if ($stream) {
-            if (!$id) {
+            if (! $id) {
                 $conversation = AgentConversation::create([
                     'user_id' => $user->id,
                     'title' => str($request->input('message'))->limit(50, '...'),
@@ -87,12 +105,13 @@ class AiAssistantController extends Controller
                     // Title already set above
                 });
 
-            /** @var \Symfony\Component\HttpFoundation\Response $httpResponse */
+            /** @var Response $httpResponse */
             $httpResponse = $agentResponse->toResponse($request);
             $httpResponse->headers->set('X-Conversation-Id', $id);
             $httpResponse->headers->set('X-Accel-Buffering', 'no');
             $httpResponse->headers->set('Cache-Control', 'no-cache');
             $httpResponse->headers->set('Content-Type', 'text/event-stream');
+
             return $httpResponse;
         }
 

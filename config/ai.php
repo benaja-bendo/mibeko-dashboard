@@ -17,7 +17,7 @@ return [
     'default_for_images' => env('AI_PROVIDER', 'gemini'),
     'default_for_audio' => env('AI_PROVIDER', 'openai'),
     'default_for_transcription' => env('AI_PROVIDER', 'openai'),
-    'default_for_embeddings' => env('AI_PROVIDER', 'openai'),
+    'default_for_embeddings' => env('AI_PROVIDER_EMBEDDINGS', 'mistral'),
     'default_for_reranking' => env('AI_PROVIDER', 'cohere'),
 
     /*
@@ -97,18 +97,33 @@ return [
         'mistral' => [
             'driver' => 'mistral',
             'key' => env('MISTRAL_API_KEY'),
+            'models' => [
+                'text' => [
+                    'default' => env('AI_MODEL', 'mistral-large-latest'),
+                ],
+            ],
         ],
 
         'ollama' => [
             'driver' => 'ollama',
             'key' => env('OLLAMA_API_KEY', ''),
             'url' => env('OLLAMA_BASE_URL', 'http://localhost:11434'),
+            'models' => [
+                'text' => [
+                    'default' => env('AI_MODEL', 'qwen3:0.6b'),
+                ],
+            ],
         ],
 
         'openai' => [
             'driver' => 'openai',
             'key' => env('OPENAI_API_KEY'),
             'url' => env('OPENAI_URL', 'https://api.openai.com/v1'),
+            'models' => [
+                'text' => [
+                    'default' => env('AI_MODEL', 'gpt-4o'),
+                ],
+            ],
         ],
 
         'openrouter' => [
