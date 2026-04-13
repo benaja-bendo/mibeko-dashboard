@@ -14,6 +14,7 @@ class OfficialJournal extends Model
 
     protected $fillable = [
         'title',
+        'number',
         'publication_date',
         'file_path',
         'transcription_status',

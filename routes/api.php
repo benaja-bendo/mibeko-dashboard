@@ -41,6 +41,7 @@ Route::prefix('v1')->middleware('throttle:api')->group(function () {
         // Assistant IA (Mibeko IA)
         Route::get('assistant/conversations', [AiAssistantController::class, 'index']);
         Route::get('assistant/conversations/{id}', [AiAssistantController::class, 'show']);
+        Route::put('assistant/conversations/{id}', [AiAssistantController::class, 'update']);
         Route::delete('assistant/conversations/{id}', [AiAssistantController::class, 'destroy']);
         Route::post('assistant/chat/{id?}', [AiAssistantController::class, 'chat']);
     });

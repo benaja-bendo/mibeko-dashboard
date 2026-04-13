@@ -6,8 +6,10 @@ use App\Http\Controllers\Controller;
 use App\Http\Resources\V1\OfficialJournalResource;
 use App\Models\OfficialJournal;
 use App\Services\OfficialJournalService;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use Spatie\QueryBuilder\AllowedFilter;
 use Spatie\QueryBuilder\QueryBuilder;
 
 /**
@@ -25,6 +27,8 @@ class OfficialJournalController extends Controller
      * Returns a paginated list of published official journals.
      * Supports sorting via query parameters.
      *
+     * @queryParam filter[number] string Filter by official journal number.
+     * @queryParam filter[year] integer Filter by publication year.
      * @queryParam sort string Sort field (e.g., "publication_date", "-created_at"). Defaults to "-publication_date".
      *
      * @return AnonymousResourceCollection<OfficialJournalResource>
@@ -33,6 +37,12 @@ class OfficialJournalController extends Controller
     {
         $journals = QueryBuilder::for(OfficialJournal::class)
             ->where('is_published', true)
+            ->allowedFilters([
+                'number',
+                AllowedFilter::callback('year', function (Builder $query, $value) {
+                    $query->whereYear('publication_date', $value);
+                }),
+            ])
             ->allowedSorts(['publication_date', 'created_at'])
             ->defaultSort('-publication_date')
             ->paginate($request->get('per_page', 15));

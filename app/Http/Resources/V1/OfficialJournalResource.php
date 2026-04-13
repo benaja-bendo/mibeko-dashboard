@@ -25,6 +25,7 @@ class OfficialJournalResource extends JsonResource
         return [
             'id' => $this->id,
             'title' => $this->title,
+            'number' => $this->number,
             'publication_date' => $this->publication_date?->toIso8601String(),
             'transcription_status' => $this->transcription_status,
             'is_published' => $this->is_published,

@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Api\V1;
 use App\Ai\Agents\MibekoIA;
 use App\Http\Controllers\Controller;
 use App\Models\AgentConversation;
+use App\Models\AgentConversationMessage;
+use App\Traits\SearchesArticles;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Laravel\Ai\Responses\StreamedAgentResponse;
@@ -15,6 +17,8 @@ use Symfony\Component\HttpFoundation\Response;
  */
 class AiAssistantController extends Controller
 {
+    use SearchesArticles;
+
     /**
      * Liste des conversations
      *
@@ -22,11 +26,45 @@ class AiAssistantController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
-        $conversations = AgentConversation::where('user_id', $request->user()->id)
-            ->orderBy('updated_at', 'desc')
-            ->paginate(20);
+        $query = AgentConversation::where('user_id', $request->user()->id);
+
+        if ($request->has('filter.date') && !empty($request->input('filter.date'))) {
+            $date = $request->input('filter.date');
+            // Assuming format is YYYY-MM-DD
+            $query->whereDate('updated_at', $date);
+        }
+
+        if ($request->has('filter.title') && !empty($request->input('filter.title'))) {
+            $title = $request->input('filter.title');
+            $query->where('title', 'ilike', '%' . $title . '%');
+        }
+
+        $conversations = $query->orderBy('updated_at', 'desc')->paginate(20);
 
         return response()->json($conversations);
+    }
+
+    /**
+     * Modifier une conversation
+     *
+     * Permet de modifier le titre d'une conversation.
+     *
+     * @param  string  $id  L'identifiant de la conversation
+     */
+    public function update(Request $request, string $id): JsonResponse
+    {
+        $request->validate([
+            'title' => ['required', 'string', 'max:255'],
+        ]);
+
+        $conversation = AgentConversation::where('user_id', $request->user()->id)
+            ->findOrFail($id);
+
+        $conversation->update([
+            'title' => $request->input('title'),
+        ]);
+
+        return response()->json($conversation);
     }
 
     /**
@@ -89,40 +127,100 @@ class AiAssistantController extends Controller
         }
 
         $stream = $request->boolean('stream', false);
+        $userMessage = $request->input('message');
+
+        // RAG: Search for relevant articles
+        $sources = $this->searchArticles($userMessage);
+
+        $promptContext = '';
+        if (!empty($sources)) {
+            $context = '';
+            foreach ($sources as $index => $article) {
+                $context .= '--- SOURCE '.($index + 1)." ---\n";
+                $context .= 'Document : '.$article['document_title']."\n";
+                $context .= 'Article : '.$article['number']."\n";
+                $context .= 'Contenu : '.$article['content']."\n\n";
+            }
+            $promptContext = "Voici les extraits de loi pertinents trouvés dans la base Mibeko :\n\n"
+                           . $context
+                           . "Question de l'utilisateur : " . $userMessage;
+        } else {
+            $promptContext = $userMessage; // Let the agent decide to say it has no info based on instructions
+        }
 
         if ($stream) {
             if (! $id) {
                 $conversation = AgentConversation::create([
                     'user_id' => $user->id,
-                    'title' => str($request->input('message'))->limit(50, '...'),
+                    'title' => str($userMessage)->limit(50, '...'),
                 ]);
                 $id = $conversation->id;
                 $agent->continue($id, as: $user);
             }
 
-            $agentResponse = $agent->stream($request->input('message'))
-                ->then(function (StreamedAgentResponse $response) {
-                    // Title already set above
+            $agentResponse = $agent->stream($promptContext)
+                ->then(function (StreamedAgentResponse $response) use ($sources) {
+                    // Update the last assistant message to include sources in metadata
+                    $lastMessage = AgentConversationMessage::where('conversation_id', $response->conversationId)
+                        ->where('role', 'assistant')
+                        ->orderBy('created_at', 'desc')
+                        ->first();
+
+                    if ($lastMessage && !empty($sources)) {
+                        $meta = is_array($lastMessage->meta) ? $lastMessage->meta : [];
+                        $meta['sources'] = $sources;
+                        $lastMessage->meta = $meta;
+                        $lastMessage->save();
+                    }
                 });
 
-            /** @var Response $httpResponse */
-            $httpResponse = $agentResponse->toResponse($request);
-            $httpResponse->headers->set('X-Conversation-Id', $id);
-            $httpResponse->headers->set('X-Accel-Buffering', 'no');
-            $httpResponse->headers->set('Cache-Control', 'no-cache');
-            $httpResponse->headers->set('Content-Type', 'text/event-stream');
+            return response()->stream(function () use ($agentResponse, $sources) {
+                // Send custom sources event first if available
+                if (!empty($sources)) {
+                    echo "event: sources\n";
+                    echo "data: " . json_encode($sources) . "\n\n";
+                    ob_flush();
+                    flush();
+                }
 
-            return $httpResponse;
+                // Iterate through the original streamable agent response
+                foreach ($agentResponse as $event) {
+                    echo "data: " . ((string) $event) . "\n\n";
+                    ob_flush();
+                    flush();
+                }
+                echo "data: [DONE]\n\n";
+            }, 200, [
+                'X-Conversation-Id' => $id,
+                'X-Accel-Buffering' => 'no',
+                'Cache-Control' => 'no-cache',
+                'Content-Type' => 'text/event-stream',
+            ]);
         }
 
-        $response = $agent->prompt($request->input('message'));
+        $response = $agent->prompt($promptContext);
+
+        // Update the last assistant message with sources if not streaming
+        if (!empty($sources)) {
+            $lastMessage = AgentConversationMessage::where('conversation_id', $response->conversationId)
+                ->where('role', 'assistant')
+                ->orderBy('created_at', 'desc')
+                ->first();
+
+            if ($lastMessage) {
+                $meta = is_array($lastMessage->meta) ? $lastMessage->meta : [];
+                $meta['sources'] = $sources;
+                $lastMessage->meta = $meta;
+                $lastMessage->save();
+            }
+        }
 
         // Mettre à jour le titre de la conversation si c'est le premier message
         if (! $id) {
             $conversation = AgentConversation::find($response->conversationId);
             if ($conversation && empty($conversation->title)) {
                 $conversation->update([
-                    'title' => str($request->input('message'))->limit(50, '...'),
+                    'title' => str($userMessage)->limit(50, '...'),
                 ]);
             }
         }
@@ -130,6 +228,7 @@ class AiAssistantController extends Controller
         return response()->json([
             'conversation_id' => $response->conversationId,
             'reply' => $response->text,
+            'sources' => $sources,
         ]);
     }
 }
