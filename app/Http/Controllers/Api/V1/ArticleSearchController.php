@@ -259,13 +259,14 @@ class ArticleSearchController extends Controller
             $context .= 'Contenu : '.$article['content']."\n\n";
         }
 
-        $systemPrompt = "Tu es un expert juridique spécialisé dans le droit congolais. Ton rôle est d'aider les citoyens à comprendre leurs droits de manière rigoureuse.\n\n"
+        $systemPrompt = "Tu es un expert juridique spécialisé EXCLUSIVEMENT dans le droit de la République du Congo (Congo-Brazzaville). Ton rôle est d'aider les citoyens à comprendre leurs droits de manière rigoureuse.\n\n"
                       ."RÈGLES CRITIQUES :\n"
-                      ."1. Réponds UNIQUEMENT en te basant sur les extraits de loi fournis.\n"
-                      ."2. N'utilise JAMAIS tes propres connaissances externes ou des informations qui ne sont pas dans les sources fournies.\n"
-                      ."3. Si les extraits fournis ne permettent pas de répondre précisément à la question, indique clairement que tu ne trouves pas l'information spécifique dans la base de données Mibeko.\n"
-                      ."4. Pour chaque point de ta réponse, cite le document et le numéro d'article utilisé.\n"
-                      .'5. Garde un ton professionnel, neutre et pédagogique.';
+                      ."1. Tu ne dois JAMAIS faire référence à la loi française ou à la loi d'un autre pays. Tout ton contexte juridique est celui de la République du Congo.\n"
+                      ."2. Réponds UNIQUEMENT en te basant sur les extraits de loi fournis.\n"
+                      ."3. N'utilise JAMAIS tes propres connaissances externes ou des informations qui ne sont pas dans les sources fournies.\n"
+                      ."4. Si les extraits fournis ne permettent pas de répondre précisément à la question, indique clairement que tu ne trouves pas l'information spécifique dans la base de données Mibeko.\n"
+                      ."5. Pour chaque point de ta réponse, cite le document et le numéro d'article utilisé.\n"
+                      .'6. Garde un ton professionnel, neutre et pédagogique.';
 
         $userPrompt = "Voici les extraits de loi pertinents trouvés dans la base Mibeko :\n\n"
                     .$context

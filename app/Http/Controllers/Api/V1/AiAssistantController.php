@@ -149,7 +149,7 @@ class AiAssistantController extends Controller
 
         if (!$id && Cache::has($cacheKey)) {
             $cachedResponse = Cache::get($cacheKey);
-            
+
             // Créer une nouvelle conversation pour l'historique de l'utilisateur
             $conversation = AgentConversation::create([
                 'user_id' => $user->id,
@@ -193,20 +193,29 @@ class AiAssistantController extends Controller
                     }
 
                     // Simuler un effet de stream
-                    $chunks = str_split($cachedResponse['reply'], 10);
+                    $chunks = mb_str_split($cachedResponse['reply'], 10, 'UTF-8');
                     foreach ($chunks as $chunk) {
-                        echo "data: " . $chunk . "\n\n";
-                        if (ob_get_level() > 0) ob_flush(); flush();
-                        usleep(10000); // 10ms pause
+                        $payload = [
+                            'type' => 'text_delta',
+                            'delta' => $chunk
+                        ];
+                        // S'assurer que le JSON est valide
+                        $jsonPayload = json_encode($payload, JSON_UNESCAPED_UNICODE);
+                        if ($jsonPayload) {
+                            echo "data: " . $jsonPayload . "\n\n";
+                            if (ob_get_level() > 0) ob_flush(); flush();
+                            usleep(10000); // 10ms pause
+                        }
                     }
-                    
+
                     echo "data: [DONE]\n\n";
                     if (ob_get_level() > 0) ob_flush(); flush();
                 }, 200, [
                     'X-Conversation-Id' => $conversation->id,
                     'X-Accel-Buffering' => 'no',
-                    'Cache-Control' => 'no-cache',
+                    'Cache-Control' => 'no-cache, must-revalidate',
                     'Content-Type' => 'text/event-stream',
+                    'Connection' => 'keep-alive',
                 ]);
             }
 
@@ -276,6 +285,16 @@ class AiAssistantController extends Controller
                 try {
                     foreach ($agentResponse as $event) {
                         // Intercepter les résultats de recherche pour les envoyer au mobile
+                        if ($event instanceof \Laravel\Ai\Streaming\Events\ToolCall && $event->toolCall->name === 'SearchLegalDatabase') {
+                            $payload = [
+                                'type' => 'status',
+                                'message' => 'Recherche dans la base de données juridique...'
+                            ];
+                            echo "event: status\n";
+                            echo "data: " . json_encode($payload) . "\n\n";
+                            if (ob_get_level() > 0) ob_flush(); flush();
+                        }
+
                         if ($event instanceof \Laravel\Ai\Streaming\Events\ToolResult && $event->toolResult->name === 'SearchLegalDatabase') {
                             $sources = json_decode($event->toolResult->result, true) ?: [];
                             if (!empty($sources)) {
@@ -289,11 +308,15 @@ class AiAssistantController extends Controller
                         }
 
                         if ($event instanceof \Laravel\Ai\Streaming\Events\TextDelta) {
-                            echo "data: " . ((string) $event) . "\n\n";
-                            if (ob_get_level() > 0) {
-                                ob_flush();
+                            $payload = [
+                                'type' => 'text_delta',
+                                'delta' => $event->delta
+                            ];
+                            $jsonPayload = json_encode($payload, JSON_UNESCAPED_UNICODE);
+                            if ($jsonPayload) {
+                                echo "data: " . $jsonPayload . "\n\n";
+                                if (ob_get_level() > 0) ob_flush(); flush();
                             }
-                            flush();
                         }
                     }
                 } catch (\Throwable $e) {
@@ -321,8 +344,9 @@ class AiAssistantController extends Controller
             }, 200, [
                 'X-Conversation-Id' => $id,
                 'X-Accel-Buffering' => 'no',
-                'Cache-Control' => 'no-cache',
+                'Cache-Control' => 'no-cache, must-revalidate',
                 'Content-Type' => 'text/event-stream',
+                'Connection' => 'keep-alive',
             ]);
         }
 

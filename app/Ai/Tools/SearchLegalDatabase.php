@@ -25,10 +25,10 @@ class SearchLegalDatabase implements Tool
      */
     public function handle(Request $request): Stringable|string
     {
-        $query = $request->get('query');
-        $limit = $request->get('limit', 5);
-        $documentType = $request->get('document_type');
-        $documentTitle = $request->get('document_title');
+        $query = $request['query'] ?? '';
+        $limit = $request['limit'] ?? 5;
+        $documentType = $request['document_type'] ?? null;
+        $documentTitle = $request['document_title'] ?? null;
 
         // Retourne les résultats au format JSON pour l'IA
         return json_encode($this->searchArticles($query, $limit, $documentType, $documentTitle));
