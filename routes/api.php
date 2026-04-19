@@ -21,6 +21,7 @@ use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->middleware('throttle:api')->group(function () {
     // Auth
+    Route::post('register', [AuthController::class, 'register']);
     Route::post('login', [AuthController::class, 'login']);
     Route::post('auth/firebase', [AuthController::class, 'firebaseLogin']);
 
@@ -35,6 +36,7 @@ Route::prefix('v1')->middleware('throttle:api')->group(function () {
         // Profile
         Route::get('profile', [ProfileController::class, 'show']);
         Route::put('profile', [ProfileController::class, 'update']);
+        Route::put('profile/password', [ProfileController::class, 'updatePassword']);
 
         // Notifications
         Route::get('notifications', [NotificationController::class, 'index']);

@@ -76,9 +76,20 @@ class AiAssistantController extends Controller
      */
     public function show(Request $request, string $id): JsonResponse
     {
-        $conversation = AgentConversation::with('messages')
+        $conversation = AgentConversation::with(['messages' => function ($query) {
+            $query->orderBy('created_at', 'asc');
+        }])
             ->where('user_id', $request->user()->id)
             ->findOrFail($id);
+
+        // Nettoyer le contexte RAG des anciens messages pour l'affichage
+        $conversation->messages->transform(function ($message) {
+            if ($message->role === 'user') {
+                $pattern = '/Voici les extraits de loi pertinents trouvés dans la base Mibeko :\s*.*Question de l\'utilisateur : /s';
+                $message->content = preg_replace($pattern, '', $message->content);
+            }
+            return $message;
+        });
 
         return response()->json($conversation);
     }
@@ -159,7 +170,18 @@ class AiAssistantController extends Controller
             }
 
             $agentResponse = $agent->stream($promptContext)
-                ->then(function (StreamedAgentResponse $response) use ($sources) {
+                ->then(function (StreamedAgentResponse $response) use ($sources, $userMessage) {
+                    // Nettoyer le message utilisateur pour ne pas polluer l'historique de l'IA
+                    $lastUserMessage = AgentConversationMessage::where('conversation_id', $response->conversationId)
+                        ->where('role', 'user')
+                        ->orderBy('created_at', 'desc')
+                        ->first();
+
+                    if ($lastUserMessage && $lastUserMessage->content !== $userMessage) {
+                        $lastUserMessage->content = $userMessage;
+                        $lastUserMessage->save();
+                    }
+
                     // Update the last assistant message to include sources in metadata
                     $lastMessage = AgentConversationMessage::where('conversation_id', $response->conversationId)
                         ->where('role', 'assistant')
@@ -223,6 +245,17 @@ class AiAssistantController extends Controller
         }
 
         $response = $agent->prompt($promptContext);
+
+        // Nettoyer le message utilisateur pour ne pas polluer l'historique de l'IA
+        $lastUserMessage = AgentConversationMessage::where('conversation_id', $response->conversationId)
+            ->where('role', 'user')
+            ->orderBy('created_at', 'desc')
+            ->first();
+
+        if ($lastUserMessage && $lastUserMessage->content !== $userMessage) {
+            $lastUserMessage->content = $userMessage;
+            $lastUserMessage->save();
+        }
 
         // Update the last assistant message with sources if not streaming
         if (!empty($sources)) {

@@ -18,6 +18,36 @@ class AuthController extends Controller
 {
     use \App\Traits\HttpResponses;
     /**
+     * Register a new user.
+     *
+     * @param Request $request
+     * @return JsonResponse
+     */
+    public function register(Request $request): JsonResponse
+    {
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => 'required|string|email|max:255|unique:users',
+            'password' => 'required|string|min:8|confirmed',
+            'device_name' => 'required|string',
+        ]);
+
+        $user = User::create([
+            'name' => $request->name,
+            'email' => $request->email,
+            'password' => Hash::make($request->password),
+        ]);
+
+        $user->assignRole('mobile_user');
+        $user->mobileProfile()->create();
+
+        return $this->success([
+            'token' => $user->createToken($request->device_name)->plainTextToken,
+            'user' => $user->load('roles', 'mobileProfile'),
+        ], 'Compte créé avec succès.');
+    }
+
+    /**
      * Login.
      *
      * Returns a Sanctum plain-text token.
