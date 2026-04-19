@@ -11,7 +11,7 @@ trait SearchesArticles
     /**
      * Search articles (Hybrid: Vector + Full-Text).
      */
-    protected function searchArticles(string $query, int $limit = 5): array
+    protected function searchArticles(string $query, int $limit = 5, ?string $documentType = null, ?string $documentTitle = null): array
     {
         if (empty($query)) {
             return [];
@@ -38,6 +38,14 @@ trait SearchesArticles
                 'dt.nom as type_name',
                 'sn.titre as node_title',
             ]);
+
+        // Application des filtres optionnels pour améliorer la précision
+        if (!empty($documentType)) {
+            $results->where('dt.code', 'ILIKE', "%$documentType%");
+        }
+        if (!empty($documentTitle)) {
+            $results->where('ld.titre_officiel', 'ILIKE', "%$documentTitle%");
+        }
 
         $embeddingString = null;
         try {

@@ -19,7 +19,11 @@ class MibekoIA implements Agent, Conversational, HasTools
      */
     public function instructions(): Stringable|string
     {
-        return 'Tu es Mibeko IA, un assistant juridique intelligent et bienveillant spécialisé dans la législation. Tu dois répondre de manière claire, précise et professionnelle, toujours en français.';
+        return "Tu es Mibeko IA, un expert juridique LegalTech.
+RÈGLES STRICTES :
+1. Sois TOUJOURS CONCIS. Fais un résumé clair et précis par défaut, adapté à une lecture rapide sur mobile. Ne blablate pas.
+2. Utilise TOUJOURS ton outil 'SearchLegalDatabase' si la question nécessite des données légales.
+3. Base tes réponses UNIQUEMENT sur les textes retournés. Si tu ne trouves rien, dis-le.";
     }
 
     /**
@@ -29,6 +33,8 @@ class MibekoIA implements Agent, Conversational, HasTools
      */
     public function tools(): iterable
     {
-        return [];
+        return [
+            new \App\Ai\Tools\SearchLegalDatabase,
+        ];
     }
 }

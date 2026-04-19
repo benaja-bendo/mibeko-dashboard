@@ -40,5 +40,31 @@ class AppServiceProvider extends ServiceProvider
 
             return Limit::perMinute($limit)->by($request->user()?->id ?: $request->ip());
         });
+
+        // Rate limiter spécifique pour l'IA basé sur les rôles (Spatie) ou statuts
+        RateLimiter::for('ai_assistant', function (Request $request) {
+            $user = $request->user();
+            
+            if (!$user) {
+                return Limit::perMinute(5)->by($request->ip());
+            }
+
+            // Les administrateurs n'ont pas de limite
+            if ($user->hasRole('admin')) {
+                return Limit::none();
+            }
+
+            // Utilisateurs pro/premium (si tu as un rôle premium)
+            if ($user->hasRole('premium')) {
+                return Limit::perMinute(60)->by($user->id)->response(function () {
+                    return response()->json(['message' => 'Limite de requêtes IA atteinte pour votre abonnement Premium.'], 429);
+                });
+            }
+
+            // Utilisateurs standards
+            return Limit::perMinute(20)->by($user->id)->response(function () {
+                return response()->json(['message' => 'Limite de requêtes IA atteinte. Passez à un abonnement supérieur pour plus de requêtes.'], 429);
+            });
+        });
     }
 }

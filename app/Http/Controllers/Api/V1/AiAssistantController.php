@@ -9,6 +9,7 @@ use App\Models\AgentConversationMessage;
 use App\Traits\SearchesArticles;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Laravel\Ai\Responses\StreamedAgentResponse;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -140,24 +141,85 @@ class AiAssistantController extends Controller
         $stream = $request->boolean('stream', false);
         $userMessage = $request->input('message');
 
-        // RAG: Search for relevant articles
-        $sources = $this->searchArticles($userMessage);
+        // Implémentation du Semantic Caching (Mise en cache basée sur le message)
+        // Note: Dans une vraie implémentation sémantique, on utiliserait un vecteur de similarité
+        // Ici on utilise un cache simple basé sur le hash du message normalisé pour éviter les appels répétés
+        $normalizedMessage = strtolower(trim(preg_replace('/[^a-zA-Z0-9\s]/', '', $userMessage)));
+        $cacheKey = 'ai_response_' . md5($normalizedMessage);
 
-        $promptContext = '';
-        if (!empty($sources)) {
-            $context = '';
-            foreach ($sources as $index => $article) {
-                $context .= '--- SOURCE '.($index + 1)." ---\n";
-                $context .= 'Document : '.$article['document_title']."\n";
-                $context .= 'Article : '.$article['number']."\n";
-                $context .= 'Contenu : '.$article['content']."\n\n";
+        if (!$id && Cache::has($cacheKey)) {
+            $cachedResponse = Cache::get($cacheKey);
+            
+            // Créer une nouvelle conversation pour l'historique de l'utilisateur
+            $conversation = AgentConversation::create([
+                'user_id' => $user->id,
+                'title' => str($userMessage)->limit(50, '...'),
+            ]);
+
+            AgentConversationMessage::create([
+                'id' => (string) \Illuminate\Support\Str::uuid(),
+                'conversation_id' => $conversation->id,
+                'user_id' => $user->id,
+                'agent' => MibekoIA::class,
+                'role' => 'user',
+                'content' => $userMessage,
+                'attachments' => '[]',
+                'tool_calls' => '[]',
+                'tool_results' => '[]',
+                'usage' => '[]',
+                'meta' => '[]',
+            ]);
+
+            AgentConversationMessage::create([
+                'id' => (string) \Illuminate\Support\Str::uuid(),
+                'conversation_id' => $conversation->id,
+                'user_id' => $user->id,
+                'agent' => MibekoIA::class,
+                'role' => 'assistant',
+                'content' => $cachedResponse['reply'],
+                'attachments' => '[]',
+                'tool_calls' => '[]',
+                'tool_results' => '[]',
+                'usage' => '[]',
+                'meta' => json_encode(['sources' => $cachedResponse['sources'], 'cached' => true]),
+            ]);
+
+            if ($stream) {
+                return response()->stream(function () use ($cachedResponse) {
+                    if (!empty($cachedResponse['sources'])) {
+                        echo "event: sources\n";
+                        echo "data: " . json_encode($cachedResponse['sources']) . "\n\n";
+                        if (ob_get_level() > 0) ob_flush(); flush();
+                    }
+
+                    // Simuler un effet de stream
+                    $chunks = str_split($cachedResponse['reply'], 10);
+                    foreach ($chunks as $chunk) {
+                        echo "data: " . $chunk . "\n\n";
+                        if (ob_get_level() > 0) ob_flush(); flush();
+                        usleep(10000); // 10ms pause
+                    }
+                    
+                    echo "data: [DONE]\n\n";
+                    if (ob_get_level() > 0) ob_flush(); flush();
+                }, 200, [
+                    'X-Conversation-Id' => $conversation->id,
+                    'X-Accel-Buffering' => 'no',
+                    'Cache-Control' => 'no-cache',
+                    'Content-Type' => 'text/event-stream',
+                ]);
             }
-            $promptContext = "Voici les extraits de loi pertinents trouvés dans la base Mibeko :\n\n"
-                           . $context
-                           . "Question de l'utilisateur : " . $userMessage;
-        } else {
-            $promptContext = $userMessage; // Let the agent decide to say it has no info based on instructions
+
+            return response()->json([
+                'conversation_id' => $conversation->id,
+                'reply' => $cachedResponse['reply'],
+                'sources' => $cachedResponse['sources'],
+                'cached' => true
+            ]);
         }
+
+        // Agentic RAG: L'IA décide d'utiliser l'outil 'SearchLegalDatabase' si nécessaire.
+        $promptContext = $userMessage;
 
         if ($stream) {
             if (! $id) {
@@ -170,7 +232,7 @@ class AiAssistantController extends Controller
             }
 
             $agentResponse = $agent->stream($promptContext)
-                ->then(function (StreamedAgentResponse $response) use ($sources, $userMessage) {
+                ->then(function (StreamedAgentResponse $response) use ($userMessage, $cacheKey) {
                     // Nettoyer le message utilisateur pour ne pas polluer l'historique de l'IA
                     $lastUserMessage = AgentConversationMessage::where('conversation_id', $response->conversationId)
                         ->where('role', 'user')
@@ -180,6 +242,14 @@ class AiAssistantController extends Controller
                     if ($lastUserMessage && $lastUserMessage->content !== $userMessage) {
                         $lastUserMessage->content = $userMessage;
                         $lastUserMessage->save();
+                    }
+
+                    // Extraire les sources du ToolResult s'il y en a un
+                    $sources = [];
+                    $toolResults = collect($response->events)->whereInstanceOf(\Laravel\Ai\Streaming\Events\ToolResult::class);
+                    $searchResult = $toolResults->firstWhere('toolResult.name', 'SearchLegalDatabase');
+                    if ($searchResult) {
+                        $sources = json_decode($searchResult->toolResult->result, true) ?: [];
                     }
 
                     // Update the last assistant message to include sources in metadata
@@ -194,25 +264,37 @@ class AiAssistantController extends Controller
                         $lastMessage->meta = $meta;
                         $lastMessage->save();
                     }
+
+                    // Mettre en cache la réponse pour de futures requêtes identiques
+                    Cache::put($cacheKey, [
+                        'reply' => $response->text,
+                        'sources' => $sources
+                    ], now()->addHours(24));
                 });
 
-            return response()->stream(function () use ($agentResponse, $sources) {
+            return response()->stream(function () use ($agentResponse) {
                 try {
-                    if (!empty($sources)) {
-                        echo "event: sources\n";
-                        echo "data: " . json_encode($sources) . "\n\n";
-                        if (ob_get_level() > 0) {
-                            ob_flush();
-                        }
-                        flush();
-                    }
-
                     foreach ($agentResponse as $event) {
-                        echo "data: " . ((string) $event) . "\n\n";
-                        if (ob_get_level() > 0) {
-                            ob_flush();
+                        // Intercepter les résultats de recherche pour les envoyer au mobile
+                        if ($event instanceof \Laravel\Ai\Streaming\Events\ToolResult && $event->toolResult->name === 'SearchLegalDatabase') {
+                            $sources = json_decode($event->toolResult->result, true) ?: [];
+                            if (!empty($sources)) {
+                                echo "event: sources\n";
+                                echo "data: " . json_encode($sources) . "\n\n";
+                                if (ob_get_level() > 0) {
+                                    ob_flush();
+                                }
+                                flush();
+                            }
                         }
-                        flush();
+
+                        if ($event instanceof \Laravel\Ai\Streaming\Events\TextDelta) {
+                            echo "data: " . ((string) $event) . "\n\n";
+                            if (ob_get_level() > 0) {
+                                ob_flush();
+                            }
+                            flush();
+                        }
                     }
                 } catch (\Throwable $e) {
                     report($e);
@@ -245,6 +327,15 @@ class AiAssistantController extends Controller
         }
 
         $response = $agent->prompt($promptContext);
+
+        // Extraire les sources du ToolResult pour les réponses non streamées
+        $sources = [];
+        if ($response->toolResults) {
+            $searchResult = collect($response->toolResults)->firstWhere('name', 'SearchLegalDatabase');
+            if ($searchResult instanceof \Laravel\Ai\Responses\Data\ToolResult) {
+                $sources = json_decode($searchResult->result, true) ?: [];
+            }
+        }
 
         // Nettoyer le message utilisateur pour ne pas polluer l'historique de l'IA
         $lastUserMessage = AgentConversationMessage::where('conversation_id', $response->conversationId)
@@ -281,6 +372,12 @@ class AiAssistantController extends Controller
                 ]);
             }
         }
+
+        // Mettre en cache la réponse non streamée
+        Cache::put($cacheKey, [
+            'reply' => $response->text,
+            'sources' => $sources
+        ], now()->addHours(24));
 
         return response()->json([
             'conversation_id' => $response->conversationId,
