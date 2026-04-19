@@ -14,8 +14,8 @@ use App\Http\Controllers\Api\V1\LegalDocumentDownloadController;
 use App\Http\Controllers\Api\V1\LegalDocumentExportController;
 use App\Http\Controllers\Api\V1\NotificationController;
 use App\Http\Controllers\Api\V1\OfficialJournalController;
+use App\Http\Controllers\Api\V1\ProfileController;
 use App\Http\Controllers\Api\V1\StructureNodeController;
-use App\Http\Controllers\Api\V1\SyncController;
 use App\Http\Controllers\PdfProxyController;
 use Illuminate\Support\Facades\Route;
 
@@ -31,6 +31,10 @@ Route::prefix('v1')->middleware('throttle:api')->group(function () {
     Route::middleware('auth:sanctum')->group(function () {
         Route::get('me', [AuthController::class, 'me']);
         Route::post('logout', [AuthController::class, 'logout']);
+
+        // Profile
+        Route::get('profile', [ProfileController::class, 'show']);
+        Route::put('profile', [ProfileController::class, 'update']);
 
         // Notifications
         Route::get('notifications', [NotificationController::class, 'index']);
@@ -74,7 +78,4 @@ Route::prefix('v1')->middleware('throttle:api')->group(function () {
 
     // BE6 - Dossier PDF Export
     Route::post('dossiers/export-pdf', [DossierExportController::class, 'exportPdf']);
-
-    // Sync - @deprecated by CatalogController but kept for backward compatibility if any
-    Route::get('sync/updates', [SyncController::class, 'updates']);
 });

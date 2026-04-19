@@ -144,7 +144,7 @@ export default function CurationIndex({ documents, filters, document_types, inst
     // Synchronize local state with props when data changes from server
     useEffect(() => {
         setLocalDocuments(documents.data);
-        // eslint-disable-next-line react-hooks/exhaustive-deps
+         
     }, [documents.data]);
 
 

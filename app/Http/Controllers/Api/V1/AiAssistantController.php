@@ -175,21 +175,45 @@ class AiAssistantController extends Controller
                 });
 
             return response()->stream(function () use ($agentResponse, $sources) {
-                // Send custom sources event first if available
-                if (!empty($sources)) {
-                    echo "event: sources\n";
-                    echo "data: " . json_encode($sources) . "\n\n";
-                    ob_flush();
-                    flush();
-                }
+                try {
+                    if (!empty($sources)) {
+                        echo "event: sources\n";
+                        echo "data: " . json_encode($sources) . "\n\n";
+                        if (ob_get_level() > 0) {
+                            ob_flush();
+                        }
+                        flush();
+                    }
 
-                // Iterate through the original streamable agent response
-                foreach ($agentResponse as $event) {
-                    echo "data: " . ((string) $event) . "\n\n";
-                    ob_flush();
+                    foreach ($agentResponse as $event) {
+                        echo "data: " . ((string) $event) . "\n\n";
+                        if (ob_get_level() > 0) {
+                            ob_flush();
+                        }
+                        flush();
+                    }
+                } catch (\Throwable $e) {
+                    report($e);
+
+                    $payload = [
+                        'message' => config('app.debug')
+                            ? $e->getMessage()
+                            : "Une erreur est survenue lors de la génération de la réponse.",
+                    ];
+
+                    echo "event: error\n";
+                    echo "data: " . json_encode($payload) . "\n\n";
+                    if (ob_get_level() > 0) {
+                        ob_flush();
+                    }
+                    flush();
+                } finally {
+                    echo "data: [DONE]\n\n";
+                    if (ob_get_level() > 0) {
+                        ob_flush();
+                    }
                     flush();
                 }
-                echo "data: [DONE]\n\n";
             }, 200, [
                 'X-Conversation-Id' => $id,
                 'X-Accel-Buffering' => 'no',
