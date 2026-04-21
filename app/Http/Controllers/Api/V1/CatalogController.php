@@ -48,8 +48,8 @@ class CatalogController extends Controller
             ->get();
 
         return $this->success([
-            'global_update_required' => false, // Dynamic logic to be added
-            'last_essential_sync' => now()->toIso8601String(),
+            'global_update_required' => cache()->get('global_update_required', false),
+            'last_essential_sync' => cache()->get('last_essential_sync', now()->toIso8601String()),
             'resources' => LegalDocumentCatalogResource::collection($documents),
         ], 'Catalogue récupéré avec succès');
     }

@@ -16,6 +16,8 @@ use App\Http\Controllers\Api\V1\NotificationController;
 use App\Http\Controllers\Api\V1\OfficialJournalController;
 use App\Http\Controllers\Api\V1\ProfileController;
 use App\Http\Controllers\Api\V1\StructureNodeController;
+use App\Http\Controllers\Api\V1\CurationFlagController;
+use App\Http\Controllers\Api\V1\SyncController;
 use App\Http\Controllers\PdfProxyController;
 use Illuminate\Support\Facades\Route;
 
@@ -54,8 +56,10 @@ Route::prefix('v1')->middleware('throttle:api')->group(function () {
 
     // Resources
     Route::get('home', [HomeController::class, 'index']);
+    // Catalog & Sync
     Route::get('catalog', [CatalogController::class, 'index']); // BE1
     Route::get('catalog/stats', [CatalogController::class, 'stats']);
+    Route::get('sync', [SyncController::class, 'sync']);
 
     Route::apiResource('institutions', InstitutionController::class)->only(['index']);
     Route::apiResource('document-types', DocumentTypeController::class)->only(['index']);
@@ -78,6 +82,9 @@ Route::prefix('v1')->middleware('throttle:api')->group(function () {
     // Article Search (for mobile app) - BE3 Hybrid
     Route::get('search', [ArticleSearchController::class, 'search']);
     Route::get('articles/search', [ArticleSearchController::class, 'search']);
+
+    // Curation / Signalements (Mobile App)
+    Route::post('reports', [CurationFlagController::class, 'store']);
 
     // BE6 - Dossier PDF Export
     Route::post('dossiers/export-pdf', [DossierExportController::class, 'exportPdf']);
