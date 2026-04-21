@@ -51,6 +51,41 @@ class LegalDocumentController extends Controller
     }
 
     /**
+     * Search legal documents.
+     *
+     * Dedicated professional search endpoint for the library, allowing full text search on documents.
+     */
+    public function search(Request $request): JsonResponse
+    {
+        $query = $request->input('q', '');
+
+        $documents = QueryBuilder::for(LegalDocument::class)
+            ->published()
+            ->with(['institution', 'type'])
+            ->where(function ($q) use ($query) {
+                if (!empty($query)) {
+                    // Simple ILIKE search. For better results, Postgres full-text search could be used here.
+                    $q->where('titre_officiel', 'ilike', "%{$query}%")
+                      ->orWhere('reference_nor', 'ilike', "%{$query}%");
+                }
+            })
+            ->allowedFilters([
+                'type_code',
+                'institution_id',
+                'statut',
+            ])
+            ->allowedSorts(['titre_officiel', 'date_signature', 'created_at'])
+            ->latest()
+            ->paginate(20);
+
+        return $this->paginatedSuccess(
+            $documents,
+            LegalDocumentResource::class,
+            'Résultats de la recherche de documents'
+        );
+    }
+
+    /**
      * Get a legal document.
      *
      * Returns a single legal document with its articles, relations, and their latest versions.

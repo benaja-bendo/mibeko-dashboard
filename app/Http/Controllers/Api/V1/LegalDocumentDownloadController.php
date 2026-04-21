@@ -19,6 +19,7 @@ class LegalDocumentDownloadController extends Controller
      * Download legal document data (Flat List).
      *
      * Returns a flat list of structure nodes and articles for offline sync.
+     * Extracts parent_id from tree_path to allow hierarchy reconstruction on mobile.
      * This is optimized for the mobile application's local database insertion.
      *
      * @param  string  $id  The UUID of the legal document.
@@ -52,12 +53,19 @@ class LegalDocumentDownloadController extends Controller
         $nodesQuery = $document->structureNodes()->orderBy('sort_order');
 
         if ($nodeId) {
-            $nodesQuery->whereRaw('path <@ (SELECT path FROM structure_nodes WHERE id = ?)', [$nodeId]);
+            $nodesQuery->whereRaw('tree_path <@ (SELECT tree_path FROM structure_nodes WHERE id = ?)', [$nodeId]);
         }
 
         $nodes = $nodesQuery->get()->map(function ($node) {
+            $parts = explode('.', $node->tree_path);
+            $parentId = null;
+            if (count($parts) > 1) {
+                $parentId = str_replace('_', '-', $parts[count($parts) - 2]);
+            }
+
             return [
                 'id' => $node->id,
+                'parent_id' => $parentId,
                 'type' => $node->type_unite ?? 'SECTION',
                 'number' => $node->numero,
                 'title' => $node->titre,
