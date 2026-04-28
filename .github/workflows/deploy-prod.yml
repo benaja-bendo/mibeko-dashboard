@@ -173,10 +173,30 @@ jobs:
             EOF
 
             # ── Déploiement ─────────────────────
-            docker compose pull
+            # Retry mechanism for transient TLS/network timeouts with GHCR
+            MAX_RETRIES=3
+            RETRY_COUNT=0
+            until docker compose pull; do
+              RETRY_COUNT=$((RETRY_COUNT+1))
+              if [ $RETRY_COUNT -ge $MAX_RETRIES ]; then
+                echo "❌ Failed to pull images after $MAX_RETRIES attempts."
+                exit 1
+              fi
+              echo "⚠️ Pull failed, retrying in 10 seconds... ($RETRY_COUNT/$MAX_RETRIES)"
+              sleep 10
+            done
 
             # Extraire le dossier public de l'image pour Nginx
-            docker create --name temp-app ghcr.io/$REPO_LC:latest
+            RETRY_COUNT=0
+            until docker create --name temp-app ghcr.io/$REPO_LC:latest; do
+              RETRY_COUNT=$((RETRY_COUNT+1))
+              if [ $RETRY_COUNT -ge $MAX_RETRIES ]; then
+                echo "❌ Failed to create container after $MAX_RETRIES attempts."
+                exit 1
+              fi
+              echo "⚠️ Create failed, retrying in 10 seconds... ($RETRY_COUNT/$MAX_RETRIES)"
+              sleep 10
+            done
             mkdir -p ./public
             # On vide le dossier sans le supprimer pour ne pas casser le bind mount Docker de Nginx
             find ./public -mindepth 1 -delete
