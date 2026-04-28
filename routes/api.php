@@ -63,7 +63,7 @@ Route::prefix('v1')->middleware('throttle:api')->group(function () {
 
     Route::apiResource('institutions', InstitutionController::class)->only(['index']);
     Route::apiResource('document-types', DocumentTypeController::class)->only(['index']);
-    Route::apiResource('official-journals', OfficialJournalController::class)->only(['index', 'show']);
+    Route::apiResource('official-journals', OfficialJournalController::class)->only(['index', 'show'])->names('api.official-journals');
 
     Route::get('legal-documents/search', [LegalDocumentController::class, 'search']);
     Route::apiResource('legal-documents', LegalDocumentController::class)->only(['index', 'show']);
