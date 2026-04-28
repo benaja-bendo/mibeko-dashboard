@@ -65,9 +65,9 @@ it('can login and get me', function () {
     ]);
 
     $response->assertStatus(200)
-        ->assertJsonStructure(['token']);
+        ->assertJsonStructure(['data' => ['token']]);
 
-    $token = $response->json('token');
+    $token = $response->json('data.token');
 
     $meResponse = $this->withHeaders(['Authorization' => "Bearer $token"])
         ->getJson('/api/v1/me');
