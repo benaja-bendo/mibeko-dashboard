@@ -7,8 +7,8 @@ use Illuminate\Support\Facades\Storage;
 uses(RefreshDatabase::class);
 
 it('can proxy a pdf file', function () {
-    Storage::fake('s3');
-    Storage::disk('s3')->put('test.pdf', 'dummy content');
+    Storage::fake(config('filesystems.default'));
+    Storage::disk(config('filesystems.default'))->put('test.pdf', 'dummy content');
 
     $document = LegalDocument::factory()->create();
 
@@ -25,7 +25,7 @@ it('can proxy a pdf file', function () {
 });
 
 it('returns 404 if pdf does not exist in storage', function () {
-    Storage::fake('s3');
+    Storage::fake(config('filesystems.default'));
 
     $document = LegalDocument::factory()->create();
 
