@@ -1,4 +1,4 @@
-name: Nettoyage des anciennes images Docker
+name: 🧹 Nettoyage des anciennes images Docker
 
 on:
   schedule:
