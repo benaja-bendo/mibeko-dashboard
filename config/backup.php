@@ -162,10 +162,11 @@ return [
             /*
              * The disk names on which the backups will be stored.
              */
-            'disks' => [
+            'disks' => array_values(array_filter([
                 'local',
-                's3',
-            ],
+                filter_var(env('BACKUP_ENABLE_S3', true), FILTER_VALIDATE_BOOL) ? 's3' : null,
+                filter_var(env('BACKUP_ENABLE_GDRIVE', false), FILTER_VALIDATE_BOOL) ? 'gdrive' : null,
+            ])),
         ],
 
         /*
@@ -268,7 +269,11 @@ return [
     'monitor_backups' => [
         [
             'name' => env('APP_NAME', 'laravel-backup'),
-            'disks' => ['local'],
+            'disks' => array_values(array_filter([
+                'local',
+                filter_var(env('BACKUP_ENABLE_S3', true), FILTER_VALIDATE_BOOL) ? 's3' : null,
+                filter_var(env('BACKUP_ENABLE_GDRIVE', false), FILTER_VALIDATE_BOOL) ? 'gdrive' : null,
+            ])),
             'health_checks' => [
                 MaximumAgeInDays::class => 1,
                 MaximumStorageInMegabytes::class => 5000,

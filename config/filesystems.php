@@ -60,6 +60,18 @@ return [
             'report' => false,
         ],
 
+        'gdrive' => [
+            'driver' => 'gdrive',
+            'client_id' => env('GOOGLE_DRIVE_CLIENT_ID'),
+            'client_secret' => env('GOOGLE_DRIVE_CLIENT_SECRET'),
+            'refresh_token' => env('GOOGLE_DRIVE_REFRESH_TOKEN'),
+            'shared_folder_id' => env('GOOGLE_DRIVE_FOLDER_ID'),
+            'team_drive_id' => env('GOOGLE_DRIVE_TEAM_DRIVE_ID'),
+            'supports_all_drives' => env('GOOGLE_DRIVE_SUPPORTS_ALL_DRIVES', false),
+            'use_display_paths' => env('GOOGLE_DRIVE_USE_DISPLAY_PATHS', true),
+            'quota_user' => env('GOOGLE_DRIVE_QUOTA_USER'),
+        ],
+
     ],
 
     /*

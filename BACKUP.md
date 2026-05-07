@@ -13,6 +13,7 @@ Les sauvegardes sont planifiées dans `routes/console.php` pour s'exécuter auto
 Les fichiers ZIP de sauvegarde sont envoyés vers deux destinations (configurées dans `config/backup.php`) :
 - **Local** : Stocké dans `storage/app/private/Mibeko/`.
 - **S3 (Cloud/Minio)** : Envoyer vers le bucket configuré dans le `.env`.
+- **Google Drive (optionnel)** : Activable via `BACKUP_ENABLE_GDRIVE=true` et le disk `gdrive` (credentials dans le `.env`).
 
 ## Commandes Utiles
 
@@ -25,6 +26,12 @@ php artisan backup:run
 
 # Sauvegarde de la base de données uniquement (plus rapide)
 php artisan backup:run --only-db
+
+# Sauvegarde vers un disk spécifique (ex: Google Drive)
+php artisan backup:run --only-to-disk=gdrive
+
+# Variante Mibeko (wrapper)
+php artisan mibeko:backup --disk=gdrive --clean
 ```
 
 ### Vérifier l'état des sauvegardes
@@ -41,6 +48,11 @@ php artisan backup:clean
 
 - **Binary Path** : Pour macOS (avec Homebrew `libpq`), le chemin vers `pg_dump` est configuré dans `config/database.php` sous la clé `dump_binary_path` (`/opt/homebrew/bin`).
 - **Notifications** : Si configurées, des notifications par mail sont envoyées en cas de succès ou d'échec (utilise `MAIL_TO_ADDRESS` dans le `.env`).
+- **Google Drive** :
+  - `GOOGLE_DRIVE_CLIENT_ID`
+  - `GOOGLE_DRIVE_CLIENT_SECRET`
+  - `GOOGLE_DRIVE_REFRESH_TOKEN`
+  - `GOOGLE_DRIVE_FOLDER_ID`
 
 ## Restauration
 Pour restaurer une sauvegarde :

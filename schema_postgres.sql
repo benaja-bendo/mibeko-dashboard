@@ -31,22 +31,28 @@ DROP TABLE IF EXISTS media_files CASCADE;
 DROP TABLE IF EXISTS legal_documents CASCADE;
 DROP TABLE IF EXISTS institutions CASCADE;
 DROP TABLE IF EXISTS document_types CASCADE;
-
+DROP TABLE IF EXISTS agent_conversation_messages CASCADE;
+DROP TABLE IF EXISTS agent_conversations CASCADE;
+DROP TABLE IF EXISTS devices CASCADE;
+DROP TABLE IF EXISTS mobile_profiles CASCADE;
+DROP TABLE IF EXISTS notifications CASCADE;
+DROP TABLE IF EXISTS official_journals CASCADE;
+DROP TABLE IF EXISTS model_has_permissions CASCADE;
+DROP TABLE IF EXISTS model_has_roles CASCADE;
+DROP TABLE IF EXISTS role_has_permissions CASCADE;
+DROP TABLE IF EXISTS permissions CASCADE;
+DROP TABLE IF EXISTS roles CASCADE;
 
 -- ===========================================================
 -- 0. TABLES SYSTÈME (LARAVEL DEFAULT)
--- Ces tables sont nécessaires pour le fonctionnement de Laravel,
--- l'authentification (Fortify), les sessions, le cache, etc.
 -- ===========================================================
 
--- Table de suivi des migrations Laravel
 CREATE TABLE IF NOT EXISTS migrations (
     id SERIAL PRIMARY KEY,
     migration VARCHAR(255) NOT NULL,
     batch INTEGER NOT NULL
 );
 
--- Utilisateurs (Authentification + 2FA Fortify)
 CREATE TABLE IF NOT EXISTS users (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     name VARCHAR(255) NOT NULL,
@@ -57,19 +63,19 @@ CREATE TABLE IF NOT EXISTS users (
     two_factor_recovery_codes TEXT,
     two_factor_confirmed_at TIMESTAMP(0) WITHOUT TIME ZONE,
     remember_token VARCHAR(100),
+    status VARCHAR(255),
+    last_seen_at TIMESTAMP(0) WITHOUT TIME ZONE,
     created_at TIMESTAMP(0) WITHOUT TIME ZONE,
     updated_at TIMESTAMP(0) WITHOUT TIME ZONE,
     deleted_at TIMESTAMP(0) WITHOUT TIME ZONE
 );
 
--- Réinitialisation de mot de passe
 CREATE TABLE IF NOT EXISTS password_reset_tokens (
     email VARCHAR(255) PRIMARY KEY,
     token VARCHAR(255) NOT NULL,
     created_at TIMESTAMP(0) WITHOUT TIME ZONE
 );
 
--- Sessions (si driver database utilisé)
 CREATE TABLE IF NOT EXISTS sessions (
     id VARCHAR(255) PRIMARY KEY,
     user_id UUID,
@@ -81,7 +87,6 @@ CREATE TABLE IF NOT EXISTS sessions (
 CREATE INDEX IF NOT EXISTS idx_sessions_user_id ON sessions(user_id);
 CREATE INDEX IF NOT EXISTS idx_sessions_last_activity ON sessions(last_activity);
 
--- Cache (si driver database utilisé)
 CREATE TABLE IF NOT EXISTS cache (
     key VARCHAR(255) PRIMARY KEY,
     value TEXT NOT NULL,
@@ -94,7 +99,6 @@ CREATE TABLE IF NOT EXISTS cache_locks (
     expiration INTEGER NOT NULL
 );
 
--- Jobs / Files d'attente
 CREATE TABLE IF NOT EXISTS jobs (
     id BIGSERIAL PRIMARY KEY,
     queue VARCHAR(255) NOT NULL,
@@ -129,12 +133,11 @@ CREATE TABLE IF NOT EXISTS failed_jobs (
     failed_at TIMESTAMP(0) WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
--- Personal Access Tokens (Sanctum)
 CREATE TABLE IF NOT EXISTS personal_access_tokens (
     id BIGSERIAL PRIMARY KEY,
     tokenable_type VARCHAR(255) NOT NULL,
     tokenable_id UUID NOT NULL,
-    name VARCHAR(255) NOT NULL,
+    name TEXT NOT NULL,
     token VARCHAR(64) NOT NULL UNIQUE,
     abilities TEXT,
     last_used_at TIMESTAMP(0) WITHOUT TIME ZONE,
@@ -145,7 +148,6 @@ CREATE TABLE IF NOT EXISTS personal_access_tokens (
 CREATE INDEX IF NOT EXISTS idx_pat_tokenable ON personal_access_tokens(tokenable_type, tokenable_id);
 CREATE INDEX IF NOT EXISTS idx_pat_expires_at ON personal_access_tokens(expires_at);
 
--- Audits (Laravel Auditing)
 CREATE TABLE IF NOT EXISTS audits (
     id BIGSERIAL PRIMARY KEY,
     user_type VARCHAR(255),
@@ -168,170 +170,132 @@ CREATE INDEX IF NOT EXISTS idx_audits_auditable ON audits(auditable_type, audita
 -- ===========================================================
 -- 1. TABLE : METADONNÉES DES DOCUMENTS (Le contenant)
 -- ===========================================================
--- Types de textes (Lois, Codes, Décrets...)
 CREATE TABLE document_types (
-    code VARCHAR(10) PRIMARY KEY, -- LOI, DEC, ORD, CODE, CONST
+    code VARCHAR(10) PRIMARY KEY,
     nom VARCHAR(50) NOT NULL,
-    niveau_hierarchique INT DEFAULT 0, -- 1=Constitution, 2=Loi, etc.
-    created_at TIMESTAMP DEFAULT NOW(),
-    updated_at TIMESTAMP DEFAULT NOW()
+    niveau_hierarchique INT DEFAULT 0,
+    created_at TIMESTAMP(0) WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP(0) WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
--- Institutions (Qui a émis le texte ?)
 CREATE TABLE institutions (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     nom VARCHAR(200) NOT NULL,
     sigle VARCHAR(50),
-    created_at TIMESTAMP DEFAULT NOW(),
-    updated_at TIMESTAMP DEFAULT NOW()
+    created_at TIMESTAMP(0) WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP(0) WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
--- Textes officiels (Les documents eux-mêmes)
+CREATE TABLE official_journals (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    title VARCHAR(255) NOT NULL,
+    publication_date DATE NOT NULL,
+    file_path VARCHAR(255) NOT NULL,
+    transcription_status VARCHAR(255),
+    is_published BOOLEAN DEFAULT FALSE,
+    number VARCHAR(255),
+    created_at TIMESTAMP(0) WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP(0) WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    deleted_at TIMESTAMP(0) WITHOUT TIME ZONE
+);
+
 CREATE TABLE legal_documents (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     type_code VARCHAR(10) REFERENCES document_types(code),
     institution_id UUID REFERENCES institutions(id),
+    official_journal_id UUID REFERENCES official_journals(id),
 
-    titre_officiel TEXT NOT NULL, -- "Loi n° 2024-..."
-    reference_nor VARCHAR(50),    -- Numéro unique administratif si dispo
+    titre_officiel TEXT NOT NULL,
+    reference_nor VARCHAR(50),
 
     date_signature DATE,
     date_publication DATE,
     date_entree_vigueur DATE,
 
-    -- source_url supprimé, déplacé vers media_files
-
     statut VARCHAR(20) CHECK (statut IN ('vigueur', 'abroge', 'projet')) DEFAULT 'vigueur',
-    curation_status VARCHAR(50) DEFAULT 'draft', -- draft, curated, published
+    curation_status VARCHAR(255) DEFAULT 'draft',
+    extraction_status VARCHAR(20),
 
-    -- METADONNÉES FLEXIBLES (Spécifique Jurisprudence ou autre)
-    -- Ex: {"parties": ["X vs Y"], "chambre": "Civile", "avocats": ["Me Dupont"], "numero_pourvoi": "12-34.567"}
     metadata JSONB DEFAULT '{}'::jsonb,
 
-    created_at TIMESTAMP DEFAULT NOW(),
-    updated_at TIMESTAMP DEFAULT NOW(),
-    deleted_at TIMESTAMP -- Soft Delete
+    created_at TIMESTAMP(0) WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP(0) WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    deleted_at TIMESTAMP(0) WITHOUT TIME ZONE
 );
 
--- Index pour rechercher rapidement dans le JSONB (ex: trouver un avocat ou une partie)
 CREATE INDEX idx_legal_docs_metadata ON legal_documents USING GIN (metadata);
 
--- ===========================================================
--- 1.1 TABLE : FICHIERS MÉDIAS (PDFs, etc.)
--- ===========================================================
 CREATE TABLE media_files (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     document_id UUID NOT NULL REFERENCES legal_documents(id) ON DELETE CASCADE,
-    file_path VARCHAR(255) NOT NULL, -- Chemin S3 ou local
-    mime_type VARCHAR(100),          -- application/pdf
+    file_path VARCHAR(255) NOT NULL,
+    mime_type VARCHAR(100),
     file_size BIGINT,
-    description VARCHAR(255),        -- "Original signé", "Annexe 1"
-    created_at TIMESTAMP DEFAULT NOW(),
-    updated_at TIMESTAMP DEFAULT NOW()
+    description VARCHAR(255),
+    created_at TIMESTAMP(0) WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP(0) WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
-
 
 -- ===========================================================
 -- 2. TABLE : SQUELETTE STRUCTUREL (Materialized Path)
--- C'est ici qu'on gère "Livre > Titre > Chapitre"
 -- ===========================================================
 CREATE TABLE structure_nodes (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     document_id UUID NOT NULL REFERENCES legal_documents(id) ON DELETE CASCADE,
-
-    -- Le "Label" du noeud (ex: "Livre", "Titre", "Chapitre")
     type_unite VARCHAR(50) NOT NULL,
-
-    -- Le numéro/titre (ex: "I", "Dispositions Générales", "Chapitre I", "Article 1", "Alinéa 1")
     numero VARCHAR(50),
-
-    -- Le titre officiel (ex: "Dispositions Générales", "Chapitre I", "Article 1", "Alinéa 1")
     titre TEXT,
-
-    -- LA MAGIE LTREE : Chemin matérialisé
-    -- Exemple de path : "root.livre1.titre2.chap1"
     tree_path ltree NOT NULL,
-
-    validation_status VARCHAR(50) DEFAULT 'pending', -- pending, in_progress, validated
+    validation_status VARCHAR(255) DEFAULT 'pending',
     sort_order INTEGER DEFAULT 0,
-
-    created_at TIMESTAMP DEFAULT NOW(),
-    updated_at TIMESTAMP DEFAULT NOW()
+    created_at TIMESTAMP(0) WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP(0) WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
--- Index pour rechercher instantanément tous les enfants d'un noeud
 CREATE INDEX idx_structure_path ON structure_nodes USING GIST (tree_path);
 CREATE INDEX idx_structure_doc ON structure_nodes(document_id);
 
 -- ===========================================================
 -- 3. TABLE : ARTICLES (L'identité stable)
--- L'article "12" existe toujours, même si son texte change.
 -- ===========================================================
 CREATE TABLE articles (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     document_id UUID NOT NULL REFERENCES legal_documents(id) ON DELETE CASCADE,
-
-    -- Rattachement à la structure (peut être NULL si l'article est orphelin/préliminaire)
     parent_node_id UUID REFERENCES structure_nodes(id),
-
-    numero_article VARCHAR(50) NOT NULL, -- "1", "2 bis", "Art. 4"
+    numero_article VARCHAR(50) NOT NULL,
     ordre_affichage INT DEFAULT 0,
-
-    validation_status VARCHAR(20) DEFAULT 'pending', -- pending, in_progress, validated
-
-    deleted_at TIMESTAMP,
-    created_at TIMESTAMP DEFAULT NOW(),
-    updated_at TIMESTAMP DEFAULT NOW()
+    validation_status VARCHAR(20) DEFAULT 'pending',
+    deleted_at TIMESTAMP(0) WITHOUT TIME ZONE,
+    created_at TIMESTAMP(0) WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP(0) WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE INDEX IF NOT EXISTS idx_articles_updated_at ON articles(updated_at);
 
-
 -- ===========================================================
 -- 4. TABLE : VERSIONS D'ARTICLES (Le contenu & RAG)
--- Gère l'historique et la recherche vectorielle
 -- ===========================================================
 CREATE TABLE article_versions (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     article_id UUID NOT NULL REFERENCES articles(id) ON DELETE CASCADE,
-
-    -- Période de validité (ex: version active de 2020 à 2024)
     validity_period DATERANGE NOT NULL,
-
-    -- 1. Le contenu brut (affiché à l'utilisateur)
     contenu_texte TEXT NOT NULL,
-
-    -- 2. Le contexte enrichi (ce qui a été vectorisé)
-    -- Contient : "Titre Code > Livre > Chapitre > Contenu"
-    -- C'est utile pour vérifier ce que l'IA "voit" vraiment.
     embedding_context TEXT,
-
-    -- 3. Le Vecteur (Ada-002 ou text-embedding-3-small = 1536 dim)
-    embedding VECTOR(1536),
-
-    -- Recherche Full Text (Lexicale)
+    embedding VECTOR(1024),
     search_tsv TSVECTOR,
-
-    -- Métadonnées
-    modifie_par_document_id UUID REFERENCES legal_documents(id), -- Document qui a modifié l'article
-    validation_status VARCHAR(50) DEFAULT 'pending', -- pending, in_progress, validated
+    modifie_par_document_id UUID REFERENCES legal_documents(id),
+    validation_status VARCHAR(255) DEFAULT 'pending',
     is_verified BOOLEAN DEFAULT FALSE,
-
-    created_at TIMESTAMP DEFAULT NOW(),
-    updated_at TIMESTAMP DEFAULT NOW(),
-
-    -- Empêche le chevauchement de dates pour un même article
+    created_at TIMESTAMP(0) WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP(0) WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     EXCLUDE USING GIST (
         article_id WITH =,
         validity_period WITH &&
     )
 );
 
--- Index pour la recherche textuelle classique (mots-clés)
 CREATE INDEX idx_versions_search ON article_versions USING GIN(search_tsv);
 
--- Index pour la recherche vectorielle (IA) - CRITIQUE POUR LA VITESSE
--- lists = 100 est une bonne valeur par défaut pour < 1M lignes
 CREATE INDEX idx_versions_embedding ON article_versions
 USING hnsw (embedding vector_cosine_ops)
 WITH (m = 16, ef_construction = 64);
@@ -343,16 +307,12 @@ CREATE TABLE document_relations (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     source_doc_id UUID REFERENCES legal_documents(id),
     target_doc_id UUID REFERENCES legal_documents(id),
-
-    -- Si le lien est précis au niveau article
     source_article_id UUID REFERENCES articles(id),
     target_article_id UUID REFERENCES articles(id),
-
     relation_type VARCHAR(50) CHECK (relation_type IN ('MODIFIE', 'ABROGE', 'CITE', 'COMPLETE')),
     commentaire TEXT,
-
-    created_at TIMESTAMP DEFAULT NOW(),
-    updated_at TIMESTAMP DEFAULT NOW()
+    created_at TIMESTAMP(0) WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP(0) WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
 -- ===========================================================
@@ -360,16 +320,12 @@ CREATE TABLE document_relations (
 -- ===========================================================
 CREATE TABLE curation_flags (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-
     document_id UUID REFERENCES legal_documents(id),
     article_id UUID REFERENCES articles(id),
-
-    type_probleme VARCHAR(50), -- 'scan_illisible', 'structure_cassee', 'doublon'
+    type_probleme VARCHAR(50),
     description TEXT,
     resolved BOOLEAN DEFAULT FALSE,
-
-    created_at TIMESTAMP DEFAULT NOW(),
-    updated_at TIMESTAMP DEFAULT NOW()
+    created_at TIMESTAMP(0) WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
 -- ===========================================================
@@ -379,22 +335,129 @@ CREATE TABLE tags (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     name VARCHAR(255) NOT NULL UNIQUE,
     slug VARCHAR(255) NOT NULL UNIQUE,
-    created_at TIMESTAMP DEFAULT NOW(),
-    updated_at TIMESTAMP DEFAULT NOW()
+    created_at TIMESTAMP(0) WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP(0) WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE taggables (
     tag_id UUID NOT NULL REFERENCES tags(id) ON DELETE CASCADE,
     taggable_id UUID NOT NULL,
     taggable_type VARCHAR(255) NOT NULL,
-    created_at TIMESTAMP DEFAULT NOW(),
+    created_at TIMESTAMP(0) WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (tag_id, taggable_id, taggable_type)
 );
 
 CREATE INDEX idx_taggables_item ON taggables(taggable_id, taggable_type);
 
 -- ===========================================================
--- 8. TRIGGERS : REFRESH SEARCH TSV (Full Text Search)
+-- 8. NOUVELLES TABLES (AGENTS, NOTIFICATIONS, PROFILS, ROLES)
+-- ===========================================================
+
+-- Agent Conversations
+CREATE TABLE agent_conversations (
+    id VARCHAR(36) PRIMARY KEY,
+    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+    title VARCHAR(255),
+    created_at TIMESTAMP(0) WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP(0) WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE agent_conversation_messages (
+    id VARCHAR(36) PRIMARY KEY,
+    conversation_id VARCHAR(36) REFERENCES agent_conversations(id) ON DELETE CASCADE,
+    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+    agent VARCHAR(255),
+    role VARCHAR(25),
+    content TEXT,
+    attachments TEXT,
+    tool_calls TEXT,
+    tool_results TEXT,
+    usage TEXT,
+    meta TEXT,
+    created_at TIMESTAMP(0) WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP(0) WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Devices
+CREATE TABLE devices (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    device_id VARCHAR(255) NOT NULL,
+    push_token VARCHAR(255),
+    platform VARCHAR(255),
+    status VARCHAR(255),
+    last_registered_at TIMESTAMP(0) WITHOUT TIME ZONE,
+    created_at TIMESTAMP(0) WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP(0) WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Mobile Profiles
+CREATE TABLE mobile_profiles (
+    id BIGSERIAL PRIMARY KEY,
+    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+    phone VARCHAR(255),
+    dob DATE,
+    gender VARCHAR(255),
+    profession VARCHAR(255),
+    company VARCHAR(255),
+    legal_interests TEXT,
+    app_preferences JSON,
+    created_at TIMESTAMP(0) WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP(0) WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Notifications
+CREATE TABLE notifications (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+    title VARCHAR(255) NOT NULL,
+    message TEXT NOT NULL,
+    type VARCHAR(255),
+    data JSON,
+    read_at TIMESTAMP(0) WITHOUT TIME ZONE,
+    created_at TIMESTAMP(0) WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP(0) WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Permissions & Roles (Spatie)
+CREATE TABLE permissions (
+    id BIGSERIAL PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    guard_name VARCHAR(255) NOT NULL,
+    created_at TIMESTAMP(0) WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP(0) WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE roles (
+    id BIGSERIAL PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    guard_name VARCHAR(255) NOT NULL,
+    created_at TIMESTAMP(0) WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP(0) WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE model_has_permissions (
+    permission_id BIGINT REFERENCES permissions(id) ON DELETE CASCADE,
+    model_type VARCHAR(255) NOT NULL,
+    model_id UUID NOT NULL,
+    PRIMARY KEY (permission_id, model_id, model_type)
+);
+
+CREATE TABLE model_has_roles (
+    role_id BIGINT REFERENCES roles(id) ON DELETE CASCADE,
+    model_type VARCHAR(255) NOT NULL,
+    model_id UUID NOT NULL,
+    PRIMARY KEY (role_id, model_id, model_type)
+);
+
+CREATE TABLE role_has_permissions (
+    permission_id BIGINT REFERENCES permissions(id) ON DELETE CASCADE,
+    role_id BIGINT REFERENCES roles(id) ON DELETE CASCADE,
+    PRIMARY KEY (permission_id, role_id)
+);
+
+
+-- ===========================================================
+-- 9. TRIGGERS : REFRESH SEARCH TSV (Full Text Search)
 -- ===========================================================
 CREATE OR REPLACE FUNCTION fn_refresh_article_version_tsv()
 RETURNS TRIGGER AS $$
@@ -402,11 +465,9 @@ DECLARE
     article_id_to_update UUID;
     tags_text TEXT;
 BEGIN
-    -- Identify which article to update
     IF (TG_RELNAME = 'article_versions') THEN
         article_id_to_update := NEW.article_id;
     ELSE
-        -- We are in taggables
         IF (TG_OP = 'DELETE') THEN
             IF (OLD.taggable_type != 'App\Models\Article') THEN RETURN NULL; END IF;
             article_id_to_update := OLD.taggable_id;
@@ -416,14 +477,12 @@ BEGIN
         END IF;
     END IF;
 
-    -- Get all tags for this article
     SELECT COALESCE(string_agg(name, ' '), '') INTO tags_text
     FROM tags
     JOIN taggables ON tags.id = taggables.tag_id
     WHERE taggables.taggable_id = article_id_to_update
       AND taggables.taggable_type = 'App\Models\Article';
 
-    -- Update search index
     IF (TG_RELNAME = 'article_versions') THEN
         NEW.search_tsv := (
             setweight(to_tsvector('french', COALESCE(NEW.contenu_texte, '')), 'A') ||

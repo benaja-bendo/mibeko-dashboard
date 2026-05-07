@@ -46,29 +46,29 @@ services:
             - 'postgres_data:/var/lib/postgresql/data'
         networks:
             - sail
-    rabbitmq:
-        image: 'rabbitmq:4-management'
-        container_name: 'rabbitmq-mibeko'
-        ports:
-            - '${FORWARD_RABBITMQ_PORT:-5672}:5672'
-            - '${FORWARD_RABBITMQ_CONSOLE_PORT:-15672}:15672'
-        environment:
-            RABBITMQ_DEFAULT_USER: '${RABBITMQ_USER:-guest}'
-            RABBITMQ_DEFAULT_PASS: '${RABBITMQ_PASSWORD:-guest}'
-        networks:
-            - sail
+    # rabbitmq:
+    #     image: 'rabbitmq:4-management'
+    #     container_name: 'rabbitmq-mibeko'
+    #     ports:
+    #         - '${FORWARD_RABBITMQ_PORT:-5672}:5672'
+    #         - '${FORWARD_RABBITMQ_CONSOLE_PORT:-15672}:15672'
+    #     environment:
+    #         RABBITMQ_DEFAULT_USER: '${RABBITMQ_USER:-guest}'
+    #         RABBITMQ_DEFAULT_PASS: '${RABBITMQ_PASSWORD:-guest}'
+    #     networks:
+    #         - sail
 
-    dbeaver:
-        image: 'dbeaver/cloudbeaver:latest'
-        container_name: 'dbeaver-mibeko'
-        ports:
-            - '${FORWARD_DBEAVER_PORT:-8978}:8978'
-        volumes:
-            - 'dbeaver_workspace:/opt/cloudbeaver/workspace'
-        networks:
-            - sail
-        depends_on:
-            - postgres
+    # dbeaver:
+    #     image: 'dbeaver/cloudbeaver:latest'
+    #     container_name: 'dbeaver-mibeko'
+    #     ports:
+    #         - '${FORWARD_DBEAVER_PORT:-8978}:8978'
+    #     volumes:
+    #         - 'dbeaver_workspace:/opt/cloudbeaver/workspace'
+    #     networks:
+    #         - sail
+    #     depends_on:
+    #         - postgres
 volumes:
     minio_data:
         driver: local
@@ -76,8 +76,8 @@ volumes:
         driver: local
     rabbitmq_data:
         driver: local
-    dbeaver_workspace:
-        driver: local
+    # dbeaver_workspace:
+    #     driver: local
 networks:
     sail:
         driver: bridge

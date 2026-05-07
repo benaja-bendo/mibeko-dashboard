@@ -4,12 +4,18 @@ namespace App\Providers;
 
 use App\Models\ArticleVersion;
 use App\Observers\ArticleVersionObserver;
+use Google\Client as GoogleClient;
+use Google\Service\Drive;
 use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Filesystem\FilesystemAdapter;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\ServiceProvider;
+use League\Flysystem\Filesystem;
+use Masbug\Flysystem\GoogleDriveAdapter;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -44,8 +50,8 @@ class AppServiceProvider extends ServiceProvider
         // Rate limiter spécifique pour l'IA basé sur les rôles (Spatie) ou statuts
         RateLimiter::for('ai_assistant', function (Request $request) {
             $user = $request->user();
-            
-            if (!$user) {
+
+            if (! $user) {
                 return Limit::perMinute(5)->by($request->ip());
             }
 
@@ -65,6 +71,54 @@ class AppServiceProvider extends ServiceProvider
             return Limit::perMinute(20)->by($user->id)->response(function () {
                 return response()->json(['message' => 'Limite de requêtes IA atteinte. Passez à un abonnement supérieur pour plus de requêtes.'], 429);
             });
+        });
+
+        Storage::extend('gdrive', function ($app, $config) {
+            $client = new GoogleClient;
+            $client->setClientId($config['client_id'] ?? '');
+            $client->setClientSecret($config['client_secret'] ?? '');
+
+            $refreshToken = $config['refresh_token'] ?? '';
+            if (str_starts_with($refreshToken, 'ya29.')) {
+                throw new \Exception("ERREUR: Le GOOGLE_DRIVE_REFRESH_TOKEN configuré semble être un Access Token (commence par ya29.) qui expire en 1 heure. Vous devez utiliser un vrai Refresh Token (qui commence généralement par 1//). Lancez 'php artisan gdrive:token' pour en générer un nouveau.");
+            }
+
+            $client->refreshToken($refreshToken);
+
+            // Forcer le client à aller chercher un access token valide
+            $token = $client->fetchAccessTokenWithRefreshToken($refreshToken);
+            if (isset($token['error'])) {
+                throw new \Exception('Google Drive Auth Error: '.($token['error_description'] ?? $token['error']).". Veuillez regénérer votre token avec 'php artisan gdrive:token'.");
+            }
+
+            $client->setApplicationName($config['app_name'] ?? config('app.name'));
+
+            $service = new Drive($client);
+
+            $adapterOptions = [
+                'useDisplayPaths' => (bool) ($config['use_display_paths'] ?? true),
+                'parameters' => array_filter([
+                    'quotaUser' => $config['quota_user'] ?? null,
+                ], fn ($value) => $value !== null && $value !== ''),
+            ];
+
+            if (! empty($config['team_drive_id'])) {
+                $adapterOptions['teamDriveId'] = $config['team_drive_id'];
+            }
+
+            if (! empty($config['shared_folder_id'])) {
+                $adapterOptions['sharedFolderId'] = $config['shared_folder_id'];
+            }
+
+            $adapter = new GoogleDriveAdapter($service, $config['root'] ?? null, $adapterOptions);
+
+            if (! empty($config['supports_all_drives'])) {
+                $adapter->enableTeamDriveSupport();
+            }
+
+            $filesystem = new Filesystem($adapter);
+
+            return new FilesystemAdapter($filesystem, $adapter, $config);
         });
     }
 }
