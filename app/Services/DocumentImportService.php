@@ -10,39 +10,50 @@ use Illuminate\Support\Str;
 
 class DocumentImportService
 {
+    private int $importedArticlesCount = 0;
+    private ?int $articleLimit = null;
+
     /**
      * Parse structured JSON content and import it into the LegalDocument.
      *
      * @param  array  $data  The decoded JSON data
+     * @param  int|null  $limit  Maximum number of articles to import
      */
-    public function importContent(LegalDocument $document, array $data): void
+    public function importContent(LegalDocument $document, array $data, ?int $limit = null): void
     {
-        if (isset($data['structure'])) {
-            $this->processStructureNodes($data['structure'], $document, null);
-        } elseif (isset($data['contenu'])) {
-            $this->processContentElements($data['contenu'], $document, null);
-        } elseif (isset($data['textes']) && is_array($data['textes'])) {
-            foreach ($data['textes'] as $index => $texte) {
-                // Determine the type from numero_texte if possible
-                $type = 'Texte';
-                if (! empty($texte['numero_texte'])) {
-                    $parts = explode(' ', $texte['numero_texte']);
-                    if (count($parts) > 0) {
-                        $type = $parts[0];
+        $this->importedArticlesCount = 0;
+        $this->articleLimit = $limit;
+
+        try {
+            if (isset($data['structure'])) {
+                $this->processStructureNodes($data['structure'], $document, null);
+            } elseif (isset($data['contenu'])) {
+                $this->processContentElements($data['contenu'], $document, null);
+            } elseif (isset($data['textes']) && is_array($data['textes'])) {
+                foreach ($data['textes'] as $index => $texte) {
+                    // Determine the type from numero_texte if possible
+                    $type = 'Texte';
+                    if (! empty($texte['numero_texte'])) {
+                        $parts = explode(' ', $texte['numero_texte']);
+                        if (count($parts) > 0) {
+                            $type = $parts[0];
+                        }
+                    }
+
+                    // Create a wrapper node for the text itself
+                    $node = $this->createStructureNode([
+                        'type' => $type,
+                        'numero' => $texte['numero_texte'] ?? null,
+                        'intitule' => $texte['intitule_long'] ?? null,
+                    ], $document, null, $index);
+
+                    if (isset($texte['contenu']) && is_array($texte['contenu'])) {
+                        $this->processContentElements($texte['contenu'], $document, $node);
                     }
                 }
-
-                // Create a wrapper node for the text itself
-                $node = $this->createStructureNode([
-                    'type' => $type,
-                    'numero' => $texte['numero_texte'] ?? null,
-                    'intitule' => $texte['intitule_long'] ?? null,
-                ], $document, null, $index);
-
-                if (isset($texte['contenu']) && is_array($texte['contenu'])) {
-                    $this->processContentElements($texte['contenu'], $document, $node);
-                }
             }
+        } catch (\App\Exceptions\ArticleLimitReachedException $e) {
+            // Arrêt normal de l'import car la limite a été atteinte
         }
     }
 
@@ -89,6 +100,10 @@ class DocumentImportService
 
     private function createArticleFromSchema2(array $data, LegalDocument $document, ?StructureNode $parentNode, int $sortOrder): void
     {
+        if ($this->articleLimit !== null && $this->importedArticlesCount >= $this->articleLimit) {
+            throw new \App\Exceptions\ArticleLimitReachedException();
+        }
+
         $article = Article::create([
             'document_id' => $document->id,
             'parent_node_id' => $parentNode?->id,
@@ -107,6 +122,8 @@ class DocumentImportService
             'validity_period' => ArticleVersion::makeValidityPeriod($validityDate),
             'validation_status' => 'validated',
         ]);
+
+        $this->importedArticlesCount++;
     }
 
     private function processContentElements(array $elements, LegalDocument $document, ?StructureNode $parentNode): void
@@ -149,6 +166,10 @@ class DocumentImportService
 
     private function createArticle(array $data, LegalDocument $document, ?StructureNode $parentNode, int $sortOrder): void
     {
+        if ($this->articleLimit !== null && $this->importedArticlesCount >= $this->articleLimit) {
+            throw new \App\Exceptions\ArticleLimitReachedException();
+        }
+
         $article = Article::create([
             'document_id' => $document->id,
             'parent_node_id' => $parentNode?->id,
@@ -183,5 +204,7 @@ class DocumentImportService
             'validity_period' => ArticleVersion::makeValidityPeriod($validityDate),
             'validation_status' => 'validated',
         ]);
+
+        $this->importedArticlesCount++;
     }
 }
