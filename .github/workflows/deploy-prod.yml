@@ -169,6 +169,15 @@ jobs:
             MAIL_FROM_NAME=Mibeko
             FIREBASE_PROJECT_ID=mibeko-mobile-34c01
             FIREBASE_CREDENTIALS_PATH=storage/app/mibeko-mobile-34c01-firebase-adminsdk-fbsvc-570bc4918b.json
+            BACKUP_ENABLE_GDRIVE=${{ secrets.BACKUP_ENABLE_GDRIVE || 'true' }}
+            GOOGLE_DRIVE_CLIENT_ID=${{ secrets.GOOGLE_DRIVE_CLIENT_ID }}
+            GOOGLE_DRIVE_CLIENT_SECRET=${{ secrets.GOOGLE_DRIVE_CLIENT_SECRET }}
+            GOOGLE_DRIVE_REFRESH_TOKEN=${{ secrets.GOOGLE_DRIVE_REFRESH_TOKEN }}
+            GOOGLE_DRIVE_FOLDER_ID=${{ secrets.GOOGLE_DRIVE_FOLDER_ID }}
+            GOOGLE_DRIVE_TEAM_DRIVE_ID=${{ secrets.GOOGLE_DRIVE_TEAM_DRIVE_ID || '' }}
+            GOOGLE_DRIVE_SUPPORTS_ALL_DRIVES=${{ secrets.GOOGLE_DRIVE_SUPPORTS_ALL_DRIVES || 'false' }}
+            GOOGLE_DRIVE_USE_DISPLAY_PATHS=${{ secrets.GOOGLE_DRIVE_USE_DISPLAY_PATHS || 'true' }}
+            GOOGLE_DRIVE_QUOTA_USER=${{ secrets.GOOGLE_DRIVE_QUOTA_USER || '' }}
             GITHUB_REPOSITORY=$REPO_LC
             EOF
 
