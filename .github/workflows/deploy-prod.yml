@@ -2,7 +2,7 @@ name: 🚀 Deploy Production
 
 on:
   workflow_run:
-    workflows: ["tests"]
+    workflows: ["🧪 Tests Mibeko"]
     types:
       - completed
     branches:
