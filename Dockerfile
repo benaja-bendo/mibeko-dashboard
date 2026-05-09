@@ -72,6 +72,7 @@ RUN apk add --no-cache \
     libzip-dev \
     icu-dev \
     postgresql-dev \
+    postgresql-client \
     oniguruma-dev \
     freetype-dev \
     linux-headers \
