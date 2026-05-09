@@ -98,7 +98,7 @@ return [
             'search_path' => 'public',
             'sslmode' => 'prefer',
             'dump' => [
-                'dump_binary_path' => env('PG_DUMP_PATH', '/opt/homebrew/bin'), // Folder containing pg_dump
+                'dump_binary_path' => env('PG_DUMP_PATH', ''),
                 'use_single_transaction',
                 'timeout' => 60 * 5, // 5 minutes
             ],
