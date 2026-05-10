@@ -161,13 +161,15 @@ jobs:
             RABBITMQ_PASSWORD=${{ secrets.RABBITMQ_PASSWORD || 'guest' }}
             AI_PROVIDER=mistral
             MISTRAL_API_KEY=${{ secrets.MISTRAL_API_KEY }}
-            MAIL_MAILER=${{ secrets.MAIL_MAILER }}
+            MAIL_MAILER=${{ secrets.MAIL_MAILER || 'log' }}
+            MAIL_SCHEME=${{ secrets.MAIL_SCHEME || 'null' }}
             MAIL_HOST=${{ secrets.MAIL_HOST }}
             MAIL_PORT=${{ secrets.MAIL_PORT }}
             MAIL_USERNAME=${{ secrets.MAIL_USERNAME }}
             MAIL_PASSWORD=${{ secrets.MAIL_PASSWORD }}
             MAIL_FROM_ADDRESS=${{ secrets.MAIL_FROM_ADDRESS }}
             MAIL_FROM_NAME=Mibeko
+            MAIL_TO_ADDRESS=${{ secrets.MAIL_TO_ADDRESS }}
             FIREBASE_PROJECT_ID=mibeko-mobile-34c01
             FIREBASE_CREDENTIALS_PATH=storage/app/mibeko-mobile-34c01-firebase-adminsdk-fbsvc-570bc4918b.json
             BACKUP_ENABLE_S3=${{ secrets.BACKUP_ENABLE_S3 || 'false' }}
