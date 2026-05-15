@@ -29,7 +29,7 @@ class GenerateGoogleDriveToken extends Command
 
         // Important: pour les Web Apps ou "Desktop apps", il faut souvent un uri de redirection ou "urn:ietf:wg:oauth:2.0:oob"
         // Google a déprécié le OOB pour certains types de clients, mais pour tester en CLI on peut essayer OOB ou un localhost.
-        $client->setRedirectUri('http://localhost:8000/google-callback'); // Vous pouvez adapter si besoin
+        $client->setRedirectUri('http://127.0.0.1:8000/google-callback'); // Vous pouvez adapter si besoin
 
         $client->setScopes([Drive::DRIVE]);
         $client->setAccessType('offline');
