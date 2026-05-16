@@ -1,65 +1,75 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Policies;
 
+use Illuminate\Foundation\Auth\User as AuthUser;
 use App\Models\LegalDocument;
-use App\Models\User;
+use Illuminate\Auth\Access\HandlesAuthorization;
 
 class LegalDocumentPolicy
 {
-    /**
-     * Determine whether the user can view any models.
-     */
-    public function viewAny(User $user): bool
+    use HandlesAuthorization;
+    
+    public function viewAny(AuthUser $authUser): bool
     {
-        return true;
+        return $authUser->can('ViewAny:LegalDocument');
     }
 
-    /**
-     * Determine whether the user can view the model.
-     */
-    public function view(User $user, LegalDocument $legalDocument): bool
+    public function view(AuthUser $authUser, LegalDocument $legalDocument): bool
     {
-        return true;
+        return $authUser->can('View:LegalDocument');
     }
 
-    /**
-     * Determine whether the user can create models.
-     */
-    public function create(User $user): bool
+    public function create(AuthUser $authUser): bool
     {
-        return $user->hasAnyRole(['admin', 'editor']);
+        return $authUser->can('Create:LegalDocument');
     }
 
-    /**
-     * Determine whether the user can update the model.
-     */
-    public function update(User $user, LegalDocument $legalDocument): bool
+    public function update(AuthUser $authUser, LegalDocument $legalDocument): bool
     {
-        return $user->hasAnyRole(['admin', 'editor']);
+        return $authUser->can('Update:LegalDocument');
     }
 
-    /**
-     * Determine whether the user can delete the model.
-     */
-    public function delete(User $user, LegalDocument $legalDocument): bool
+    public function delete(AuthUser $authUser, LegalDocument $legalDocument): bool
     {
-        return $user->hasAnyRole(['admin', 'editor']);
+        return $authUser->can('Delete:LegalDocument');
     }
 
-    /**
-     * Determine whether the user can restore the model.
-     */
-    public function restore(User $user, LegalDocument $legalDocument): bool
+    public function deleteAny(AuthUser $authUser): bool
     {
-        return $user->hasAnyRole(['admin', 'editor']);
+        return $authUser->can('DeleteAny:LegalDocument');
     }
 
-    /**
-     * Determine whether the user can permanently delete the model.
-     */
-    public function forceDelete(User $user, LegalDocument $legalDocument): bool
+    public function restore(AuthUser $authUser, LegalDocument $legalDocument): bool
     {
-        return $user->hasRole('admin');
+        return $authUser->can('Restore:LegalDocument');
     }
+
+    public function forceDelete(AuthUser $authUser, LegalDocument $legalDocument): bool
+    {
+        return $authUser->can('ForceDelete:LegalDocument');
+    }
+
+    public function forceDeleteAny(AuthUser $authUser): bool
+    {
+        return $authUser->can('ForceDeleteAny:LegalDocument');
+    }
+
+    public function restoreAny(AuthUser $authUser): bool
+    {
+        return $authUser->can('RestoreAny:LegalDocument');
+    }
+
+    public function replicate(AuthUser $authUser, LegalDocument $legalDocument): bool
+    {
+        return $authUser->can('Replicate:LegalDocument');
+    }
+
+    public function reorder(AuthUser $authUser): bool
+    {
+        return $authUser->can('Reorder:LegalDocument');
+    }
+
 }

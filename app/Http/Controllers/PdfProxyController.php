@@ -39,7 +39,8 @@ class PdfProxyController extends Controller
             $path = $journal->file_path;
         } else {
             $document = LegalDocument::with('mediaFiles')->findOrFail($id);
-            $mediaFile = $document->mediaFiles->first();
+            $mediaFile = $document->mediaFiles->firstWhere('mime_type', 'application/pdf')
+                ?? $document->mediaFiles->first(fn ($file) => str_ends_with(strtolower((string) $file->file_path), '.pdf'));
             $path = $mediaFile?->file_path;
         }
 
@@ -49,10 +50,18 @@ class PdfProxyController extends Controller
             abort(404, 'No source PDF available for this document');
         }
 
-        $disk = Storage::disk(config('filesystems.default', 'local'));
+        $diskName = str_starts_with($path, 'documents/')
+            ? 's3'
+            : config('filesystems.default', 'local');
 
-        if (! $disk->exists($path)) {
-            abort(404, 'File not found in storage');
+        $disk = Storage::disk($diskName);
+
+        try {
+            if (! $disk->exists($path)) {
+                abort(404, 'File not found in storage');
+            }
+        } catch (\Throwable) {
+            abort(404, 'File not accessible');
         }
 
         $isPdf = str_ends_with(strtolower($path), '.pdf');
@@ -72,10 +81,14 @@ class PdfProxyController extends Controller
 
         return response()->stream(
             function () use ($disk, $path) {
-                $stream = $disk->readStream($path);
-                fpassthru($stream);
-                if (is_resource($stream)) {
+                try {
+                    $stream = $disk->readStream($path);
+                    if (! is_resource($stream)) {
+                        return;
+                    }
+                    fpassthru($stream);
                     fclose($stream);
+                } catch (\Throwable) {
                 }
             },
             200,
