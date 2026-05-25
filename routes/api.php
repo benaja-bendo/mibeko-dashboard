@@ -1,10 +1,13 @@
 <?php
 
 use App\Http\Controllers\Api\V1\AiAssistantController;
+use App\Http\Controllers\Api\V1\ArticleController;
 use App\Http\Controllers\Api\V1\ArticleSearchController;
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\CatalogController;
+use App\Http\Controllers\Api\V1\CurationFlagController;
 use App\Http\Controllers\Api\V1\DeviceController;
+use App\Http\Controllers\Api\V1\DocumentRelationController;
 use App\Http\Controllers\Api\V1\DocumentTypeController;
 use App\Http\Controllers\Api\V1\DossierExportController;
 use App\Http\Controllers\Api\V1\HomeController;
@@ -16,7 +19,6 @@ use App\Http\Controllers\Api\V1\NotificationController;
 use App\Http\Controllers\Api\V1\OfficialJournalController;
 use App\Http\Controllers\Api\V1\ProfileController;
 use App\Http\Controllers\Api\V1\StructureNodeController;
-use App\Http\Controllers\Api\V1\CurationFlagController;
 use App\Http\Controllers\Api\V1\SyncController;
 use App\Http\Controllers\PdfProxyController;
 use Illuminate\Support\Facades\Route;
@@ -68,6 +70,18 @@ Route::prefix('v1')->middleware('throttle:api')->group(function () {
     Route::get('legal-documents/search', [LegalDocumentController::class, 'search']);
     Route::apiResource('legal-documents', LegalDocumentController::class)->only(['index', 'show']);
     Route::get('legal-documents/{document}/tree', [StructureNodeController::class, 'tree']);
+
+    // Structure & Articles management
+    Route::post('structure-nodes/{id}/move', [StructureNodeController::class, 'move']);
+    Route::apiResource('structure-nodes', StructureNodeController::class)->except(['index', 'show']);
+    Route::apiResource('articles', ArticleController::class)->except(['index']);
+    Route::post('articles/{article}/versions', [ArticleController::class, 'addVersion']);
+    
+    // Relations
+    Route::get('articles/{article}/relations', [DocumentRelationController::class, 'index']);
+    Route::post('articles/{article}/relations', [DocumentRelationController::class, 'store']);
+    Route::get('relations/search', [DocumentRelationController::class, 'searchTargets']);
+    Route::delete('relations/{id}', [DocumentRelationController::class, 'destroy']);
 
     // BE2 - Flat List Download
     Route::get('legal-documents/{id}/download', [LegalDocumentDownloadController::class, 'download']);

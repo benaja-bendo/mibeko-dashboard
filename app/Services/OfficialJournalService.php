@@ -20,6 +20,10 @@ class OfficialJournalService
         $filename = Str::slug($data['title']).'_'.time().'.'.$file->getClientOriginalExtension();
         $path = $file->storeAs('official_journals', $filename, $disk);
 
+        if (! $path) {
+            throw new \Exception("Échec de l'upload du fichier sur le disque: {$disk}");
+        }
+
         return OfficialJournal::create([
             'title' => $data['title'],
             'publication_date' => $data['publication_date'] ?? null,

@@ -27,4 +27,40 @@ class ArticleFactory extends Factory
             'validation_status' => $this->faker->randomElement(['pending', 'in_progress', 'validated']),
         ];
     }
+
+    /**
+     * Définir un document spécifique pour l'article.
+     *
+     * @return Factory<Article>
+     */
+    public function forDocument(int|string $documentId): Factory
+    {
+        return $this->state(function (array $attributes) use ($documentId) {
+            return [
+                'document_id' => $documentId,
+            ];
+        });
+    }
+
+    /**
+     * Configurer la factory après la création.
+     *
+     * @return Factory<Article>
+     */
+    public function configure(): Factory
+    {
+        return $this->afterMaking(function (Article $article) {
+            // Si document_id est une factory, créer le document d'abord
+            if ($article->document_id instanceof Factory) {
+                $document = LegalDocument::factory()->create();
+                $article->document_id = $document->id;
+            }
+
+            // Si parent_node_id est une factory, créer le nœud avec le même document
+            if ($article->parent_node_id instanceof Factory) {
+                $parentNode = StructureNode::factory()->create(['document_id' => $article->document_id]);
+                $article->parent_node_id = $parentNode->id;
+            }
+        });
+    }
 }

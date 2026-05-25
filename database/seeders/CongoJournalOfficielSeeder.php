@@ -3,7 +3,6 @@
 namespace Database\Seeders;
 
 use App\Models\LegalDocument;
-use App\Observers\ArticleVersionObserver;
 use App\Services\DocumentImportService;
 use Carbon\Carbon;
 use Illuminate\Database\Seeder;
@@ -32,8 +31,8 @@ class CongoJournalOfficielSeeder extends Seeder
 
     public function run(): void
     {
-        // Disable automatic embedding generation during seeding
-        ArticleVersionObserver::$shouldSkipEmbeddings = true;
+        // Les embeddings sont désactivés par défaut pendant l'ingestion
+        // et seront générés par le job cron mibeko:process-rag
 
         $this->command->info('🚀 Démarrage du seeding Mibeko...');
 

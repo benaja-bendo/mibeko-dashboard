@@ -31,13 +31,13 @@ class LegalDocumentController extends Controller
     public function index(Request $request): JsonResponse
     {
         $documents = QueryBuilder::for(LegalDocument::class)
-            ->published()
             ->with(['institution', 'type'])
             ->allowedFilters([
                 AllowedFilter::partial('titre_officiel'),
                 'type_code',
                 'institution_id',
                 'statut',
+                'curation_status',
             ])
             ->allowedSorts(['titre_officiel', 'date_signature', 'created_at'])
             ->latest()
@@ -60,19 +60,19 @@ class LegalDocumentController extends Controller
         $query = $request->input('q', '');
 
         $documents = QueryBuilder::for(LegalDocument::class)
-            ->published()
             ->with(['institution', 'type'])
             ->where(function ($q) use ($query) {
-                if (!empty($query)) {
+                if (! empty($query)) {
                     // Simple ILIKE search. For better results, Postgres full-text search could be used here.
                     $q->where('titre_officiel', 'ilike', "%{$query}%")
-                      ->orWhere('reference_nor', 'ilike', "%{$query}%");
+                        ->orWhere('reference_nor', 'ilike', "%{$query}%");
                 }
             })
             ->allowedFilters([
                 'type_code',
                 'institution_id',
                 'statut',
+                'curation_status',
             ])
             ->allowedSorts(['titre_officiel', 'date_signature', 'created_at'])
             ->latest()
@@ -93,7 +93,6 @@ class LegalDocumentController extends Controller
     public function show(string $id): JsonResponse
     {
         $document = QueryBuilder::for(LegalDocument::class)
-            ->published()
             ->with(['institution', 'type', 'articles.latestVersion', 'relations.targetDocument'])
             ->findOrFail($id);
 

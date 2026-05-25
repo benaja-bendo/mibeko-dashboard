@@ -6,7 +6,7 @@ services:
             - '${FORWARD_MINIO_PORT:-9000}:9000' # Port API
             - '${FORWARD_MINIO_CONSOLE_PORT:-9001}:9001' # Port Console (UI)
         environment:
-            MINIO_ROOT_USER: 'sail'
+            MINIO_ROOT_USER: 'root'
             MINIO_ROOT_PASSWORD: 'password'
         volumes:
             - 'minio_data:/data'
@@ -21,7 +21,7 @@ services:
         entrypoint: >
             /bin/sh -c "
             set -e;
-            until /usr/bin/mc alias set myminio http://minio:9000 sail password; do
+            until /usr/bin/mc alias set myminio http://minio:9000 root password; do
               echo 'MinIO non prêt, nouvelle tentative dans 2s...';
               sleep 2;
             done;
@@ -33,14 +33,13 @@ services:
             - sail
 
     postgres:
-        #image: 'postgres:16-alpine'
         image: 'pgvector/pgvector:pg16'
         container_name: 'postgres-mibeko'
         ports:
-            - '${FORWARD_POSTGRES_PORT:-5432}:5432'
+            - '${FORWARD_POSTGRES_PORT:-5433}:5432'
         environment:
-            POSTGRES_USER: '${DB_USERNAME:-sail}'
-            POSTGRES_PASSWORD: '${DB_PASSWORD:-password}'
+            POSTGRES_USER: '${DB_USERNAME:-root}'
+            POSTGRES_PASSWORD: '${DB_PASSWORD:-root}'
             POSTGRES_DB: '${DB_DATABASE:-mibeko}'
         volumes:
             - 'postgres_data:/var/lib/postgresql/data'
@@ -74,8 +73,8 @@ volumes:
         driver: local
     postgres_data:
         driver: local
-    rabbitmq_data:
-        driver: local
+    # rabbitmq_data:
+    #     driver: local
     # dbeaver_workspace:
     #     driver: local
 networks:

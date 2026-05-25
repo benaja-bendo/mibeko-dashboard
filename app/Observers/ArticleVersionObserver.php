@@ -11,8 +11,10 @@ class ArticleVersionObserver
     /**
      * Flag to globally disable embedding generation.
      * Useful for seeders or bulk imports.
+     * Par défaut, les embeddings sont désactivés pendant l'ingestion
+     * et seront générés par le job cron.
      */
-    public static bool $shouldSkipEmbeddings = false;
+    public static bool $shouldSkipEmbeddings = true;
 
     /**
      * Handle the ArticleVersion "saved" event.

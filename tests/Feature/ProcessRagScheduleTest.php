@@ -17,7 +17,7 @@ beforeEach(function () {
 });
 
 afterEach(function () {
-    ArticleVersionObserver::$shouldSkipEmbeddings = false;
+    ArticleVersionObserver::$shouldSkipEmbeddings = true;
 });
 
 it('schedules mibeko:process-rag every ten minutes', function () {
@@ -77,8 +77,7 @@ it('identifies articles without embeddings via the process-rag command', functio
         'titre_officiel' => 'Code du travail',
     ]);
 
-    $article = Article::factory()->create([
-        'document_id' => $document->id,
+    $article = Article::factory()->forDocument($document->id)->create([
         'numero_article' => '42',
     ]);
 

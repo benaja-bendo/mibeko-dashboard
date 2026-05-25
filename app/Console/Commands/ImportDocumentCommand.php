@@ -48,7 +48,7 @@ class ImportDocumentCommand extends Command
         $jsonFile = $document->mediaFiles()->where('mime_type', 'application/json')->first();
 
         if (! $jsonFile) {
-            $this->error("Aucun fichier JSON structuré trouvé pour ce document.");
+            $this->error('Aucun fichier JSON structuré trouvé pour ce document.');
 
             return 1;
         }
@@ -58,7 +58,7 @@ class ImportDocumentCommand extends Command
         $jsonContent = Storage::disk('s3')->get($jsonFile->file_path);
 
         if (! $jsonContent) {
-            $this->error("Impossible de lire le fichier JSON depuis le stockage S3/MinIO.");
+            $this->error('Impossible de lire le fichier JSON depuis le stockage S3/MinIO.');
 
             return 1;
         }
@@ -66,19 +66,19 @@ class ImportDocumentCommand extends Command
         $jsonData = json_decode($jsonContent, true);
 
         if (json_last_error() !== JSON_ERROR_NONE) {
-            $this->error("Erreur de décodage du JSON : " . json_last_error_msg());
+            $this->error('Erreur de décodage du JSON : '.json_last_error_msg());
 
             return 1;
         }
 
         $this->info("Début de l'importation...");
-        
+
         if ($limit > 0) {
             $this->info("Limite définie à {$limit} article(s).");
         }
-        
+
         if ($skipEmbeddings) {
-            $this->info("Génération des embeddings désactivée pour cet import.");
+            $this->info('Génération des embeddings désactivée pour cet import.');
             ArticleVersionObserver::$shouldSkipEmbeddings = true;
         }
 
@@ -86,15 +86,15 @@ class ImportDocumentCommand extends Command
             DB::transaction(function () use ($importService, $document, $jsonData, $limit) {
                 $importService->importContent($document, $jsonData, $limit > 0 ? $limit : null);
             });
-            
+
             $this->info("Importation terminée avec succès pour le document {$documentId}.");
         } catch (\Exception $e) {
-            $this->error("Erreur lors de l'importation : " . $e->getMessage());
-            
+            $this->error("Erreur lors de l'importation : ".$e->getMessage());
+
             return 1;
         } finally {
             if ($skipEmbeddings) {
-                ArticleVersionObserver::$shouldSkipEmbeddings = false;
+                ArticleVersionObserver::$shouldSkipEmbeddings = true;
             }
         }
 

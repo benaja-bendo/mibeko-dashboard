@@ -2,16 +2,17 @@
 
 namespace App\Http\Controllers;
 
+use App\Jobs\ProcessDocumentExtraction;
 use App\Models\Article;
 use App\Models\ArticleVersion;
 use App\Models\DocumentType;
 use App\Models\Institution;
 use App\Models\LegalDocument;
 use App\Models\StructureNode;
-use App\Services\RabbitMQService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 use Inertia\Inertia;
 
 class CurationController extends Controller
@@ -78,7 +79,7 @@ class CurationController extends Controller
         ]);
     }
 
-    public function store(Request $request, RabbitMQService $rabbitMQService)
+    public function store(Request $request)
     {
         $validated = $request->validate([
             'type_code' => 'required|exists:document_types,code',
@@ -111,15 +112,20 @@ class CurationController extends Controller
             $document->extraction_status = 'processing';
             $document->save();
 
-            // Dispatch to RabbitMQ for extraction
+            // Dispatch job for extraction
             try {
-                $rabbitMQService->publish('pdf_extraction_tasks', [
-                    'task_id' => (string) $document->id,
-                    'filename' => $path, // path relative to bucket, e.g., 'sources/filename.pdf'
+                $runId = (string) Str::uuid();
+                DB::table('extraction_runs')->insert([
+                    'id' => $runId,
+                    'source' => 'PDF',
+                    'status' => 'queued',
+                    'started_at' => now(),
                 ]);
+
+                ProcessDocumentExtraction::dispatch((string) $document->id, $runId);
                 Log::info("Dispatched extraction task for document {$document->id}");
             } catch (\Exception $e) {
-                Log::error('Failed to dispatch to RabbitMQ: '.$e->getMessage());
+                Log::error('Failed to dispatch extraction job: '.$e->getMessage());
             }
         }
 

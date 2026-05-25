@@ -1,0 +1,1042 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LexViewer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,500;0,9..144,600;1,9..144,300&family=DM+Mono:wght@400;500&family=Instrument+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+:root {
+  --bg:#0c0d0f;
+  --s1:#141517;
+  --s2:#1b1d21;
+  --s3:#222428;
+  --s4:#2a2d33;
+  --b1:rgba(255,255,255,.055);
+  --b2:rgba(255,255,255,.10);
+  --b3:rgba(255,255,255,.16);
+  --t1:#e9e7e1;
+  --t2:#9b9891;
+  --t3:#5e5c57;
+  --t4:#3a3936;
+  --gold:#c8a86a;
+  --gold-d:rgba(200,168,106,.12);
+  --gold-d2:rgba(200,168,106,.22);
+  --blue:#5c8fd4;
+  --blue-d:rgba(92,143,212,.13);
+  --green:#56a07a;
+  --green-d:rgba(86,160,122,.12);
+  --red:#c4614e;
+  --red-d:rgba(196,97,78,.12);
+  --purple:#9478c8;
+  --purple-d:rgba(148,120,200,.13);
+  --amber:#c4903a;
+  --amber-d:rgba(196,144,58,.12);
+  --fd:'Fraunces',serif;
+  --fb:'Instrument Sans',sans-serif;
+  --fm:'DM Mono',monospace;
+  --r:5px;--r2:9px;--r3:14px;
+}
+
+body{font-family:var(--fb);background:var(--bg);color:var(--t1);height:100vh;overflow:hidden;display:flex;flex-direction:column;font-size:13px}
+
+/* ─── TOOLTIP ─── */
+.tip{position:relative}
+.tip::after{
+  content:attr(data-tip);
+  position:absolute;bottom:calc(100% + 8px);left:50%;
+  transform:translateX(-50%) translateY(3px);
+  background:#1e2026;color:var(--t1);
+  font-size:11px;font-family:var(--fb);white-space:nowrap;
+  padding:4px 10px;border-radius:6px;
+  border:1px solid var(--b3);
+  pointer-events:none;opacity:0;
+  transition:opacity .15s,transform .15s;
+  z-index:9999;box-shadow:0 6px 18px rgba(0,0,0,.5);
+  letter-spacing:.01em;
+}
+.tip:hover::after{opacity:1;transform:translateX(-50%) translateY(0)}
+.tip-b::after{bottom:auto;top:calc(100% + 8px);transform:translateX(-50%) translateY(-3px)}
+.tip-b:hover::after{transform:translateX(-50%) translateY(0)}
+.tip-r::after{left:calc(100% + 8px);bottom:auto;top:50%;transform:translateY(-50%) translateX(-3px);white-space:nowrap}
+.tip-r:hover::after{transform:translateY(-50%) translateX(0)}
+
+/* ─── ICON BUTTON ─── */
+.ib{width:30px;height:30px;border-radius:var(--r);border:1px solid var(--b1);background:transparent;
+  color:var(--t2);cursor:pointer;display:flex;align-items:center;justify-content:center;
+  transition:background .12s,border-color .12s,color .12s;flex-shrink:0}
+.ib svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;pointer-events:none}
+.ib:hover{background:var(--s3);border-color:var(--b2);color:var(--t1)}
+.ib.on{background:var(--gold-d);border-color:rgba(200,168,106,.25);color:var(--gold)}
+.ib.danger:hover{background:var(--red-d);color:var(--red)}
+
+/* ─── TOPBAR ─── */
+.topbar{height:50px;background:var(--s1);border-bottom:1px solid var(--b1);display:flex;align-items:center;padding:0 16px;gap:12px;flex-shrink:0;z-index:100}
+.logo{font-family:var(--fd);font-size:17px;font-weight:500;color:var(--gold);letter-spacing:-.025em;display:flex;align-items:center;gap:7px}
+.logo svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.doc-chip{background:var(--gold-d);border:1px solid rgba(200,168,106,.2);color:var(--gold);font-size:9.5px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;padding:2px 8px;border-radius:4px;font-family:var(--fm)}
+.doc-label{font-size:12.5px;color:var(--t3);font-style:italic;font-family:var(--fd)}
+.divv{width:1px;height:18px;background:var(--b2)}
+.status-row{display:flex;align-items:center;gap:5px}
+.sdot{width:6px;height:6px;border-radius:50%;background:var(--green);box-shadow:0 0 6px rgba(86,160,122,.6)}
+.slbl{font-size:10.5px;color:var(--t3);font-family:var(--fm)}
+
+/* ─── LAYOUT ─── */
+.main{flex:1;display:flex;overflow:hidden;position:relative}
+
+/* ─── LEFT PANEL ─── */
+.pl{display:flex;flex-direction:column;overflow:hidden;min-width:250px;max-width:72%;flex-shrink:0}
+
+.ph{height:38px;background:var(--s1);border-bottom:1px solid var(--b1);display:flex;align-items:center;padding:0 12px;gap:6px;flex-shrink:0}
+.ph-title{font-size:10px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:var(--t3);font-family:var(--fm);flex:1}
+.count-badge{font-size:9.5px;font-family:var(--fm);color:var(--t3);background:var(--s3);padding:1px 6px;border-radius:3px}
+
+.ttbar{height:34px;background:var(--s1);border-bottom:1px solid var(--b1);display:flex;align-items:center;padding:0 8px;gap:4px;flex-shrink:0}
+.bs{height:24px;padding:0 9px;border-radius:var(--r);border:1px solid var(--b1);background:transparent;color:var(--t2);font-size:11px;font-family:var(--fb);cursor:pointer;display:flex;align-items:center;gap:5px;transition:all .12s;white-space:nowrap}
+.bs svg{width:12px;height:12px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.bs:hover{background:var(--s3);color:var(--t1);border-color:var(--b2)}
+.sw{flex:1;position:relative}
+.sw input{width:100%;height:24px;background:var(--s2);border:1px solid var(--b1);border-radius:var(--r);color:var(--t1);font-size:11.5px;font-family:var(--fb);padding:0 8px 0 25px;outline:none;transition:border-color .12s}
+.sw input:focus{border-color:var(--b3)}
+.sw input::placeholder{color:var(--t3)}
+.sw .si{position:absolute;left:7px;top:50%;transform:translateY(-50%);pointer-events:none;width:12px;height:12px;stroke:var(--t3);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+
+.bc{height:26px;background:var(--s1);border-bottom:1px solid var(--b1);display:flex;align-items:center;padding:0 12px;gap:3px;overflow-x:auto;flex-shrink:0}
+.bc::-webkit-scrollbar{display:none}
+.bci{font-size:10.5px;color:var(--t3);font-family:var(--fm);white-space:nowrap;cursor:pointer;transition:color .1s}
+.bci:hover{color:var(--t2)}
+.bci.cur{color:var(--gold)}
+.bcs{font-size:10.5px;color:var(--t4);opacity:.5}
+
+/* ─── TREE ─── */
+.tc{flex:1;overflow-y:auto;padding:4px 0}
+.tc::-webkit-scrollbar{width:3px}
+.tc::-webkit-scrollbar-thumb{background:var(--s4);border-radius:2px}
+
+.tn{position:relative}
+.tnr{display:flex;align-items:center;height:28px;padding-right:6px;cursor:pointer;transition:background .1s;gap:1px;border-left:2px solid transparent}
+.tnr:hover{background:var(--s2)}
+.tnr.sel{background:var(--gold-d);border-left-color:var(--gold)}
+.tnr.dov{background:var(--blue-d);outline:1px solid rgba(92,143,212,.4);outline-offset:-1px}
+.tnr.drg{opacity:.3}
+
+.tg{width:16px;height:16px;display:flex;align-items:center;justify-content:center;flex-shrink:0;color:var(--t3);transition:transform .14s}
+.tg svg{width:11px;height:11px;stroke:currentColor;fill:none;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round;transition:transform .14s}
+.tg.op svg{transform:rotate(0)}
+.tg:not(.op) svg{transform:rotate(-90deg)}
+.tg.hid{visibility:hidden}
+
+.ndot{width:6px;height:6px;border-radius:50%;flex-shrink:0;margin:0 3px}
+.nchip{font-size:8.5px;font-family:var(--fm);letter-spacing:.04em;padding:1px 5px;border-radius:3px;flex-shrink:0;text-transform:uppercase;font-weight:600}
+.nnum{font-family:var(--fm);font-size:9.5px;color:var(--t3);margin-right:3px;flex-shrink:0}
+.nlbl{flex:1;font-size:12px;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.nvb{font-size:8.5px;font-family:var(--fm);padding:1px 4px;border-radius:3px;flex-shrink:0;margin-left:2px}
+.vok{background:var(--green-d);color:var(--green);border:1px solid rgba(86,160,122,.2)}
+.vpend{background:var(--amber-d);color:var(--amber);border:1px solid rgba(196,144,58,.2)}
+.verr{background:var(--red-d);color:var(--red);border:1px solid rgba(196,97,78,.2)}
+
+.nacts{display:none;align-items:center;gap:0;margin-left:1px}
+.tnr:hover .nacts{display:flex}
+.nab{width:20px;height:20px;border-radius:4px;background:transparent;border:none;color:var(--t3);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .1s;position:relative}
+.nab svg{width:12px;height:12px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;pointer-events:none}
+.nab:hover{background:var(--s4);color:var(--t2)}
+.nab.loc:hover{background:var(--gold-d);color:var(--gold)}
+.nab.ver:hover{background:var(--purple-d);color:var(--purple)}
+.nab.del:hover{background:var(--red-d);color:var(--red)}
+
+.nei{flex:1;background:var(--s3);border:1px solid var(--gold);border-radius:3px;color:var(--t1);font-size:11.5px;font-family:var(--fb);padding:1px 6px;height:20px;outline:none}
+.tch{display:block}
+.tch.col{display:none}
+
+/* ─── SPLITTER ─── */
+.sp{width:4px;background:var(--b1);cursor:col-resize;flex-shrink:0;position:relative;transition:background .14s;z-index:50}
+.sp:hover,.sp.act{background:var(--gold)}
+
+/* ─── RIGHT PANEL ─── */
+.pr{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:200px;position:relative}
+
+.ptb{height:38px;background:var(--s1);border-bottom:1px solid var(--b1);display:flex;align-items:center;padding:0 12px;gap:6px;flex-shrink:0}
+.ptitle{font-size:10px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:var(--t3);font-family:var(--fm)}
+.zl{font-size:10.5px;color:var(--t3);font-family:var(--fm);min-width:32px;text-align:center}
+.pi{width:34px;height:24px;background:var(--s2);border:1px solid var(--b1);border-radius:var(--r);color:var(--t1);font-size:11px;font-family:var(--fm);text-align:center;outline:none;transition:border-color .12s}
+.pi:focus{border-color:var(--b3)}
+.ptot{font-size:10.5px;color:var(--t3);font-family:var(--fm)}
+
+/* ─── PDF AREA ─── */
+.pa{flex:1;overflow:auto;background:#080809;display:flex;justify-content:center;padding:24px 20px;position:relative}
+.pa::-webkit-scrollbar{width:5px;height:5px}
+.pa::-webkit-scrollbar-thumb{background:var(--s4);border-radius:3px}
+.pa.selmode{cursor:crosshair}
+.pa.selmode .pp{cursor:crosshair}
+
+.selflag{
+  position:absolute;top:14px;left:50%;transform:translateX(-50%);
+  background:var(--gold);color:#120e00;font-size:11.5px;font-weight:600;
+  padding:6px 16px 6px 12px;border-radius:20px;z-index:200;
+  display:none;align-items:center;gap:8px;
+  box-shadow:0 4px 24px rgba(200,168,106,.35);pointer-events:none;
+}
+.selflag.vis{display:flex}
+.selflag svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.selhint{opacity:.55;font-size:9.5px;margin-left:4px}
+
+.pp{background:#f3f0e6;width:580px;min-height:820px;border-radius:var(--r2);
+  box-shadow:0 12px 60px rgba(0,0,0,.65);position:relative;flex-shrink:0;
+  transform-origin:top center;overflow:hidden}
+.ppi{padding:54px 52px;font-family:'Georgia',serif;color:#181818;line-height:1.65;font-size:11.5px}
+.ppi h1{font-size:13.5px;text-align:center;margin-bottom:6px;font-weight:bold;text-transform:uppercase;letter-spacing:.06em}
+.ppi h2{font-size:12px;margin:20px 0 5px;font-weight:bold;text-align:center;text-transform:uppercase;letter-spacing:.04em}
+.ppi h3{font-size:11.5px;margin:14px 0 4px;font-weight:bold;font-style:italic}
+.ppi .an{font-weight:bold}
+.ppi p{margin-bottom:8px;text-align:justify}
+.ppn{position:absolute;bottom:16px;width:100%;text-align:center;font-size:9.5px;color:#aaa;font-family:'Georgia',serif}
+
+.selrect{position:absolute;border:2px solid var(--gold);background:rgba(200,168,106,.12);pointer-events:none;border-radius:2px;z-index:60}
+.zan{position:absolute;border:2px solid;border-radius:3px;cursor:pointer;z-index:50;transition:opacity .15s}
+.zan:hover{opacity:.7}
+.zan-lbl{position:absolute;top:-18px;left:0;font-size:8.5px;font-family:var(--fm);font-weight:600;padding:1px 5px;border-radius:3px 3px 3px 0;white-space:nowrap;letter-spacing:.04em;text-transform:uppercase;color:#111}
+
+/* ─── SIDE PANEL ─── */
+.sidep{position:absolute;right:0;top:0;bottom:0;width:320px;background:var(--s1);border-left:1px solid var(--b1);display:flex;flex-direction:column;transform:translateX(100%);transition:transform .24s cubic-bezier(.16,1,.3,1);z-index:200}
+.sidep.open{transform:translateX(0)}
+
+.sphd{height:44px;border-bottom:1px solid var(--b1);display:flex;align-items:center;padding:0 14px;gap:8px;flex-shrink:0}
+.sphd-title{font-size:13px;font-weight:500;font-family:var(--fd);color:var(--gold);flex:1}
+
+.sptabs{display:flex;border-bottom:1px solid var(--b1);flex-shrink:0;background:var(--s1)}
+.spt{flex:1;height:32px;background:transparent;border:none;border-bottom:2px solid transparent;color:var(--t3);font-size:10.5px;font-family:var(--fb);cursor:pointer;letter-spacing:.04em;transition:all .14s;display:flex;align-items:center;justify-content:center;gap:5px}
+.spt svg{width:12px;height:12px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.spt:hover{color:var(--t2)}
+.spt.on{color:var(--gold);border-bottom-color:var(--gold)}
+
+.tabp{flex:1;overflow-y:auto;padding:14px;display:none}
+.tabp.on{display:block}
+.tabp::-webkit-scrollbar{width:3px}
+.tabp::-webkit-scrollbar-thumb{background:var(--s4);border-radius:2px}
+
+.mr{display:flex;justify-content:space-between;align-items:center;margin-bottom:9px}
+.ml{font-size:9.5px;color:var(--t3);font-family:var(--fm);text-transform:uppercase;letter-spacing:.07em}
+.mv{font-size:11px;color:var(--t2);font-family:var(--fm)}
+.sh{font-size:9.5px;font-family:var(--fm);text-transform:uppercase;letter-spacing:.09em;color:var(--t3);margin:14px 0 8px;padding-bottom:5px;border-bottom:1px solid var(--b1)}
+
+.ata{width:100%;background:var(--s2);border:1px solid var(--b1);border-radius:var(--r);color:var(--t1);font-size:12px;font-family:'Georgia',serif;padding:10px;line-height:1.7;resize:vertical;outline:none;min-height:160px;transition:border-color .12s}
+.ata:focus{border-color:var(--b3)}
+.saveb{width:100%;height:30px;background:var(--gold);border:none;border-radius:var(--r);color:#120e00;font-size:11.5px;font-weight:600;font-family:var(--fb);cursor:pointer;margin-top:9px;display:flex;align-items:center;justify-content:center;gap:6px;transition:opacity .14s}
+.saveb svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.saveb:hover{opacity:.82}
+.vbadge{display:inline-flex;align-items:center;gap:5px;font-size:9.5px;font-family:var(--fm);padding:2px 8px;border-radius:4px}
+
+/* ─── VERSIONING ─── */
+.vtl{display:flex;flex-direction:column;gap:0;position:relative}
+.vtl::before{content:'';position:absolute;left:9px;top:6px;bottom:10px;width:1px;background:var(--b2);z-index:0}
+
+.vt-item{display:flex;gap:10px;position:relative;z-index:1}
+.vt-dot-col{width:20px;display:flex;flex-direction:column;align-items:center;padding-top:5px;flex-shrink:0}
+.vt-dot{width:10px;height:10px;border-radius:50%;border:2px solid;flex-shrink:0;position:relative;z-index:2;transition:transform .15s}
+.vt-dot:hover{transform:scale(1.25)}
+.vt-dot.curr{background:var(--gold);border-color:var(--gold);box-shadow:0 0 0 3px rgba(200,168,106,.2)}
+.vt-dot.crea{background:transparent;border-color:var(--green)}
+.vt-dot.modi{background:transparent;border-color:var(--blue)}
+.vt-dot.proj{background:transparent;border-color:var(--purple);border-style:dashed}
+.vt-dot.abro{background:transparent;border-color:var(--red)}
+
+.vt-card{flex:1;margin-bottom:14px;cursor:default}
+.vt-card-inner{background:var(--s2);border:1px solid var(--b1);border-radius:var(--r2);overflow:hidden;transition:border-color .14s}
+.vt-card-inner:hover{border-color:var(--b2)}
+.vt-card-inner.vt-current{border-color:rgba(200,168,106,.25);background:rgba(200,168,106,.04)}
+.vt-card-inner.vt-proj{border-style:dashed}
+
+.vtch{padding:10px 12px;display:flex;flex-direction:column;gap:4px}
+.vtch-top{display:flex;align-items:center;gap:6px}
+.vtbadge{font-size:8.5px;font-family:var(--fm);padding:1px 6px;border-radius:3px;font-weight:600;text-transform:uppercase;letter-spacing:.04em}
+.vtb-crea{background:var(--green-d);color:var(--green);border:1px solid rgba(86,160,122,.2)}
+.vtb-modi{background:var(--blue-d);color:var(--blue);border:1px solid rgba(92,143,212,.2)}
+.vtb-curr{background:var(--gold-d);color:var(--gold);border:1px solid rgba(200,168,106,.2)}
+.vtb-proj{background:var(--purple-d);color:var(--purple);border:1px solid rgba(148,120,200,.2)}
+.vtb-abro{background:var(--red-d);color:var(--red);border:1px solid rgba(196,97,78,.2)}
+
+.vtch-date{font-size:10px;font-family:var(--fm);color:var(--t3);margin-left:auto}
+.vtch-title{font-size:12px;font-weight:500;color:var(--t1)}
+.vtch-by{font-size:10.5px;color:var(--t3);font-style:italic;font-family:var(--fd)}
+.vtch-text{font-size:11px;color:var(--t2);line-height:1.6;font-family:'Georgia',serif;padding:8px 12px;border-top:1px solid var(--b1);background:rgba(0,0,0,.15)}
+
+/* diff inline */
+.diff-wrap{font-size:11px;line-height:1.6;font-family:'Georgia',serif;padding:8px 12px;border-top:1px solid var(--b1);background:rgba(0,0,0,.15)}
+.da{background:rgba(86,160,122,.18);color:#82d4a4;border-radius:2px;padding:0 1px}
+.dd{background:rgba(196,97,78,.18);color:#e08878;border-radius:2px;padding:0 1px;text-decoration:line-through}
+
+.vtch-actions{display:flex;gap:5px;padding:8px 12px 10px;border-top:1px solid var(--b1)}
+.vta-btn{font-size:10px;font-family:var(--fm);padding:3px 9px;border-radius:4px;cursor:pointer;border:1px solid;transition:opacity .12s;background:transparent;display:flex;align-items:center;gap:4px}
+.vta-btn svg{width:11px;height:11px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.vta-btn:hover{opacity:.7}
+.vta-diff{color:var(--blue);border-color:rgba(92,143,212,.25);background:var(--blue-d)}
+.vta-rest{color:var(--amber);border-color:rgba(196,144,58,.25);background:var(--amber-d)}
+
+/* ─── VERSION OVERVIEW MODAL ─── */
+.vmodal-wrap{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:600;display:none;align-items:center;justify-content:center}
+.vmodal-wrap.open{display:flex}
+.vmodal{background:var(--s1);border:1px solid var(--b2);border-radius:var(--r3);width:700px;max-height:82vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 28px 80px rgba(0,0,0,.7)}
+.vmodal-hd{height:48px;border-bottom:1px solid var(--b1);display:flex;align-items:center;padding:0 18px;gap:10px;flex-shrink:0}
+.vmodal-hd-title{font-family:var(--fd);font-size:15px;font-weight:500;color:var(--gold);flex:1}
+.vmodal-filters{display:flex;gap:4px;padding:10px 16px;border-bottom:1px solid var(--b1);flex-shrink:0;flex-wrap:wrap}
+.vf-btn{height:22px;padding:0 10px;border-radius:11px;border:1px solid var(--b1);background:transparent;color:var(--t3);font-size:10.5px;font-family:var(--fm);cursor:pointer;transition:all .12s;text-transform:uppercase;letter-spacing:.05em}
+.vf-btn:hover{border-color:var(--b2);color:var(--t2)}
+.vf-btn.on{background:var(--gold-d);border-color:rgba(200,168,106,.25);color:var(--gold)}
+.vmodal-body{flex:1;overflow-y:auto;padding:16px 20px}
+.vmodal-body::-webkit-scrollbar{width:4px}
+.vmodal-body::-webkit-scrollbar-thumb{background:var(--s4);border-radius:2px}
+
+/* global timeline */
+.gtl{position:relative;padding-left:26px}
+.gtl::before{content:'';position:absolute;left:7px;top:0;bottom:0;width:1px;background:var(--b2)}
+.gty{margin-bottom:16px}
+.gty-label{font-size:10px;font-family:var(--fm);color:var(--t3);margin-bottom:10px;position:relative;letter-spacing:.06em;text-transform:uppercase}
+.gty-label::before{content:'';position:absolute;left:-21px;top:50%;transform:translateY(-50%);width:8px;height:8px;border-radius:50%;background:var(--s4);border:1px solid var(--b2);z-index:1}
+.gte{display:flex;gap:8px;margin-bottom:8px;align-items:flex-start}
+.gte-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;margin-top:4px;border:2px solid;position:relative;left:-22px;z-index:1}
+.gte-card{margin-left:-14px;flex:1;background:var(--s2);border:1px solid var(--b1);border-radius:var(--r);padding:9px 12px;cursor:pointer;transition:border-color .12s}
+.gte-card:hover{border-color:var(--b2)}
+.gte-top{display:flex;align-items:center;gap:6px;margin-bottom:3px}
+.gte-art{font-size:9.5px;font-family:var(--fm);color:var(--t3)}
+.gte-title{font-size:12px;color:var(--t1)}
+.gte-by{font-size:10.5px;color:var(--t3);font-style:italic;font-family:var(--fd)}
+
+/* ─── TOAST ─── */
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(12px);background:var(--s2);border:1px solid var(--b2);color:var(--t1);font-size:12px;padding:8px 16px;border-radius:var(--r2);z-index:9999;opacity:0;transition:all .22s;display:flex;align-items:center;gap:7px;pointer-events:none;box-shadow:0 6px 24px rgba(0,0,0,.45)}
+.toast svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+.dgh{position:fixed;pointer-events:none;z-index:9999;background:var(--s2);border:1px solid var(--b2);border-radius:var(--r);padding:4px 10px;font-size:11px;color:var(--t1);opacity:.92;display:none}
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════ TOPBAR ══════════════════════ -->
+<div class="topbar">
+  <div class="logo">
+    <svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+    LexViewer
+  </div>
+  <span class="doc-chip">LOI · 2024</span>
+  <span class="doc-label">Loi n° 2024-537 du 13 juin 2024</span>
+  <div style="flex:1"></div>
+  <div class="status-row"><div class="sdot"></div><span class="slbl">Synchronisé</span></div>
+  <div class="divv"></div>
+
+  <button class="ib tip" data-tip="Chronologie des versions" onclick="openVModal()">
+    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
+  </button>
+  <button class="ib tip" data-tip="Graphe des relations juridiques" onclick="toast('Graphe des relations — bientôt disponible','info')">
+    <svg viewBox="0 0 24 24"><circle cx="5" cy="12" r="2"/><circle cx="19" cy="6" r="2"/><circle cx="19" cy="18" r="2"/><path d="m7 11 10-4M7 13l10 4"/></svg>
+  </button>
+  <button class="ib tip" data-tip="Exporter le document" onclick="toast('Export en cours…','dl')">
+    <svg viewBox="0 0 24 24"><path d="M12 15V3m0 12-4-4m4 4 4-4"/><path d="M2 17l.621 2.485A2 2 0 0 0 4.561 21h14.878a2 2 0 0 0 1.94-1.515L22 17"/></svg>
+  </button>
+  <button class="ib tip on" id="btn-sp" data-tip="Panneau article" onclick="toggleSidePanel()">
+    <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M15 3v18"/></svg>
+  </button>
+</div>
+
+<!-- ══════════════════════ MAIN ══════════════════════ -->
+<div class="main" id="main">
+
+  <!-- ── LEFT: TREE ── -->
+  <div class="pl" id="pl" style="width:400px">
+
+    <div class="ph">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--t3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+      <span class="ph-title">Structure</span>
+      <span class="count-badge" id="cntbadge">—</span>
+    </div>
+
+    <div class="ttbar">
+      <button class="bs tip-b" data-tip="Tout replier" onclick="collapseAll()">
+        <svg viewBox="0 0 24 24"><polyline points="4 14 10 14 10 20"/><polyline points="20 10 14 10 14 4"/><line x1="10" y1="14" x2="21" y2="3"/><line x1="3" y1="21" x2="14" y2="10"/></svg>
+        Replier
+      </button>
+      <button class="bs tip-b" data-tip="Tout déplier" onclick="expandAll()">
+        <svg viewBox="0 0 24 24"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>
+        Déplier
+      </button>
+      <div class="sw">
+        <svg class="si" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input type="text" id="tsearch" placeholder="Rechercher…" oninput="filterTree(this.value)">
+      </div>
+    </div>
+
+    <div class="bc" id="bc"><span class="bci cur">Racine</span></div>
+    <div class="tc" id="tc"></div>
+  </div>
+
+  <!-- ── SPLITTER ── -->
+  <div class="sp" id="sp" data-tip="Redimensionner" style="cursor:col-resize"></div>
+
+  <!-- ── RIGHT: PDF ── -->
+  <div class="pr" id="pr">
+
+    <div class="ptb">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+      <span class="ptitle">Document source</span>
+      <div style="flex:1"></div>
+      <button class="ib tip" data-tip="Dézoomer" onclick="chZoom(-.1)">
+        <svg viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      </button>
+      <span class="zl" id="zlbl">100%</span>
+      <button class="ib tip" data-tip="Zoomer" onclick="chZoom(.1)">
+        <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      </button>
+      <div class="divv"></div>
+      <button class="ib tip" data-tip="Page précédente" onclick="prevPage()">
+        <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+      </button>
+      <input type="text" class="pi" id="pinput" value="1" onchange="goPage(this.value)">
+      <span class="ptot">/ 4</span>
+      <button class="ib tip" data-tip="Page suivante" onclick="nextPage()">
+        <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+      </button>
+    </div>
+
+    <!-- PDF AREA -->
+    <div class="pa" id="pa">
+      <div class="selflag" id="selflag">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="1" fill="currentColor"/><line x1="12" y1="3" x2="12" y2="7"/><line x1="12" y1="17" x2="12" y2="21"/><line x1="3" y1="12" x2="7" y2="12"/><line x1="17" y1="12" x2="21" y2="12"/></svg>
+        <span id="selflag-txt">Dessinez une zone sur le PDF</span>
+        <span class="selhint">Échap pour annuler</span>
+      </div>
+
+      <div class="pp" id="pp">
+        <div class="ppi" id="ppi"></div>
+        <div class="ppn" id="ppn">— 1 —</div>
+      </div>
+    </div>
+
+    <!-- ── SIDE PANEL ── -->
+    <div class="sidep" id="sidep">
+      <div class="sphd">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/></svg>
+        <span class="sphd-title" id="sphd-title">Article —</span>
+        <button class="ib tip" data-tip="Fermer le panneau" onclick="closeSidePanel()">
+          <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+
+      <div class="sptabs">
+        <button class="spt on" data-tab="content" onclick="switchTab('content')">
+          <svg viewBox="0 0 24 24"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><circle cx="3" cy="6" r="1" fill="currentColor" stroke="none"/><circle cx="3" cy="12" r="1" fill="currentColor" stroke="none"/><circle cx="3" cy="18" r="1" fill="currentColor" stroke="none"/></svg>
+          Contenu
+        </button>
+        <button class="spt" data-tab="versions" onclick="switchTab('versions')">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
+          Versions
+        </button>
+        <button class="spt" data-tab="meta" onclick="switchTab('meta')">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v2M12 20v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M2 12h2M20 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+          Infos
+        </button>
+      </div>
+
+      <div class="tabp on" id="tab-content">
+        <p style="color:var(--t3);font-size:12px;font-style:italic;line-height:1.6">Cliquez sur un article dans l'arbre pour l'afficher ici.</p>
+      </div>
+      <div class="tabp" id="tab-versions">
+        <p style="color:var(--t3);font-size:12px;font-style:italic">Sélectionnez un article.</p>
+      </div>
+      <div class="tabp" id="tab-meta">
+        <p style="color:var(--t3);font-size:12px;font-style:italic">Sélectionnez un article.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════ VERSION MODAL ══════════════════════ -->
+<div class="vmodal-wrap" id="vmodal-wrap" onclick="if(event.target===this)closeVModal()">
+  <div class="vmodal">
+    <div class="vmodal-hd">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
+      <span class="vmodal-hd-title">Chronologie du versionnement</span>
+      <button class="ib tip" data-tip="Fermer" onclick="closeVModal()">
+        <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="vmodal-filters" id="vfilters">
+      <button class="vf-btn on" data-f="all" onclick="setVFilter('all',this)">Tout</button>
+      <button class="vf-btn" data-f="creation" onclick="setVFilter('creation',this)">Créations</button>
+      <button class="vf-btn" data-f="modification" onclick="setVFilter('modification',this)">Modifications</button>
+      <button class="vf-btn" data-f="pending" onclick="setVFilter('pending',this)">Projets</button>
+    </div>
+    <div class="vmodal-body" id="vmodal-body"></div>
+  </div>
+</div>
+
+<!-- TOAST + GHOST -->
+<div class="toast" id="toast-el">
+  <svg id="toast-ico" viewBox="0 0 24 24" style="color:var(--green)"><polyline points="20 6 9 17 4 12"/></svg>
+  <span id="toast-txt"></span>
+</div>
+<div class="dgh" id="dgh"></div>
+
+<script>
+/* ════════════════════════════════════════
+   DATA
+════════════════════════════════════════ */
+const DATA = [
+  { id:'t1', type:'TITRE', numero:'I', label:'Dispositions générales', vs:'ok', children:[
+    { id:'t1c1', type:'CHAPITRE', numero:'1er', label:'Champ d\'application', vs:'ok', children:[
+      { id:'a1', type:'ARTICLE', numero:'1', label:'Objet de la loi', vs:'ok', validity:'2024-06-14 → ∞',
+        content:'La présente loi a pour objet de définir les règles applicables à l\'organisation et au fonctionnement des services publics numériques, en garantissant l\'accessibilité, la transparence et la protection des données personnelles des utilisateurs.',
+        versions:[
+          { date:'2024-06-14', type:'creation', title:'Rédaction initiale', author:'Direction juridique',
+            text:'La présente loi a pour objet de définir les règles applicables à l\'organisation et au fonctionnement des services publics numériques.' },
+          { date:'2024-07-01', type:'modification', title:'Extension aux droits des usagers', author:'Commission parlementaire',
+            text:'La présente loi a pour objet de définir les règles applicables à l\'organisation et au fonctionnement des services publics numériques, en garantissant l\'accessibilité, la transparence et la protection des données personnelles des utilisateurs.',
+            prev:'La présente loi a pour objet de définir les règles applicables à l\'organisation et au fonctionnement des services publics numériques.' },
+        ]},
+      { id:'a2', type:'ARTICLE', numero:'2', label:'Définitions', vs:'ok', validity:'2024-06-14 → ∞',
+        content:'Au sens de la présente loi, on entend par :\n1° « service public numérique » : tout service en ligne mis à disposition des usagers par une personne publique ;\n2° « données personnelles » : toute information se rapportant à une personne physique identifiée ou identifiable.',
+        versions:[
+          { date:'2024-06-14', type:'creation', title:'Rédaction initiale', author:'Direction juridique',
+            text:'Au sens de la présente loi, on entend par :\n1° « service public numérique » : tout service en ligne mis à disposition des usagers par une personne publique ;\n2° « données personnelles » : toute information se rapportant à une personne physique identifiée ou identifiable.' },
+        ]},
+      { id:'a3', type:'ARTICLE', numero:'3', label:'Principes directeurs', vs:'pend', validity:'2024-06-14 → ∞',
+        content:'Les services publics numériques sont soumis aux principes de continuité, d\'adaptabilité, d\'égalité d\'accès et de neutralité technologique.',
+        versions:[
+          { date:'2024-06-14', type:'creation', title:'Rédaction initiale', author:'Direction juridique',
+            text:'Les services publics numériques sont soumis aux principes de continuité et d\'adaptabilité.' },
+          { date:'2024-08-20', type:'modification', title:'Ajout des principes d\'égalité et neutralité', author:'Conseil d\'État',
+            text:'Les services publics numériques sont soumis aux principes de continuité, d\'adaptabilité, d\'égalité d\'accès et de neutralité technologique.',
+            prev:'Les services publics numériques sont soumis aux principes de continuité et d\'adaptabilité.' },
+          { date:'2025-01-15', type:'modification', title:'Révision proposée — ajout accessibilité universelle', author:'DINUM', pending:true,
+            text:'Les services publics numériques sont soumis aux principes de continuité, d\'adaptabilité, d\'égalité d\'accès, de neutralité technologique et d\'accessibilité universelle.',
+            prev:'Les services publics numériques sont soumis aux principes de continuité, d\'adaptabilité, d\'égalité d\'accès et de neutralité technologique.' },
+        ]},
+    ]},
+    { id:'t1c2', type:'CHAPITRE', numero:'2', label:'Autorités compétentes', vs:'pend', children:[
+      { id:'a4', type:'ARTICLE', numero:'4', label:'Autorité de régulation', vs:'pend', validity:'2024-06-14 → ∞',
+        content:'Il est institué une Autorité nationale de régulation du numérique public. L\'Autorité est une autorité administrative indépendante dotée de la personnalité morale.',
+        versions:[
+          { date:'2024-06-14', type:'creation', title:'Rédaction initiale', author:'Direction juridique',
+            text:'Il est institué une Autorité nationale de régulation du numérique public. L\'Autorité est une autorité administrative indépendante dotée de la personnalité morale.' },
+        ]},
+      { id:'a5', type:'ARTICLE', numero:'5', label:'Composition de l\'Autorité', vs:'err', validity:'2024-06-14 → ∞',
+        content:'[À compléter — composition et modalités de nomination des membres.]',
+        versions:[
+          { date:'2024-06-14', type:'creation', title:'Version initiale incomplète', author:'Direction juridique',
+            text:'[À compléter — composition et modalités de nomination des membres.]' },
+        ]},
+    ]},
+  ]},
+  { id:'t2', type:'TITRE', numero:'II', label:'Obligations des opérateurs', vs:'pend', children:[
+    { id:'t2s1', type:'SECTION', numero:'1', label:'Accessibilité numérique', vs:'pend', children:[
+      { id:'a6', type:'ARTICLE', numero:'6', label:'Référentiel d\'accessibilité', vs:'ok', validity:'2024-06-14 → ∞',
+        content:'Tout opérateur est tenu de se conformer aux référentiels d\'accessibilité définis par décret en Conseil d\'État, dans un délai de dix-huit mois à compter de la publication de la présente loi.',
+        versions:[
+          { date:'2024-06-14', type:'creation', title:'Rédaction initiale', author:'Direction juridique',
+            text:'Tout opérateur est tenu de se conformer aux référentiels d\'accessibilité définis par décret.' },
+          { date:'2024-09-01', type:'modification', title:'Précision du délai de mise en conformité', author:'Service juridique',
+            text:'Tout opérateur est tenu de se conformer aux référentiels d\'accessibilité définis par décret en Conseil d\'État, dans un délai de dix-huit mois à compter de la publication de la présente loi.',
+            prev:'Tout opérateur est tenu de se conformer aux référentiels d\'accessibilité définis par décret.' },
+        ]},
+      { id:'a7', type:'ARTICLE', numero:'7', label:'Déclaration de conformité', vs:'pend', validity:'2024-06-14 → ∞',
+        content:'Les opérateurs publient sur leur site une déclaration d\'accessibilité attestant du niveau de conformité atteint. Cette déclaration est mise à jour chaque année.',
+        versions:[
+          { date:'2024-06-14', type:'creation', title:'Rédaction initiale', author:'Direction juridique',
+            text:'Les opérateurs publient sur leur site une déclaration d\'accessibilité attestant du niveau de conformité atteint. Cette déclaration est mise à jour chaque année.' },
+        ]},
+    ]},
+    { id:'t2s2', type:'SECTION', numero:'2', label:'Transparence des données', vs:'ok', children:[
+      { id:'a8', type:'ARTICLE', numero:'8', label:'Information des usagers', vs:'ok', validity:'2024-06-14 → ∞',
+        content:'Les opérateurs informent les usagers, de manière claire et accessible, des finalités du traitement de leurs données personnelles et des droits dont ils disposent.',
+        versions:[
+          { date:'2024-06-14', type:'creation', title:'Rédaction initiale', author:'Direction juridique',
+            text:'Les opérateurs informent les usagers, de manière claire et accessible, des finalités du traitement de leurs données personnelles et des droits dont ils disposent.' },
+        ]},
+      { id:'a9', type:'ARTICLE', numero:'9', label:'Registre des traitements', vs:'ok', validity:'2024-06-14 → ∞',
+        content:'Tout opérateur tient et rend public un registre des traitements de données mis en œuvre dans le cadre du service public numérique, accessible en ligne dans un format ouvert.',
+        versions:[
+          { date:'2024-06-14', type:'creation', title:'Rédaction initiale', author:'Direction juridique',
+            text:'Tout opérateur tient et rend public un registre des traitements de données mis en œuvre dans le cadre du service public numérique, accessible en ligne dans un format ouvert.' },
+        ]},
+    ]},
+  ]},
+  { id:'t3', type:'TITRE', numero:'III', label:'Sanctions et contrôle', vs:'pend', children:[
+    { id:'a10', type:'ARTICLE', numero:'10', label:'Pouvoirs de contrôle', vs:'pend', validity:'2024-06-14 → ∞',
+      content:'L\'Autorité dispose d\'un pouvoir d\'investigation lui permettant de diligenter des audits techniques auprès de tout opérateur soumis aux dispositions de la présente loi.',
+      versions:[
+        { date:'2024-06-14', type:'creation', title:'Rédaction initiale', author:'Direction juridique',
+          text:'L\'Autorité dispose d\'un pouvoir d\'investigation lui permettant de diligenter des audits techniques auprès de tout opérateur soumis aux dispositions de la présente loi.' },
+      ]},
+    { id:'a11', type:'ARTICLE', numero:'11', label:'Sanctions administratives', vs:'pend', validity:'2024-06-14 → ∞',
+      content:'En cas de manquement, l\'Autorité peut prononcer des sanctions pécuniaires ne pouvant excéder 1 % du chiffre d\'affaires annuel mondial de l\'opérateur.',
+      versions:[
+        { date:'2024-06-14', type:'creation', title:'Rédaction initiale', author:'Direction juridique',
+          text:'En cas de manquement, l\'Autorité peut prononcer des sanctions pécuniaires.' },
+        { date:'2024-10-15', type:'modification', title:'Plafonnement à 1 % du CA mondial', author:'Conseil d\'État',
+          text:'En cas de manquement, l\'Autorité peut prononcer des sanctions pécuniaires ne pouvant excéder 1 % du chiffre d\'affaires annuel mondial de l\'opérateur.',
+          prev:'En cas de manquement, l\'Autorité peut prononcer des sanctions pécuniaires.' },
+        { date:'2025-02-10', type:'modification', title:'Révision à 2 % du CA (projet)', author:'Commission européenne', pending:true,
+          text:'En cas de manquement, l\'Autorité peut prononcer des sanctions pécuniaires ne pouvant excéder 2 % du chiffre d\'affaires annuel mondial de l\'opérateur.',
+          prev:'En cas de manquement, l\'Autorité peut prononcer des sanctions pécuniaires ne pouvant excéder 1 % du chiffre d\'affaires annuel mondial de l\'opérateur.' },
+      ]},
+    { id:'a12', type:'ARTICLE', numero:'12', label:'Dispositions finales', vs:'ok', validity:'2024-06-14 → ∞',
+      content:'La présente loi entre en vigueur le lendemain de sa publication au Journal officiel de la République française.',
+      versions:[
+        { date:'2024-06-14', type:'creation', title:'Rédaction initiale', author:'Direction juridique',
+          text:'La présente loi entre en vigueur le lendemain de sa publication au Journal officiel de la République française.' },
+      ]},
+  ]},
+];
+
+const PAGES = [
+  `<h1>LOI N° 2024-537 DU 13 JUIN 2024</h1><p style="text-align:center;font-style:italic;margin-bottom:18px">relative à l'organisation et au fonctionnement des services publics numériques</p><p style="text-align:center;margin-bottom:22px">L'Assemblée nationale et le Sénat ont adopté,<br>Le Président de la République promulgue la loi dont la teneur suit&nbsp;:</p><h2>TITRE I&emsp;DISPOSITIONS GÉNÉRALES</h2><h3>Chapitre 1<sup>er</sup> — Champ d'application</h3><p><span class="an">Article 1<sup>er</sup>.</span>&ensp;La présente loi a pour objet de définir les règles applicables à l'organisation et au fonctionnement des services publics numériques, en garantissant l'accessibilité, la transparence et la protection des données personnelles des utilisateurs.</p><p><span class="an">Article 2.</span>&ensp;Au sens de la présente loi, on entend par&nbsp;:<br>1° «&nbsp;service public numérique&nbsp;» : tout service en ligne mis à disposition des usagers par une personne publique&nbsp;;<br>2° «&nbsp;données personnelles&nbsp;» : toute information se rapportant à une personne physique identifiée ou identifiable.</p><p><span class="an">Article 3.</span>&ensp;Les services publics numériques sont soumis aux principes de continuité, d'adaptabilité, d'égalité d'accès et de neutralité technologique.</p>`,
+  `<h3>Chapitre 2 — Autorités compétentes</h3><p><span class="an">Article 4.</span>&ensp;Il est institué une Autorité nationale de régulation du numérique public. L'Autorité est une autorité administrative indépendante dotée de la personnalité morale.</p><p><span class="an">Article 5.</span>&ensp;[Composition et modalités de nomination des membres de l'Autorité — texte à compléter par décret]</p><h2>TITRE II&emsp;OBLIGATIONS DES OPÉRATEURS</h2><h3>Section 1 — Accessibilité numérique</h3><p><span class="an">Article 6.</span>&ensp;Tout opérateur est tenu de se conformer aux référentiels d'accessibilité définis par décret en Conseil d'État, dans un délai de dix-huit mois à compter de la publication de la présente loi.</p><p><span class="an">Article 7.</span>&ensp;Les opérateurs publient sur leur site une déclaration d'accessibilité attestant du niveau de conformité atteint. Cette déclaration est mise à jour chaque année.</p>`,
+  `<h3>Section 2 — Transparence des données</h3><p><span class="an">Article 8.</span>&ensp;Les opérateurs informent les usagers, de manière claire et accessible, des finalités du traitement de leurs données personnelles et des droits dont ils disposent.</p><p><span class="an">Article 9.</span>&ensp;Tout opérateur tient et rend public un registre des traitements de données mis en œuvre dans le cadre du service public numérique, accessible en ligne dans un format ouvert.</p><h2>TITRE III&emsp;SANCTIONS ET CONTRÔLE</h2><p><span class="an">Article 10.</span>&ensp;L'Autorité dispose d'un pouvoir d'investigation lui permettant de diligenter des audits techniques auprès de tout opérateur soumis aux dispositions de la présente loi.</p>`,
+  `<p><span class="an">Article 11.</span>&ensp;En cas de manquement, l'Autorité peut prononcer, après mise en demeure restée infructueuse, des sanctions pécuniaires dont le montant ne peut excéder 1&nbsp;% du chiffre d'affaires annuel mondial de l'opérateur.</p><p><span class="an">Article 12.</span>&ensp;La présente loi entre en vigueur le lendemain de sa publication au Journal officiel de la République française.</p><p style="margin-top:40px;text-align:center;font-style:italic">La présente loi sera exécutée comme loi de l'État.</p><p style="text-align:center;margin-top:14px">Fait à Paris, le 13 juin 2024</p><p style="text-align:center;font-size:10px;margin-top:10px"><strong>EMMANUEL MACRON</strong></p>`,
+];
+
+const TC = {
+  TITRE:     {c:'#c8a86a',bg:'rgba(200,168,106,.1)',bd:'rgba(200,168,106,.2)',s:'Tit.'},
+  LIVRE:     {c:'#7a9ec4',bg:'rgba(122,158,196,.1)',bd:'rgba(122,158,196,.2)',s:'Liv.'},
+  PARTIE:    {c:'#8bb87a',bg:'rgba(139,184,122,.1)',bd:'rgba(139,184,122,.2)',s:'Par.'},
+  CHAPITRE:  {c:'#b87ab8',bg:'rgba(184,122,184,.1)',bd:'rgba(184,122,184,.2)',s:'Chap.'},
+  SECTION:   {c:'#c49a5a',bg:'rgba(196,154,90,.1)', bd:'rgba(196,154,90,.2)', s:'Sect.'},
+  SOUS_SECTION:{c:'#7a9ec4',bg:'rgba(122,158,196,.1)',bd:'rgba(122,158,196,.2)',s:'S-S.'},
+  ARTICLE:   {c:'#7ab8b8',bg:'rgba(122,184,184,.1)',bd:'rgba(122,184,184,.2)',s:'Art.'},
+};
+function tcf(t){return TC[t]||TC.ARTICLE}
+
+/* ════════════ STATE ════════════ */
+let page=1, zoom=1, col=new Set(), selId=null;
+let selMode=false, selTgt=null, drawing=false, drawSt=null;
+let zones=[], dragId=null, curArt=null, vFilter='all';
+
+/* ════════════ UTILS ════════════ */
+const $ = id => document.getElementById(id);
+function flatten(ns){const r=[];const w=n=>{r.push(n);(n.children||[]).forEach(w)};ns.forEach(w);return r}
+function find(id,ns=DATA){for(const n of ns){if(n.id===id)return n;if(n.children){const f=find(id,n.children);if(f)return f}}return null}
+function ancestors(id,ns=DATA,p=[]){for(const n of ns){if(n.id===id)return[...p,n];if(n.children){const r=ancestors(id,n.children,[...p,n]);if(r)return r}}return null}
+function countAll(ns){let c=0;for(const n of ns){c++;if(n.children)c+=countAll(n.children)}return c}
+
+/* ════════════ TREE ════════════ */
+function renderTree(){
+  $('cntbadge').textContent=countAll(DATA)+' éléments';
+  const tc=$('tc'); tc.innerHTML='';
+  DATA.forEach(n=>tc.appendChild(buildNode(n,0)));
+  setupDnD();
+}
+
+function buildNode(n, depth){
+  const cfg=tcf(n.type), hasK=!!(n.children&&n.children.length), isCol=col.has(n.id);
+  const wrap=document.createElement('div'); wrap.className='tn'; wrap.dataset.id=n.id;
+
+  const row=document.createElement('div');
+  row.className='tnr'+(selId===n.id?' sel':'');
+  row.style.paddingLeft=(depth*14+4)+'px';
+
+  /* toggle chevron */
+  const tog=document.createElement('div');
+  tog.className='tg'+(hasK?(isCol?'':' op'):' hid');
+  tog.innerHTML=`<svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>`;
+  if(hasK) tog.onclick=e=>{e.stopPropagation();col.has(n.id)?col.delete(n.id):col.add(n.id);renderTree()};
+
+  const dot=document.createElement('div'); dot.className='ndot'; dot.style.background=cfg.c;
+  const chip=document.createElement('span'); chip.className='nchip';
+  chip.style.cssText=`background:${cfg.bg};color:${cfg.c};border:1px solid ${cfg.bd}`;
+  chip.textContent=cfg.s;
+  const num=document.createElement('span'); num.className='nnum'; num.textContent=n.numero||'';
+  const lbl=document.createElement('span'); lbl.className='nlbl'; lbl.textContent=n.label;
+
+  const vb=document.createElement('span'); vb.className='nvb';
+  if(n.vs==='ok')     {vb.className+=' vok';  vb.textContent='✓'}
+  else if(n.vs==='err'){vb.className+=' verr'; vb.textContent='✗'}
+  else                 {vb.className+=' vpend';vb.textContent='~'}
+
+  /* action buttons */
+  const acts=document.createElement('div'); acts.className='nacts';
+  if(n.type==='ARTICLE'){
+    acts.appendChild(mkNab('loc','Localiser dans le PDF','<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="1" fill="currentColor" stroke="none"/><line x1="12" y1="3" x2="12" y2="7"/><line x1="12" y1="17" x2="12" y2="21"/><line x1="3" y1="12" x2="7" y2="12"/><line x1="17" y1="12" x2="21" y2="12"/></svg>',()=>startSel(n)));
+    acts.appendChild(mkNab('ver','Historique des versions','<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>',()=>{selectNode(n.id);switchTab('versions')}));
+  }
+  acts.appendChild(mkNab('','Renommer cet élément','<svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>',()=>startEdit(n.id,lbl)));
+  acts.appendChild(mkNab('','Ajouter un élément enfant','<svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>',()=>addChild(n.id)));
+
+  row.append(tog,dot,chip,num,lbl,vb,acts);
+  row.onclick=()=>selectNode(n.id);
+  row.draggable=true;
+  wrap.appendChild(row);
+
+  if(hasK){
+    const cc=document.createElement('div'); cc.className='tch'+(isCol?' col':'');
+    n.children.forEach(c=>cc.appendChild(buildNode(c,depth+1)));
+    wrap.appendChild(cc);
+  }
+  return wrap;
+}
+
+function mkNab(cls, tip, svg, cb){
+  const b=document.createElement('button');
+  b.className='nab tip'+(cls?' '+cls:'');
+  b.dataset.tip=tip; b.innerHTML=svg;
+  b.onclick=e=>{e.stopPropagation();cb()};
+  return b;
+}
+
+function selectNode(id){
+  selId=id; const n=find(id); if(!n)return;
+  const ancs=ancestors(id); if(ancs)updateBc(ancs);
+  if(n.type==='ARTICLE'){curArt=n;openSidePanel(n)}
+  renderTree();
+}
+
+function updateBc(ancs){
+  const bc=$('bc'); bc.innerHTML='';
+  ancs.forEach((n,i)=>{
+    const it=document.createElement('span'); it.className='bci'+(i===ancs.length-1?' cur':'');
+    it.textContent=(n.numero?n.numero+'. ':'')+n.label; it.onclick=()=>selectNode(n.id);
+    bc.appendChild(it);
+    if(i<ancs.length-1){const s=document.createElement('span');s.className='bcs';s.textContent=' › ';bc.appendChild(s)}
+  });
+}
+
+function startEdit(id,lblEl){
+  const n=find(id); if(!n)return;
+  const inp=document.createElement('input'); inp.className='nei'; inp.type='text'; inp.value=n.label;
+  lblEl.style.display='none'; lblEl.parentNode.insertBefore(inp,lblEl.nextSibling); inp.focus(); inp.select();
+  const done=()=>{n.label=inp.value||n.label;lblEl.style.display='';inp.remove();renderTree();toast('Élément renommé')};
+  inp.onblur=done; inp.onkeydown=e=>{if(e.key==='Enter')done();if(e.key==='Escape'){lblEl.style.display='';inp.remove()}};
+}
+
+function addChild(pid){
+  const p=find(pid); if(!p)return;
+  if(!p.children)p.children=[];
+  const nt=p.type==='TITRE'?'CHAPITRE':p.type==='CHAPITRE'?'ARTICLE':'ARTICLE';
+  const nid='n'+Date.now();
+  p.children.push({id:nid,type:nt,numero:'?',label:'Nouvel élément',vs:'pend',content:'',validity:'—',versions:[]});
+  col.delete(pid); renderTree(); toast('Élément ajouté');
+  setTimeout(()=>{const el=document.querySelector(`[data-id="${nid}"] .nlbl`);if(el)startEdit(nid,el)},40);
+}
+
+function collapseAll(){flatten(DATA).forEach(n=>{if(n.children&&n.children.length)col.add(n.id)});renderTree()}
+function expandAll(){col.clear();renderTree()}
+function filterTree(q){
+  q=q.toLowerCase();
+  document.querySelectorAll('.tn').forEach(el=>{
+    const n=find(el.dataset.id);
+    el.style.display=!n||!q||n.label.toLowerCase().includes(q)||(n.numero&&n.numero.toLowerCase().includes(q))?'':'none';
+  });
+}
+
+/* ════════════ SIDE PANEL ════════════ */
+function openSidePanel(n){
+  $('sphd-title').textContent=(n.type==='ARTICLE'?'Art. ':'')+(n.numero||'');
+  $('sidep').classList.add('open');
+  $('btn-sp').classList.add('on');
+  renderTabContent(n); renderTabVersions(n); renderTabMeta(n);
+}
+function closeSidePanel(){$('sidep').classList.remove('open');$('btn-sp').classList.remove('on')}
+function toggleSidePanel(){$('sidep').classList.contains('open')?closeSidePanel():null}
+
+function switchTab(name){
+  document.querySelectorAll('.spt').forEach(t=>t.classList.toggle('on',t.dataset.tab===name));
+  document.querySelectorAll('.tabp').forEach(b=>b.classList.toggle('on',b.id==='tab-'+name));
+}
+
+function renderTabContent(n){
+  $('tab-content').innerHTML=`
+    <div class="sh">Texte en vigueur</div>
+    <textarea class="ata" id="art-ta">${n.content||''}</textarea>
+    <button class="saveb" onclick="saveContent('${n.id}')">
+      <svg viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+      Sauvegarder
+    </button>
+    <div class="sh" style="margin-top:14px">Actions rapides</div>
+    <div style="display:flex;gap:5px;flex-wrap:wrap">
+      <button class="bs tip" style="flex:1" data-tip="Localiser dans le PDF" onclick="startSel(find('${n.id}'))">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="1" fill="currentColor" stroke="none"/></svg>
+        Localiser PDF
+      </button>
+      <button class="bs tip" style="flex:1" data-tip="Voir les relations" onclick="toast('Relations — bientôt disponible','info')">
+        <svg viewBox="0 0 24 24"><circle cx="5" cy="12" r="2"/><circle cx="19" cy="6" r="2"/><circle cx="19" cy="18" r="2"/><path d="m7 11 10-4M7 13l10 4"/></svg>
+        Relations
+      </button>
+    </div>`;
+}
+
+function saveContent(id){const n=find(id);if(!n)return;const t=$('art-ta');if(t)n.content=t.value;toast('Contenu sauvegardé')}
+
+/* ─── Version tab (the good stuff) ─── */
+function renderTabVersions(n){
+  const tab=$('tab-versions');
+  if(!n.versions||!n.versions.length){tab.innerHTML='<p style="color:var(--t3);font-size:12px;font-style:italic">Aucune version.</p>';return}
+
+  const total=n.versions.length;
+  const latest=n.versions[total-1];
+  const pending=n.versions.filter(v=>v.pending).length;
+
+  let html=`<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+    <div>
+      <span style="font-size:11px;font-family:var(--fm);color:var(--t3)">${total} version${total>1?'s':''}</span>
+      ${pending?`<span style="font-size:9.5px;font-family:var(--fm);background:var(--purple-d);color:var(--purple);border:1px solid rgba(148,120,200,.2);border-radius:3px;padding:1px 5px;margin-left:6px">${pending} projet${pending>1?'s':''}</span>`:''}
+    </div>
+    <span style="font-size:9.5px;font-family:var(--fm);color:var(--t3)">v. courante : ${latest.date}</span>
+  </div>`;
+
+  html+='<div class="vtl">';
+  const reverted=[...n.versions].reverse();
+  reverted.forEach((v,i)=>{
+    const isCurr=i===0&&!v.pending;
+    const dotC=v.pending?'proj':v.type==='creation'?'crea':isCurr?'curr':'modi';
+    const badgeC=v.pending?'vtb-proj':v.type==='creation'?'vtb-crea':isCurr?'vtb-curr':'vtb-modi';
+    const badgeTxt=v.pending?'Projet':v.type==='creation'?'Création':isCurr?'En vigueur':'Modification';
+    const idx=n.versions.indexOf(v);
+
+    html+=`<div class="vt-item">
+      <div class="vt-dot-col"><div class="vt-dot ${dotC}"></div></div>
+      <div class="vt-card">
+        <div class="vt-card-inner${isCurr?' vt-current':''}${v.pending?' vt-proj':''}">
+          <div class="vtch">
+            <div class="vtch-top">
+              <span class="vtbadge ${badgeC}">${badgeTxt}</span>
+              <span class="vtch-date">${v.date}</span>
+            </div>
+            <div class="vtch-title">${v.title}</div>
+            <div class="vtch-by">par ${v.author}</div>
+          </div>
+          <div class="${v.prev?'diff-wrap':'vtch-text'}">${v.prev?buildInlineDiff(v.prev,v.text):escHtml(v.text)}</div>
+          ${!isCurr||v.pending?`<div class="vtch-actions">
+            ${idx>0?`<button class="vta-btn vta-diff" onclick="toggleDiff(this,'${n.id}',${idx})">
+              <svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+              Comparer avec v.précédente
+            </button>`:''}
+            ${v.pending?`<button class="vta-btn vta-rest" onclick="toast('Restauration du projet — bientôt disponible','info')" style="margin-left:auto">
+              <svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+              Appliquer le projet
+            </button>`:''}
+          </div>`:''}
+        </div>
+      </div>
+    </div>`;
+  });
+  html+='</div>';
+  tab.innerHTML=html;
+}
+
+function toggleDiff(btn, nid, idx){
+  const n=find(nid); if(!n)return;
+  const v=n.versions[idx], prev=n.versions[idx-1]; if(!prev)return;
+  const card=btn.closest('.vt-card-inner');
+  const existing=card.querySelector('.full-diff');
+  if(existing){existing.remove();btn.textContent='';btn.innerHTML=`<svg viewBox="0 0 24 24" style="width:11px;height:11px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg> Comparer avec v.précédente`;return}
+  btn.innerHTML=`<svg viewBox="0 0 24 24" style="width:11px;height:11px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg> Fermer`;
+  const d=document.createElement('div'); d.className='diff-wrap full-diff'; d.style.borderTop='1px solid var(--b2)';
+  d.innerHTML=`<div style="font-size:9.5px;font-family:var(--fm);color:var(--t3);margin-bottom:6px;text-transform:uppercase;letter-spacing:.06em">Différences vs version précédente (${prev.date})</div>`+buildInlineDiff(prev.text,v.text);
+  btn.closest('.vtch-actions').before(d);
+}
+
+function buildInlineDiff(oldT, newT){
+  const ow=oldT.split(/(\s+)/), nw=newT.split(/(\s+)/);
+  const del=new Set(ow.filter(w=>!nw.includes(w)));
+  const add=new Set(nw.filter(w=>!ow.includes(w)));
+  return nw.map(w=>add.has(w)?`<span class="da">${escHtml(w)}</span>`:escHtml(w)).join('')
+    +'<br><span style="font-size:9.5px;color:var(--t3);font-family:var(--fm)">— supprimé —</span><br>'
+    +ow.map(w=>del.has(w)?`<span class="dd">${escHtml(w)}</span>`:escHtml(w)).join('');
+}
+
+function escHtml(s){return(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>')}
+
+function renderTabMeta(n){
+  const vc=(n.versions||[]).length;
+  $('tab-meta').innerHTML=`
+    <div class="mr"><span class="ml">N° article</span><span class="mv">${n.numero}</span></div>
+    <div class="mr"><span class="ml">Statut</span>
+      <span class="vbadge" style="background:var(--green-d);color:var(--green);border:1px solid rgba(86,160,122,.2)">
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+        En vigueur
+      </span></div>
+    <div class="mr"><span class="ml">Validité</span><span class="mv" style="font-size:10px">${n.validity||'—'}</span></div>
+    <div class="mr"><span class="ml">Validation</span>
+      <span style="font-size:11px;color:${n.vs==='ok'?'var(--green)':n.vs==='err'?'var(--red)':'var(--amber)'}">${n.vs==='ok'?'Validé ✓':n.vs==='err'?'Erreur ✗':'En attente ~'}</span></div>
+    <div class="mr"><span class="ml">Versions</span><span class="mv">${vc}</span></div>
+    <div class="sh">Source PDF</div>
+    <div class="mr"><span class="ml">Confiance OCR</span><span class="mv" style="color:var(--green)">98.2 %</span></div>
+    <div class="mr"><span class="ml">Extraction</span><span class="mv" style="font-size:10px">2024-06-20</span></div>
+    <div class="mr"><span class="ml">Zone PDF</span><span class="mv">${zones.some(z=>z.id===n.id)?'<span style="color:var(--green)">Annotée ✓</span>':'<span style="color:var(--t3)">Non annotée</span>'}</span></div>`;
+}
+
+/* ════════════ PDF ════════════ */
+function renderPdf(){
+  $('ppi').innerHTML=PAGES[page-1]||'';
+  $('pinput').value=page;
+  $('ppn').textContent='— '+page+' —';
+  renderZones();
+}
+function prevPage(){if(page>1){page--;renderPdf()}}
+function nextPage(){if(page<PAGES.length){page++;renderPdf()}}
+function goPage(v){const p=parseInt(v);if(p>=1&&p<=PAGES.length){page=p;renderPdf()}}
+function chZoom(d){zoom=Math.max(.5,Math.min(2,zoom+d));$('pp').style.transform='scale('+zoom+')';$('pp').style.marginBottom=((zoom-1)*820)+'px';$('zlbl').textContent=Math.round(zoom*100)+'%'}
+
+/* ════════════ SELECT MODE ════════════ */
+function startSel(n){
+  if(!n)return;
+  selMode=true;selTgt=n;
+  $('selflag-txt').innerHTML='Zone pour <b>'+(n.type==='ARTICLE'?'Art. ':'')+n.numero+'</b>';
+  $('pa').classList.add('selmode');$('selflag').classList.add('vis');
+  closeSidePanel(); toast('Mode sélection actif — dessinez un rectangle sur le PDF');
+}
+function stopSel(){
+  selMode=false;selTgt=null;drawing=false;drawSt=null;
+  $('pa').classList.remove('selmode');$('selflag').classList.remove('vis');
+  const t=$('tmprect');if(t)t.remove();
+}
+
+const pa=$('pa'), pp=$('pp');
+pa.addEventListener('mousedown',e=>{
+  if(!selMode||!e.target.closest('#pp'))return;
+  drawing=true; const r=pp.getBoundingClientRect();
+  drawSt={x:(e.clientX-r.left)/zoom, y:(e.clientY-r.top)/zoom};
+  const d=document.createElement('div');d.id='tmprect';d.className='selrect';
+  d.style.cssText=`left:${drawSt.x}px;top:${drawSt.y}px;width:0;height:0`;
+  pp.appendChild(d);
+  e.preventDefault();
+});
+pa.addEventListener('mousemove',e=>{
+  if(!drawing||!drawSt)return;
+  const r=pp.getBoundingClientRect(),cx=(e.clientX-r.left)/zoom,cy=(e.clientY-r.top)/zoom;
+  const d=$('tmprect');if(!d)return;
+  d.style.left=Math.min(drawSt.x,cx)+'px';d.style.top=Math.min(drawSt.y,cy)+'px';
+  d.style.width=Math.abs(cx-drawSt.x)+'px';d.style.height=Math.abs(cy-drawSt.y)+'px';
+});
+pa.addEventListener('mouseup',e=>{
+  if(!drawing||!drawSt||!selTgt)return;
+  const r=pp.getBoundingClientRect(),cx=(e.clientX-r.left)/zoom,cy=(e.clientY-r.top)/zoom;
+  const x=Math.min(drawSt.x,cx),y=Math.min(drawSt.y,cy),w=Math.abs(cx-drawSt.x),h=Math.abs(cy-drawSt.y);
+  const d=$('tmprect');if(d)d.remove();
+  if(w>8&&h>6){
+    const c=tcf(selTgt.type);
+    zones=zones.filter(z=>!(z.id===selTgt.id&&z.page===page)); // replace existing
+    zones.push({id:selTgt.id,lbl:(selTgt.type==='ARTICLE'?'Art. ':'')+selTgt.numero,x,y,w,h,page,color:c.c,bg:c.bg});
+    renderZones(); toast('Zone annotée pour Art. '+selTgt.numero);
+  }
+  stopSel();drawing=false;drawSt=null;
+});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&selMode)stopSel()});
+
+function renderZones(){
+  document.querySelectorAll('.zan').forEach(el=>el.remove());
+  zones.filter(z=>z.page===page).forEach(z=>{
+    const d=document.createElement('div'); d.className='zan';
+    d.style.cssText=`left:${z.x}px;top:${z.y}px;width:${z.w}px;height:${z.h}px;border-color:${z.color};background:${z.bg}`;
+    d.title=z.lbl;
+    const lbl=document.createElement('div'); lbl.className='zan-lbl';
+    lbl.style.background=z.color; lbl.textContent=z.lbl;
+    d.appendChild(lbl);
+    d.onclick=()=>{const n=find(z.id);if(n)selectNode(n.id)};
+    pp.appendChild(d);
+  });
+}
+
+/* ════════════ SPLITTER ════════════ */
+const sp=$('sp'), pl=$('pl');
+let spl=false;
+sp.addEventListener('mousedown',()=>{spl=true;sp.classList.add('act');document.body.style.cssText='cursor:col-resize;user-select:none'});
+document.addEventListener('mousemove',e=>{
+  if(!spl)return;
+  const rect=$('main').getBoundingClientRect();
+  pl.style.width=Math.max(250,Math.min(e.clientX-rect.left,rect.width*.72))+'px';
+  const g=$('dgh'); if(g.style.display==='block'){g.style.left=(e.clientX+12)+'px';g.style.top=(e.clientY-10)+'px'}
+});
+document.addEventListener('mouseup',()=>{if(spl){spl=false;sp.classList.remove('act');document.body.style.cssText=''}});
+
+/* ════════════ DnD TREE ════════════ */
+function setupDnD(){
+  document.querySelectorAll('.tnr').forEach(row=>{
+    row.addEventListener('dragstart',e=>{
+      dragId=row.closest('.tn').dataset.id; row.classList.add('drg');
+      const n=find(dragId); const g=$('dgh'); g.textContent=n?n.label:''; g.style.display='block';
+      e.dataTransfer.effectAllowed='move';
+    });
+    row.addEventListener('dragend',()=>{
+      row.classList.remove('drg'); $('dgh').style.display='none';
+      document.querySelectorAll('.dov').forEach(el=>el.classList.remove('dov')); dragId=null;
+    });
+    row.addEventListener('dragover',e=>{e.preventDefault();document.querySelectorAll('.dov').forEach(el=>el.classList.remove('dov'));row.classList.add('dov')});
+    row.addEventListener('drop',e=>{e.preventDefault();const tid=row.closest('.tn').dataset.id;if(dragId&&tid&&dragId!==tid)toast('Élément déplacé');row.classList.remove('dov')});
+  });
+}
+document.addEventListener('mousemove',e=>{const g=$('dgh');if(g.style.display==='block'){g.style.left=(e.clientX+12)+'px';g.style.top=(e.clientY-10)+'px'}});
+
+/* ════════════ VERSION MODAL ════════════ */
+function openVModal(){$('vmodal-wrap').classList.add('open');renderVModal()}
+function closeVModal(){$('vmodal-wrap').classList.remove('open')}
+function setVFilter(f,btn){
+  vFilter=f;
+  document.querySelectorAll('.vf-btn').forEach(b=>b.classList.toggle('on',b.dataset.f===f));
+  renderVModal();
+}
+
+function renderVModal(){
+  const body=$('vmodal-body');
+  const evts=[];
+  flatten(DATA).filter(n=>n.type==='ARTICLE').forEach(n=>{
+    (n.versions||[]).forEach(v=>{
+      evts.push({...v,artId:n.id,artNum:n.numero,artLabel:n.label});
+    });
+  });
+  evts.sort((a,b)=>b.date.localeCompare(a.date));
+
+  const filtered=vFilter==='all'?evts:vFilter==='pending'?evts.filter(e=>e.pending):evts.filter(e=>e.type===vFilter&&!e.pending);
+
+  if(!filtered.length){body.innerHTML='<p style="color:var(--t3);font-size:12px;padding:20px 0;text-align:center">Aucun événement pour ce filtre.</p>';return}
+
+  const byYear={};
+  filtered.forEach(e=>{const y=e.date.slice(0,4);if(!byYear[y])byYear[y]=[];byYear[y].push(e)});
+
+  let html='<div class="gtl">';
+  Object.keys(byYear).sort((a,b)=>b-a).forEach(y=>{
+    html+=`<div class="gty"><div class="gty-label">${y}</div>`;
+    byYear[y].forEach(ev=>{
+      const dc=ev.pending?'rgba(148,120,200,.2)':ev.type==='creation'?'var(--green)':'var(--blue)';
+      const bc=ev.pending?'rgba(148,120,200,.2)':ev.type==='creation'?'var(--green)':'var(--blue)';
+      const bk=ev.pending?'vtb-proj':ev.type==='creation'?'vtb-crea':'vtb-modi';
+      const bl=ev.pending?'Projet':ev.type==='creation'?'Création':'Modification';
+      html+=`<div class="gte">
+        <div class="gte-dot" style="background:${dc};border-color:${bc}"></div>
+        <div class="gte-card" onclick="selectNode('${ev.artId}');switchTab('versions');closeVModal()">
+          <div class="gte-top">
+            <span class="vtbadge ${bk}">${bl}</span>
+            <span class="gte-art">Art. ${ev.artNum}</span>
+            <span style="font-size:10px;color:var(--t3);font-family:var(--fm);margin-left:auto">${ev.date}</span>
+          </div>
+          <div class="gte-title">${ev.title}</div>
+          <div class="gte-by">par ${ev.author} · ${ev.artLabel}</div>
+        </div>
+      </div>`;
+    });
+    html+='</div>';
+  });
+  html+='</div>';
+  body.innerHTML=html;
+}
+
+/* ════════════ TOAST ════════════ */
+function toast(msg, type='ok'){
+  const el=$('toast-el'), ico=$('toast-ico'), txt=$('toast-txt');
+  const icons={
+    ok:'<polyline points="20 6 9 17 4 12"/>',
+    info:'<circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>',
+    dl:'<path d="M12 15V3m0 12-4-4m4 4 4-4"/><path d="M2 17l.621 2.485A2 2 0 0 0 4.561 21h14.878a2 2 0 0 0 1.94-1.515L22 17"/>'
+  };
+  ico.style.color=type==='ok'?'var(--green)':type==='dl'?'var(--blue)':'var(--amber)';
+  ico.innerHTML=icons[type]||icons.ok; txt.textContent=msg;
+  el.classList.add('show'); clearTimeout(el._t); el._t=setTimeout(()=>el.classList.remove('show'),2800);
+}
+
+window.find=find; window.switchTab=switchTab;
+
+renderTree();
+renderPdf();
+</script>
+</body>
+</html>

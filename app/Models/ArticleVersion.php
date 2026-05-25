@@ -29,6 +29,9 @@ class ArticleVersion extends Model implements Auditable
         'embedding_context',
         'embedding',
         'modifie_par_document_id',
+        'source_run_id',
+        'source_media_file_id',
+        'source_locator',
         'validation_status',
         'is_verified',
     ];
@@ -43,12 +46,23 @@ class ArticleVersion extends Model implements Auditable
         return [
             'embedding' => Vector::class,
             'is_verified' => 'boolean',
+            'source_locator' => 'array',
         ];
     }
 
     public function article(): BelongsTo
     {
         return $this->belongsTo(Article::class);
+    }
+
+    public function sourceRun(): BelongsTo
+    {
+        return $this->belongsTo(ExtractionRun::class, 'source_run_id');
+    }
+
+    public function sourceMediaFile(): BelongsTo
+    {
+        return $this->belongsTo(MediaFile::class, 'source_media_file_id');
     }
 
     public function modifiedByDocument(): BelongsTo

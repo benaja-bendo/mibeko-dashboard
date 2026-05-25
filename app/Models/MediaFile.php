@@ -19,8 +19,14 @@ class MediaFile extends Model
     protected $fillable = [
         'document_id',
         'file_path',
+        'storage_provider',
+        'bucket_name',
+        'object_key',
+        'original_filename',
         'mime_type',
+        'file_category',
         'file_size',
+        'checksum_sha256',
         'description',
     ];
 

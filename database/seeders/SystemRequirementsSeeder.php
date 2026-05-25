@@ -30,7 +30,8 @@ class SystemRequirementsSeeder extends Seeder
             ['code' => 'ARR', 'nom' => 'Arrêté', 'niveau_hierarchique' => 80],
             ['code' => 'CONST', 'nom' => 'Constitution', 'niveau_hierarchique' => 0],
             ['code' => 'ORD', 'nom' => 'Ordonnance', 'niveau_hierarchique' => 60],
-            ['code' => 'CODE', 'nom' => 'Code', 'niveau_hierarchique' => 50],
+            ['code' => 'CODE', 'nom' => 'Code', 'niveau_hierarchique' => 90],
+            ['code' => 'TEXTE', 'nom' => 'Texte Juridique (Générique)', 'niveau_hierarchique' => 100],
         ];
 
         foreach ($types as $type) {

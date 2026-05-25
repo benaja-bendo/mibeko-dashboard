@@ -24,6 +24,8 @@ DROP TABLE IF EXISTS article_tag CASCADE; -- Old table
 DROP TABLE IF EXISTS tags CASCADE;
 DROP TABLE IF EXISTS curation_flags CASCADE;
 DROP TABLE IF EXISTS document_relations CASCADE;
+DROP TABLE IF EXISTS text_extractions CASCADE;
+DROP TABLE IF EXISTS extraction_runs CASCADE;
 DROP TABLE IF EXISTS article_versions CASCADE;
 DROP TABLE IF EXISTS articles CASCADE;
 DROP TABLE IF EXISTS structure_nodes CASCADE;
@@ -199,11 +201,19 @@ CREATE TABLE official_journals (
     deleted_at TIMESTAMP(0) WITHOUT TIME ZONE
 );
 
+CREATE UNIQUE INDEX IF NOT EXISTS uq_official_journals_pubdate_number
+ON official_journals(publication_date, number)
+WHERE number IS NOT NULL AND deleted_at IS NULL;
+
 CREATE TABLE legal_documents (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     type_code VARCHAR(10) REFERENCES document_types(code),
     institution_id UUID REFERENCES institutions(id),
     official_journal_id UUID REFERENCES official_journals(id),
+
+    document_key TEXT,
+    document_role VARCHAR(20) NOT NULL CHECK (document_role IN ('STOCK', 'FLUX')) DEFAULT 'FLUX',
+    consolidation_as_of DATE,
 
     titre_officiel TEXT NOT NULL,
     reference_nor VARCHAR(50),
@@ -225,6 +235,22 @@ CREATE TABLE legal_documents (
 
 CREATE INDEX idx_legal_docs_metadata ON legal_documents USING GIN (metadata);
 
+CREATE UNIQUE INDEX IF NOT EXISTS uq_legal_documents_document_key
+ON legal_documents(document_key)
+WHERE document_key IS NOT NULL AND deleted_at IS NULL;
+
+CREATE UNIQUE INDEX IF NOT EXISTS uq_legal_documents_reference_nor
+ON legal_documents(reference_nor)
+WHERE reference_nor IS NOT NULL AND deleted_at IS NULL;
+
+ALTER TABLE legal_documents
+    ADD CONSTRAINT chk_legal_documents_role_logic
+    CHECK (
+        (document_role = 'STOCK' AND consolidation_as_of IS NOT NULL AND official_journal_id IS NULL)
+        OR
+        (document_role = 'FLUX' AND consolidation_as_of IS NULL)
+    );
+
 CREATE TABLE media_files (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     document_id UUID NOT NULL REFERENCES legal_documents(id) ON DELETE CASCADE,
@@ -235,6 +261,60 @@ CREATE TABLE media_files (
     created_at TIMESTAMP(0) WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP(0) WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE UNIQUE INDEX IF NOT EXISTS uq_media_files_document_file_path
+ON media_files(document_id, file_path);
+
+-- ===========================================================
+-- 1.b TABLES : EXTRACTION (Le flux brut depuis les PDF)
+-- ===========================================================
+CREATE TABLE extraction_runs (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    source VARCHAR(50) NOT NULL CHECK (source IN ('PDF', 'OCR', 'API', 'MANUAL')) DEFAULT 'PDF',
+    status VARCHAR(20) NOT NULL CHECK (status IN ('queued', 'running', 'succeeded', 'failed')) DEFAULT 'queued',
+    started_at TIMESTAMP(0) WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    finished_at TIMESTAMP(0) WITHOUT TIME ZONE,
+    meta JSONB DEFAULT '{}'::jsonb
+);
+
+CREATE INDEX IF NOT EXISTS idx_extraction_runs_meta ON extraction_runs USING GIN (meta);
+
+CREATE TABLE text_extractions (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    extraction_run_id UUID REFERENCES extraction_runs(id) ON DELETE SET NULL,
+    document_id UUID NOT NULL REFERENCES legal_documents(id) ON DELETE CASCADE,
+    media_file_id UUID REFERENCES media_files(id) ON DELETE SET NULL,
+
+    entity_type VARCHAR(30) NOT NULL CHECK (entity_type IN ('DOCUMENT', 'STRUCTURE_NODE', 'ARTICLE')),
+    entity_id UUID,
+
+    page_start INT,
+    page_end INT,
+    locator JSONB DEFAULT '{}'::jsonb,
+
+    raw_text TEXT NOT NULL,
+    normalized_text TEXT,
+    text_hash VARCHAR(64),
+
+    confidence NUMERIC(5,4) CHECK (confidence >= 0 AND confidence <= 1),
+    extracted_at TIMESTAMP(0) WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    meta JSONB DEFAULT '{}'::jsonb,
+
+    CONSTRAINT chk_text_extractions_entity_id_required CHECK (
+        entity_type = 'DOCUMENT' OR entity_id IS NOT NULL
+    ),
+    CONSTRAINT chk_text_extractions_page_range CHECK (
+        page_start IS NULL OR page_end IS NULL OR page_start <= page_end
+    )
+);
+
+CREATE INDEX IF NOT EXISTS idx_text_extractions_document_id ON text_extractions(document_id);
+CREATE INDEX IF NOT EXISTS idx_text_extractions_media_file_id ON text_extractions(media_file_id);
+CREATE INDEX IF NOT EXISTS idx_text_extractions_meta ON text_extractions USING GIN (meta);
+
+CREATE UNIQUE INDEX IF NOT EXISTS uq_text_extractions_media_hash
+ON text_extractions(media_file_id, text_hash)
+WHERE media_file_id IS NOT NULL AND text_hash IS NOT NULL;
 
 -- ===========================================================
 -- 2. TABLE : SQUELETTE STRUCTUREL (Materialized Path)
@@ -254,6 +334,8 @@ CREATE TABLE structure_nodes (
 
 CREATE INDEX idx_structure_path ON structure_nodes USING GIST (tree_path);
 CREATE INDEX idx_structure_doc ON structure_nodes(document_id);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_structure_nodes_document_path
+ON structure_nodes(document_id, tree_path);
 
 -- ===========================================================
 -- 3. TABLE : ARTICLES (L'identité stable)
@@ -271,6 +353,9 @@ CREATE TABLE articles (
 );
 
 CREATE INDEX IF NOT EXISTS idx_articles_updated_at ON articles(updated_at);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_articles_document_numero
+ON articles(document_id, numero_article)
+WHERE deleted_at IS NULL;
 
 -- ===========================================================
 -- 4. TABLE : VERSIONS D'ARTICLES (Le contenu & RAG)
@@ -278,21 +363,26 @@ CREATE INDEX IF NOT EXISTS idx_articles_updated_at ON articles(updated_at);
 CREATE TABLE article_versions (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     article_id UUID NOT NULL REFERENCES articles(id) ON DELETE CASCADE,
-    validity_period DATERANGE NOT NULL,
+    validity_period DATERANGE NOT NULL DEFAULT daterange(CURRENT_DATE, 'infinity'::date, '[)'),
     contenu_texte TEXT NOT NULL,
     embedding_context TEXT,
     embedding VECTOR(1024),
     search_tsv TSVECTOR,
     modifie_par_document_id UUID REFERENCES legal_documents(id),
+    source_extraction_id UUID REFERENCES text_extractions(id) ON DELETE SET NULL,
     validation_status VARCHAR(255) DEFAULT 'pending',
     is_verified BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP(0) WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP(0) WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT chk_article_versions_validity_not_empty CHECK (NOT isempty(validity_period)),
     EXCLUDE USING GIST (
         article_id WITH =,
         validity_period WITH &&
     )
 );
+
+COMMENT ON COLUMN article_versions.validity_period IS
+'Période de validité (daterange) : si inconnue au moment de l''ingestion PDF/OCR, l''application peut laisser la valeur par défaut daterange(CURRENT_DATE, ''infinity'', ''[)'') afin que Postgres accepte l''insert. La période doit ensuite être affinée/validée (juriste/IA) en UPDATE sur la version concernée pour éviter des conflits avec la contrainte EXCLUDE (chevauchements).';
 
 CREATE INDEX idx_versions_search ON article_versions USING GIN(search_tsv);
 
@@ -309,11 +399,28 @@ CREATE TABLE document_relations (
     target_doc_id UUID REFERENCES legal_documents(id),
     source_article_id UUID REFERENCES articles(id),
     target_article_id UUID REFERENCES articles(id),
-    relation_type VARCHAR(50) CHECK (relation_type IN ('MODIFIE', 'ABROGE', 'CITE', 'COMPLETE')),
+    relation_type VARCHAR(50),
     commentaire TEXT,
+    effective_date DATE,
+    confidence NUMERIC(5,4) CHECK (confidence >= 0 AND confidence <= 1),
+    meta JSONB DEFAULT '{}'::jsonb,
     created_at TIMESTAMP(0) WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP(0) WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
+
+ALTER TABLE document_relations
+    ADD CONSTRAINT document_relations_relation_type_check
+    CHECK (relation_type IN ('CREE', 'MODIFIE', 'ABROGE', 'CITE', 'COMPLETE', 'RENUMEROTE'));
+
+ALTER TABLE document_relations
+    ADD CONSTRAINT chk_document_relations_endpoints
+    CHECK (
+        (source_doc_id IS NOT NULL OR source_article_id IS NOT NULL)
+        AND
+        (target_doc_id IS NOT NULL OR target_article_id IS NOT NULL)
+    );
+
+CREATE INDEX IF NOT EXISTS idx_document_relations_meta ON document_relations USING GIN (meta);
 
 -- ===========================================================
 -- 6. TABLE : DRAPEAUX DE CURATION (Signalement d'erreurs)
@@ -500,6 +607,44 @@ BEGIN
     END IF;
 END;
 $$ LANGUAGE plpgsql;
+
+COMMENT ON FUNCTION fn_refresh_article_version_tsv() IS
+'Met à jour search_tsv sur article_versions lors des INSERT/UPDATE de contenu_texte et lors des changements de tags pour les entités Article.';
+
+-- ===========================================================
+-- 10. TRIGGERS : COHÉRENCE STRUCTURE (parent_node_id ↔ document_id)
+-- ===========================================================
+CREATE OR REPLACE FUNCTION fn_enforce_article_parent_same_document()
+RETURNS TRIGGER AS $$
+DECLARE
+    parent_document_id UUID;
+BEGIN
+    IF NEW.parent_node_id IS NULL THEN
+        RETURN NEW;
+    END IF;
+
+    SELECT document_id INTO parent_document_id
+    FROM structure_nodes
+    WHERE id = NEW.parent_node_id;
+
+    IF parent_document_id IS NULL THEN
+        RAISE EXCEPTION 'parent_node_id % inexistant', NEW.parent_node_id;
+    END IF;
+
+    IF parent_document_id <> NEW.document_id THEN
+        RAISE EXCEPTION 'parent_node_id % appartient au document %, mais l''article appartient au document %', NEW.parent_node_id, parent_document_id, NEW.document_id;
+    END IF;
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+COMMENT ON FUNCTION fn_enforce_article_parent_same_document() IS
+'Empêche de référencer un structure_nodes d''un autre document via articles.parent_node_id (source d''incohérences lors de l''import PDF).';
+
+CREATE TRIGGER trg_articles_parent_node_same_document
+BEFORE INSERT OR UPDATE OF parent_node_id, document_id ON articles
+FOR EACH ROW EXECUTE FUNCTION fn_enforce_article_parent_same_document();
 
 CREATE TRIGGER trg_refresh_tsv_on_version
 BEFORE INSERT OR UPDATE OF contenu_texte ON article_versions

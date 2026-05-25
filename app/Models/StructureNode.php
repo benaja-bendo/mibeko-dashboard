@@ -13,6 +13,7 @@ class StructureNode extends Model
     use HasFactory, HasUuids;
 
     protected $fillable = [
+        'id',
         'document_id',
         'type_unite',
         'numero',

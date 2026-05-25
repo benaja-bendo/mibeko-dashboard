@@ -2,7 +2,6 @@
 
 namespace Database\Seeders;
 
-use App\Observers\ArticleVersionObserver;
 use Illuminate\Database\Seeder;
 
 class DatabaseSeeder extends Seeder
@@ -12,25 +11,23 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // Disable automatic embedding generation during seeding (pour aller plus vite)
-        ArticleVersionObserver::$shouldSkipEmbeddings = true;
+        // Les embeddings sont désactivés par défaut pendant l'ingestion
+        // et seront générés par le job cron mibeko:process-rag
 
         // Call other seeders
         $this->call([
             SystemRequirementsSeeder::class,
             RolesAndPermissionsSeeder::class,
-            PopularCodesSeeder::class,
-            RealisticLegalSeeder::class, // Désactivé pour la prod : on utilise uniquement les vrais JSON
-            CongoJournalOfficielSeeder::class,
+            // PopularCodesSeeder::class,
+            // RealisticLegalSeeder::class, // Désactivé pour la prod : on utilise uniquement les vrais JSON
+            // CongoJournalOfficielSeeder::class,
         ]);
-
-        // Re-enable it if needed (optional since seeder process ends here)
-        ArticleVersionObserver::$shouldSkipEmbeddings = false;
 
         $this->command->newLine();
         $this->command->info('🎉 Seeding principal terminé avec succès !');
-        $this->command->warn('⚠️  ATTENTION: Les embeddings vectoriels n\'ont pas été générés pour gagner du temps.');
-        $this->command->warn('👉  Veuillez exécuter la commande suivante pour les générer en arrière-plan :');
+        $this->command->warn('⚠️  ATTENTION: Les embeddings vectoriels n\'ont pas été générés pendant le seeding.');
+        $this->command->warn('👉  Ils seront générés automatiquement par le job cron qui s\'exécute toutes les 10 minutes.');
+        $this->command->warn('👉  Vous pouvez aussi les générer manuellement avec :');
         $this->command->info('    php artisan mibeko:process-rag --limit=200 --batch=20 --delay=500');
         $this->command->newLine();
     }

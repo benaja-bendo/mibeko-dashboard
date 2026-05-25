@@ -47,4 +47,9 @@ return [
         'password' => env('RABBITMQ_PASSWORD', 'guest'),
     ],
 
+    'mineru' => [
+        'api_url' => env('MINERU_API_URL', 'https://mineru.net/api/v4'),
+        'api_key' => env('MINERU_API_KEY'),
+    ],
+
 ];

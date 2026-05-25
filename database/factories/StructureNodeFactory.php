@@ -19,11 +19,41 @@ class StructureNodeFactory extends Factory
     public function definition(): array
     {
         return [
-            'document_id' => LegalDocument::factory(),
+            'document_id' => null, // Do not create a document by default
             'type_unite' => $this->faker->randomElement(['Livre', 'Titre', 'Chapitre']),
             'numero' => $this->faker->randomElement(['I', 'II', 'III', 'IV', 'V']),
             'titre' => $this->faker->sentence(),
             'tree_path' => $this->faker->slug(),
         ];
+    }
+
+    /**
+     * Définir un document spécifique pour le nœud.
+     *
+     * @return Factory<StructureNode>
+     */
+    public function forDocument(int|string $documentId): Factory
+    {
+        return $this->state(function (array $attributes) use ($documentId) {
+            return [
+                'document_id' => $documentId,
+            ];
+        });
+    }
+
+    /**
+     * Configurer la factory après la création.
+     *
+     * @return Factory<StructureNode>
+     */
+    public function configure(): Factory
+    {
+        return $this->afterMaking(function (StructureNode $node) {
+            // Si document_id est une factory, créer le document d'abord
+            if ($node->document_id instanceof Factory) {
+                $document = LegalDocument::factory()->create();
+                $node->document_id = $document->id;
+            }
+        });
     }
 }

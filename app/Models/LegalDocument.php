@@ -24,6 +24,10 @@ class LegalDocument extends Model implements Auditable
         'type_code',
         'institution_id',
         'official_journal_id',
+        'document_key',
+        'document_role',
+        'consolidation_as_of',
+        'stock_code',
         'titre_officiel',
         'reference_nor',
         'date_signature',
@@ -32,6 +36,7 @@ class LegalDocument extends Model implements Auditable
         'statut',
         'curation_status',
         'extraction_status',
+        'metadata',
     ];
 
     const STATUS_DRAFT = 'draft';
@@ -48,6 +53,8 @@ class LegalDocument extends Model implements Auditable
             'date_signature' => 'date',
             'date_publication' => 'date',
             'date_entree_vigueur' => 'date',
+            'consolidation_as_of' => 'date',
+            'metadata' => 'array',
         ];
     }
 
