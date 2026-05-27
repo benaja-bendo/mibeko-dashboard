@@ -21,7 +21,7 @@ class ArticleFactory extends Factory
     {
         return [
             'document_id' => LegalDocument::factory(),
-            'parent_node_id' => StructureNode::factory(),
+            'parent_node_id' => null,
             'numero_article' => (string) $this->faker->numberBetween(1, 100),
             'ordre_affichage' => $this->faker->numberBetween(1, 1000),
             'validation_status' => $this->faker->randomElement(['pending', 'in_progress', 'validated']),
@@ -49,18 +49,18 @@ class ArticleFactory extends Factory
      */
     public function configure(): Factory
     {
-        return $this->afterMaking(function (Article $article) {
-            // Si document_id est une factory, créer le document d'abord
-            if ($article->document_id instanceof Factory) {
-                $document = LegalDocument::factory()->create();
-                $article->document_id = $document->id;
+        return $this->afterCreating(function (Article $article): void {
+            if ($article->parent_node_id) {
+                return;
             }
 
-            // Si parent_node_id est une factory, créer le nœud avec le même document
-            if ($article->parent_node_id instanceof Factory) {
-                $parentNode = StructureNode::factory()->create(['document_id' => $article->document_id]);
-                $article->parent_node_id = $parentNode->id;
-            }
+            $parentNode = StructureNode::factory()->create([
+                'document_id' => $article->document_id,
+            ]);
+
+            $article->forceFill([
+                'parent_node_id' => $parentNode->id,
+            ])->save();
         });
     }
 }

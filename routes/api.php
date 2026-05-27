@@ -72,6 +72,10 @@ Route::prefix('v1')->middleware('throttle:api')->group(function () {
     Route::get('legal-documents/{document}/tree', [StructureNodeController::class, 'tree']);
 
     // Structure & Articles management
+    // Article Search (for mobile app) - BE3 Hybrid
+    Route::get('search', [ArticleSearchController::class, 'search']);
+    Route::get('articles/search', [ArticleSearchController::class, 'search']);
+
     Route::post('structure-nodes/{id}/move', [StructureNodeController::class, 'move']);
     Route::apiResource('structure-nodes', StructureNodeController::class)->except(['index', 'show']);
     Route::apiResource('articles', ArticleController::class)->except(['index']);
@@ -92,10 +96,6 @@ Route::prefix('v1')->middleware('throttle:api')->group(function () {
     // BE5 - PDF Export
     Route::get('legal-documents/{id}/export', [LegalDocumentExportController::class, 'export']);
     Route::get('articles/{id}/export', [LegalDocumentExportController::class, 'exportArticle']);
-
-    // Article Search (for mobile app) - BE3 Hybrid
-    Route::get('search', [ArticleSearchController::class, 'search']);
-    Route::get('articles/search', [ArticleSearchController::class, 'search']);
 
     // Curation / Signalements (Mobile App)
     Route::post('reports', [CurationFlagController::class, 'store']);

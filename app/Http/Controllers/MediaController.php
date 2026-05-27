@@ -45,7 +45,10 @@ class MediaController extends Controller
 
         $document->mediaFiles()->create([
             'file_path' => $validated['file_path'],
+            'object_key' => $validated['file_path'],
             'mime_type' => 'application/pdf',
+            'file_category' => 'SOURCE_PDF',
+            'original_filename' => basename($validated['file_path']),
             'description' => 'Attaché manuellement depuis le navigateur',
         ]);
 
