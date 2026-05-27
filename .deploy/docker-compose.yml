@@ -22,7 +22,7 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.docker.network=proxy"
-      - "traefik.http.routers.mibeko.rule=Host(`app.mibeko.benaja-bendo.fr`)"
+      - "traefik.http.routers.mibeko.rule=Host(`${MIBEKO_HOST:-app.mibeko.fr}`)"
       - "traefik.http.routers.mibeko.entrypoints=websecure"
       - "traefik.http.routers.mibeko.tls.certresolver=myresolver"
       - "traefik.http.services.mibeko.loadbalancer.server.port=80"
@@ -49,16 +49,16 @@ services:
     networks: [internal, proxy, db_internal]
     depends_on: [app]
 
-  rabbitmq-consumer:
-    image: ghcr.io/${GITHUB_REPOSITORY}:latest
-    container_name: mibeko-rabbitmq-consumer
-    restart: unless-stopped
-    command: ["php", "artisan", "rabbitmq:consume-extraction-status"]
-    env_file: [.env]
-    volumes:
-      - mibeko_storage:/var/www/html/storage
-    networks: [internal, proxy, db_internal]
-    depends_on: [app]
+  # rabbitmq-consumer:
+  #   image: ghcr.io/${GITHUB_REPOSITORY}:latest
+  #   container_name: mibeko-rabbitmq-consumer
+  #   restart: unless-stopped
+  #   command: ["php", "artisan", "rabbitmq:consume-extraction-status"]
+  #   env_file: [.env]
+  #   volumes:
+  #     - mibeko_storage:/var/www/html/storage
+  #   networks: [internal, proxy, db_internal]
+  #   depends_on: [app]
 
   reverb:
     image: ghcr.io/${GITHUB_REPOSITORY}:latest
@@ -71,7 +71,7 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.docker.network=proxy"
-      - "traefik.http.routers.mibeko-ws.rule=Host(`reverb.mibeko.benaja-bendo.fr`)"
+      - "traefik.http.routers.mibeko-ws.rule=Host(`${MIBEKO_REVERB_HOST:-reverb.mibeko.fr}`)"
       - "traefik.http.routers.mibeko-ws.entrypoints=websecure"
       - "traefik.http.routers.mibeko-ws.tls.certresolver=myresolver"
       - "traefik.http.services.mibeko-ws.loadbalancer.server.port=8080"

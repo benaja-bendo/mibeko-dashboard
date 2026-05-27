@@ -6,7 +6,7 @@ export default function MentionsLegales() {
             <section className="mb-12">
                 <h2 className="text-2xl font-bold mb-4">1. Édition du site</h2>
                 <p>
-                    Le présent site, accessible à l'URL <span className="font-semibold italic">app.mibeko.benaja-bendo.fr</span> (le « Site »), est édité par :
+                    Le présent site, accessible à l'URL <span className="font-semibold italic">app.mibeko.fr</span> (le « Site »), est édité par :
                 </p>
                 <ul className="list-disc pl-6 mt-4 space-y-2">
                     <li><strong>Propriétaire :</strong> Bénaja Bendo</li>

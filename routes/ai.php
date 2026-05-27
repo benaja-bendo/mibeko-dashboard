@@ -3,7 +3,7 @@
 use Laravel\Mcp\Facades\Mcp;
 use App\Mcp\Servers\MibekoServer;
 
-// Le serveur web MCP pour exposer la base de données Mibeko à des agents externes (ex: Trae, Claude)
+// Le serveur web MCP pour exposer la base de données Mibeko à des agents externes (ex: Claude)
 Mcp::web('/mcp/mibeko', MibekoServer::class)
     ->middleware(['throttle:60,1']);
 

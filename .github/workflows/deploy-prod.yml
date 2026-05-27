@@ -59,7 +59,7 @@ jobs:
           cache-to: type=gha,mode=max
           build-args: |
             VITE_REVERB_APP_KEY=mibeko_key
-            VITE_REVERB_HOST=reverb.mibeko.benaja-bendo.fr
+            VITE_REVERB_HOST=${{ secrets.MIBEKO_REVERB_HOST }}
             VITE_REVERB_PORT=443
             VITE_REVERB_SCHEME=https
 
@@ -112,8 +112,8 @@ jobs:
             APP_ENV=production
             APP_KEY=${{ secrets.APP_KEY }}
             APP_DEBUG=false
-            APP_URL=https://app.mibeko.benaja-bendo.fr
-            APP_DOMAIN=app.mibeko.benaja-bendo.fr
+            APP_URL=https://${{ secrets.MIBEKO_APP_HOST }}
+            APP_DOMAIN=${{ secrets.MIBEKO_APP_HOST }}
             APP_LOCALE=fr
             APP_FALLBACK_LOCALE=fr
             APP_FAKER_LOCALE=fr_FR
@@ -134,18 +134,18 @@ jobs:
             SESSION_LIFETIME=120
             SESSION_ENCRYPT=false
             SESSION_PATH=/
-            SESSION_DOMAIN=.mibeko.benaja-bendo.fr
+            SESSION_DOMAIN=${{ secrets.MIBEKO_SESSION_DOMAIN }}
             CACHE_STORE=database
             QUEUE_CONNECTION=database
             BROADCAST_CONNECTION=reverb
             REVERB_APP_ID=123456
             REVERB_APP_KEY=mibeko_key
             REVERB_APP_SECRET=mibeko_secret
-            REVERB_HOST=reverb.mibeko.benaja-bendo.fr
+            REVERB_HOST=${{ secrets.MIBEKO_REVERB_HOST }}
             REVERB_PORT=443
             REVERB_SCHEME=https
             VITE_REVERB_APP_KEY=mibeko_key
-            VITE_REVERB_HOST=reverb.mibeko.benaja-bendo.fr
+            VITE_REVERB_HOST=${{ secrets.MIBEKO_REVERB_HOST }}
             VITE_REVERB_PORT=443
             VITE_REVERB_SCHEME=https
             FILESYSTEM_DISK=s3
@@ -182,6 +182,9 @@ jobs:
             GOOGLE_DRIVE_SUPPORTS_ALL_DRIVES=${{ secrets.GOOGLE_DRIVE_SUPPORTS_ALL_DRIVES || 'false' }}
             GOOGLE_DRIVE_USE_DISPLAY_PATHS=${{ secrets.GOOGLE_DRIVE_USE_DISPLAY_PATHS || 'true' }}
             GOOGLE_DRIVE_QUOTA_USER=${{ secrets.GOOGLE_DRIVE_QUOTA_USER || '' }}
+            MIBEKO_FRONT_HOST=${{ secrets.MIBEKO_FRONT_HOST }}
+            MIBEKO_APP_HOST=${{ secrets.MIBEKO_APP_HOST }}
+            MIBEKO_REVERB_HOST=${{ secrets.MIBEKO_REVERB_HOST }}
             GITHUB_REPOSITORY=$REPO_LC
             EOF
 

@@ -171,7 +171,7 @@ L'orchestration s'effectue via le fichier `docker-compose.prod.yml` composé de 
 - `queue` : Worker pour les files d'attente (background jobs).
 - `scheduler` : Planificateur de tâches (cron).
 
-Ces services communiquent avec les instances **PostgreSQL** et **MinIO** hébergées directement sur le VPS (via un réseau Docker `proxy`). Le trafic entrant (HTTPS) est géré par **Traefik** (domaine `app.mibeko.benaja-bendo.fr`).
+Ces services communiquent avec les instances **PostgreSQL** et **MinIO** hébergées directement sur le VPS (via un réseau Docker `proxy`). Le trafic entrant (HTTPS) est géré par **Traefik** (domaine `app.mibeko.fr`).
 
 ### 🚀 CI/CD avec GitHub Actions
 Un workflow de déploiement continu (`deploy-prod.yml`) se déclenche automatiquement lors d'un push sur la branche `main` :
