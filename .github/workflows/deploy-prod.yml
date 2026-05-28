@@ -112,8 +112,8 @@ jobs:
             APP_ENV=production
             APP_KEY=${{ secrets.APP_KEY }}
             APP_DEBUG=false
-            APP_URL=https://${{ secrets.MIBEKO_APP_HOST }}
-            APP_DOMAIN=${{ secrets.MIBEKO_APP_HOST }}
+            APP_URL=https://${{ secrets.MIBEKO_API_HOST }}
+            APP_DOMAIN=${{ secrets.MIBEKO_API_HOST }}
             APP_LOCALE=fr
             APP_FALLBACK_LOCALE=fr
             APP_FAKER_LOCALE=fr_FR
@@ -183,7 +183,7 @@ jobs:
             GOOGLE_DRIVE_USE_DISPLAY_PATHS=${{ secrets.GOOGLE_DRIVE_USE_DISPLAY_PATHS || 'true' }}
             GOOGLE_DRIVE_QUOTA_USER=${{ secrets.GOOGLE_DRIVE_QUOTA_USER || '' }}
             MIBEKO_FRONT_HOST=${{ secrets.MIBEKO_FRONT_HOST }}
-            MIBEKO_APP_HOST=${{ secrets.MIBEKO_APP_HOST }}
+            MIBEKO_API_HOST=${{ secrets.MIBEKO_API_HOST }}
             MIBEKO_REVERB_HOST=${{ secrets.MIBEKO_REVERB_HOST }}
             GITHUB_REPOSITORY=$REPO_LC
             EOF

@@ -22,7 +22,7 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.docker.network=proxy"
-      - "traefik.http.routers.mibeko.rule=Host(`${MIBEKO_HOST:-app.mibeko.fr}`)"
+      - "traefik.http.routers.mibeko.rule=Host(`${MIBEKO_API_HOST:-api.mibeko.fr}`)"
       - "traefik.http.routers.mibeko.entrypoints=websecure"
       - "traefik.http.routers.mibeko.tls.certresolver=myresolver"
       - "traefik.http.services.mibeko.loadbalancer.server.port=80"
