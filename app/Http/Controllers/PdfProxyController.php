@@ -38,10 +38,17 @@ class PdfProxyController extends Controller
             $journal = OfficialJournal::findOrFail($id);
             $path = $journal->file_path;
         } else {
-            $document = LegalDocument::with('mediaFiles')->findOrFail($id);
+            $document = LegalDocument::with(['mediaFiles', 'officialJournal'])->findOrFail($id);
             $mediaFile = $document->mediaFiles->firstWhere('mime_type', 'application/pdf')
                 ?? $document->mediaFiles->first(fn ($file) => str_ends_with(strtolower((string) $file->file_path), '.pdf'));
+            
             $path = $mediaFile?->file_path;
+
+            // Fallback to the Official Journal's PDF if the document doesn't have its own PDF
+            // This is common for FLUX documents extracted from a Journal
+            if (! $path && $document->officialJournal) {
+                $path = $document->officialJournal->file_path;
+            }
         }
 
         $download = filter_var($request->query('download'), FILTER_VALIDATE_BOOLEAN);

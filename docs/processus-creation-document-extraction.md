@@ -31,7 +31,7 @@ Un document peut avoir plusieurs fichiers rattachés :
 
 `media_files.file_path` contient un chemin objet S3/MinIO (ex: `documents/pdfs/...` ou `documents/jsons/...`).
 
-Référence schéma : [schema\_postgres.sql](file:///Users/benji_mac/Desktop/Mibeko/mibeko/mibeko-tableau-de-bord/schema_postgres.sql#L202-L237)
+Référence schéma : [pgsql-schema.sql](../database/schema/pgsql-schema.sql)
 
 ## Contrats d’échange (RabbitMQ)
 

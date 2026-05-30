@@ -2,7 +2,7 @@
 
 ## 1. Vision & Positionnement
 
-Mibeko est la plateforme LegalTech de référence pour la République du Congo (Brazzaville). Elle centralise, structure et rend intelligible le corpus juridique national, devenant l'outil indispensable des professionnels du droit et l'allié des citoyens.
+Mibeko est la plateforme LegalTech de référence pour la République du Congo (Brazzaville) puis à l'international. Elle centralise, structure et rend intelligible le corpus juridique national, devenant l'outil indispensable des professionnels du droit et l'allié des citoyens.
 
 > \[!IMPORTANT]
 > **Promesse :** Le droit congolais, clair, sourcé et accessible partout, même sans connexion.

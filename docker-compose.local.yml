@@ -40,7 +40,7 @@ services:
         environment:
             POSTGRES_USER: '${DB_USERNAME:-root}'
             POSTGRES_PASSWORD: '${DB_PASSWORD:-root}'
-            POSTGRES_DB: '${DB_DATABASE:-mibeko}'
+            POSTGRES_DB: '${DB_DATABASE:-mibeko-db}'
         volumes:
             - 'postgres_data:/var/lib/postgresql/data'
         networks:

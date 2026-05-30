@@ -37,14 +37,16 @@ class ProfileController extends Controller
 
         $user = $request->user();
 
-        if (isset($validated['name'])) {
+        if (array_key_exists('name', $validated) && filled($validated['name'])) {
             $user->update(['name' => $validated['name']]);
         }
 
+        $mobileProfileData = collect($validated)->except('name')->all();
+
         if ($user->mobileProfile) {
-            $user->mobileProfile->update($validated);
+            $user->mobileProfile->update($mobileProfileData);
         } else {
-            $user->mobileProfile()->create($validated);
+            $user->mobileProfile()->create($mobileProfileData);
         }
 
         return $this->success(
