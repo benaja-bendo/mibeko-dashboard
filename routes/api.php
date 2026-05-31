@@ -71,21 +71,30 @@ Route::prefix('v1')->middleware('throttle:api')->group(function () {
     Route::apiResource('legal-documents', LegalDocumentController::class)->only(['index', 'show']);
     Route::get('legal-documents/{document}/tree', [StructureNodeController::class, 'tree']);
 
+    // Bulk update — editor + admin only
+    Route::middleware(['auth:sanctum', 'role:editor|admin'])->group(function () {
+        Route::patch('legal-documents/bulk', [LegalDocumentController::class, 'bulkUpdate']);
+    });
+
     // Structure & Articles management
     // Article Search (for mobile app) - BE3 Hybrid
     Route::get('search', [ArticleSearchController::class, 'search']);
     Route::get('articles/search', [ArticleSearchController::class, 'search']);
 
-    Route::post('structure-nodes/{id}/move', [StructureNodeController::class, 'move']);
-    Route::apiResource('structure-nodes', StructureNodeController::class)->except(['index', 'show']);
-    Route::apiResource('articles', ArticleController::class)->except(['index']);
-    Route::post('articles/{article}/versions', [ArticleController::class, 'addVersion']);
-    
-    // Relations
+    // Write operations — editor + admin only
+    Route::middleware(['auth:sanctum', 'role:editor|admin'])->group(function () {
+        Route::post('structure-nodes/{id}/move', [StructureNodeController::class, 'move']);
+        Route::apiResource('structure-nodes', StructureNodeController::class)->except(['index', 'show']);
+        Route::apiResource('articles', ArticleController::class)->except(['index']);
+        Route::post('articles/{article}/versions', [ArticleController::class, 'addVersion']);
+
+        Route::post('articles/{article}/relations', [DocumentRelationController::class, 'store']);
+        Route::delete('relations/{id}', [DocumentRelationController::class, 'destroy']);
+    });
+
+    // Read relations — any authenticated user
     Route::get('articles/{article}/relations', [DocumentRelationController::class, 'index']);
-    Route::post('articles/{article}/relations', [DocumentRelationController::class, 'store']);
     Route::get('relations/search', [DocumentRelationController::class, 'searchTargets']);
-    Route::delete('relations/{id}', [DocumentRelationController::class, 'destroy']);
 
     // BE2 - Flat List Download
     Route::get('legal-documents/{id}/download', [LegalDocumentDownloadController::class, 'download']);

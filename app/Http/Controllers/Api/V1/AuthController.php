@@ -4,8 +4,9 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
-use Illuminate\Http\Request;
+use App\Traits\HttpResponses;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -16,12 +17,10 @@ use Kreait\Laravel\Firebase\Facades\Firebase;
  */
 class AuthController extends Controller
 {
-    use \App\Traits\HttpResponses;
+    use HttpResponses;
+
     /**
      * Register a new user.
-     *
-     * @param Request $request
-     * @return JsonResponse
      */
     public function register(Request $request): JsonResponse
     {
@@ -43,7 +42,7 @@ class AuthController extends Controller
 
         return $this->success([
             'token' => $user->createToken($request->device_name)->plainTextToken,
-            'user' => $user->load('roles', 'mobileProfile'),
+            'user' => $this->formatUser($user),
         ], 'Compte créé avec succès.');
     }
 
@@ -70,7 +69,7 @@ class AuthController extends Controller
 
         return $this->success([
             'token' => $user->createToken($request->device_name)->plainTextToken,
-            'user' => $user->load('roles', 'mobileProfile'),
+            'user' => $this->formatUser($user),
         ], 'Connexion réussie.');
     }
 
@@ -126,16 +125,31 @@ class AuthController extends Controller
 
         return $this->success([
             'token' => $user->createToken($request->device_name)->plainTextToken,
-            'user' => $user->load('roles', 'mobileProfile'),
+            'user' => $this->formatUser($user),
         ], 'Connexion Firebase réussie.');
     }
 
     /**
-     * Get authenticated user.
+     * Get authenticated user with roles and permissions.
      */
-    public function me(Request $request): User
+    public function me(Request $request): JsonResponse
     {
-        return $request->user();
+        return $this->success(['user' => $this->formatUser($request->user())]);
+    }
+
+    /**
+     * Normalize user data: roles as string array, permissions included.
+     *
+     * @return array<string, mixed>
+     */
+    private function formatUser(User $user): array
+    {
+        $user->load('mobileProfile');
+
+        return array_merge($user->toArray(), [
+            'roles' => $user->getRoleNames()->values(),
+            'permissions' => $user->getAllPermissions()->pluck('name')->values(),
+        ]);
     }
 
     /**
