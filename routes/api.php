@@ -76,6 +76,11 @@ Route::prefix('v1')->middleware('throttle:api')->group(function () {
         Route::patch('legal-documents/bulk', [LegalDocumentController::class, 'bulkUpdate']);
     });
 
+    // Delete documents — admin only
+    Route::middleware(['auth:sanctum', 'role:admin'])->group(function () {
+        Route::delete('legal-documents/{id}', [LegalDocumentController::class, 'destroy']);
+    });
+
     // Structure & Articles management
     // Article Search (for mobile app) - BE3 Hybrid
     Route::get('search', [ArticleSearchController::class, 'search']);

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Http\Resources\V1\LegalDocumentResource;
+use App\Models\DocumentRelation;
 use App\Models\LegalDocument;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -123,6 +124,21 @@ class LegalDocumentController extends Controller
             new LegalDocumentResource($document),
             'Document récupéré avec succès'
         );
+    }
+
+    public function destroy(string $id): JsonResponse
+    {
+        $document = LegalDocument::findOrFail($id);
+
+        DB::transaction(function () use ($id, $document) {
+            DocumentRelation::where('source_doc_id', $id)
+                ->orWhere('target_doc_id', $id)
+                ->delete();
+
+            $document->delete();
+        });
+
+        return $this->success(null, 'Document supprimé avec succès');
     }
 
     /**
