@@ -19,7 +19,7 @@ return [
 
     'allowed_methods' => ['*'],
 
-    'allowed_origins' => ['https://mibeko.fr', 'https://www.mibeko.fr', 'http://localhost:5173', 'http://localhost:5174'],
+    'allowed_origins' => ['https://app.mibeko.fr', 'https://mibeko.fr', 'https://www.mibeko.fr', 'http://localhost:5173', 'http://localhost:5174'],
 
     'allowed_origins_patterns' => [],
 
