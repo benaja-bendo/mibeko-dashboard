@@ -73,5 +73,5 @@ it('can login and get me', function () {
         ->getJson('/api/v1/me');
 
     $meResponse->assertStatus(200)
-        ->assertJsonPath('email', 'test@example.com');
+        ->assertJsonPath('data.user.email', 'test@example.com');
 });
