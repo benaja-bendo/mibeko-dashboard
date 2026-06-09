@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\Relations\MorphToMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Laravel\Cashier\Billable;
 use Laravel\Fortify\TwoFactorAuthenticatable;
 use Laravel\Sanctum\HasApiTokens;
 use Spatie\Permission\Traits\HasRoles;
@@ -19,7 +20,7 @@ use Spatie\Permission\Traits\HasRoles;
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
-    use HasApiTokens, HasFactory, HasRoles, HasUuids, Notifiable, SoftDeletes, TwoFactorAuthenticatable;
+    use Billable, HasApiTokens, HasFactory, HasRoles, HasUuids, Notifiable, SoftDeletes, TwoFactorAuthenticatable;
 
     /**
      * The attributes that are mass assignable.
@@ -83,5 +84,25 @@ class User extends Authenticatable
     public function mobileProfile(): HasOne
     {
         return $this->hasOne(MobileProfile::class);
+    }
+
+    /**
+     * Récupère les préférences / consentements applicatifs de l'utilisateur.
+     */
+    public function settings(): HasOne
+    {
+        return $this->hasOne(UserSetting::class);
+    }
+
+    /**
+     * Retourne la ligne de préférences, en la créant avec ses valeurs par défaut
+     * si elle n'existe pas encore (utilisateurs créés avant l'ajout des settings).
+     */
+    public function settingsOrCreate(): UserSetting
+    {
+        return $this->settings()->firstOrCreate(
+            ['user_id' => $this->getKey()],
+            UserSetting::defaults(),
+        );
     }
 }

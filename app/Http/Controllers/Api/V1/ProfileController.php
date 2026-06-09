@@ -3,71 +3,79 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
-use Illuminate\Http\JsonResponse;
+use App\Http\Requests\Api\V1\UpdateProfileRequest;
+use App\Http\Resources\V1\UserProfileResource;
 use App\Traits\HttpResponses;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
 
 /**
  * @group User Profile
+ *
+ * Gestion des informations personnelles et du mot de passe du compte.
  */
 class ProfileController extends Controller
 {
     use HttpResponses;
 
     /**
-     * Get user profile.
+     * Retourne le compte complet : identité, profil étendu, rôles/permissions
+     * (lecture seule) et préférences applicatives.
      */
     public function show(Request $request): JsonResponse
     {
-        $user = $request->user()->load('roles', 'mobileProfile');
-        return $this->success($user, 'Profil récupéré avec succès.');
+        $user = $request->user()->load('roles', 'mobileProfile', 'settings');
+
+        return $this->success(new UserProfileResource($user), 'Profil récupéré avec succès.');
     }
 
     /**
-     * Update user profile.
+     * Met à jour les informations personnelles.
+     *
+     * Le nom vit sur `users` ; téléphone / fonction / organisation sur le profil
+     * étendu (`mobile_profiles`), créé à la volée si absent.
      */
-    public function update(Request $request): JsonResponse
+    public function update(UpdateProfileRequest $request): JsonResponse
     {
-        $validated = $request->validate([
-            'name' => 'nullable|string|max:255',
-            'phone' => 'nullable|string|max:20',
-            'profession' => 'nullable|string|max:255',
-            'company' => 'nullable|string|max:255',
-        ]);
-
+        $validated = $request->validated();
         $user = $request->user();
 
-        if (array_key_exists('name', $validated) && filled($validated['name'])) {
+        if (array_key_exists('name', $validated)) {
             $user->update(['name' => $validated['name']]);
         }
 
-        $mobileProfileData = collect($validated)->except('name')->all();
+        $profileData = collect($validated)->only(['phone', 'profession', 'company'])->all();
 
-        if ($user->mobileProfile) {
-            $user->mobileProfile->update($mobileProfileData);
-        } else {
-            $user->mobileProfile()->create($mobileProfileData);
+        if ($profileData !== []) {
+            $user->mobileProfile
+                ? $user->mobileProfile->update($profileData)
+                : $user->mobileProfile()->create($profileData);
         }
 
         return $this->success(
-            $user->load('roles', 'mobileProfile'),
+            new UserProfileResource($user->fresh()->load('roles', 'mobileProfile', 'settings')),
             'Profil mis à jour avec succès.'
         );
     }
 
     /**
-     * Update user password.
+     * Change le mot de passe après vérification du mot de passe courant, puis
+     * révoque toutes les autres sessions (le jeton courant reste valide).
      */
     public function updatePassword(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'current_password' => 'required|current_password',
-            'password' => 'required|string|min:8|confirmed',
+            'current_password' => ['required', 'current_password'],
+            'password' => ['required', 'string', 'min:8', 'confirmed'],
         ]);
 
-        $request->user()->update([
-            'password' => \Illuminate\Support\Facades\Hash::make($validated['password']),
-        ]);
+        $user = $request->user();
+        $user->update(['password' => Hash::make($validated['password'])]);
+
+        // Hygiène de sécurité : invalider les autres sessions après reset.
+        $currentTokenId = $user->currentAccessToken()?->getKey();
+        $user->tokens()->where('id', '!=', $currentTokenId)->delete();
 
         return $this->success(null, 'Mot de passe mis à jour avec succès.');
     }

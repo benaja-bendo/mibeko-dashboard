@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\V1\AiAssistantController;
 use App\Http\Controllers\Api\V1\ArticleController;
 use App\Http\Controllers\Api\V1\ArticleSearchController;
 use App\Http\Controllers\Api\V1\AuthController;
+use App\Http\Controllers\Api\V1\BillingController;
 use App\Http\Controllers\Api\V1\CatalogController;
 use App\Http\Controllers\Api\V1\CurationFlagController;
 use App\Http\Controllers\Api\V1\DeviceController;
@@ -17,9 +18,13 @@ use App\Http\Controllers\Api\V1\LegalDocumentDownloadController;
 use App\Http\Controllers\Api\V1\LegalDocumentExportController;
 use App\Http\Controllers\Api\V1\NotificationController;
 use App\Http\Controllers\Api\V1\OfficialJournalController;
+use App\Http\Controllers\Api\V1\PreferencesController;
+use App\Http\Controllers\Api\V1\PrivacyController;
 use App\Http\Controllers\Api\V1\ProfileController;
+use App\Http\Controllers\Api\V1\SessionController;
 use App\Http\Controllers\Api\V1\StructureNodeController;
 use App\Http\Controllers\Api\V1\SyncController;
+use App\Http\Controllers\Api\V1\TwoFactorController;
 use App\Http\Controllers\PdfProxyController;
 use Illuminate\Support\Facades\Route;
 
@@ -37,10 +42,39 @@ Route::prefix('v1')->middleware('throttle:api')->group(function () {
         Route::get('me', [AuthController::class, 'me']);
         Route::post('logout', [AuthController::class, 'logout']);
 
-        // Profile
+        // Profile — informations personnelles & mot de passe
         Route::get('profile', [ProfileController::class, 'show']);
         Route::put('profile', [ProfileController::class, 'update']);
         Route::put('profile/password', [ProfileController::class, 'updatePassword']);
+
+        // Préférences — affichage, notifications, consentements RGPD
+        Route::get('profile/preferences', [PreferencesController::class, 'show']);
+        Route::put('profile/preferences', [PreferencesController::class, 'update']);
+        Route::put('profile/notification-preferences', [PreferencesController::class, 'updateNotifications']);
+        Route::put('profile/consents', [PreferencesController::class, 'updateConsents']);
+
+        // Sécurité — double authentification (2FA TOTP)
+        Route::get('profile/two-factor', [TwoFactorController::class, 'show']);
+        Route::post('profile/two-factor', [TwoFactorController::class, 'store']);
+        Route::post('profile/two-factor/confirm', [TwoFactorController::class, 'confirm']);
+        Route::post('profile/two-factor/recovery-codes', [TwoFactorController::class, 'recoveryCodes']);
+        Route::delete('profile/two-factor', [TwoFactorController::class, 'destroy']);
+
+        // Sécurité — sessions actives (jetons Sanctum)
+        Route::get('profile/sessions', [SessionController::class, 'index']);
+        Route::delete('profile/sessions/others', [SessionController::class, 'destroyOthers']);
+        Route::delete('profile/sessions/{id}', [SessionController::class, 'destroy']);
+
+        // Conformité RGPD — export & suppression
+        Route::get('profile/export', [PrivacyController::class, 'export']);
+        Route::delete('profile', [PrivacyController::class, 'destroy']);
+
+        // Facturation (Cashier / Stripe)
+        Route::get('billing', [BillingController::class, 'overview']);
+        Route::put('billing/info', [BillingController::class, 'updateInfo']);
+        Route::post('billing/checkout', [BillingController::class, 'checkout']);
+        Route::get('billing/portal', [BillingController::class, 'portal']);
+        Route::get('billing/invoices/{invoiceId}/pdf', [BillingController::class, 'downloadInvoice']);
 
         // Notifications
         Route::get('notifications', [NotificationController::class, 'index']);
