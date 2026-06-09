@@ -113,13 +113,14 @@ Route::prefix('v1')->middleware('throttle:api')->group(function () {
     Route::apiResource('legal-documents', LegalDocumentController::class)->only(['index', 'show']);
     Route::get('legal-documents/{document}/tree', [StructureNodeController::class, 'tree']);
 
-    // Bulk update — editor + admin only
+    // Bulk update and delete — editor + admin only
     Route::middleware(['auth:sanctum', 'role:editor|admin'])->group(function () {
         Route::patch('legal-documents/bulk', [LegalDocumentController::class, 'bulkUpdate']);
+        Route::delete('legal-documents/bulk', [LegalDocumentController::class, 'bulkDestroy']);
     });
 
-    // Delete documents — admin only
-    Route::middleware(['auth:sanctum', 'role:admin'])->group(function () {
+    // Delete documents — editor + admin
+    Route::middleware(['auth:sanctum', 'role:editor|admin'])->group(function () {
         Route::delete('legal-documents/{id}', [LegalDocumentController::class, 'destroy']);
     });
 

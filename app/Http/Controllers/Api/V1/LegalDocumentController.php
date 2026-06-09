@@ -9,6 +9,7 @@ use App\Models\LegalDocument;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 use Spatie\QueryBuilder\AllowedFilter;
 use Spatie\QueryBuilder\QueryBuilder;
 
@@ -133,19 +134,76 @@ class LegalDocumentController extends Controller
         );
     }
 
-    public function destroy(string $id): JsonResponse
+    public function destroy(Request $request, string $id): JsonResponse
     {
-        $document = LegalDocument::findOrFail($id);
+        $document = LegalDocument::withTrashed()->findOrFail($id);
+        $force = $request->boolean('force');
 
-        DB::transaction(function () use ($id, $document) {
-            DocumentRelation::where('source_doc_id', $id)
-                ->orWhere('target_doc_id', $id)
-                ->delete();
+        if ($force) {
+            Gate::authorize('forceDelete', $document);
+        } else {
+            Gate::authorize('delete', $document);
+        }
 
-            $document->delete();
+        DB::transaction(function () use ($id, $document, $force) {
+            if ($force) {
+                DocumentRelation::where('source_doc_id', $id)
+                    ->orWhere('target_doc_id', $id)
+                    ->delete();
+                $document->forceDelete();
+            } else {
+                $document->delete();
+            }
         });
 
-        return $this->success(null, 'Document supprimé avec succès');
+        $message = $force ? 'Document supprimé définitivement avec succès' : 'Document supprimé avec succès';
+        return $this->success(null, $message);
+    }
+
+    /**
+     * Bulk delete documents.
+     *
+     * @bodyParam ids string[] required List of document UUIDs.
+     * @bodyParam force boolean Whether to force delete.
+     */
+    public function bulkDestroy(Request $request): JsonResponse
+    {
+        $request->validate([
+            'ids' => ['required', 'array', 'min:1', 'max:200'],
+            'ids.*' => ['uuid'],
+            'force' => ['boolean'],
+        ]);
+
+        $force = $request->boolean('force');
+        $ids = $request->input('ids');
+        $documents = LegalDocument::withTrashed()->whereIn('id', $ids)->get();
+
+        foreach ($documents as $document) {
+            if ($force) {
+                Gate::authorize('forceDelete', $document);
+            } else {
+                Gate::authorize('delete', $document);
+            }
+        }
+
+        DB::transaction(function () use ($ids, $documents, $force) {
+            if ($force) {
+                DocumentRelation::whereIn('source_doc_id', $ids)
+                    ->orWhereIn('target_doc_id', $ids)
+                    ->delete();
+                
+                foreach ($documents as $document) {
+                    $document->forceDelete();
+                }
+            } else {
+                foreach ($documents as $document) {
+                    $document->delete();
+                }
+            }
+        });
+
+        $message = $force ? 'Documents supprimés définitivement avec succès' : 'Documents supprimés avec succès';
+        return $this->success(['deleted_count' => count($ids)], $message);
     }
 
     /**
