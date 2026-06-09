@@ -30,6 +30,13 @@ class LegalDocumentController extends Controller
             'statut',
             'curation_status',
             'document_role',
+            'legal_scope',
+            AllowedFilter::callback('date_from', function ($query, $value) {
+                $query->whereDate('date_publication', '>=', $value);
+            }),
+            AllowedFilter::callback('date_to', function ($query, $value) {
+                $query->whereDate('date_publication', '<=', $value);
+            }),
             AllowedFilter::callback('recent', function ($query, $value) {
                 // ?filter[recent]=7  → modifiés dans les 7 derniers jours
                 $days = is_numeric($value) ? (int) $value : 7;

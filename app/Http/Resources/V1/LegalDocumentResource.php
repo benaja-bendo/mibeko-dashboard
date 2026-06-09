@@ -32,6 +32,9 @@ class LegalDocumentResource extends JsonResource
             'document_key' => $this->document_key,
             'stock_code' => $this->stock_code,
 
+            // Périmètre juridique (national / ohada / communautaire)
+            'legal_scope' => $this->legal_scope ?? 'national',
+
             // Statuts
             'statut' => $this->statut,
             'status' => $this->statut,

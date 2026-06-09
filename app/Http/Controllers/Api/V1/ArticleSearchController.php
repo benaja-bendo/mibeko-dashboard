@@ -58,12 +58,23 @@ class ArticleSearchController extends Controller
             'document_id' => ['nullable', 'string', 'exists:legal_documents,id'],
             'tag' => ['nullable', 'string'],
             'type' => ['nullable', 'string', 'exists:document_types,code'],
+            'institution_id' => ['nullable', 'string', 'exists:institutions,id'],
+            'legal_scope' => ['nullable', 'string', 'in:national,ohada,communautaire'],
+            'date_from' => ['nullable', 'date'],
+            'date_to' => ['nullable', 'date'],
+            'sort' => ['nullable', 'string', 'in:relevance,date_desc,date_asc'],
+            'per_page' => ['nullable', 'integer', 'min:1', 'max:50'],
         ]);
 
         $query = $request->input('q');
         $documentId = $request->input('document_id');
         $tag = $request->input('tag');
         $type = $request->input('type');
+        $institutionId = $request->input('institution_id');
+        $legalScope = $request->input('legal_scope');
+        $dateFrom = $request->input('date_from');
+        $dateTo = $request->input('date_to');
+        $sort = $request->input('sort', 'relevance');
 
         if (empty($query) && empty($tag)) {
             return response()->json(['data' => [], 'meta' => []]);
@@ -74,6 +85,7 @@ class ArticleSearchController extends Controller
             ->join('legal_documents as ld', 'a.document_id', '=', 'ld.id')
             ->join('document_types as dt', 'ld.type_code', '=', 'dt.code')
             ->leftJoin('structure_nodes as sn', 'a.parent_node_id', '=', 'sn.id')
+            ->leftJoin('institutions as i', 'ld.institution_id', '=', 'i.id')
             ->where('av.validation_status', 'validated')
             ->whereNull('a.deleted_at')
             ->whereNull('ld.deleted_at')
@@ -86,10 +98,28 @@ class ArticleSearchController extends Controller
                 'av.validation_status',
                 'ld.id as document_id',
                 'ld.titre_officiel as document_title',
+                'ld.legal_scope',
+                'ld.date_publication',
+                'ld.institution_id',
                 'dt.code as document_type_code',
                 'dt.nom as type_name',
                 'sn.titre as node_title',
+                'i.nom as institution_name',
             ]);
+
+        // ── Filtres serveur (périmètre, institution, dates) ──────────────────
+        if ($institutionId) {
+            $results->where('ld.institution_id', $institutionId);
+        }
+        if ($legalScope) {
+            $results->where('ld.legal_scope', $legalScope);
+        }
+        if ($dateFrom) {
+            $results->whereDate('ld.date_publication', '>=', $dateFrom);
+        }
+        if ($dateTo) {
+            $results->whereDate('ld.date_publication', '<=', $dateTo);
+        }
 
         if ($tag) {
             $results->join('taggables as tgb', function ($join) {
@@ -169,7 +199,14 @@ class ArticleSearchController extends Controller
                     });
             }
 
-            $results->orderByDesc('total_score');
+            // Tri : pertinence (défaut) ou par date de publication.
+            if ($sort === 'date_desc') {
+                $results->orderByDesc('ld.date_publication');
+            } elseif ($sort === 'date_asc') {
+                $results->orderBy('ld.date_publication');
+            } else {
+                $results->orderByDesc('total_score');
+            }
         } else {
             $results->orderBy('a.ordre_affichage');
         }
@@ -194,6 +231,10 @@ class ArticleSearchController extends Controller
                 'document_type' => $item->document_type_code ?? '',
                 'node_title' => $item->node_title ?? '',
                 'breadcrumb' => $breadcrumb,
+                'legal_scope' => $item->legal_scope ?? 'national',
+                'institution_id' => $item->institution_id,
+                'institution' => $item->institution_name,
+                'date_publication' => $item->date_publication,
                 'validation_status' => $item->validation_status ?? 'validated',
                 'score' => isset($item->total_score) ? round((float) $item->total_score, 4) : 0,
             ];

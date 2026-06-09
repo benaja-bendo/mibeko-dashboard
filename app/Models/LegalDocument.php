@@ -37,7 +37,17 @@ class LegalDocument extends Model implements Auditable
         'curation_status',
         'extraction_status',
         'metadata',
+        'legal_scope',
     ];
+
+    const SCOPE_NATIONAL = 'national';
+
+    const SCOPE_OHADA = 'ohada';
+
+    const SCOPE_COMMUNAUTAIRE = 'communautaire';
+
+    /** @var array<int, string> Périmètres juridiques autorisés. */
+    const LEGAL_SCOPES = [self::SCOPE_NATIONAL, self::SCOPE_OHADA, self::SCOPE_COMMUNAUTAIRE];
 
     const STATUS_DRAFT = 'draft';
 
