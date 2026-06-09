@@ -68,6 +68,28 @@ class LegalDocument extends Model implements Auditable
         ];
     }
 
+    /**
+     * Cascade le soft-delete vers les articles.
+     *
+     * Les articles ne sont pas supprimés en base avec leur document : sans ce
+     * relai, ils « fuitent » dans les recherches d'articles, le sélecteur de
+     * relations et toute requête directe sur Article. On restaure de même.
+     */
+    protected static function booted(): void
+    {
+        static::deleting(function (LegalDocument $document) {
+            if ($document->isForceDeleting()) {
+                return;
+            }
+
+            $document->articles()->delete();
+        });
+
+        static::restoring(function (LegalDocument $document) {
+            $document->articles()->onlyTrashed()->restore();
+        });
+    }
+
     public function type(): BelongsTo
     {
         return $this->belongsTo(DocumentType::class, 'type_code', 'code');

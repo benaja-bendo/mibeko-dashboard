@@ -8,6 +8,7 @@ use App\Models\DocumentRelation;
 use App\Models\LegalDocument;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Spatie\QueryBuilder\AllowedFilter;
@@ -70,11 +71,21 @@ class LegalDocumentController extends Controller
 
         $documents = QueryBuilder::for(LegalDocument::class)
             ->with(['institution', 'type'])
-            ->withCount(['articles', 'relations', 'tags'])
+            ->withCount([
+                'articles',
+                'relations',
+                'tags',
+                'articles as embedded_articles_count' => fn ($q) => $q->whereHas(
+                    'activeVersion',
+                    fn ($q2) => $q2->whereNotNull('embedding')
+                ),
+            ])
             ->allowedFilters($this->allowedFilters())
             ->allowedSorts($this->allowedSorts())
             ->latest('updated_at')
             ->paginate($perPage);
+
+        $this->attachEmbeddingProgress($documents);
 
         return $this->paginatedSuccess(
             $documents,
@@ -96,7 +107,15 @@ class LegalDocumentController extends Controller
 
         $documents = QueryBuilder::for(LegalDocument::class)
             ->with(['institution', 'type'])
-            ->withCount(['articles', 'relations', 'tags'])
+            ->withCount([
+                'articles',
+                'relations',
+                'tags',
+                'articles as embedded_articles_count' => fn ($q) => $q->whereHas(
+                    'activeVersion',
+                    fn ($q2) => $q2->whereNotNull('embedding')
+                ),
+            ])
             ->when(! empty($query), function ($q) use ($query) {
                 $q->where(function ($sub) use ($query) {
                     $sub->where('titre_officiel', 'ilike', "%{$query}%")
@@ -109,11 +128,39 @@ class LegalDocumentController extends Controller
             ->latest('updated_at')
             ->paginate($perPage);
 
+        $this->attachEmbeddingProgress($documents);
+
         return $this->paginatedSuccess(
             $documents,
             LegalDocumentResource::class,
             'Résultats de la recherche de documents'
         );
+    }
+
+    /**
+     * Marque les documents d'une page dont l'indexation des embeddings est en cours.
+     *
+     * Une seule requête sur job_batches : un lot nommé « embed-doc:{id} » non
+     * terminé et non annulé signifie que le document est en cours d'indexation.
+     */
+    private function attachEmbeddingProgress(LengthAwarePaginator $paginator): void
+    {
+        $documents = $paginator->getCollection();
+
+        if ($documents->isEmpty()) {
+            return;
+        }
+
+        $activeNames = DB::table('job_batches')
+            ->whereIn('name', $documents->map(fn ($doc) => "embed-doc:{$doc->id}"))
+            ->whereNull('finished_at')
+            ->whereNull('cancelled_at')
+            ->pluck('name')
+            ->flip();
+
+        $documents->each(function ($doc) use ($activeNames) {
+            $doc->embedding_in_progress = $activeNames->has("embed-doc:{$doc->id}");
+        });
     }
 
     /**
@@ -125,7 +172,15 @@ class LegalDocumentController extends Controller
     {
         $document = QueryBuilder::for(LegalDocument::class)
             ->with(['institution', 'type', 'articles.latestVersion', 'relations.targetDocument'])
-            ->withCount(['articles', 'relations', 'tags'])
+            ->withCount([
+                'articles',
+                'relations',
+                'tags',
+                'articles as embedded_articles_count' => fn ($q) => $q->whereHas(
+                    'activeVersion',
+                    fn ($q2) => $q2->whereNotNull('embedding')
+                ),
+            ])
             ->findOrFail($id);
 
         return $this->success(
@@ -157,6 +212,7 @@ class LegalDocumentController extends Controller
         });
 
         $message = $force ? 'Document supprimé définitivement avec succès' : 'Document supprimé avec succès';
+
         return $this->success(null, $message);
     }
 
@@ -191,7 +247,7 @@ class LegalDocumentController extends Controller
                 DocumentRelation::whereIn('source_doc_id', $ids)
                     ->orWhereIn('target_doc_id', $ids)
                     ->delete();
-                
+
                 foreach ($documents as $document) {
                     $document->forceDelete();
                 }
@@ -203,6 +259,7 @@ class LegalDocumentController extends Controller
         });
 
         $message = $force ? 'Documents supprimés définitivement avec succès' : 'Documents supprimés avec succès';
+
         return $this->success(['deleted_count' => count($ids)], $message);
     }
 

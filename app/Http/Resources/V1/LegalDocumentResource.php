@@ -59,6 +59,8 @@ class LegalDocumentResource extends JsonResource
             'articles_count' => $this->whenCounted('articles'),
             'relations_count' => $this->whenCounted('relations'),
             'tags_count' => $this->whenCounted('tags'),
+            'embedded_articles_count' => $this->embedded_articles_count ?? 0,
+            'embedding_in_progress' => (bool) ($this->embedding_in_progress ?? false),
             'missing_stock_code' => $this->document_role === 'STOCK' && empty($this->stock_code),
 
             // Timestamps

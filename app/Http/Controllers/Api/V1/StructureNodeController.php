@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Http\Resources\V1\StructureNodeResource;
+use App\Models\LegalDocument;
 use App\Models\StructureNode;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -18,12 +19,15 @@ class StructureNodeController extends Controller
 {
     /**
      * Get document hierarchy.
+     *
+     * Le binding implicite applique le scope SoftDeletes : un document supprimé
+     * renvoie 404 au lieu d'exposer sa structure et ses articles.
      */
-    public function tree(string $documentId): JsonResponse
+    public function tree(LegalDocument $document): JsonResponse
     {
         $nodes = StructureNode::query()
-            ->where('document_id', $documentId)
-            ->with(['articles.activeVersion', 'articles.versions' => function($q) {
+            ->where('document_id', $document->id)
+            ->with(['articles.activeVersion', 'articles.versions' => function ($q) {
                 $q->orderByDesc('created_at');
             }])
             ->orderBy('sort_order')
@@ -197,7 +201,7 @@ class StructureNodeController extends Controller
         } catch (\Exception $e) {
             Log::error('Erreur lors du déplacement du nœud: '.$e->getMessage(), [
                 'node_id' => $id,
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ]);
 
             return $this->error(null, 'Erreur lors du déplacement : '.$e->getMessage(), 500);

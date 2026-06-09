@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\V1\DeviceController;
 use App\Http\Controllers\Api\V1\DocumentRelationController;
 use App\Http\Controllers\Api\V1\DocumentTypeController;
 use App\Http\Controllers\Api\V1\DossierExportController;
+use App\Http\Controllers\Api\V1\EmbeddingController;
 use App\Http\Controllers\Api\V1\HomeController;
 use App\Http\Controllers\Api\V1\InstitutionController;
 use App\Http\Controllers\Api\V1\LegalDocumentController;
@@ -117,6 +118,8 @@ Route::prefix('v1')->middleware('throttle:api')->group(function () {
     Route::middleware(['auth:sanctum', 'role:editor|admin'])->group(function () {
         Route::patch('legal-documents/bulk', [LegalDocumentController::class, 'bulkUpdate']);
         Route::delete('legal-documents/bulk', [LegalDocumentController::class, 'bulkDestroy']);
+        Route::post('legal-documents/{document}/embed', [EmbeddingController::class, 'trigger']);
+        Route::delete('legal-documents/{document}/embed', [EmbeddingController::class, 'cancel']);
     });
 
     // Delete documents — editor + admin
