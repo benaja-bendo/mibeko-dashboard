@@ -294,10 +294,14 @@ class ArticleSearchController extends Controller
         // Construction du contexte à partir des articles trouvés
         $context = '';
         foreach ($articles as $index => $article) {
+            // Tronquer le contenu pour éviter d'exploser la limite de tokens (contexte de l'IA)
+            // L'erreur "Abnormally stopped" vient souvent d'un prompt trop long.
+            $content = \Illuminate\Support\Str::limit($article['content'] ?? '', 2500);
+
             $context .= '--- SOURCE '.($index + 1)." ---\n";
             $context .= 'Document : '.$article['document_title']."\n";
             $context .= 'Article : '.$article['number']."\n";
-            $context .= 'Contenu : '.$article['content']."\n\n";
+            $context .= 'Contenu : '.$content."\n\n";
         }
 
         $systemPrompt = "Tu es un expert juridique spécialisé EXCLUSIVEMENT dans le droit de la République du Congo (Congo-Brazzaville). Ton rôle est d'aider les citoyens à comprendre leurs droits de manière rigoureuse.\n\n"
