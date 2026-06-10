@@ -21,6 +21,7 @@ class UserSetting extends Model implements Auditable
     protected $fillable = [
         'user_id',
         'locale',
+        'theme',
         'timezone',
         'date_format',
         'notification_preferences',
@@ -103,6 +104,7 @@ class UserSetting extends Model implements Auditable
     {
         return [
             'locale' => 'fr',
+            'theme' => 'lex-gold',
             'timezone' => 'Africa/Kinshasa',
             'date_format' => 'd/m/Y',
             'notification_preferences' => self::defaultNotificationPreferences(),

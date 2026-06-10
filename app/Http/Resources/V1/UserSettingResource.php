@@ -20,6 +20,7 @@ class UserSettingResource extends JsonResource
     {
         return [
             'locale' => $this->locale,
+            'theme' => $this->theme ?? 'lex-gold',
             'timezone' => $this->timezone,
             'date_format' => $this->date_format,
             // On garantit une matrice complète même si la colonne est nulle.

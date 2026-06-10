@@ -25,6 +25,8 @@ class UpdatePreferencesRequest extends FormRequest
         return [
             // Langues actuellement supportées par l'interface.
             'locale' => ['sometimes', 'required', 'string', Rule::in(['fr', 'en'])],
+            // Thème de l'interface
+            'theme' => ['sometimes', 'required', 'string', Rule::in(['lex-gold', 'mibeko-classic'])],
             // Fuseau IANA valide (liste système).
             'timezone' => ['sometimes', 'required', 'string', Rule::in(DateTimeZone::listIdentifiers())],
             // Formats de date proposés dans l'UI.
