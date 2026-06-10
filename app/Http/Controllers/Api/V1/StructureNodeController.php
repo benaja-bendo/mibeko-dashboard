@@ -3,7 +3,9 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\V1\ArticleBriefResource;
 use App\Http\Resources\V1\StructureNodeResource;
+use App\Models\Article;
 use App\Models\LegalDocument;
 use App\Models\StructureNode;
 use Illuminate\Http\JsonResponse;
@@ -23,7 +25,7 @@ class StructureNodeController extends Controller
      * Le binding implicite applique le scope SoftDeletes : un document supprimé
      * renvoie 404 au lieu d'exposer sa structure et ses articles.
      */
-    public function tree(LegalDocument $document): JsonResponse
+    public function tree(Request $request, LegalDocument $document): JsonResponse
     {
         $nodes = StructureNode::query()
             ->where('document_id', $document->id)
@@ -33,10 +35,34 @@ class StructureNodeController extends Controller
             ->orderBy('sort_order')
             ->get();
 
-        return $this->success(
-            StructureNodeResource::collection($nodes),
-            'Structure récupérée avec succès'
+        /**
+         * Les actes courts (arrêtés, décrets issus d'un JO) n'ont pas de structure :
+         * leurs articles sont rattachés directement au document (parent_node_id NULL).
+         * On les annexe à la réponse plate pour que le viewer les affiche à la racine.
+         */
+        $orphanArticles = Article::query()
+            ->where('document_id', $document->id)
+            ->whereNull('parent_node_id')
+            ->with(['activeVersion', 'versions' => function ($q) {
+                $q->orderByDesc('created_at');
+            }])
+            ->orderBy('ordre_affichage')
+            ->get();
+
+        $tree = array_merge(
+            StructureNodeResource::collection($nodes)->resolve($request),
+            $orphanArticles->map(fn (Article $article): array => array_merge(
+                (new ArticleBriefResource($article))->resolve($request),
+                [
+                    'parent_id' => null,
+                    'type' => 'ARTICLE',
+                    'title' => null,
+                    'articles' => [],
+                ],
+            ))->all(),
         );
+
+        return $this->success($tree, 'Structure récupérée avec succès');
     }
 
     /**

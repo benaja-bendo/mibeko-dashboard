@@ -296,15 +296,30 @@ class LegalDocumentController extends Controller
         }
 
         $column = $request->action === 'set_curation_status' ? 'curation_status' : 'statut';
+        $isPublishing = $request->action === 'set_curation_status'
+            && $request->value === LegalDocument::STATUS_PUBLISHED;
 
-        $updated = DB::transaction(function () use ($request, $column) {
-            return LegalDocument::whereIn('id', $request->ids)
-                ->update([$column => $request->value, 'updated_at' => now()]);
+        $updated = DB::transaction(function () use ($request, $column, $isPublishing) {
+            $query = LegalDocument::whereIn('id', $request->ids);
+
+            if ($isPublishing) {
+                // Même garde que la curation unitaire : un document sans aucun
+                // article ne doit pas atteindre le catalogue publié.
+                $query->whereHas('articles');
+            }
+
+            return $query->update([$column => $request->value, 'updated_at' => now()]);
         });
 
+        $skipped = $isPublishing ? count($request->ids) - $updated : 0;
+        $message = "{$updated} document(s) mis à jour avec succès.";
+        if ($skipped > 0) {
+            $message .= " {$skipped} document(s) sans article n'ont pas été publiés.";
+        }
+
         return $this->success(
-            ['updated_count' => $updated],
-            "{$updated} document(s) mis à jour avec succès."
+            ['updated_count' => $updated, 'skipped_count' => $skipped],
+            $message
         );
     }
 }

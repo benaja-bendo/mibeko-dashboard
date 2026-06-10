@@ -1,11 +1,13 @@
 <?php
 
+use App\Models\ArticleVersion;
 use App\Models\Institution;
 use App\Models\LegalDocument;
 use App\Models\StructureNode;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
+use Spatie\Permission\Models\Role;
 
 uses(RefreshDatabase::class);
 
@@ -50,6 +52,63 @@ it('can get document tree hierarchy', function () {
 
     $response->assertStatus(200)
         ->assertJsonCount(2, 'data');
+});
+
+it('includes orphan articles at the root of the tree', function () {
+    $document = LegalDocument::factory()->create();
+
+    $node = StructureNode::factory()->create(['document_id' => $document->id]);
+    $document->articles()->create([
+        'numero_article' => '1',
+        'ordre_affichage' => 1,
+        'parent_node_id' => $node->id,
+        'validation_status' => 'validated',
+    ]);
+
+    // Acte court type JO : article rattaché au document sans nœud de structure.
+    $orphan = $document->articles()->create([
+        'numero_article' => '2',
+        'ordre_affichage' => 2,
+        'validation_status' => 'validated',
+    ]);
+    $orphan->versions()->create([
+        'contenu_texte' => 'Contenu article orphelin',
+        'validity_period' => ArticleVersion::makeValidityPeriod('2020-01-01'),
+        'validation_status' => 'validated',
+    ]);
+
+    $response = $this->getJson("/api/v1/legal-documents/{$document->id}/tree");
+
+    $response->assertStatus(200)
+        ->assertJsonCount(2, 'data');
+
+    $orphanEntry = collect($response->json('data'))->firstWhere('type', 'ARTICLE');
+    expect($orphanEntry)->not->toBeNull()
+        ->and($orphanEntry['parent_id'])->toBeNull()
+        ->and($orphanEntry['number'])->toBe('2')
+        ->and($orphanEntry['content'])->toBe('Contenu article orphelin');
+});
+
+it('does not bulk publish documents without articles', function () {
+    Role::findOrCreate('editor');
+    $editor = User::factory()->create();
+    $editor->assignRole('editor');
+
+    $withArticles = LegalDocument::factory()->hasArticles(1)->create(['curation_status' => 'review']);
+    $empty = LegalDocument::factory()->create(['curation_status' => 'review']);
+
+    $response = $this->actingAs($editor)->patchJson('/api/v1/legal-documents/bulk', [
+        'ids' => [$withArticles->id, $empty->id],
+        'action' => 'set_curation_status',
+        'value' => 'published',
+    ]);
+
+    $response->assertStatus(200)
+        ->assertJsonPath('data.updated_count', 1)
+        ->assertJsonPath('data.skipped_count', 1);
+
+    expect($withArticles->fresh()->curation_status)->toBe('published')
+        ->and($empty->fresh()->curation_status)->toBe('review');
 });
 
 it('can login and get me', function () {
