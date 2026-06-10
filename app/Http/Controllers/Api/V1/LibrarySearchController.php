@@ -45,7 +45,7 @@ class LibrarySearchController extends Controller
             'institution_id' => ['nullable', 'string', 'exists:institutions,id'],
             'legal_scope' => ['nullable', 'string', 'in:national,ohada,communautaire'],
             'date_from' => ['nullable', 'date'],
-            'date_to' => ['nullable', 'date'],
+            'date_to' => ['nullable', 'date', 'after_or_equal:date_from'],
             'document_id' => ['nullable', 'string', 'exists:legal_documents,id'],
             'tag' => ['nullable', 'string'],
             'sort' => ['nullable', 'string', 'in:relevance,date_desc,date_asc'],

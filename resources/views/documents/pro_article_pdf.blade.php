@@ -3,41 +3,47 @@
 @section('title', "Article {$article->numero_article} - {$document->titre_officiel}")
 
 @section('header_meta')
-    Extrait de: {{ \Illuminate\Support\Str::limit($document->titre_officiel, 40) }}
+    <div>Extrait de : {{ \Illuminate\Support\Str::limit($document->titre_officiel, 50) }}</div>
 @endsection
 
 @section('content')
-    <div class="main-content" style="margin-top: 0.5cm; position: relative; z-index: 1;">
-        <div class="cover-badge" style="margin-bottom: 0.8cm;">Extrait Officiel</div>
+    <div class="main-content" style="position: relative; z-index: 1;">
+        <div class="cover-badge" style="margin-bottom: 0.7cm;">Extrait officiel</div>
 
-        <div style="margin-bottom: 1.5cm; border-left: 4pt solid #1565C0; padding-left: 15pt; background-color: #f8f9fa; padding-top: 10pt; padding-bottom: 10pt;">
-            <div style="font-size: 9pt; color: #1565C0; font-weight: bold; text-transform: uppercase; margin-bottom: 5pt; font-family: 'DejaVu Sans', sans-serif;">
-                {{ $document->type->nom ?? 'Document Source' }}
+        {{-- Document source --}}
+        <div class="no-break" style="border-left: 2.5pt solid #c8a86a; background-color: #faf7ef; padding: 12pt 14pt; margin-bottom: 1cm;">
+            <div style="font-family: 'DejaVu Sans', sans-serif; font-size: 7.5pt; font-weight: bold; text-transform: uppercase; letter-spacing: 1.5px; color: #9a7b33; margin-bottom: 4pt;">
+                {{ $document->type->nom ?? 'Document source' }}
+                @if($document->institution)
+                    &nbsp;·&nbsp;{{ $document->institution->nom }}
+                @endif
             </div>
-            <div style="font-size: 13pt; font-weight: bold; color: #000; line-height: 1.4; font-family: 'DejaVu Sans', sans-serif;">
+            <div style="font-family: 'DejaVu Serif', Georgia, serif; font-size: 12.5pt; font-weight: bold; color: #18140c; line-height: 1.4;">
                 {{ $document->titre_officiel }}
             </div>
-        </div>
-
-        <div class="article-box" style="margin-top: 1cm;">
-            <div class="section-title" style="margin-top: 0; border-bottom: 2pt solid #1565C0;">
-                Article {{ $article->numero_article }}
-            </div>
-
             @if($article->parentNode)
-            <div style="font-size: 10pt; color: #7f8c8d; margin-bottom: 25pt; font-style: italic; border-bottom: 0.5pt dashed #ccc; padding-bottom: 10pt;">
-                Ubications : {{ $article->parentNode->type_unite }} {{ $article->parentNode->numero }} - {{ $article->parentNode->titre }}
+            <div style="font-family: 'DejaVu Sans', sans-serif; font-size: 8pt; color: #8d8678; margin-top: 5pt;">
+                {{ $article->parentNode->type_unite }} {{ $article->parentNode->numero }}
+                @if($article->parentNode->titre) — {{ $article->parentNode->titre }} @endif
             </div>
             @endif
+        </div>
 
-            <div class="article-body" style="font-size: 12pt; line-height: 1.7;">
+        {{-- Article --}}
+        <div class="article-box" style="margin-top: 0.4cm;">
+            <div class="section-title" style="margin-top: 0; font-size: 13pt;">
+                <span class="section-kind" style="font-size: 10pt;">Article</span>&nbsp;{{ $article->numero_article }}
+            </div>
+
+            <div class="article-body" style="font-size: 11.5pt; line-height: 1.75;">
                 {!! nl2br(e($article->activeVersion->contenu_texte ?? $article->latestVersion->contenu_texte ?? 'Contenu non disponible')) !!}
             </div>
         </div>
 
-        <div style="margin-top: 4cm; border-top: 1pt solid #1565C0; padding-top: 15pt; font-size: 9pt; color: #666; text-align: center;">
-            <p>Ce document est un extrait certifié issu de la plateforme <strong>Mibeko - Le Droit numérique</strong>.</p>
-            <p style="font-family: monospace; font-size: 8pt; margin-top: 5pt; color: #999;">ID Certification : {{ $article->id }}</p>
+        {{-- Certification --}}
+        <div class="certification">
+            <p style="margin: 0;">Extrait certifié issu de la plateforme <strong>Mibeko — Le Droit numérique</strong>.</p>
+            <p class="cert-id">ID Certification : {{ $article->id }}</p>
         </div>
     </div>
 @endsection

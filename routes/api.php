@@ -18,6 +18,7 @@ use App\Http\Controllers\Api\V1\LegalDocumentController;
 use App\Http\Controllers\Api\V1\LegalDocumentDownloadController;
 use App\Http\Controllers\Api\V1\LegalDocumentExportController;
 use App\Http\Controllers\Api\V1\LibraryAiController;
+use App\Http\Controllers\Api\V1\LibraryHomeController;
 use App\Http\Controllers\Api\V1\LibrarySearchController;
 use App\Http\Controllers\Api\V1\NotificationController;
 use App\Http\Controllers\Api\V1\OfficialJournalController;
@@ -92,6 +93,8 @@ Route::prefix('v1')->middleware('throttle:api')->group(function () {
         Route::delete('assistant/conversations/{id}', [AiAssistantController::class, 'destroy']);
         Route::post('assistant/chat/{id?}', [AiAssistantController::class, 'chat'])->middleware('throttle:ai_assistant');
 
+        // Bibliothèque — accueil (textes fondamentaux, récents, stats, suggestions)
+        Route::get('library/home', [LibraryHomeController::class, 'index']);
         // Bibliothèque — recherche documentaire web (full-text PostgreSQL pur)
         Route::get('library/search', [LibrarySearchController::class, 'search']);
         // Bibliothèque — IA à la demande (streaming SSE, sans état)

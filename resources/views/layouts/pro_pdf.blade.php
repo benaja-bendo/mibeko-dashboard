@@ -4,210 +4,297 @@
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
     <title>@yield('title', 'Mibeko - Document Juridique')</title>
     <style>
+        /*
+         | Identité visuelle Mibeko (thème « Lex Gold ») adaptée à l'impression :
+         | encre quasi-noire sur blanc, or #9a7b33 pour les accents (plus dense
+         | que l'or écran #c8a86a, illisible sur papier), filets or pâle.
+         */
         @page {
-            /* Set margins for the content area on every page */
-            margin: 4.5cm 2cm 2.5cm 2cm;
-        }
-        
-        body {
-            font-family: "DejaVu Serif", Georgia, serif;
-            font-size: 11pt;
-            line-height: 1.5;
-            color: #1a1a1a;
-            margin: 0; /* Reset body margin since @page handles it */
+            margin: 3.2cm 2cm 2.6cm 2cm;
         }
 
-        /* Prevent text overflow and word breaking issues */
+        body {
+            font-family: "DejaVu Serif", Georgia, serif;
+            font-size: 10.5pt;
+            line-height: 1.55;
+            color: #1c1a16;
+            margin: 0;
+        }
+
         * {
             box-sizing: border-box;
             word-wrap: break-word;
             overflow-wrap: break-word;
         }
 
+        /* ── En-tête courant (pages intérieures) ─────────────────────────── */
         header {
             position: fixed;
-            /* Move header into the top margin area */
-            top: -4.5cm;
+            top: -3.2cm;
             left: -2cm;
             right: -2cm;
-            height: 3.8cm;
-            background-color: #ffffff;
-            padding: 0.8cm 2cm 0.2cm 2cm;
-            border-bottom: 1.5pt solid #1565C0;
-            z-index: 1000;
+            height: 2.4cm;
+            padding: 0.75cm 2cm 0 2cm;
+            border-bottom: 0.75pt solid #d8c79b;
         }
-        
+
         .header-table {
             width: 100%;
             border-collapse: collapse;
         }
-        
+
         .header-table td {
-            vertical-align: top;
-            padding: 0;
+            vertical-align: bottom;
+            padding: 0 0 6pt 0;
         }
 
-        .republic-box {
-            text-align: left;
-            width: 60%;
-        }
-
-        .republic-text {
+        .brand-mark {
             font-family: "DejaVu Sans", Helvetica, sans-serif;
-            font-size: 11pt;
+            font-size: 12pt;
             font-weight: bold;
+            letter-spacing: 3px;
+            color: #9a7b33;
+        }
+
+        .brand-sub {
+            font-family: "DejaVu Sans", Helvetica, sans-serif;
+            font-size: 6.5pt;
             text-transform: uppercase;
-            margin-bottom: 2px;
-            color: #000;
+            letter-spacing: 1.5px;
+            color: #8d8678;
+            margin-top: 2pt;
         }
 
-        .motto-text {
-            font-family: "DejaVu Sans", Helvetica, sans-serif;
-            font-size: 8pt;
-            font-style: italic;
-            color: #444;
-        }
-        
-        .meta-box {
+        .header-meta {
             text-align: right;
-            width: 40%;
             font-family: "DejaVu Sans", Helvetica, sans-serif;
-            font-size: 8.5pt;
-            color: #666;
-            line-height: 1.3;
+            font-size: 7.5pt;
+            color: #8d8678;
+            line-height: 1.45;
         }
 
-        .logo-container {
-            position: absolute;
-            top: 2.2cm;
-            left: 0;
-            right: 0;
-            text-align: center;
-        }
-
-        .logo-text {
-            font-family: "DejaVu Sans", Helvetica, sans-serif;
-            font-size: 20pt;
-            font-weight: bold;
-            color: #1565C0;
-            letter-spacing: 4px;
-        }
-
+        /* ── Pied de page courant ─────────────────────────────────────────── */
         footer {
-            position: fixed; 
-            /* Move footer into the bottom margin area */
-            bottom: -2.5cm;
+            position: fixed;
+            bottom: -2.6cm;
             left: -2cm;
             right: -2cm;
-            height: 1.5cm;
-            background-color: #ffffff;
-            color: #7f8c8d;
-            text-align: center;
-            font-family: "DejaVu Sans", Helvetica, sans-serif;
-            font-size: 8pt;
-            border-top: 0.5pt solid #eee;
-            padding-top: 10px;
+            height: 1.6cm;
+            padding: 8pt 2cm 0 2cm;
+            border-top: 0.75pt solid #d8c79b;
         }
+
+        .footer-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-family: "DejaVu Sans", Helvetica, sans-serif;
+            font-size: 7.5pt;
+            color: #8d8678;
+        }
+
+        .footer-table td { padding: 0; }
 
         .pagenum:before {
             content: counter(page);
         }
 
-        /* Layout helpers */
-        .page-break {
-            page-break-after: always;
-        }
+        /* ── Aides de mise en page ───────────────────────────────────────── */
+        .page-break { page-break-after: always; }
+        .no-break { page-break-inside: avoid; }
 
-        .no-break {
-            page-break-inside: avoid;
-        }
-
-        /* Cover Page Redesign */
+        /* ── Page de couverture ──────────────────────────────────────────── */
         .cover-page {
             position: absolute;
-            /* Absolute position to cover the entire page including margins */
-            top: -4.5cm;
+            top: -3.2cm;
             left: -2cm;
             right: -2cm;
-            bottom: -2.5cm;
-            height: 29.7cm; /* Full A4 height */
-            width: 21cm; /* Full A4 width */
+            height: 29.7cm;
+            width: 21cm;
             background-color: #ffffff;
             z-index: 2000;
-            text-align: center;
-            padding: 4cm 2cm;
             page-break-after: always;
         }
 
-        .cover-content {
-            height: 100%;
-            display: block;
-            border: 1pt solid #eee;
-            padding: 2cm;
-            position: relative;
+        .cover-band {
+            background-color: #18140c;
+            height: 3.4cm;
+            padding: 1.15cm 2cm 0 2cm;
+        }
+
+        .cover-band .brand-mark {
+            font-size: 17pt;
+            color: #c8a86a;
+        }
+
+        .cover-band .brand-sub {
+            color: #9a8d70;
+        }
+
+        .cover-body {
+            padding: 2.2cm 2.4cm 0 2.4cm;
+            text-align: center;
         }
 
         .cover-badge {
             display: inline-block;
-            background-color: #1565C0;
-            color: #ffffff;
-            padding: 6px 15px;
+            border: 1pt solid #9a7b33;
+            color: #9a7b33;
+            padding: 4pt 14pt;
             font-family: "DejaVu Sans", Helvetica, sans-serif;
-            font-size: 10pt;
+            font-size: 8.5pt;
             font-weight: bold;
+            letter-spacing: 2.5px;
             text-transform: uppercase;
-            margin-bottom: 1.5cm;
             border-radius: 2px;
         }
 
         .cover-title {
-            font-family: "DejaVu Sans", Helvetica, sans-serif;
-            font-size: 24pt;
+            font-family: "DejaVu Serif", Georgia, serif;
+            font-size: 22pt;
             font-weight: bold;
-            color: #000;
-            margin-bottom: 2cm;
-            line-height: 1.3;
+            color: #18140c;
+            line-height: 1.35;
+            margin: 1.1cm 0 0 0;
+        }
+
+        .cover-rule {
+            width: 2.6cm;
+            border: 0;
+            border-top: 1.5pt solid #c8a86a;
+            margin: 0.9cm auto;
+        }
+
+        .cover-info-table {
+            width: 78%;
+            margin: 0 auto;
+            border-collapse: collapse;
+            font-size: 9.5pt;
+        }
+
+        .cover-info-table td {
+            padding: 7pt 10pt;
+            border-bottom: 0.5pt solid #eee7d4;
+            text-align: left;
+        }
+
+        .cover-info-table .label {
+            font-family: "DejaVu Sans", Helvetica, sans-serif;
+            font-size: 7.5pt;
+            font-weight: bold;
             text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #9a7b33;
+            width: 38%;
         }
 
-        .cover-info {
-            width: 100%;
-            margin-top: 2cm;
-            border-top: 1pt solid #1565C0;
-            padding-top: 1cm;
+        .cover-republic {
+            position: absolute;
+            bottom: 1.6cm;
+            left: 0;
+            right: 0;
+            text-align: center;
+            font-family: "DejaVu Sans", Helvetica, sans-serif;
         }
 
-        /* Sections and Typography */
+        .cover-republic .republic {
+            font-size: 9.5pt;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: #18140c;
+        }
+
+        .cover-republic .motto {
+            font-size: 7.5pt;
+            font-style: italic;
+            color: #8d8678;
+            margin-top: 3pt;
+        }
+
+        /* ── Sommaire ────────────────────────────────────────────────────── */
+        .toc-title {
+            font-family: "DejaVu Sans", Helvetica, sans-serif;
+            font-size: 13pt;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: #18140c;
+            border-bottom: 1.5pt solid #c8a86a;
+            padding-bottom: 6pt;
+            margin: 0 0 14pt 0;
+        }
+
+        .toc-entry {
+            font-family: "DejaVu Sans", Helvetica, sans-serif;
+            font-size: 9pt;
+            color: #1c1a16;
+            padding: 3pt 0;
+            border-bottom: 0.5pt dotted #e6ddc6;
+        }
+
+        .toc-entry .toc-kind {
+            color: #9a7b33;
+            font-weight: bold;
+        }
+
+        /* ── Corps du document ───────────────────────────────────────────── */
         .section-title {
             font-family: "DejaVu Sans", Helvetica, sans-serif;
-            color: #1565C0;
+            font-size: 11pt;
             font-weight: bold;
-            margin-top: 30pt;
-            margin-bottom: 15pt;
-            border-bottom: 0.5pt solid #1565C0;
-            padding-bottom: 5pt;
+            color: #18140c;
+            margin: 24pt 0 12pt 0;
+            padding-bottom: 4pt;
+            border-bottom: 0.75pt solid #d8c79b;
             page-break-after: avoid;
         }
 
+        .section-title .section-kind {
+            color: #9a7b33;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-size: 8.5pt;
+        }
+
         .article-box {
-            margin-bottom: 15pt;
+            margin-bottom: 13pt;
             page-break-inside: avoid;
             text-align: justify;
         }
 
         .article-head {
+            display: block;
             font-family: "DejaVu Sans", Helvetica, sans-serif;
             font-weight: bold;
-            font-size: 11pt;
-            margin-bottom: 6pt;
-            color: #000;
-            display: block;
+            font-size: 9pt;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #9a7b33;
+            margin-bottom: 4pt;
         }
 
         .article-body {
-            font-family: "DejaVu Serif", serif;
-            font-size: 11pt;
-            line-height: 1.6;
+            font-family: "DejaVu Serif", Georgia, serif;
+            font-size: 10.5pt;
+            line-height: 1.62;
+        }
+
+        /* ── Bandeau de certification (bas de l'extrait d'article) ──────── */
+        .certification {
+            margin-top: 1.4cm;
+            border-top: 0.75pt solid #d8c79b;
+            padding-top: 10pt;
+            font-family: "DejaVu Sans", Helvetica, sans-serif;
+            font-size: 8pt;
+            color: #8d8678;
+            text-align: center;
+        }
+
+        .certification .cert-id {
+            font-family: "DejaVu Sans Mono", monospace;
+            font-size: 7pt;
+            color: #b3ab9a;
+            margin-top: 4pt;
         }
 
         .watermark {
@@ -215,12 +302,13 @@
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%) rotate(-45deg);
-            opacity: 0.04;
-            font-size: 100pt;
-            color: #000;
+            opacity: 0.035;
+            font-size: 90pt;
+            color: #9a7b33;
             z-index: -100;
             font-family: "DejaVu Sans", sans-serif;
             font-weight: bold;
+            letter-spacing: 6px;
         }
     </style>
     @yield('styles')
@@ -229,23 +317,26 @@
     <header>
         <table class="header-table">
             <tr>
-                <td class="republic-box">
-                    <div class="republic-text">République du Congo</div>
-                    <div class="motto-text">Unité - Travail - Progrès</div>
+                <td style="width: 55%;">
+                    <div class="brand-mark">MIBEKO</div>
+                    <div class="brand-sub">Le Droit numérique — République du Congo</div>
                 </td>
-                <td class="meta-box">
+                <td class="header-meta">
                     @yield('header_meta')
-                    <div style="margin-top: 5px;">Généré le: {{ date('d/m/Y') }}</div>
+                    <div>Généré le {{ date('d/m/Y') }}</div>
                 </td>
             </tr>
         </table>
-        <div class="logo-container">
-            <span class="logo-text">MIBEKO</span>
-        </div>
     </header>
 
     <footer>
-        Mibeko - Le Droit numérique | &copy; {{ date('Y') }} | Page <span class="pagenum"></span>
+        <table class="footer-table">
+            <tr>
+                <td style="width: 40%;">Mibeko — Le Droit numérique</td>
+                <td style="width: 20%; text-align: center;">Page <span class="pagenum"></span></td>
+                <td style="width: 40%; text-align: right;">&copy; {{ date('Y') }} Mibeko</td>
+            </tr>
+        </table>
     </footer>
 
     <div class="watermark">MIBEKO</div>
