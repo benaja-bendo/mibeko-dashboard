@@ -10,7 +10,12 @@ use App\Traits\SearchesArticles;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Laravel\Ai\Responses\StreamedAgentResponse;
+use Laravel\Ai\Streaming\Events\TextDelta;
+use Laravel\Ai\Streaming\Events\ToolCall;
+use Laravel\Ai\Streaming\Events\ToolResult;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
@@ -29,18 +34,20 @@ class AiAssistantController extends Controller
     {
         $query = AgentConversation::where('user_id', $request->user()->id);
 
-        if ($request->has('filter.date') && !empty($request->input('filter.date'))) {
+        if ($request->has('filter.date') && ! empty($request->input('filter.date'))) {
             $date = $request->input('filter.date');
             // Assuming format is YYYY-MM-DD
             $query->whereDate('updated_at', $date);
         }
 
-        if ($request->has('filter.title') && !empty($request->input('filter.title'))) {
+        if ($request->has('filter.title') && ! empty($request->input('filter.title'))) {
             $title = $request->input('filter.title');
-            $query->where('title', 'ilike', '%' . $title . '%');
+            $query->where('title', 'ilike', '%'.$title.'%');
         }
 
-        $conversations = $query->orderBy('updated_at', 'desc')->paginate(20);
+        // Liste volontairement légère : l'historique n'a besoin d'aucun contenu.
+        $conversations = $query->orderBy('updated_at', 'desc')
+            ->paginate(20, ['id', 'title', 'created_at', 'updated_at']);
 
         return response()->json($conversations);
     }
@@ -77,22 +84,66 @@ class AiAssistantController extends Controller
      */
     public function show(Request $request, string $id): JsonResponse
     {
-        $conversation = AgentConversation::with(['messages' => function ($query) {
-            $query->orderBy('created_at', 'asc');
-        }])
-            ->where('user_id', $request->user()->id)
+        $conversation = AgentConversation::where('user_id', $request->user()->id)
             ->findOrFail($id);
 
-        // Nettoyer le contexte RAG des anciens messages pour l'affichage
-        $conversation->messages->transform(function ($message) {
-            if ($message->role === 'user') {
-                $pattern = '/Voici les extraits de loi pertinents trouvés dans la base Mibeko :\s*.*Question de l\'utilisateur : /s';
-                $message->content = preg_replace($pattern, '', $message->content);
-            }
-            return $message;
-        });
+        // Charge uniquement les colonnes utiles à l'affichage : tool_results
+        // contient le texte intégral des articles trouvés à chaque recherche et
+        // peut peser des centaines de Ko sur une conversation — il ne doit
+        // jamais transiter vers le client.
+        $messages = AgentConversationMessage::query()
+            ->where('conversation_id', $conversation->id)
+            ->whereIn('role', ['user', 'assistant'])
+            ->orderBy('created_at')
+            ->get(['id', 'role', 'content', 'meta', 'created_at'])
+            ->map(function (AgentConversationMessage $message) {
+                $content = $message->content;
 
-        return response()->json($conversation);
+                // Nettoyer le contexte RAG des anciens messages utilisateur
+                if ($message->role === 'user') {
+                    $pattern = '/Voici les extraits de loi pertinents trouvés dans la base Mibeko :\s*.*Question de l\'utilisateur : /s';
+                    $content = preg_replace($pattern, '', $content);
+                }
+
+                return [
+                    'id' => $message->id,
+                    'role' => $message->role,
+                    'content' => $content,
+                    'meta' => $this->normalizeMessageMeta($message->meta),
+                    'created_at' => $message->created_at?->toISOString(),
+                ];
+            })
+            // Les tours « appel d'outil » de l'assistant n'ont pas de texte :
+            // ils ne doivent pas produire de bulle vide dans le fil.
+            ->filter(fn (array $message) => trim((string) $message['content']) !== '')
+            ->values();
+
+        return response()->json([
+            'id' => $conversation->id,
+            'title' => $conversation->title,
+            'created_at' => $conversation->created_at?->toISOString(),
+            'updated_at' => $conversation->updated_at?->toISOString(),
+            'messages' => $messages,
+        ]);
+    }
+
+    /**
+     * Normalise la méta d'un message pour l'affichage.
+     *
+     * D'anciens messages ont été enregistrés avec une méta doublement encodée
+     * (JSON dans une colonne déjà castée array) : le cast les restitue alors en
+     * chaîne. On les re-décode pour que `meta.sources` redevienne exploitable
+     * par les citations cliquables du front.
+     *
+     * @return array<string, mixed>|null
+     */
+    private function normalizeMessageMeta(mixed $meta): ?array
+    {
+        if (is_string($meta)) {
+            $meta = json_decode($meta, true);
+        }
+
+        return is_array($meta) && $meta !== [] ? $meta : null;
     }
 
     /**
@@ -122,13 +173,19 @@ class AiAssistantController extends Controller
      */
     public function chat(Request $request, ?string $id = null)
     {
-        $request->validate([
+        $validated = $request->validate([
             'message' => ['required', 'string'],
             'stream' => ['sometimes', 'boolean'],
+            'mode' => ['sometimes', 'string', 'in:concise,analysis'],
+            'references' => ['sometimes', 'array', 'max:5'],
+            'references.*.id' => ['required', 'string'],
+            'references.*.type' => ['sometimes', 'string', 'in:document'],
         ]);
 
         $user = $request->user();
-        $agent = new MibekoIA;
+        $mode = $validated['mode'] ?? MibekoIA::MODE_CONCISE;
+        $references = $this->resolveReferences($validated['references'] ?? []);
+        $agent = new MibekoIA(mode: $mode, scopedDocuments: $references);
 
         if ($id) {
             // Vérifier que la conversation appartient à l'utilisateur
@@ -143,11 +200,18 @@ class AiAssistantController extends Controller
 
         // Implémentation du Semantic Caching (Mise en cache basée sur le message)
         // Note: Dans une vraie implémentation sémantique, on utiliserait un vecteur de similarité
-        // Ici on utilise un cache simple basé sur le hash du message normalisé pour éviter les appels répétés
+        // Ici on utilise un cache simple basé sur le hash du message normalisé pour éviter les appels répétés.
+        // Le mode et les références épinglées changent la réponse : ils font partie de la clé.
         $normalizedMessage = strtolower(trim(preg_replace('/[^a-zA-Z0-9\s]/', '', $userMessage)));
-        $cacheKey = 'ai_response_' . md5($normalizedMessage);
+        $cacheKey = 'ai_response_'.md5($normalizedMessage.'|'.$mode.'|'.implode(',', array_column($references, 'id')));
 
-        if (!$id && Cache::has($cacheKey)) {
+        // Méta du message utilisateur : restitue les références/mode dans l'historique.
+        $userMeta = array_filter([
+            'mode' => $mode === MibekoIA::MODE_CONCISE ? null : $mode,
+            'references' => $references ?: null,
+        ]);
+
+        if (! $id && Cache::has($cacheKey)) {
             $cachedResponse = Cache::get($cacheKey);
 
             // Créer une nouvelle conversation pour l'historique de l'utilisateur
@@ -156,40 +220,44 @@ class AiAssistantController extends Controller
                 'title' => str($userMessage)->limit(50, '...'),
             ]);
 
+            // Les colonnes castées en array reçoivent des tableaux PHP (jamais de
+            // JSON pré-encodé, sinon double encodage à la lecture de l'historique).
             AgentConversationMessage::create([
-                'id' => (string) \Illuminate\Support\Str::uuid(),
+                'id' => (string) Str::uuid(),
                 'conversation_id' => $conversation->id,
                 'user_id' => $user->id,
                 'agent' => MibekoIA::class,
                 'role' => 'user',
                 'content' => $userMessage,
-                'attachments' => '[]',
-                'tool_calls' => '[]',
-                'tool_results' => '[]',
-                'usage' => '[]',
-                'meta' => '[]',
+                'attachments' => [],
+                'tool_calls' => [],
+                'tool_results' => [],
+                'usage' => [],
+                'meta' => $userMeta,
             ]);
 
             AgentConversationMessage::create([
-                'id' => (string) \Illuminate\Support\Str::uuid(),
+                'id' => (string) Str::uuid(),
                 'conversation_id' => $conversation->id,
                 'user_id' => $user->id,
                 'agent' => MibekoIA::class,
                 'role' => 'assistant',
                 'content' => $cachedResponse['reply'],
-                'attachments' => '[]',
-                'tool_calls' => '[]',
-                'tool_results' => '[]',
-                'usage' => '[]',
-                'meta' => json_encode(['sources' => $cachedResponse['sources'], 'cached' => true]),
+                'attachments' => [],
+                'tool_calls' => [],
+                'tool_results' => [],
+                'usage' => [],
+                'meta' => ['sources' => $cachedResponse['sources'], 'cached' => true],
             ]);
 
             if ($stream) {
                 return response()->stream(function () use ($cachedResponse) {
-                    if (!empty($cachedResponse['sources'])) {
+                    if (! empty($cachedResponse['sources'])) {
                         echo "event: sources\n";
-                        echo "data: " . json_encode($cachedResponse['sources']) . "\n\n";
-                        if (ob_get_level() > 0) ob_flush(); flush();
+                        echo 'data: '.json_encode($cachedResponse['sources'])."\n\n";
+                        if (ob_get_level() > 0) {
+                            ob_flush();
+                        } flush();
                     }
 
                     // Simuler un effet de stream
@@ -197,19 +265,23 @@ class AiAssistantController extends Controller
                     foreach ($chunks as $chunk) {
                         $payload = [
                             'type' => 'text_delta',
-                            'delta' => $chunk
+                            'delta' => $chunk,
                         ];
                         // S'assurer que le JSON est valide
                         $jsonPayload = json_encode($payload, JSON_UNESCAPED_UNICODE);
                         if ($jsonPayload) {
-                            echo "data: " . $jsonPayload . "\n\n";
-                            if (ob_get_level() > 0) ob_flush(); flush();
+                            echo 'data: '.$jsonPayload."\n\n";
+                            if (ob_get_level() > 0) {
+                                ob_flush();
+                            } flush();
                             usleep(10000); // 10ms pause
                         }
                     }
 
                     echo "data: [DONE]\n\n";
-                    if (ob_get_level() > 0) ob_flush(); flush();
+                    if (ob_get_level() > 0) {
+                        ob_flush();
+                    } flush();
                 }, 200, [
                     'X-Conversation-Id' => $conversation->id,
                     'X-Accel-Buffering' => 'no',
@@ -223,7 +295,7 @@ class AiAssistantController extends Controller
                 'conversation_id' => $conversation->id,
                 'reply' => $cachedResponse['reply'],
                 'sources' => $cachedResponse['sources'],
-                'cached' => true
+                'cached' => true,
             ]);
         }
 
@@ -241,25 +313,32 @@ class AiAssistantController extends Controller
             }
 
             $agentResponse = $agent->stream($promptContext)
-                ->then(function (StreamedAgentResponse $response) use ($userMessage, $cacheKey) {
+                ->then(function (StreamedAgentResponse $response) use ($userMessage, $userMeta, $cacheKey) {
                     // Nettoyer le message utilisateur pour ne pas polluer l'historique de l'IA
                     $lastUserMessage = AgentConversationMessage::where('conversation_id', $response->conversationId)
                         ->where('role', 'user')
                         ->orderBy('created_at', 'desc')
                         ->first();
 
-                    if ($lastUserMessage && $lastUserMessage->content !== $userMessage) {
-                        $lastUserMessage->content = $userMessage;
+                    if ($lastUserMessage) {
+                        if ($lastUserMessage->content !== $userMessage) {
+                            $lastUserMessage->content = $userMessage;
+                        }
+                        if (! empty($userMeta)) {
+                            $meta = is_array($lastUserMessage->meta) ? $lastUserMessage->meta : [];
+                            $lastUserMessage->meta = array_merge($meta, $userMeta);
+                        }
                         $lastUserMessage->save();
                     }
 
-                    // Extraire les sources du ToolResult s'il y en a un
-                    $sources = [];
-                    $toolResults = collect($response->events)->whereInstanceOf(\Laravel\Ai\Streaming\Events\ToolResult::class);
-                    $searchResult = $toolResults->firstWhere('toolResult.name', 'SearchLegalDatabase');
-                    if ($searchResult) {
-                        $sources = json_decode($searchResult->toolResult->result, true) ?: [];
-                    }
+                    // Concaténer les sources de TOUS les appels de l'outil de recherche,
+                    // dans l'ordre : l'index (1-based) correspond au source_number cité [n].
+                    $sources = collect($response->events)
+                        ->whereInstanceOf(ToolResult::class)
+                        ->filter(fn ($event) => $event->toolResult->name === 'SearchLegalDatabase')
+                        ->flatMap(fn ($event) => json_decode($event->toolResult->result, true) ?: [])
+                        ->values()
+                        ->all();
 
                     // Update the last assistant message to include sources in metadata
                     $lastMessage = AgentConversationMessage::where('conversation_id', $response->conversationId)
@@ -267,7 +346,7 @@ class AiAssistantController extends Controller
                         ->orderBy('created_at', 'desc')
                         ->first();
 
-                    if ($lastMessage && !empty($sources)) {
+                    if ($lastMessage && ! empty($sources)) {
                         $meta = is_array($lastMessage->meta) ? $lastMessage->meta : [];
                         $meta['sources'] = $sources;
                         $lastMessage->meta = $meta;
@@ -277,7 +356,7 @@ class AiAssistantController extends Controller
                     // Mettre en cache la réponse pour de futures requêtes identiques
                     Cache::put($cacheKey, [
                         'reply' => $response->text,
-                        'sources' => $sources
+                        'sources' => $sources,
                     ], now()->addHours(24));
                 });
 
@@ -285,21 +364,23 @@ class AiAssistantController extends Controller
                 try {
                     foreach ($agentResponse as $event) {
                         // Intercepter les résultats de recherche pour les envoyer au mobile
-                        if ($event instanceof \Laravel\Ai\Streaming\Events\ToolCall && $event->toolCall->name === 'SearchLegalDatabase') {
+                        if ($event instanceof ToolCall && $event->toolCall->name === 'SearchLegalDatabase') {
                             $payload = [
                                 'type' => 'status',
-                                'message' => 'Recherche dans la base de données juridique...'
+                                'message' => 'Recherche dans la base de données juridique...',
                             ];
                             echo "event: status\n";
-                            echo "data: " . json_encode($payload) . "\n\n";
-                            if (ob_get_level() > 0) ob_flush(); flush();
+                            echo 'data: '.json_encode($payload)."\n\n";
+                            if (ob_get_level() > 0) {
+                                ob_flush();
+                            } flush();
                         }
 
-                        if ($event instanceof \Laravel\Ai\Streaming\Events\ToolResult && $event->toolResult->name === 'SearchLegalDatabase') {
+                        if ($event instanceof ToolResult && $event->toolResult->name === 'SearchLegalDatabase') {
                             $sources = json_decode($event->toolResult->result, true) ?: [];
-                            if (!empty($sources)) {
+                            if (! empty($sources)) {
                                 echo "event: sources\n";
-                                echo "data: " . json_encode($sources) . "\n\n";
+                                echo 'data: '.json_encode($sources)."\n\n";
                                 if (ob_get_level() > 0) {
                                     ob_flush();
                                 }
@@ -307,15 +388,17 @@ class AiAssistantController extends Controller
                             }
                         }
 
-                        if ($event instanceof \Laravel\Ai\Streaming\Events\TextDelta) {
+                        if ($event instanceof TextDelta) {
                             $payload = [
                                 'type' => 'text_delta',
-                                'delta' => $event->delta
+                                'delta' => $event->delta,
                             ];
                             $jsonPayload = json_encode($payload, JSON_UNESCAPED_UNICODE);
                             if ($jsonPayload) {
-                                echo "data: " . $jsonPayload . "\n\n";
-                                if (ob_get_level() > 0) ob_flush(); flush();
+                                echo 'data: '.$jsonPayload."\n\n";
+                                if (ob_get_level() > 0) {
+                                    ob_flush();
+                                } flush();
                             }
                         }
                     }
@@ -325,11 +408,11 @@ class AiAssistantController extends Controller
                     $payload = [
                         'message' => config('app.debug')
                             ? $e->getMessage()
-                            : "Une erreur est survenue lors de la génération de la réponse.",
+                            : 'Une erreur est survenue lors de la génération de la réponse.',
                     ];
 
                     echo "event: error\n";
-                    echo "data: " . json_encode($payload) . "\n\n";
+                    echo 'data: '.json_encode($payload)."\n\n";
                     if (ob_get_level() > 0) {
                         ob_flush();
                     }
@@ -352,14 +435,13 @@ class AiAssistantController extends Controller
 
         $response = $agent->prompt($promptContext);
 
-        // Extraire les sources du ToolResult pour les réponses non streamées
-        $sources = [];
-        if ($response->toolResults) {
-            $searchResult = collect($response->toolResults)->firstWhere('name', 'SearchLegalDatabase');
-            if ($searchResult instanceof \Laravel\Ai\Responses\Data\ToolResult) {
-                $sources = json_decode($searchResult->result, true) ?: [];
-            }
-        }
+        // Concaténer les sources de TOUS les appels de l'outil (réponses non streamées)
+        $sources = collect($response->toolResults ?? [])
+            ->filter(fn ($result) => $result instanceof \Laravel\Ai\Responses\Data\ToolResult
+                && $result->name === 'SearchLegalDatabase')
+            ->flatMap(fn ($result) => json_decode($result->result, true) ?: [])
+            ->values()
+            ->all();
 
         // Nettoyer le message utilisateur pour ne pas polluer l'historique de l'IA
         $lastUserMessage = AgentConversationMessage::where('conversation_id', $response->conversationId)
@@ -367,13 +449,19 @@ class AiAssistantController extends Controller
             ->orderBy('created_at', 'desc')
             ->first();
 
-        if ($lastUserMessage && $lastUserMessage->content !== $userMessage) {
-            $lastUserMessage->content = $userMessage;
+        if ($lastUserMessage) {
+            if ($lastUserMessage->content !== $userMessage) {
+                $lastUserMessage->content = $userMessage;
+            }
+            if (! empty($userMeta)) {
+                $meta = is_array($lastUserMessage->meta) ? $lastUserMessage->meta : [];
+                $lastUserMessage->meta = array_merge($meta, $userMeta);
+            }
             $lastUserMessage->save();
         }
 
         // Update the last assistant message with sources if not streaming
-        if (!empty($sources)) {
+        if (! empty($sources)) {
             $lastMessage = AgentConversationMessage::where('conversation_id', $response->conversationId)
                 ->where('role', 'assistant')
                 ->orderBy('created_at', 'desc')
@@ -400,7 +488,7 @@ class AiAssistantController extends Controller
         // Mettre en cache la réponse non streamée
         Cache::put($cacheKey, [
             'reply' => $response->text,
-            'sources' => $sources
+            'sources' => $sources,
         ], now()->addHours(24));
 
         return response()->json([
@@ -408,5 +496,63 @@ class AiAssistantController extends Controller
             'reply' => $response->text,
             'sources' => $sources,
         ]);
+    }
+
+    /**
+     * Rechercher des références épinglables
+     *
+     * Documents publiés proposés dans le sélecteur « @ » du composer : permet de
+     * restreindre la recherche de l'IA à un ou plusieurs textes précis.
+     */
+    public function references(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'q' => ['sometimes', 'nullable', 'string', 'max:120'],
+        ]);
+
+        $q = trim((string) ($validated['q'] ?? ''));
+
+        $documents = DB::table('legal_documents as ld')
+            ->join('document_types as dt', 'ld.type_code', '=', 'dt.code')
+            ->whereNull('ld.deleted_at')
+            ->where('ld.curation_status', 'published')
+            ->when($q !== '', fn ($query) => $query->where('ld.titre_officiel', 'ILIKE', "%{$q}%"))
+            ->orderBy('dt.niveau_hierarchique')
+            ->orderByDesc('ld.date_publication')
+            ->limit(8)
+            ->get([
+                'ld.id',
+                'ld.titre_officiel as title',
+                'dt.code as type_code',
+                'dt.nom as type_name',
+            ]);
+
+        return response()->json(['data' => $documents]);
+    }
+
+    /**
+     * Résout les références épinglées en documents publiés exploitables.
+     *
+     * Les identifiants inconnus ou non publiés sont silencieusement écartés :
+     * la requête reste valide, simplement sans ce périmètre.
+     *
+     * @param  array<int, array{id: string, type?: string}>  $references
+     * @return array<int, array{id: string, title: string}>
+     */
+    private function resolveReferences(array $references): array
+    {
+        if ($references === []) {
+            return [];
+        }
+
+        $ids = array_values(array_unique(array_column($references, 'id')));
+
+        return DB::table('legal_documents')
+            ->whereIn('id', $ids)
+            ->whereNull('deleted_at')
+            ->where('curation_status', 'published')
+            ->get(['id', 'titre_officiel'])
+            ->map(fn ($doc) => ['id' => $doc->id, 'title' => $doc->titre_officiel])
+            ->all();
     }
 }

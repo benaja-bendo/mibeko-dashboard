@@ -12,8 +12,10 @@ trait SearchesArticles
 {
     /**
      * Search articles (Hybrid: Vector + Full-Text).
+     *
+     * @param  array<int, string>|null  $documentIds  Restreint la recherche à ces documents (références épinglées).
      */
-    protected function searchArticles(string $query, int $limit = 5, ?string $documentType = null, ?string $documentTitle = null): array
+    protected function searchArticles(string $query, int $limit = 5, ?string $documentType = null, ?string $documentTitle = null, ?array $documentIds = null): array
     {
         if (empty($query)) {
             return [];
@@ -47,6 +49,9 @@ trait SearchesArticles
         }
         if (! empty($documentTitle)) {
             $results->where('ld.titre_officiel', 'ILIKE', "%$documentTitle%");
+        }
+        if (! empty($documentIds)) {
+            $results->whereIn('ld.id', $documentIds);
         }
 
         $embeddingString = null;

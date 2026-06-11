@@ -2,22 +2,43 @@
 
 namespace App\Ai\Tools;
 
+use App\Traits\SearchesArticles;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Laravel\Ai\Contracts\Tool;
 use Laravel\Ai\Tools\Request;
 use Stringable;
-use App\Traits\SearchesArticles;
 
 class SearchLegalDatabase implements Tool
 {
     use SearchesArticles;
 
     /**
+     * Décalage de numérotation : les appels successifs de l'outil dans une même
+     * requête continuent la numérotation, pour que chaque 'source_number' reste
+     * unique et corresponde à l'ordre d'affichage des sources côté interface.
+     */
+    protected int $sourceOffset = 0;
+
+    /**
+     * Articles déjà retournés lors d'un appel précédent de la même requête :
+     * ils sont écartés des appels suivants pour préserver l'alignement entre
+     * les marqueurs [n] et la liste de sources affichée (pas de doublon).
+     *
+     * @var array<string, true>
+     */
+    protected array $seenArticleIds = [];
+
+    /**
+     * @param  array<int, string>  $documentIds  Restreint la recherche à ces documents (références épinglées).
+     */
+    public function __construct(public array $documentIds = []) {}
+
+    /**
      * Get the description of the tool's purpose.
      */
     public function description(): Stringable|string
     {
-        return 'Recherche dans la base de données juridique Mibeko (lois, constitutions, codes). Utilise des mots-clés pertinents (ex: "conditions mariage").';
+        return 'Recherche dans la base de données juridique Mibeko (lois, constitutions, codes). Utilise des mots-clés pertinents (ex: "conditions mariage"). Chaque extrait retourné porte un champ source_number à utiliser pour les marqueurs de citation [n].';
     }
 
     /**
@@ -30,8 +51,27 @@ class SearchLegalDatabase implements Tool
         $documentType = $request['document_type'] ?? null;
         $documentTitle = $request['document_title'] ?? null;
 
+        $results = $this->searchArticles(
+            $query,
+            $limit,
+            $documentType,
+            $documentTitle,
+            $this->documentIds === [] ? null : $this->documentIds,
+        );
+
+        $results = array_values(array_filter(
+            $results,
+            fn (array $result) => ! isset($this->seenArticleIds[$result['id']]),
+        ));
+
+        foreach ($results as $index => $result) {
+            $results[$index]['source_number'] = $this->sourceOffset + $index + 1;
+            $this->seenArticleIds[$result['id']] = true;
+        }
+        $this->sourceOffset += count($results);
+
         // Retourne les résultats au format JSON pour l'IA
-        return json_encode($this->searchArticles($query, $limit, $documentType, $documentTitle));
+        return json_encode($results);
     }
 
     /**

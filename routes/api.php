@@ -87,6 +87,7 @@ Route::prefix('v1')->middleware('throttle:api')->group(function () {
         Route::delete('notifications/{id}', [NotificationController::class, 'destroy']);
 
         // Assistant IA (Mibeko IA)
+        Route::get('assistant/references', [AiAssistantController::class, 'references']);
         Route::get('assistant/conversations', [AiAssistantController::class, 'index']);
         Route::get('assistant/conversations/{id}', [AiAssistantController::class, 'show']);
         Route::put('assistant/conversations/{id}', [AiAssistantController::class, 'update']);
