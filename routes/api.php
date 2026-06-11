@@ -98,6 +98,10 @@ Route::prefix('v1')->middleware('throttle:api')->group(function () {
         Route::get('library/home', [LibraryHomeController::class, 'index']);
         // Bibliothèque — recherche documentaire web (full-text PostgreSQL pur)
         Route::get('library/search', [LibrarySearchController::class, 'search']);
+        // Bibliothèque — autocomplétion temps réel (quota dédié, hors quota API)
+        Route::get('library/suggest', [LibrarySearchController::class, 'suggest'])
+            ->withoutMiddleware('throttle:api')
+            ->middleware('throttle:search_suggest');
         // Bibliothèque — IA à la demande (streaming SSE, sans état)
         Route::post('library/explain', [LibraryAiController::class, 'explain'])->middleware('throttle:ai_assistant');
         Route::post('library/synthesis', [LibraryAiController::class, 'synthesis'])->middleware('throttle:ai_assistant');

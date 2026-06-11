@@ -47,6 +47,12 @@ class AppServiceProvider extends ServiceProvider
             return Limit::perMinute($limit)->by($request->user()?->id ?: $request->ip());
         });
 
+        // Autocomplétion de la recherche : appelée à la frappe (debounce côté
+        // client), elle a son propre quota pour ne pas consommer celui de l'API.
+        RateLimiter::for('search_suggest', function (Request $request) {
+            return Limit::perMinute(180)->by($request->user()?->id ?: $request->ip());
+        });
+
         // Rate limiter spécifique pour l'IA basé sur les rôles (Spatie) ou statuts
         RateLimiter::for('ai_assistant', function (Request $request) {
             $user = $request->user();
