@@ -79,6 +79,14 @@ class User extends Authenticatable
     }
 
     /**
+     * Récupère les dossiers juridiques synchronisés de l'utilisateur.
+     */
+    public function dossiers(): HasMany
+    {
+        return $this->hasMany(Dossier::class);
+    }
+
+    /**
      * Récupère le profil mobile associé à l'utilisateur.
      */
     public function mobileProfile(): HasOne

@@ -5,12 +5,14 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Traits\HttpResponses;
+use Illuminate\Contracts\Encryption\DecryptException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Kreait\Laravel\Firebase\Facades\Firebase;
+use Laravel\Fortify\Contracts\TwoFactorAuthenticationProvider;
 
 /**
  * @group Authentication
@@ -50,6 +52,13 @@ class AuthController extends Controller
      * Login.
      *
      * Returns a Sanctum plain-text token.
+     *
+     * Si la double authentification est active sur le compte, un code TOTP
+     * (`code`) ou un code de récupération (`recovery_code`) est exigé : sans
+     * lui, la réponse porte `two_factor_required` pour que le client affiche
+     * l'étape de saisie — le mot de passe seul ne suffit jamais.
+     *
+     * @response 423 {"success": false, "message": "Code de double authentification requis.", "errors": {"two_factor_required": true}}
      */
     public function login(Request $request): JsonResponse
     {
@@ -57,6 +66,8 @@ class AuthController extends Controller
             'email' => 'required|email',
             'password' => 'required',
             'device_name' => 'required',
+            'code' => 'nullable|string',
+            'recovery_code' => 'nullable|string',
         ]);
 
         $user = User::where('email', $request->email)->first();
@@ -67,10 +78,57 @@ class AuthController extends Controller
             ]);
         }
 
+        if ($user->hasEnabledTwoFactorAuthentication()) {
+            if (! $request->filled('code') && ! $request->filled('recovery_code')) {
+                return $this->error(
+                    ['two_factor_required' => true],
+                    'Code de double authentification requis.',
+                    423,
+                );
+            }
+
+            $this->verifyTwoFactor($user, $request->input('code'), $request->input('recovery_code'));
+        }
+
         return $this->success([
             'token' => $user->createToken($request->device_name)->plainTextToken,
             'user' => $this->formatUser($user),
         ], 'Connexion réussie.');
+    }
+
+    /**
+     * Valide le code TOTP ou consomme un code de récupération.
+     *
+     * @throws ValidationException quand aucun des deux codes n'est valide
+     */
+    private function verifyTwoFactor(User $user, ?string $code, ?string $recoveryCode): void
+    {
+        try {
+            if ($code !== null && $code !== '') {
+                $provider = app(TwoFactorAuthenticationProvider::class);
+
+                if ($provider->verify(decrypt($user->two_factor_secret), $code)) {
+                    return;
+                }
+            }
+
+            if ($recoveryCode !== null && $recoveryCode !== '') {
+                $validCode = collect($user->recoveryCodes())
+                    ->first(fn (string $candidate): bool => hash_equals($candidate, $recoveryCode));
+
+                if ($validCode !== null) {
+                    $user->replaceRecoveryCode($validCode);
+
+                    return;
+                }
+            }
+        } catch (DecryptException) {
+            // Secret illisible (données corrompues) : on refuse sans exposer de 500.
+        }
+
+        throw ValidationException::withMessages([
+            'code' => ['Le code de double authentification est invalide.'],
+        ]);
     }
 
     /**
