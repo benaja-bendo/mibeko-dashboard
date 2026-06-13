@@ -53,6 +53,14 @@ class AppServiceProvider extends ServiceProvider
             return Limit::perMinute(180)->by($request->user()?->id ?: $request->ip());
         });
 
+        // Réinitialisation de mot de passe : quota serré par email + IP pour
+        // empêcher l'envoi en masse et le brute-force du code OTP.
+        RateLimiter::for('password_reset', function (Request $request) {
+            return Limit::perMinute(5)->by(
+                strtolower((string) $request->input('email')).'|'.$request->ip(),
+            );
+        });
+
         // Rate limiter spécifique pour l'IA basé sur les rôles (Spatie) ou statuts
         RateLimiter::for('ai_assistant', function (Request $request) {
             $user = $request->user();

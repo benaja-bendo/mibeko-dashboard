@@ -5,7 +5,6 @@ use App\Http\Controllers\CurationController;
 use App\Http\Controllers\MediaController;
 use App\Http\Controllers\PdfProxyController;
 use App\Http\Controllers\UserController;
-use App\Http\Controllers\Web\OfficialJournalController;
 use App\Models\Article;
 use App\Models\LegalDocument;
 use Illuminate\Support\Facades\Route;
@@ -94,14 +93,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/users', [UserController::class, 'index'])->name('users.index');
     Route::put('/users/{user}', [UserController::class, 'update'])->name('users.update');
 
-    // Official Journals Management
-    Route::get('/official-journals', [OfficialJournalController::class, 'index'])->name('official-journals.index');
-    Route::post('/official-journals', [OfficialJournalController::class, 'store'])->name('official-journals.store');
-    Route::get('/official-journals/{officialJournal}', [OfficialJournalController::class, 'show'])->name('official-journals.show');
-    Route::post('/official-journals/{officialJournal}', [OfficialJournalController::class, 'update'])->name('official-journals.update');
-    Route::delete('/official-journals/{officialJournal}', [OfficialJournalController::class, 'destroy'])->name('official-journals.destroy');
-    Route::post('/official-journals/{officialJournal}/attach', [OfficialJournalController::class, 'attachDocument'])->name('official-journals.attach');
-    Route::delete('/official-journals/{officialJournal}/detach/{legalDocument}', [OfficialJournalController::class, 'detachDocument'])->name('official-journals.detach');
+    // NB : la gestion des journaux officiels vit désormais dans le front
+    // éditeur (mibeko-front /editor/journals) via l'API V1.
 
     // Media Management
     Route::get('/api/media/files', [MediaController::class, 'listAvailableFiles'])->name('api.media.files');

@@ -13,7 +13,7 @@ import {
 import { dashboard } from '@/routes';
 import { type NavItem, type SharedData } from '@/types';
 import { Link, usePage } from '@inertiajs/react';
-import { BookOpen, FileText, Folder, History, LayoutGrid, Users } from 'lucide-react';
+import { BookOpen, Folder, History, LayoutGrid, Users } from 'lucide-react';
 import AppLogo from './app-logo';
 
 export function AppSidebar() {
@@ -33,11 +33,6 @@ export function AppSidebar() {
                 title: 'Documents',
                 href: '/curation',
                 icon: BookOpen,
-            },
-            {
-                title: 'Journal Officiel',
-                href: '/official-journals',
-                icon: FileText,
             },
             {
                 title: 'Auditing',

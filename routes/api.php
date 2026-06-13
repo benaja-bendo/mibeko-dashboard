@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\V1\CurationFlagController;
 use App\Http\Controllers\Api\V1\DeviceController;
 use App\Http\Controllers\Api\V1\DocumentRelationController;
 use App\Http\Controllers\Api\V1\DocumentTypeController;
+use App\Http\Controllers\Api\V1\DossierController;
 use App\Http\Controllers\Api\V1\DossierExportController;
 use App\Http\Controllers\Api\V1\EmbeddingController;
 use App\Http\Controllers\Api\V1\HomeController;
@@ -22,6 +23,7 @@ use App\Http\Controllers\Api\V1\LibraryHomeController;
 use App\Http\Controllers\Api\V1\LibrarySearchController;
 use App\Http\Controllers\Api\V1\NotificationController;
 use App\Http\Controllers\Api\V1\OfficialJournalController;
+use App\Http\Controllers\Api\V1\PasswordResetController;
 use App\Http\Controllers\Api\V1\PreferencesController;
 use App\Http\Controllers\Api\V1\PrivacyController;
 use App\Http\Controllers\Api\V1\ProfileController;
@@ -37,6 +39,12 @@ Route::prefix('v1')->middleware('throttle:api')->group(function () {
     Route::post('register', [AuthController::class, 'register']);
     Route::post('login', [AuthController::class, 'login']);
     Route::post('auth/firebase', [AuthController::class, 'firebaseLogin']);
+
+    // Réinitialisation de mot de passe par code OTP (mobile)
+    Route::post('forgot-password', [PasswordResetController::class, 'forgot'])
+        ->middleware('throttle:password_reset');
+    Route::post('reset-password', [PasswordResetController::class, 'reset'])
+        ->middleware('throttle:password_reset');
 
     // Device Registration (No Auth required)
     Route::post('devices/register', [DeviceController::class, 'register']);
@@ -80,6 +88,10 @@ Route::prefix('v1')->middleware('throttle:api')->group(function () {
         Route::get('billing/portal', [BillingController::class, 'portal']);
         Route::get('billing/invoices/{invoiceId}/pdf', [BillingController::class, 'downloadInvoice']);
 
+        // Dossiers — synchronisation multi-appareils (mobile, web)
+        Route::get('dossiers', [DossierController::class, 'index']);
+        Route::post('dossiers/sync', [DossierController::class, 'sync']);
+
         // Notifications
         Route::get('notifications', [NotificationController::class, 'index']);
         Route::patch('notifications/{id}/read', [NotificationController::class, 'markAsRead']);
@@ -94,18 +106,19 @@ Route::prefix('v1')->middleware('throttle:api')->group(function () {
         Route::delete('assistant/conversations/{id}', [AiAssistantController::class, 'destroy']);
         Route::post('assistant/chat/{id?}', [AiAssistantController::class, 'chat'])->middleware('throttle:ai_assistant');
 
-        // Bibliothèque — accueil (textes fondamentaux, récents, stats, suggestions)
-        Route::get('library/home', [LibraryHomeController::class, 'index']);
-        // Bibliothèque — recherche documentaire web (full-text PostgreSQL pur)
-        Route::get('library/search', [LibrarySearchController::class, 'search']);
-        // Bibliothèque — autocomplétion temps réel (quota dédié, hors quota API)
-        Route::get('library/suggest', [LibrarySearchController::class, 'suggest'])
-            ->withoutMiddleware('throttle:api')
-            ->middleware('throttle:search_suggest');
         // Bibliothèque — IA à la demande (streaming SSE, sans état)
         Route::post('library/explain', [LibraryAiController::class, 'explain'])->middleware('throttle:ai_assistant');
         Route::post('library/synthesis', [LibraryAiController::class, 'synthesis'])->middleware('throttle:ai_assistant');
     });
+
+    // Bibliothèque — lecture publique : contenu identique pour tous, mis en
+    // cache serveur. Partagée entre le web pro et le mobile (la consultation
+    // des textes ne requiert pas de compte ; seule l'IA reste authentifiée).
+    Route::get('library/home', [LibraryHomeController::class, 'index']);
+    Route::get('library/search', [LibrarySearchController::class, 'search']);
+    Route::get('library/suggest', [LibrarySearchController::class, 'suggest'])
+        ->withoutMiddleware('throttle:api')
+        ->middleware('throttle:search_suggest');
 
     // Resources
     Route::get('home', [HomeController::class, 'index']);
@@ -116,6 +129,8 @@ Route::prefix('v1')->middleware('throttle:api')->group(function () {
 
     Route::apiResource('institutions', InstitutionController::class)->only(['index']);
     Route::apiResource('document-types', DocumentTypeController::class)->only(['index']);
+    // Déclaré avant l'apiResource pour que « years » ne soit pas capturé par show/{id}
+    Route::get('official-journals/years', [OfficialJournalController::class, 'years']);
     Route::apiResource('official-journals', OfficialJournalController::class)->only(['index', 'show'])->names('api.official-journals');
 
     Route::get('legal-documents/search', [LegalDocumentController::class, 'search']);
@@ -126,6 +141,13 @@ Route::prefix('v1')->middleware('throttle:api')->group(function () {
     Route::middleware(['auth:sanctum', 'role:editor|admin'])->group(function () {
         Route::patch('legal-documents/bulk', [LegalDocumentController::class, 'bulkUpdate']);
         Route::delete('legal-documents/bulk', [LegalDocumentController::class, 'bulkDestroy']);
+        Route::post('legal-documents', [LegalDocumentController::class, 'store']);
+        Route::patch('legal-documents/{id}', [LegalDocumentController::class, 'update']);
+
+        // Administration des journaux officiels (la lecture publique reste
+        // sur l'apiResource official-journals plus haut)
+        Route::patch('official-journals/{id}', [OfficialJournalController::class, 'update']);
+        Route::delete('official-journals/{id}', [OfficialJournalController::class, 'destroy']);
         Route::post('legal-documents/{document}/embed', [EmbeddingController::class, 'trigger']);
         Route::delete('legal-documents/{document}/embed', [EmbeddingController::class, 'cancel']);
     });
@@ -139,6 +161,9 @@ Route::prefix('v1')->middleware('throttle:api')->group(function () {
     // Article Search (for mobile app) - BE3 Hybrid
     Route::get('search', [ArticleSearchController::class, 'search']);
     Route::get('articles/search', [ArticleSearchController::class, 'search']);
+    // Résolution d'un article isolé (lecture d'un résultat de recherche mobile
+    // dont le document n'est pas encore téléchargé localement).
+    Route::get('articles/{id}/context', [ArticleSearchController::class, 'context']);
 
     // Write operations — editor + admin only
     Route::middleware(['auth:sanctum', 'role:editor|admin'])->group(function () {
