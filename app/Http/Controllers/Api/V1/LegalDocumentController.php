@@ -11,6 +11,7 @@ use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Validation\Rule;
 use Spatie\QueryBuilder\AllowedFilter;
 use Spatie\QueryBuilder\QueryBuilder;
 
@@ -171,7 +172,7 @@ class LegalDocumentController extends Controller
     public function show(string $id): JsonResponse
     {
         $document = QueryBuilder::for(LegalDocument::class)
-            ->with(['institution', 'type', 'articles.latestVersion', 'relations.targetDocument'])
+            ->with(['institution', 'type', 'officialJournal', 'articles.latestVersion', 'relations.targetDocument'])
             ->withCount([
                 'articles',
                 'relations',
@@ -186,6 +187,109 @@ class LegalDocumentController extends Controller
         return $this->success(
             new LegalDocumentResource($document),
             'Document récupéré avec succès'
+        );
+    }
+
+    /**
+     * Create a legal document manually (editor + admin only).
+     *
+     * Used to handle extraction gaps: when the pipeline missed a text inside
+     * an official journal, an editor can create it here (optionally attached
+     * to the journal) and then structure it manually in the viewer.
+     */
+    public function store(Request $request): JsonResponse
+    {
+        Gate::authorize('create', LegalDocument::class);
+
+        $validated = $request->validate([
+            'titre_officiel' => ['required', 'string', 'max:500'],
+            'type_code' => ['sometimes', 'nullable', 'string', 'exists:document_types,code'],
+            'official_journal_id' => ['sometimes', 'nullable', 'exists:official_journals,id'],
+            'reference_nor' => ['sometimes', 'nullable', 'string', 'max:100'],
+            'date_signature' => ['sometimes', 'nullable', 'date'],
+            'date_publication' => ['sometimes', 'nullable', 'date'],
+            'date_entree_vigueur' => ['sometimes', 'nullable', 'date'],
+            'statut' => ['sometimes', 'string', 'in:vigueur,abroge,projet'],
+            'legal_scope' => ['sometimes', 'string', Rule::in(LegalDocument::LEGAL_SCOPES)],
+        ]);
+
+        $document = LegalDocument::create([
+            ...$validated,
+            'statut' => $validated['statut'] ?? 'vigueur',
+            'legal_scope' => $validated['legal_scope'] ?? LegalDocument::SCOPE_NATIONAL,
+            // Toujours FLUX : la contrainte chk_legal_documents_role_logic
+            // réserve STOCK aux consolidations du pipeline (stock_code +
+            // consolidation_as_of obligatoires, jamais rattachées à un JO).
+            'document_role' => 'FLUX',
+            'curation_status' => LegalDocument::STATUS_DRAFT,
+            'extraction_status' => 'completed',
+            'metadata' => ['source' => 'manual'],
+        ]);
+
+        return $this->success(
+            new LegalDocumentResource($document->load(['institution', 'type'])),
+            'Document créé avec succès',
+            201
+        );
+    }
+
+    /**
+     * Update a legal document (editor + admin only).
+     *
+     * Edits the document metadata (title, NOR reference, dates, legal status,
+     * scope, type) and the curation workflow status. Publishing requires the
+     * document to have at least one article.
+     */
+    public function update(Request $request, string $id): JsonResponse
+    {
+        $document = LegalDocument::findOrFail($id);
+
+        Gate::authorize('update', $document);
+
+        $validated = $request->validate([
+            'titre_officiel' => ['sometimes', 'string', 'max:500'],
+            'reference_nor' => ['sometimes', 'nullable', 'string', 'max:100'],
+            'date_signature' => ['sometimes', 'nullable', 'date'],
+            'date_publication' => ['sometimes', 'nullable', 'date'],
+            'date_entree_vigueur' => ['sometimes', 'nullable', 'date'],
+            'statut' => ['sometimes', 'string', 'in:vigueur,abroge,projet'],
+            'legal_scope' => ['sometimes', 'string', Rule::in(LegalDocument::LEGAL_SCOPES)],
+            'type_code' => ['sometimes', 'string', 'exists:document_types,code'],
+            // Rattachement / détachement d'un journal officiel
+            'official_journal_id' => ['sometimes', 'nullable', 'exists:official_journals,id'],
+            'curation_status' => ['sometimes', 'string', Rule::in([
+                LegalDocument::STATUS_DRAFT,
+                LegalDocument::STATUS_REVIEW,
+                LegalDocument::STATUS_VALIDATED,
+                LegalDocument::STATUS_PUBLISHED,
+            ])],
+        ]);
+
+        $isPublishing = ($validated['curation_status'] ?? null) === LegalDocument::STATUS_PUBLISHED;
+
+        if ($isPublishing && ! $document->articles()->exists()) {
+            return $this->error(
+                ['curation_status' => ['Un document sans article ne peut pas être publié.']],
+                'Impossible de publier un document sans article.',
+                422
+            );
+        }
+
+        // La contrainte chk_legal_documents_role_logic interdit le
+        // rattachement d'un document STOCK (consolidé) à un journal officiel.
+        if (! empty($validated['official_journal_id']) && $document->document_role === 'STOCK') {
+            return $this->error(
+                ['official_journal_id' => ['Un document consolidé (STOCK) ne peut pas être rattaché à un journal officiel.']],
+                'Impossible de rattacher un document consolidé à un journal officiel.',
+                422
+            );
+        }
+
+        $document->update($validated);
+
+        return $this->success(
+            new LegalDocumentResource($document->fresh(['institution', 'type'])),
+            'Document mis à jour avec succès'
         );
     }
 

@@ -112,7 +112,7 @@ it('does not bulk publish documents without articles', function () {
 });
 
 it('can login and get me', function () {
-    $user = User::factory()->create([
+    $user = User::factory()->withoutTwoFactor()->create([
         'email' => 'test@example.com',
         'password' => Hash::make('password'),
     ]);

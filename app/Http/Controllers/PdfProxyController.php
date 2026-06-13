@@ -33,6 +33,7 @@ class PdfProxyController extends Controller
         $type = $request->query('type', 'document'); // 'document' or 'journal'
 
         $path = null;
+        $mediaFile = null; // null pour un journal : la résolution du disque s'appuie sur le chemin.
 
         if ($type === 'journal') {
             $journal = OfficialJournal::findOrFail($id);
@@ -41,7 +42,7 @@ class PdfProxyController extends Controller
             $document = LegalDocument::with(['mediaFiles', 'officialJournal'])->findOrFail($id);
             $mediaFile = $document->mediaFiles->firstWhere('mime_type', 'application/pdf')
                 ?? $document->mediaFiles->first(fn ($file) => str_ends_with(strtolower((string) $file->file_path), '.pdf'));
-            
+
             $path = $mediaFile?->file_path;
 
             // Fallback to the Official Journal's PDF if the document doesn't have its own PDF

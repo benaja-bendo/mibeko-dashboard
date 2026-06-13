@@ -1,10 +1,25 @@
 <?php
 
 use App\Models\LegalDocument;
+use App\Models\OfficialJournal;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Storage;
 
 uses(RefreshDatabase::class);
+
+it('can proxy a journal pdf (type=journal)', function () {
+    Storage::fake('s3');
+    Storage::disk('s3')->put('official_journals/jo.pdf', 'dummy journal');
+
+    $journal = OfficialJournal::factory()->create([
+        'file_path' => 'official_journals/jo.pdf',
+    ]);
+
+    $response = $this->get("/api/v1/legal-documents/{$journal->id}/pdf?type=journal");
+
+    $response->assertStatus(200)
+        ->assertHeader('Content-Type', 'application/pdf');
+});
 
 it('can proxy a pdf file', function () {
     Storage::fake('s3');
