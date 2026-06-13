@@ -40,13 +40,6 @@ return [
         'credentials_path' => base_path(env('FIREBASE_CREDENTIALS_PATH', 'storage/app/firebase-auth.json')),
     ],
 
-    'rabbitmq' => [
-        'host' => env('RABBITMQ_HOST', '127.0.0.1'),
-        'port' => env('RABBITMQ_PORT', 5672),
-        'user' => env('RABBITMQ_USER', 'guest'),
-        'password' => env('RABBITMQ_PASSWORD', 'guest'),
-    ],
-
     'mineru' => [
         'api_url' => env('MINERU_API_URL', 'https://mineru.net/api/v4'),
         'api_key' => env('MINERU_API_KEY'),

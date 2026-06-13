@@ -163,15 +163,16 @@ Le projet est configuré pour un déploiement automatisé et conteneurisé sur u
 L'application en production utilise une image Docker optimisée (multi-stage build) construite via le `Dockerfile` à la racine, qui inclut :
 - La compilation du frontend (Vite/React).
 - L'installation des dépendances backend (Composer).
-- L'environnement d'exécution basé sur PHP 8.2 FPM (avec OPcache et extensions nécessaires).
+- L'environnement d'exécution basé sur PHP 8.4 FPM (avec OPcache et extensions nécessaires).
 
-L'orchestration s'effectue via le fichier `docker-compose.prod.yml` composé de 4 services :
+L'orchestration s'effectue via le fichier `.deploy/docker-compose.yml` (copié sur le VPS par la CI) composé de 5 services :
 - `app` : Serveur PHP-FPM.
 - `nginx` : Serveur web (reverse proxy).
 - `queue` : Worker pour les files d'attente (background jobs).
 - `scheduler` : Planificateur de tâches (cron).
+- `reverb` : Serveur WebSocket (broadcasting temps réel).
 
-Ces services communiquent avec les instances **PostgreSQL** et **MinIO** hébergées directement sur le VPS (via un réseau Docker `proxy`). Le trafic entrant (HTTPS) est géré par **Traefik** (domaine `app.mibeko.fr`).
+Ces services communiquent avec les instances **PostgreSQL** et **MinIO** hébergées directement sur le VPS (via un réseau Docker `proxy`). Le trafic entrant (HTTPS) est géré par **Traefik** (domaine `api.mibeko.fr`, et `reverb.mibeko.fr` pour les WebSockets).
 
 ### 🚀 CI/CD avec GitHub Actions
 Un workflow de déploiement continu (`deploy-prod.yml`) se déclenche automatiquement lors d'un push sur la branche `main` :

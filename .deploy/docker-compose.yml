@@ -49,17 +49,6 @@ services:
     networks: [internal, proxy, db_internal]
     depends_on: [app]
 
-  # rabbitmq-consumer:
-  #   image: ghcr.io/${GITHUB_REPOSITORY}:latest
-  #   container_name: mibeko-rabbitmq-consumer
-  #   restart: unless-stopped
-  #   command: ["php", "artisan", "rabbitmq:consume-extraction-status"]
-  #   env_file: [.env]
-  #   volumes:
-  #     - mibeko_storage:/var/www/html/storage
-  #   networks: [internal, proxy, db_internal]
-  #   depends_on: [app]
-
   reverb:
     image: ghcr.io/${GITHUB_REPOSITORY}:latest
     container_name: mibeko-reverb

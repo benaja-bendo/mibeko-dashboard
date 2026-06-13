@@ -45,17 +45,6 @@ services:
             - 'postgres_data:/var/lib/postgresql/data'
         networks:
             - sail
-    # rabbitmq:
-    #     image: 'rabbitmq:4-management'
-    #     container_name: 'rabbitmq-mibeko'
-    #     ports:
-    #         - '${FORWARD_RABBITMQ_PORT:-5672}:5672'
-    #         - '${FORWARD_RABBITMQ_CONSOLE_PORT:-15672}:15672'
-    #     environment:
-    #         RABBITMQ_DEFAULT_USER: '${RABBITMQ_USER:-guest}'
-    #         RABBITMQ_DEFAULT_PASS: '${RABBITMQ_PASSWORD:-guest}'
-    #     networks:
-    #         - sail
 
     # dbeaver:
     #     image: 'dbeaver/cloudbeaver:latest'
@@ -73,8 +62,6 @@ volumes:
         driver: local
     postgres_data:
         driver: local
-    # rabbitmq_data:
-    #     driver: local
     # dbeaver_workspace:
     #     driver: local
 networks:
