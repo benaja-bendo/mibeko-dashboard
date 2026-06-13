@@ -31,6 +31,13 @@ class OfficialJournalResource extends JsonResource
             'is_published' => $this->is_published,
             'pdf_url' => $this->pdf_url ?? null, // Appended by the controller if requested
             'file_size_bytes' => $fileSize,
+            'legal_documents_count' => $this->whenCounted('legalDocuments'),
+            // Vue manager uniquement : permet d'afficher « publiés / total »
+            // (le compteur public reste scoppé aux documents publiés).
+            'published_legal_documents_count' => $this->when(
+                isset($this->published_legal_documents_count),
+                fn () => (int) $this->published_legal_documents_count
+            ),
             'legal_documents' => LegalDocumentResource::collection($this->whenLoaded('legalDocuments')),
             'created_at' => $this->created_at?->toIso8601String(),
             'updated_at' => $this->updated_at?->toIso8601String(),
