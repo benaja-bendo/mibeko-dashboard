@@ -8,8 +8,12 @@ use Illuminate\Support\Facades\Storage;
 uses(RefreshDatabase::class);
 
 it('can proxy a journal pdf (type=journal)', function () {
-    Storage::fake('s3');
-    Storage::disk('s3')->put('official_journals/jo.pdf', 'dummy journal');
+    // Un journal n'a pas de MediaFile : le proxy résout son disque via le
+    // disque de stockage par défaut (s3/MinIO en prod, local en CI). On fake
+    // donc ce même disque pour que le test soit indépendant de FILESYSTEM_DISK.
+    $disk = config('filesystems.default');
+    Storage::fake($disk);
+    Storage::disk($disk)->put('official_journals/jo.pdf', 'dummy journal');
 
     $journal = OfficialJournal::factory()->create([
         'file_path' => 'official_journals/jo.pdf',
