@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Traits\SearchesArticles;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -18,6 +19,28 @@ use function Laravel\Ai\agent;
  */
 class ArticleSearchController extends Controller
 {
+    use SearchesArticles;
+
+    /**
+     * Get a single validated article with its document context.
+     *
+     * Permet à l'app mobile d'ouvrir un résultat de recherche dont le document
+     * n'est pas encore en cache local : elle résout ici le document parent,
+     * puis télécharge sa structure complète pour la lecture hors-ligne.
+     *
+     * @urlParam id string required The article UUID.
+     */
+    public function context(string $id): JsonResponse
+    {
+        $article = $this->fetchArticleContext($id);
+
+        if ($article === null) {
+            return $this->error(null, 'Article introuvable.', 404);
+        }
+
+        return $this->success($article, 'Article récupéré avec succès');
+    }
+
     /**
      * Search articles (Hybrid: Vector + Full-Text) and provide AI answer (RAG).
      *
@@ -296,7 +319,7 @@ class ArticleSearchController extends Controller
         foreach ($articles as $index => $article) {
             // Tronquer le contenu pour éviter d'exploser la limite de tokens (contexte de l'IA)
             // L'erreur "Abnormally stopped" vient souvent d'un prompt trop long.
-            $content = \Illuminate\Support\Str::limit($article['content'] ?? '', 2500);
+            $content = Str::limit($article['content'] ?? '', 2500);
 
             $context .= '--- SOURCE '.($index + 1)." ---\n";
             $context .= 'Document : '.$article['document_title']."\n";

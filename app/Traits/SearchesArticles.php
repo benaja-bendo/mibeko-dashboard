@@ -155,6 +155,7 @@ trait SearchesArticles
             ->join('document_types as dt', 'ld.type_code', '=', 'dt.code')
             ->leftJoin('structure_nodes as sn', 'a.parent_node_id', '=', 'sn.id')
             ->leftJoin('institutions as i', 'ld.institution_id', '=', 'i.id')
+            ->leftJoin('official_journals as oj', 'ld.official_journal_id', '=', 'oj.id')
             ->where('av.validation_status', 'validated')
             ->whereNull('a.deleted_at')
             ->whereNull('ld.deleted_at')
@@ -170,10 +171,13 @@ trait SearchesArticles
                 'ld.legal_scope',
                 'ld.date_publication',
                 'ld.institution_id',
+                'ld.official_journal_id',
                 'dt.code as document_type_code',
                 'dt.nom as type_name',
                 'sn.titre as node_title',
                 'i.nom as institution_name',
+                'oj.title as official_journal_title',
+                'oj.publication_date as official_journal_date',
             ]);
     }
 
@@ -202,6 +206,9 @@ trait SearchesArticles
         if (! empty($filters['document_id'])) {
             $query->where('a.document_id', $filters['document_id']);
         }
+        if (! empty($filters['official_journal_id'])) {
+            $query->where('ld.official_journal_id', $filters['official_journal_id']);
+        }
         if (! empty($filters['tag'])) {
             $query->join('taggables as tgb', function ($join) {
                 $join->on('a.id', '=', 'tgb.taggable_id')
@@ -220,27 +227,69 @@ trait SearchesArticles
      */
     protected function applyLexicalScoring(Builder $query, string $search): void
     {
-        $orTsQuery = $this->formatTsQuery($search);
-        $articleNum = $search;
-        if (preg_match('/article\s+(\d+)/i', $search, $matches)) {
-            $articleNum = $matches[1];
-        }
+        // Sépare une éventuelle référence « article N » du reste thématique.
+        // Le mot « article » est structurel (présent dans presque tous les
+        // textes) : le garder dans la recherche full-text noierait les vrais
+        // résultats. On le retire du texte interrogé et on cible le numéro.
+        [$articleNum, $topical] = $this->parseArticleQuery($search);
+
+        $orTsQuery = $this->formatTsQuery($topical);
+        $hasText = $topical !== '';
 
         $query->selectRaw("
-            (CASE WHEN ld.titre_officiel ILIKE ? THEN 0.5 ELSE 0.0 END) +
-            (ts_rank(av.search_tsv, websearch_to_tsquery('french', ?)) * 0.4) +
-            (CASE WHEN ? != '' THEN ts_rank(av.search_tsv, to_tsquery('french', ?)) * 0.2 ELSE 0.0 END) +
-            (CASE WHEN a.numero_article = ? THEN 0.2 ELSE 0.0 END)
+            (CASE WHEN ?::text IS NOT NULL AND a.numero_article = ?::text THEN 2.0 ELSE 0.0 END) +
+            (CASE WHEN ? != '' AND ld.titre_officiel ILIKE ? THEN 0.5 ELSE 0.0 END) +
+            (CASE WHEN ? != '' THEN ts_rank(av.search_tsv, websearch_to_tsquery('french', ?)) * 0.4 ELSE 0.0 END) +
+            (CASE WHEN ? != '' THEN ts_rank(av.search_tsv, to_tsquery('french', ?)) * 0.2 ELSE 0.0 END)
             as total_score
-        ", ["%$search%", $search, $orTsQuery, $orTsQuery, $articleNum])
-            ->where(function ($q) use ($search, $orTsQuery, $articleNum) {
-                $q->whereRaw("av.search_tsv @@ websearch_to_tsquery('french', ?)", [$search]);
-                if ($orTsQuery !== '') {
-                    $q->orWhereRaw("av.search_tsv @@ to_tsquery('french', ?)", [$orTsQuery]);
+        ", [
+            $articleNum, $articleNum,
+            $topical, "%$topical%",
+            $topical, $topical,
+            $orTsQuery, $orTsQuery,
+        ])
+            ->where(function ($q) use ($articleNum, $topical, $orTsQuery, $hasText) {
+                if ($hasText) {
+                    $q->whereRaw("av.search_tsv @@ websearch_to_tsquery('french', ?)", [$topical]);
+                    if ($orTsQuery !== '') {
+                        $q->orWhereRaw("av.search_tsv @@ to_tsquery('french', ?)", [$orTsQuery]);
+                    }
+                    $q->orWhere('ld.titre_officiel', 'ILIKE', "%$topical%");
+                    if ($articleNum !== null) {
+                        $q->orWhere('a.numero_article', '=', $articleNum);
+                    }
+                } elseif ($articleNum !== null) {
+                    // Requête purement « article N » : on ne renvoie que les
+                    // articles portant ce numéro, sans le bruit du full-text.
+                    $q->where('a.numero_article', '=', $articleNum);
                 }
-                $q->orWhere('ld.titre_officiel', 'ILIKE', "%$search%")
-                    ->orWhere('a.numero_article', '=', $articleNum);
             });
+    }
+
+    /**
+     * Sépare une requête en (numéro d'article ciblé, reste thématique).
+     *
+     * Reconnaît « article 45 », « art. 45 bis », « 45 code du travail » ou un
+     * simple « 45 ». Le numéro est extrait du texte pour que le mot structurel
+     * « article » ne pollue pas la recherche full-text.
+     *
+     * @return array{0: ?string, 1: string} [numéro|null, texte thématique]
+     */
+    protected function parseArticleQuery(string $search): array
+    {
+        $search = trim($search);
+
+        if (preg_match('/\bart(?:icle)?s?\.?\s*(\d+[\w.-]*)/iu', $search, $matches)) {
+            $rest = trim(preg_replace('/\bart(?:icle)?s?\.?\s*\d+[\w.-]*/iu', ' ', $search) ?? '');
+
+            return [$matches[1], $rest];
+        }
+
+        if (preg_match('/^(\d+[\w.-]*)\s*(.*)$/u', $search, $matches)) {
+            return [$matches[1], trim($matches[2])];
+        }
+
+        return [null, $search];
     }
 
     /**
@@ -270,6 +319,14 @@ trait SearchesArticles
             'institution_id' => $item->institution_id ?? null,
             'institution' => $item->institution_name ?? null,
             'date_publication' => $item->date_publication ?? null,
+            // Journal Officiel d'origine : permet au client de proposer un
+            // retour vers le JO ayant publié ce texte (null si non rattaché).
+            'official_journal_id' => $item->official_journal_id ?? null,
+            'official_journal' => isset($item->official_journal_id) ? [
+                'id' => $item->official_journal_id,
+                'title' => $item->official_journal_title ?? null,
+                'publication_date' => $item->official_journal_date ?? null,
+            ] : null,
             'validation_status' => $item->validation_status ?? 'validated',
             'score' => isset($item->total_score) ? round((float) $item->total_score, 4) : 0,
         ];
@@ -332,13 +389,22 @@ trait SearchesArticles
     }
 
     /**
+     * Mots structurels écartés du full-text : présents dans presque tous les
+     * textes juridiques, ils ne discriminent rien et noient la pertinence.
+     */
+    protected array $structuralStopWords = [
+        'article', 'articles', 'alinea', 'alineas', 'paragraphe', 'paragraphes',
+    ];
+
+    /**
      * Format query for Postgres to_tsquery
      */
     protected function formatTsQuery(string $query): string
     {
         $clean = preg_replace('/[^\p{L}\p{N}]+/u', ' ', $query);
         $parts = array_filter(explode(' ', trim($clean)), function ($w) {
-            return mb_strlen($w) > 3;
+            return mb_strlen($w) > 3
+                && ! in_array(mb_strtolower($this->stripDiacritics($w)), $this->structuralStopWords, true);
         });
 
         if (empty($parts)) {
@@ -346,5 +412,15 @@ trait SearchesArticles
         }
 
         return implode(' | ', $parts);
+    }
+
+    /**
+     * Retire les accents pour comparer un mot à la liste des stop-words.
+     */
+    protected function stripDiacritics(string $value): string
+    {
+        $normalized = @iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $value);
+
+        return $normalized !== false ? $normalized : $value;
     }
 }

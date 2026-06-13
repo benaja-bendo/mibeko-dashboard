@@ -6,6 +6,7 @@ use App\Models\DocumentType;
 use App\Models\LegalDocument;
 use App\Observers\ArticleVersionObserver;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Str;
 use Laravel\Ai\AnonymousAgent;
 use Laravel\Ai\Embeddings;
 
@@ -154,4 +155,18 @@ it('requires a search query of at least 2 characters', function () {
 
     $response->assertStatus(422)
         ->assertJsonValidationErrors(['q']);
+});
+
+it('résout le contexte d\'un article isolé (document parent inclus)', function () {
+    $response = $this->getJson("/api/v1/articles/{$this->article1->id}/context");
+
+    $response->assertSuccessful()
+        ->assertJsonPath('data.id', $this->article1->id)
+        ->assertJsonPath('data.document_id', $this->doc1->id)
+        ->assertJsonPath('data.number', '123');
+});
+
+it('renvoie 404 pour un contexte d\'article inconnu', function () {
+    $this->getJson('/api/v1/articles/'.Str::uuid().'/context')
+        ->assertStatus(404);
 });

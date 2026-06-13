@@ -96,8 +96,8 @@ it('exclut les documents non publiés des récents', function () {
     expect($titles)->not->toContain('Brouillon non publié');
 });
 
-it('exige une authentification', function () {
+it('est accessible sans authentification (lecture publique partagée web/mobile)', function () {
     auth()->forgetGuards();
 
-    $this->getJson('/api/v1/library/home')->assertStatus(401);
+    $this->getJson('/api/v1/library/home')->assertOk();
 });

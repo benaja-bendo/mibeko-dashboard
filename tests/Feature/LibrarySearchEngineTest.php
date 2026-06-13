@@ -5,6 +5,7 @@ use App\Models\ArticleVersion;
 use App\Models\DocumentType;
 use App\Models\Institution;
 use App\Models\LegalDocument;
+use App\Models\OfficialJournal;
 use App\Models\User;
 use App\Observers\ArticleVersionObserver;
 use Laravel\Ai\AnonymousAgent;
@@ -122,4 +123,110 @@ it('rejette une requête trop courte', function () {
 
     $response->assertStatus(422)
         ->assertJsonValidationErrors(['q']);
+});
+
+it('place l\'article au numéro recherché en tête pour « article 45 »', function () {
+    // Un article réellement numéroté 45, sur un sujet précis.
+    $code = LegalDocument::factory()->create([
+        'type_code' => 'LOI',
+        'titre_officiel' => 'Code du travail',
+        'legal_scope' => 'national',
+    ]);
+    $art45 = Article::factory()->create(['document_id' => $code->id, 'numero_article' => '45']);
+    ArticleVersion::factory()->create([
+        'article_id' => $art45->id,
+        'contenu_texte' => 'Tout travailleur a droit à un congé payé annuel.',
+        'validity_period' => '[2020-01-01,)',
+    ]);
+
+    // Bruit : un article qui contient le mot « article » mais n'est pas le 45.
+    $arrete = LegalDocument::factory()->create([
+        'type_code' => 'LOI',
+        'titre_officiel' => 'Arrêté portant dispense d\'apport',
+        'legal_scope' => 'national',
+    ]);
+    $art2 = Article::factory()->create(['document_id' => $arrete->id, 'numero_article' => '2']);
+    ArticleVersion::factory()->create([
+        'article_id' => $art2->id,
+        'contenu_texte' => 'La dispense visée à l\'article premier ci-dessus est accordée pour deux ans.',
+        'validity_period' => '[2020-01-01,)',
+    ]);
+
+    $response = $this->getJson('/api/v1/library/search?q='.urlencode('article 45'));
+
+    $response->assertStatus(200);
+
+    $numbers = collect($response->json('data'))->pluck('number');
+
+    // L'article 45 est en tête et le bruit « article premier » ne remonte pas au-dessus.
+    expect($numbers->first())->toBe('45');
+    expect($numbers->contains('2'))->toBeFalse();
+});
+
+it('cible l\'article numéroté même avec un thème : « article 45 congé »', function () {
+    $code = LegalDocument::factory()->create([
+        'type_code' => 'LOI',
+        'titre_officiel' => 'Code du travail',
+        'legal_scope' => 'national',
+    ]);
+    $art45 = Article::factory()->create(['document_id' => $code->id, 'numero_article' => '45']);
+    ArticleVersion::factory()->create([
+        'article_id' => $art45->id,
+        'contenu_texte' => 'Tout travailleur a droit à un congé payé annuel.',
+        'validity_period' => '[2020-01-01,)',
+    ]);
+
+    $response = $this->getJson('/api/v1/library/search?q='.urlencode('article 45 congé'));
+
+    $response->assertStatus(200);
+    expect(collect($response->json('data'))->pluck('number')->first())->toBe('45');
+});
+
+it('expose le Journal Officiel d\'origine sur un résultat de recherche', function () {
+    $journal = OfficialJournal::factory()->create([
+        'title' => 'Journal Officiel n° 4647',
+        'is_published' => true,
+    ]);
+    $doc = LegalDocument::factory()->create([
+        'type_code' => 'LOI',
+        'titre_officiel' => 'Arrêté publié au JO 4647',
+        'legal_scope' => 'national',
+        'official_journal_id' => $journal->id,
+    ]);
+    $article = Article::factory()->create(['document_id' => $doc->id, 'numero_article' => '2']);
+    ArticleVersion::factory()->create([
+        'article_id' => $article->id,
+        'contenu_texte' => 'La dispense est accordée pour une durée de deux ans.',
+        'validity_period' => '[2020-01-01,)',
+    ]);
+
+    $response = $this->getJson('/api/v1/library/search?q='.urlencode('dispense'));
+
+    $response->assertStatus(200)
+        ->assertJsonPath('data.0.official_journal_id', $journal->id)
+        ->assertJsonPath('data.0.official_journal.title', 'Journal Officiel n° 4647');
+});
+
+it('filtre les résultats par journal officiel', function () {
+    $journal = OfficialJournal::factory()->create();
+    $doc = LegalDocument::factory()->create([
+        'type_code' => 'LOI',
+        'titre_officiel' => 'Décret paru au journal ciblé',
+        'legal_scope' => 'national',
+        'official_journal_id' => $journal->id,
+    ]);
+    $article = Article::factory()->create(['document_id' => $doc->id, 'numero_article' => '3']);
+    ArticleVersion::factory()->create([
+        'article_id' => $article->id,
+        'contenu_texte' => 'Le contrat de travail saisonnier est encadré.',
+        'validity_period' => '[2020-01-01,)',
+    ]);
+
+    // « contrat » matche aussi les textes du beforeEach : le filtre doit ne
+    // garder que le texte du journal ciblé.
+    $response = $this->getJson('/api/v1/library/search?q=contrat&official_journal_id='.$journal->id);
+
+    $response->assertStatus(200)
+        ->assertJsonCount(1, 'data')
+        ->assertJsonPath('data.0.document_id', $doc->id);
 });
