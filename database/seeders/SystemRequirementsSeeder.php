@@ -25,12 +25,15 @@ class SystemRequirementsSeeder extends Seeder
     private function seedDocumentTypes(): void
     {
         $types = [
+            ['code' => 'AU', 'nom' => 'Acte uniforme OHADA', 'niveau_hierarchique' => 15],
             ['code' => 'LOI', 'nom' => 'Loi', 'niveau_hierarchique' => 40],
             ['code' => 'DEC', 'nom' => 'Décret', 'niveau_hierarchique' => 70],
             ['code' => 'ARR', 'nom' => 'Arrêté', 'niveau_hierarchique' => 80],
             ['code' => 'CONST', 'nom' => 'Constitution', 'niveau_hierarchique' => 0],
             ['code' => 'ORD', 'nom' => 'Ordonnance', 'niveau_hierarchique' => 60],
             ['code' => 'CODE', 'nom' => 'Code', 'niveau_hierarchique' => 90],
+            ['code' => 'CONV', 'nom' => 'Convention collective', 'niveau_hierarchique' => 85],
+            ['code' => 'DOCT', 'nom' => 'Doctrine / Ouvrage', 'niveau_hierarchique' => 120],
             ['code' => 'TEXTE', 'nom' => 'Texte Juridique (Générique)', 'niveau_hierarchique' => 100],
         ];
 
@@ -55,15 +58,13 @@ class SystemRequirementsSeeder extends Seeder
         ];
 
         foreach ($institutions as $institution) {
-            // Check if exists by name
-            $exists = Institution::where('nom', $institution['nom'])->exists();
-            if (! $exists) {
-                Institution::create([
+            Institution::firstOrCreate(
+                ['nom' => $institution['nom']],
+                [
                     'id' => (string) Str::uuid(),
-                    'nom' => $institution['nom'],
                     'sigle' => $institution['sigle'],
-                ]);
-            }
+                ]
+            );
         }
     }
 }

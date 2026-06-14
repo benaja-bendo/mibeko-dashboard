@@ -1,5 +1,10 @@
 <?php
 
+use App\Http\Controllers\Api\V1\Admin\CurationFlagController as AdminCurationFlagController;
+use App\Http\Controllers\Api\V1\Admin\DocumentTypeController as AdminDocumentTypeController;
+use App\Http\Controllers\Api\V1\Admin\InstitutionController as AdminInstitutionController;
+use App\Http\Controllers\Api\V1\Admin\OverviewController as AdminOverviewController;
+use App\Http\Controllers\Api\V1\Admin\TagController as AdminTagController;
 use App\Http\Controllers\Api\V1\AiAssistantController;
 use App\Http\Controllers\Api\V1\ArticleController;
 use App\Http\Controllers\Api\V1\ArticleSearchController;
@@ -195,4 +200,25 @@ Route::prefix('v1')->middleware('throttle:api')->group(function () {
 
     // BE6 - Dossier PDF Export
     Route::post('dossiers/export-pdf', [DossierExportController::class, 'exportPdf']);
+
+    // ─── Espace Administration (/admin/*) — réservé au rôle admin ─────────────
+    // Centre de gestion du dashboard React. Les référentiels (types de loi,
+    // institutions, tags) y sont éditables au lieu de passer par un seeder.
+    Route::middleware(['auth:sanctum', 'role:admin'])
+        ->prefix('admin')
+        ->name('admin.')
+        ->group(function () {
+            Route::get('overview', [AdminOverviewController::class, 'index']);
+
+            Route::apiResource('document-types', AdminDocumentTypeController::class)
+                ->only(['index', 'store', 'update', 'destroy']);
+            Route::apiResource('institutions', AdminInstitutionController::class)
+                ->only(['index', 'store', 'update', 'destroy']);
+            Route::apiResource('tags', AdminTagController::class)
+                ->only(['index', 'store', 'update', 'destroy']);
+
+            // Triage des signalements (CurationFlag)
+            Route::apiResource('flags', AdminCurationFlagController::class)
+                ->only(['index', 'update', 'destroy']);
+        });
 });

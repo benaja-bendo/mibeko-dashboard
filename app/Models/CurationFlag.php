@@ -21,10 +21,13 @@ class CurationFlag extends Model
         'type_probleme',
         'description',
         'resolved',
+        'resolved_at',
+        'resolved_by',
     ];
 
     protected $casts = [
         'resolved' => 'boolean',
+        'resolved_at' => 'datetime',
     ];
 
     /**
@@ -41,5 +44,13 @@ class CurationFlag extends Model
     public function article(): BelongsTo
     {
         return $this->belongsTo(Article::class, 'article_id');
+    }
+
+    /**
+     * Get the admin who resolved the flag, if any.
+     */
+    public function resolver(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'resolved_by');
     }
 }

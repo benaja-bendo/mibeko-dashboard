@@ -1,6 +1,6 @@
 # Mibeko Dashboard
 
-Mibeko Dashboard est une plateforme de gestion et de curation de textes juridiques et réglementaires. Elle permet d'administrer une base de données de documents légaux (lois, décrets, arrêtés), leurs structures, ainsi que les institutions associées.
+Mibeko Dashboard est une plateforme de gestion et de curation de textes juridiques et réglementaires. Elle permet d'administrer une base de données de documents légaux (lois, décrets, arrêtés, actes uniformes, conventions collectives), leurs structures, ainsi que les institutions associées.
 
 Le projet est conçu comme une application "Single Page" (SPA) moderne utilisant l'architecture monolithique de Laravel couplée à Inertia.js et React.
 
