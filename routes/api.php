@@ -138,6 +138,8 @@ Route::prefix('v1')->middleware('throttle:api')->group(function () {
     // cache serveur. Partagée entre le web pro et le mobile (la consultation
     // des textes ne requiert pas de compte ; seule l'IA reste authentifiée).
     Route::get('library/home', [LibraryHomeController::class, 'index']);
+    Route::get('library/themes', [LibraryHomeController::class, 'themes']);
+    Route::get('library/themes/{slug}', [LibraryHomeController::class, 'themeDocuments']);
     Route::get('library/search', [LibrarySearchController::class, 'search']);
     Route::get('library/suggest', [LibrarySearchController::class, 'suggest'])
         ->withoutMiddleware('throttle:api')
@@ -166,6 +168,8 @@ Route::prefix('v1')->middleware('throttle:api')->group(function () {
         Route::delete('legal-documents/bulk', [LegalDocumentController::class, 'bulkDestroy']);
         Route::post('legal-documents', [LegalDocumentController::class, 'store']);
         Route::patch('legal-documents/{id}', [LegalDocumentController::class, 'update']);
+        Route::post('legal-documents/{id}/suggest-themes', [LegalDocumentController::class, 'suggestThemes'])
+            ->middleware('throttle:ai_assistant');
 
         // Administration des journaux officiels (la lecture publique reste
         // sur l'apiResource official-journals plus haut)
