@@ -22,7 +22,9 @@ class ArticleFactory extends Factory
         return [
             'document_id' => LegalDocument::factory(),
             'parent_node_id' => null,
-            'numero_article' => (string) $this->faker->numberBetween(1, 100),
+            // Unique pour ne jamais violer la contrainte uq_articles_document_numero
+            // (document_id, numero_article) quand plusieurs articles sont créés.
+            'numero_article' => (string) $this->faker->unique()->numberBetween(1, 1_000_000),
             'ordre_affichage' => $this->faker->numberBetween(1, 1000),
             'validation_status' => $this->faker->randomElement(['pending', 'in_progress', 'validated']),
         ];
