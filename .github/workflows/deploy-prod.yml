@@ -112,6 +112,7 @@ jobs:
             APP_KEY=${{ secrets.APP_KEY }}
             APP_DEBUG=false
             APP_URL=https://${{ secrets.MIBEKO_API_HOST }}
+            FRONTEND_URL=${{ secrets.FRONTEND_URL }}
             APP_DOMAIN=${{ secrets.MIBEKO_API_HOST }}
             APP_LOCALE=fr
             APP_FALLBACK_LOCALE=fr
