@@ -15,6 +15,9 @@ class Tag extends Model implements Auditable
     protected $fillable = [
         'name',
         'slug',
+        'icon',
+        'description',
+        'display_order',
     ];
 
     /**

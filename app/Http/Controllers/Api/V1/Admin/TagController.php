@@ -19,6 +19,7 @@ class TagController extends Controller
     public function index(): JsonResponse
     {
         $tags = Tag::withCount(['legalDocuments', 'articles'])
+            ->orderBy('display_order')
             ->orderBy('name')
             ->get();
 
@@ -33,6 +34,9 @@ class TagController extends Controller
         $tag = Tag::create([
             'name' => $request->validated('name'),
             'slug' => $request->validated('slug'),
+            'icon' => $request->validated('icon'),
+            'description' => $request->validated('description'),
+            'display_order' => $request->validated('display_order') ?? 0,
         ]);
 
         $tag->loadCount(['legalDocuments', 'articles']);
@@ -50,6 +54,12 @@ class TagController extends Controller
 
         if ($request->filled('slug')) {
             $tag->slug = $request->validated('slug');
+        }
+
+        foreach (['icon', 'description', 'display_order'] as $field) {
+            if ($request->has($field)) {
+                $tag->{$field} = $request->validated($field);
+            }
         }
 
         $tag->save();

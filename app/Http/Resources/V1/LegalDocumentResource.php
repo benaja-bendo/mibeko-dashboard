@@ -78,6 +78,13 @@ class LegalDocumentResource extends JsonResource
                 'code' => $this->type->code,
                 'name' => $this->type->nom,
             ]),
+            // Thèmes de vie (taxonomie « tags » réutilisée)
+            'themes' => $this->whenLoaded('tags', fn () => $this->tags->map(fn ($tag) => [
+                'id' => $tag->id,
+                'name' => $tag->name,
+                'slug' => $tag->slug,
+                'icon' => $tag->icon,
+            ])->values()),
             'structure' => StructureNodeResource::collection($this->whenLoaded('structureNodes')),
             'articles' => ArticleSyncResource::collection($this->whenLoaded('articles')),
             'relations' => DocumentRelationResource::collection($this->whenLoaded('relations')),

@@ -2,13 +2,18 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Ai\ThemeClassifier;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\V1\LegalDocumentResource;
+use App\Models\Article;
 use App\Models\DocumentRelation;
 use App\Models\LegalDocument;
+use App\Models\Tag;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Arr;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
@@ -172,7 +177,7 @@ class LegalDocumentController extends Controller
     public function show(string $id): JsonResponse
     {
         $document = QueryBuilder::for(LegalDocument::class)
-            ->with(['institution', 'type', 'officialJournal', 'articles.latestVersion', 'relations.targetDocument'])
+            ->with(['institution', 'type', 'officialJournal', 'articles.latestVersion', 'relations.targetDocument', 'tags'])
             ->withCount([
                 'articles',
                 'relations',
@@ -263,6 +268,9 @@ class LegalDocumentController extends Controller
                 LegalDocument::STATUS_VALIDATED,
                 LegalDocument::STATUS_PUBLISHED,
             ])],
+            // Thèmes (taxonomie « tags » réutilisée) — tableau d'ids de tags.
+            'themes' => ['sometimes', 'array'],
+            'themes.*' => ['string', 'exists:tags,id'],
         ]);
 
         $isPublishing = ($validated['curation_status'] ?? null) === LegalDocument::STATUS_PUBLISHED;
@@ -285,12 +293,93 @@ class LegalDocumentController extends Controller
             );
         }
 
-        $document->update($validated);
+        $document->update(Arr::except($validated, ['themes']));
+
+        if (array_key_exists('themes', $validated)) {
+            $themeIds = $validated['themes'];
+            $document->tags()->sync($themeIds);
+            $this->propagateThemesToArticles($document, $themeIds);
+
+            // Les compteurs de la bande « Parcourir par thème » sont mis en cache :
+            // on les invalide pour refléter le rattachement immédiatement.
+            Cache::forget('library:themes');
+            Cache::forget('library:home');
+        }
 
         return $this->success(
-            new LegalDocumentResource($document->fresh(['institution', 'type'])),
+            new LegalDocumentResource($document->fresh(['institution', 'type', 'tags'])),
             'Document mis à jour avec succès'
         );
+    }
+
+    /**
+     * Propage les thèmes d'un document à tous ses articles.
+     *
+     * Les thèmes sont assignés au niveau document (ergonomique pour l'éditeur) ;
+     * cette propagation alimente la table `taggables` côté articles pour que la
+     * recherche article par slug existante fonctionne aussi. Implémentée en
+     * 2 requêtes (purge + insertion groupée) quel que soit le nombre d'articles.
+     *
+     * @param  array<int, string>  $themeIds
+     */
+    private function propagateThemesToArticles(LegalDocument $document, array $themeIds): void
+    {
+        $articleIds = $document->articles()->pluck('id');
+
+        if ($articleIds->isEmpty()) {
+            return;
+        }
+
+        DB::table('taggables')
+            ->where('taggable_type', Article::class)
+            ->whereIn('taggable_id', $articleIds)
+            ->delete();
+
+        if (empty($themeIds)) {
+            return;
+        }
+
+        $rows = [];
+        foreach ($articleIds as $articleId) {
+            foreach ($themeIds as $themeId) {
+                $rows[] = [
+                    'tag_id' => $themeId,
+                    'taggable_id' => $articleId,
+                    'taggable_type' => Article::class,
+                    'created_at' => now(),
+                ];
+            }
+        }
+
+        DB::table('taggables')->insert($rows);
+    }
+
+    /**
+     * Suggère des thèmes pour un document via l'IA (assistance à la curation).
+     *
+     * Lit le titre + un extrait des premiers articles, demande au classifieur
+     * 1-3 thèmes dans la taxonomie, et renvoie les tags correspondants. Aucune
+     * écriture : l'éditeur valide ensuite via `update`.
+     */
+    public function suggestThemes(string $id): JsonResponse
+    {
+        $document = LegalDocument::with(['articles' => fn ($q) => $q->orderBy('ordre_affichage')->limit(15)->with('latestVersion')])
+            ->findOrFail($id);
+
+        Gate::authorize('update', $document);
+
+        $excerpt = $document->articles
+            ->map(fn ($article) => 'Article '.$article->numero_article.' : '.optional($article->latestVersion)->contenu_texte)
+            ->filter()
+            ->implode("\n\n");
+
+        $slugs = (new ThemeClassifier)->suggest($document->titre_officiel ?? '', $excerpt);
+
+        $themes = Tag::whereIn('slug', $slugs)
+            ->orderBy('display_order')
+            ->get(['id', 'name', 'slug', 'icon']);
+
+        return $this->success($themes, 'Thèmes suggérés par l\'IA');
     }
 
     public function destroy(Request $request, string $id): JsonResponse

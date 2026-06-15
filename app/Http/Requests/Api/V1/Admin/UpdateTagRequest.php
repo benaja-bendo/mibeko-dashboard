@@ -39,6 +39,9 @@ class UpdateTagRequest extends FormRequest
                 'sometimes', 'string', 'max:255',
                 Rule::unique('tags', 'slug')->ignore($this->route('tag')),
             ],
+            'icon' => ['nullable', 'string', 'max:50'],
+            'description' => ['nullable', 'string', 'max:255'],
+            'display_order' => ['nullable', 'integer', 'min:0'],
         ];
     }
 

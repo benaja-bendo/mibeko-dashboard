@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Article;
 use App\Models\Institution;
 use App\Models\LegalDocument;
+use App\Models\Tag;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Cache;
@@ -94,6 +95,62 @@ class LibraryHomeController extends Controller
         });
 
         return $this->success($data, 'Accueil de la bibliothèque récupéré avec succès');
+    }
+
+    /**
+     * Liste des thèmes de vie avec le nombre de textes publiés rattachés.
+     *
+     * Alimente la bande « Parcourir par thème » de la Bibliothèque. Mis en cache
+     * côté serveur (contenu identique pour tous).
+     */
+    public function themes(): JsonResponse
+    {
+        $themes = Cache::remember('library:themes', now()->addMinutes(10), function (): array {
+            return Tag::query()
+                ->withCount(['legalDocuments as documents_count' => fn ($q) => $q->published()])
+                ->orderBy('display_order')
+                ->orderBy('name')
+                ->get()
+                ->map(fn (Tag $tag): array => [
+                    'id' => $tag->id,
+                    'name' => $tag->name,
+                    'slug' => $tag->slug,
+                    'icon' => $tag->icon,
+                    'description' => $tag->description,
+                    'documents_count' => (int) $tag->documents_count,
+                ])->all();
+        });
+
+        return $this->success($themes, 'Thèmes récupérés avec succès');
+    }
+
+    /**
+     * Textes publiés rattachés à un thème — alimente la vue « Parcourir par
+     * thème » (liste de documents, pas de recherche full-text).
+     */
+    public function themeDocuments(string $slug): JsonResponse
+    {
+        $theme = Tag::where('slug', $slug)->firstOrFail();
+
+        $documents = $theme->legalDocuments()
+            ->published()
+            ->with('type')
+            ->withCount('articles')
+            ->orderByRaw('legal_documents.date_publication DESC NULLS LAST')
+            ->orderByDesc('legal_documents.created_at')
+            ->limit(60)
+            ->get();
+
+        return $this->success([
+            'theme' => [
+                'id' => $theme->id,
+                'name' => $theme->name,
+                'slug' => $theme->slug,
+                'icon' => $theme->icon,
+                'description' => $theme->description,
+            ],
+            'documents' => $this->mapDocuments($documents),
+        ], 'Textes du thème récupérés avec succès');
     }
 
     /**
