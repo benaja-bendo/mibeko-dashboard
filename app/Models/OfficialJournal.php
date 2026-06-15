@@ -7,10 +7,12 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use OwenIt\Auditing\Auditable as AuditableTrait;
+use OwenIt\Auditing\Contracts\Auditable;
 
-class OfficialJournal extends Model
+class OfficialJournal extends Model implements Auditable
 {
-    use HasFactory, HasUuids, SoftDeletes;
+    use AuditableTrait, HasFactory, HasUuids, SoftDeletes;
 
     protected $fillable = [
         'title',
@@ -20,6 +22,13 @@ class OfficialJournal extends Model
         'transcription_status',
         'is_published',
     ];
+
+    /**
+     * `file_path` est un détail technique de stockage : exclu de l'audit.
+     *
+     * @var array<int, string>
+     */
+    protected $auditExclude = ['file_path'];
 
     const STATUS_PENDING = 'pending';
 

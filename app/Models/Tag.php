@@ -5,10 +5,12 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use OwenIt\Auditing\Auditable as AuditableTrait;
+use OwenIt\Auditing\Contracts\Auditable;
 
-class Tag extends Model
+class Tag extends Model implements Auditable
 {
-    use HasFactory, HasUuids;
+    use AuditableTrait, HasFactory, HasUuids;
 
     protected $fillable = [
         'name',

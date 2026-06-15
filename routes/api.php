@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\V1\Admin\AuditController as AdminAuditController;
 use App\Http\Controllers\Api\V1\Admin\CurationFlagController as AdminCurationFlagController;
 use App\Http\Controllers\Api\V1\Admin\DocumentTypeController as AdminDocumentTypeController;
 use App\Http\Controllers\Api\V1\Admin\ImpersonationController as AdminImpersonationController;
@@ -260,5 +261,13 @@ Route::prefix('v1')->middleware('throttle:api')->group(function () {
                 ->name('invitations.resend');
             Route::apiResource('invitations', AdminUserInvitationController::class)
                 ->only(['index', 'store', 'destroy']);
+
+            // ── Journal d'activité (audit) ────────────────────────────────────
+            Route::get('audits/stats', [AdminAuditController::class, 'stats'])->name('audits.stats');
+            Route::get('audits/filters', [AdminAuditController::class, 'filters'])->name('audits.filters');
+            Route::get('audits/export', [AdminAuditController::class, 'export'])->name('audits.export');
+            Route::delete('audits', [AdminAuditController::class, 'purge'])->name('audits.purge');
+            Route::get('audits', [AdminAuditController::class, 'index'])->name('audits.index');
+            Route::get('audits/{audit}', [AdminAuditController::class, 'show'])->name('audits.show');
         });
 });

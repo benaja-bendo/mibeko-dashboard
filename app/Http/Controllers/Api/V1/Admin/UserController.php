@@ -13,8 +13,10 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
+use OwenIt\Auditing\Events\AuditCustom;
 
 /**
  * Gestion fine des utilisateurs depuis l'espace administration.
@@ -133,12 +135,15 @@ class UserController extends Controller
         $user->save();
 
         if ($request->has('roles')) {
-            $error = $this->guardRoleChange($user, $request->validated('roles'));
+            $newRoles = $request->validated('roles');
+            $error = $this->guardRoleChange($user, $newRoles);
             if ($error !== null) {
                 return $error;
             }
 
-            $user->syncRoles($request->validated('roles'));
+            $oldRoles = $user->getRoleNames()->sort()->values()->all();
+            $user->syncRoles($newRoles);
+            $this->auditRoleChange($user, $oldRoles, $newRoles);
         }
 
         if ($request->has('permissions')) {
@@ -333,6 +338,32 @@ class UserController extends Controller
         }
 
         return null;
+    }
+
+    /**
+     * Trace un changement de rôles via un audit personnalisé.
+     *
+     * Les rôles Spatie vivent dans une table pivot : owen-it n'audite pas leurs
+     * changements automatiquement, on émet donc un évènement custom.
+     *
+     * @param  array<int, string>  $old
+     * @param  array<int, string>  $new
+     */
+    private function auditRoleChange(User $user, array $old, array $new): void
+    {
+        sort($new);
+        sort($old);
+
+        if ($old === $new) {
+            return;
+        }
+
+        $user->auditEvent = 'roles_updated';
+        $user->isCustomEvent = true;
+        $user->auditCustomOld = ['roles' => $old];
+        $user->auditCustomNew = ['roles' => $new];
+
+        Event::dispatch(new AuditCustom($user));
     }
 
     private function isSelf(Request $request, User $user): bool

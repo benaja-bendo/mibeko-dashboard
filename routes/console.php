@@ -25,3 +25,9 @@ Schedule::command('mibeko:send-echeance-reminders')
     ->withoutOverlapping()
     ->runInBackground()
     ->appendOutputTo(storage_path('logs/echeance-reminders.log'));
+
+Schedule::command('mibeko:prune-audits --days=365')
+    ->monthlyOn(1, '02:00')
+    ->withoutOverlapping()
+    ->runInBackground()
+    ->appendOutputTo(storage_path('logs/prune-audits.log'));

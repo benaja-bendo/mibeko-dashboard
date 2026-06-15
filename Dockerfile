@@ -43,18 +43,18 @@ COPY . .
 # Récupérer vendor depuis le stage composer pour que wayfinder puisse s'exécuter
 COPY --from=composer-builder /app/vendor ./vendor
 
-# Variables Vite injectées au build time (overridable via --build-arg dans la CI)
+# Variables Vite injectées au build time (on les écrit dans le .env pour éviter les warnings Docker sur ARG/ENV)
 ARG VITE_REVERB_APP_KEY=shg62qdm61dsnvyzmzpy
 ARG VITE_REVERB_HOST=localhost
 ARG VITE_REVERB_PORT=8080
 ARG VITE_REVERB_SCHEME=http
-ENV VITE_REVERB_APP_KEY=${VITE_REVERB_APP_KEY}
-ENV VITE_REVERB_HOST=${VITE_REVERB_HOST}
-ENV VITE_REVERB_PORT=${VITE_REVERB_PORT}
-ENV VITE_REVERB_SCHEME=${VITE_REVERB_SCHEME}
 
 # Build des assets
 RUN cp .env.example .env \
+    && echo "VITE_REVERB_APP_KEY=${VITE_REVERB_APP_KEY}" >> .env \
+    && echo "VITE_REVERB_HOST=${VITE_REVERB_HOST}" >> .env \
+    && echo "VITE_REVERB_PORT=${VITE_REVERB_PORT}" >> .env \
+    && echo "VITE_REVERB_SCHEME=${VITE_REVERB_SCHEME}" >> .env \
     && php artisan key:generate \
     && php artisan wayfinder:generate --with-form \
     && npm run build

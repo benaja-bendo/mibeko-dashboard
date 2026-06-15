@@ -10,6 +10,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use OwenIt\Auditing\Auditable as AuditableTrait;
+use OwenIt\Auditing\Contracts\Auditable;
 
 /**
  * Dossier juridique d'un utilisateur (organisation d'articles par affaire).
@@ -21,10 +23,17 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * sont alimentés par le tableau de bord web ; la sync mobile n'utilise que le
  * sous-ensemble historique (name, legal_domain, tag, color, articles).
  */
-class Dossier extends Model
+class Dossier extends Model implements Auditable
 {
     /** @use HasFactory<DossierFactory> */
-    use HasFactory, HasUuids, SoftDeletes;
+    use AuditableTrait, HasFactory, HasUuids, SoftDeletes;
+
+    /**
+     * Horodatages de synchronisation client : exclus de l'audit (bruit).
+     *
+     * @var array<int, string>
+     */
+    protected $auditExclude = ['client_created_at', 'client_updated_at'];
 
     /** Types de dossier (formulaire web adaptatif). */
     public const TYPES = ['contentieux', 'conseil'];
