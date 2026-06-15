@@ -3,11 +3,13 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\DossierResource;
 use App\Models\Article;
 use App\Models\Dossier;
 use App\Traits\HttpResponses;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -24,11 +26,32 @@ class DossierController extends Controller
     use HttpResponses;
 
     /**
-     * Liste l'état autoritaire des dossiers de l'utilisateur.
+     * Liste les dossiers de l'utilisateur.
+     *
+     * Par défaut : enveloppe de synchronisation (mobile). Avec `?full=1` : la
+     * collection « affaire » complète (échéances comprises) attendue par le
+     * tableau de bord web.
      */
     public function index(Request $request): JsonResponse
     {
+        if ($request->boolean('full')) {
+            return $this->success($this->webDossiers($request->user()->id));
+        }
+
         return $this->success($this->authoritativeState($request->user()->id));
+    }
+
+    /**
+     * Collection « affaire » des dossiers vivants, pour le web.
+     */
+    private function webDossiers(string $userId): AnonymousResourceCollection
+    {
+        $dossiers = Dossier::where('user_id', $userId)
+            ->with(['echeances' => fn ($query) => $query->orderByRaw('due_date ASC NULLS LAST')])
+            ->orderByDesc('client_updated_at')
+            ->get();
+
+        return DossierResource::collection($dossiers);
     }
 
     /**

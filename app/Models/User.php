@@ -15,12 +15,30 @@ use Illuminate\Notifications\Notifiable;
 use Laravel\Cashier\Billable;
 use Laravel\Fortify\TwoFactorAuthenticatable;
 use Laravel\Sanctum\HasApiTokens;
+use OwenIt\Auditing\Auditable as AuditableTrait;
+use OwenIt\Auditing\Contracts\Auditable;
 use Spatie\Permission\Traits\HasRoles;
 
-class User extends Authenticatable
+class User extends Authenticatable implements Auditable
 {
     /** @use HasFactory<UserFactory> */
-    use Billable, HasApiTokens, HasFactory, HasRoles, HasUuids, Notifiable, SoftDeletes, TwoFactorAuthenticatable;
+    use AuditableTrait, Billable, HasApiTokens, HasFactory, HasRoles, HasUuids, Notifiable, SoftDeletes, TwoFactorAuthenticatable;
+
+    /**
+     * Attributs exclus de l'audit.
+     *
+     * `last_seen_at` change à chaque ping de présence : l'auditer noierait la
+     * table `audits`. Les secrets ne doivent jamais y transiter.
+     *
+     * @var array<int, string>
+     */
+    protected $auditExclude = [
+        'password',
+        'remember_token',
+        'two_factor_secret',
+        'two_factor_recovery_codes',
+        'last_seen_at',
+    ];
 
     /**
      * The attributes that are mass assignable.
@@ -33,6 +51,8 @@ class User extends Authenticatable
         'password',
         'status',
         'last_seen_at',
+        'suspended_at',
+        'suspension_reason',
     ];
 
     /**
@@ -59,6 +79,7 @@ class User extends Authenticatable
             'password' => 'hashed',
             'two_factor_confirmed_at' => 'datetime',
             'last_seen_at' => 'datetime',
+            'suspended_at' => 'datetime',
         ];
     }
 
@@ -84,6 +105,14 @@ class User extends Authenticatable
     public function dossiers(): HasMany
     {
         return $this->hasMany(Dossier::class);
+    }
+
+    /**
+     * Récupère les conversations avec l'assistant IA de l'utilisateur.
+     */
+    public function agentConversations(): HasMany
+    {
+        return $this->hasMany(AgentConversation::class);
     }
 
     /**

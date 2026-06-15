@@ -2,9 +2,12 @@
 
 use App\Http\Controllers\Api\V1\Admin\CurationFlagController as AdminCurationFlagController;
 use App\Http\Controllers\Api\V1\Admin\DocumentTypeController as AdminDocumentTypeController;
+use App\Http\Controllers\Api\V1\Admin\ImpersonationController as AdminImpersonationController;
 use App\Http\Controllers\Api\V1\Admin\InstitutionController as AdminInstitutionController;
 use App\Http\Controllers\Api\V1\Admin\OverviewController as AdminOverviewController;
 use App\Http\Controllers\Api\V1\Admin\TagController as AdminTagController;
+use App\Http\Controllers\Api\V1\Admin\UserController as AdminUserController;
+use App\Http\Controllers\Api\V1\Admin\UserInvitationController as AdminUserInvitationController;
 use App\Http\Controllers\Api\V1\AiAssistantController;
 use App\Http\Controllers\Api\V1\ArticleController;
 use App\Http\Controllers\Api\V1\ArticleSearchController;
@@ -16,7 +19,9 @@ use App\Http\Controllers\Api\V1\DeviceController;
 use App\Http\Controllers\Api\V1\DocumentRelationController;
 use App\Http\Controllers\Api\V1\DocumentTypeController;
 use App\Http\Controllers\Api\V1\DossierController;
+use App\Http\Controllers\Api\V1\DossierEcheanceController;
 use App\Http\Controllers\Api\V1\DossierExportController;
+use App\Http\Controllers\Api\V1\DossierWebController;
 use App\Http\Controllers\Api\V1\EmbeddingController;
 use App\Http\Controllers\Api\V1\HomeController;
 use App\Http\Controllers\Api\V1\InstitutionController;
@@ -50,6 +55,9 @@ Route::prefix('v1')->middleware('throttle:api')->group(function () {
         ->middleware('throttle:password_reset');
     Route::post('reset-password', [PasswordResetController::class, 'reset'])
         ->middleware('throttle:password_reset');
+
+    // Acceptation d'une invitation d'équipe (création de compte + auto-login)
+    Route::post('invitations/accept', [AdminUserInvitationController::class, 'accept']);
 
     // Device Registration (No Auth required)
     Route::post('devices/register', [DeviceController::class, 'register']);
@@ -93,9 +101,18 @@ Route::prefix('v1')->middleware('throttle:api')->group(function () {
         Route::get('billing/portal', [BillingController::class, 'portal']);
         Route::get('billing/invoices/{invoiceId}/pdf', [BillingController::class, 'downloadInvoice']);
 
-        // Dossiers — synchronisation multi-appareils (mobile, web)
+        // Dossiers — synchronisation multi-appareils (mobile) + liste web via ?full=1
         Route::get('dossiers', [DossierController::class, 'index']);
         Route::post('dossiers/sync', [DossierController::class, 'sync']);
+
+        // Dossiers — CRUD « affaire » du tableau de bord web
+        Route::post('dossiers', [DossierWebController::class, 'store']);
+        Route::get('dossiers/{dossier}', [DossierWebController::class, 'show']);
+        Route::patch('dossiers/{dossier}', [DossierWebController::class, 'update']);
+        Route::delete('dossiers/{dossier}', [DossierWebController::class, 'destroy']);
+        Route::post('dossiers/{dossier}/echeances', [DossierEcheanceController::class, 'store']);
+        Route::patch('echeances/{echeance}', [DossierEcheanceController::class, 'update']);
+        Route::delete('echeances/{echeance}', [DossierEcheanceController::class, 'destroy']);
 
         // Notifications
         Route::get('notifications', [NotificationController::class, 'index']);
@@ -220,5 +237,28 @@ Route::prefix('v1')->middleware('throttle:api')->group(function () {
             // Triage des signalements (CurationFlag)
             Route::apiResource('flags', AdminCurationFlagController::class)
                 ->only(['index', 'update', 'destroy']);
+
+            // ── Gestion des utilisateurs ──────────────────────────────────────
+            Route::get('users/stats', [AdminUserController::class, 'stats'])->name('users.stats');
+            Route::post('users/{id}/restore', [AdminUserController::class, 'restore'])
+                ->name('users.restore');
+            Route::post('users/{user}/password-reset', [AdminUserController::class, 'sendPasswordReset'])
+                ->name('users.password-reset');
+            Route::post('users/{user}/revoke-tokens', [AdminUserController::class, 'revokeTokens'])
+                ->name('users.revoke-tokens');
+            Route::post('users/{user}/verify-email', [AdminUserController::class, 'verifyEmail'])
+                ->name('users.verify-email');
+            Route::delete('users/{user}/two-factor', [AdminUserController::class, 'disableTwoFactor'])
+                ->name('users.two-factor.disable');
+            Route::post('users/{user}/impersonate', [AdminImpersonationController::class, 'start'])
+                ->name('users.impersonate');
+            Route::apiResource('users', AdminUserController::class)
+                ->only(['index', 'store', 'show', 'update', 'destroy']);
+
+            // ── Invitations d'équipe ──────────────────────────────────────────
+            Route::post('invitations/{invitation}/resend', [AdminUserInvitationController::class, 'resend'])
+                ->name('invitations.resend');
+            Route::apiResource('invitations', AdminUserInvitationController::class)
+                ->only(['index', 'store', 'destroy']);
         });
 });
