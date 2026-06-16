@@ -47,7 +47,15 @@ class ThemeClassifier implements Agent
             ."EXTRAIT :\n".mb_substr($excerpt, 0, 4000)."\n\n"
             .'Réponds en JSON : {"slugs": [...]} (1 à 3 thèmes parmi la liste).';
 
-        $response = $this->prompt($prompt);
+        // La suggestion est une assistance optionnelle : une panne IA (réseau,
+        // clé manquante, quota) ne doit jamais faire échouer l'endpoint.
+        try {
+            $response = $this->prompt($prompt);
+        } catch (\Throwable $e) {
+            report($e);
+
+            return [];
+        }
 
         return $this->parseSlugs($response->text, $themes->pluck('slug')->all());
     }

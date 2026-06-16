@@ -1,5 +1,6 @@
 <?php
 
+use App\Ai\ThemeClassifier;
 use App\Models\Article;
 use App\Models\DocumentType;
 use App\Models\LegalDocument;
@@ -8,7 +9,6 @@ use App\Models\User;
 use App\Observers\ArticleVersionObserver;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
-use Laravel\Ai\AnonymousAgent;
 use Laravel\Ai\Embeddings;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
@@ -153,7 +153,7 @@ it('exige une requête texte pour la recherche d\'articles (pas de thème seul)'
 // ---------------------------------------------------------------------------
 
 it('suggère des thèmes via l\'IA en filtrant à la taxonomie', function () {
-    AnonymousAgent::fake(['{"slugs": ["travail", "slug-inexistant"]}']);
+    ThemeClassifier::fake(['{"slugs": ["travail", "slug-inexistant"]}']);
 
     $this->actingAs($this->editor)
         ->postJson("/api/v1/legal-documents/{$this->document->id}/suggest-themes")
