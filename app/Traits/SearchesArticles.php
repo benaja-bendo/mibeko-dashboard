@@ -220,10 +220,17 @@ trait SearchesArticles
     }
 
     /**
-     * Apply pure PostgreSQL full-text ranking (no embedding) to an article query.
+     * Apply hybrid PostgreSQL ranking to an article query.
      *
-     * Score blends weighted ts_rank, exact title match and article-number match.
-     * The companion WHERE keeps only rows that actually match the query.
+     * Le lexical (full-text `ts_rank`) reste primaire et déterministe ; deux
+     * filets de rappel le complètent en OR, à poids décroissant :
+     *  - trigram (`%>>` / `strict_word_similarity` via l'index GIN
+     *    `f_unaccent(contenu_texte)`) pour les variantes morphologiques que le
+     *    stemmer français n'unifie pas (dot ↔ dotal) et les fautes de frappe ;
+     *  - sémantique (distance cosinus sur `av.embedding`) pour le rappel
+     *    conceptuel (« héritage » ↔ « succession »).
+     * Le filet sémantique se dégrade gracieusement : si l'embedding de la
+     * requête ne peut être généré, la recherche reste purement lexicale.
      */
     protected function applyLexicalScoring(Builder $query, string $search): void
     {
@@ -235,26 +242,75 @@ trait SearchesArticles
 
         $orTsQuery = $this->formatTsQuery($topical);
         $hasText = $topical !== '';
+        // Les filets approximatifs n'ont de sens que sur un texte d'au moins 3
+        // caractères : en deçà, similarité et embedding deviennent du bruit.
+        $useApprox = $hasText && mb_strlen($topical) >= 3;
 
-        $query->selectRaw("
+        // Embedding de la requête pour le filet sémantique (mis en cache : une
+        // même requête ne le régénère pas). Dégradation gracieuse en cas d'échec.
+        $embeddingString = null;
+        if ($useApprox) {
+            try {
+                $embedding = Str::of($topical)->toEmbeddings(cache: true);
+                if (! empty($embedding)) {
+                    $embeddingString = '['.implode(',', $embedding).']';
+                }
+            } catch (\Throwable $e) {
+                Log::warning('Filet sémantique de la recherche bibliothèque indisponible : '.$e->getMessage());
+            }
+        }
+
+        // L'opérateur indexable `%>>` lit `pg_trgm.strict_word_similarity_threshold` :
+        // on le fixe sur la connexion pour que l'index GIN trigram soit utilisable
+        // avec NOTRE seuil (et non le défaut 0.5 qui écarterait « dotal »).
+        if ($useApprox) {
+            DB::statement("SELECT set_config('pg_trgm.strict_word_similarity_threshold', ?, false)", [(string) $this->fuzzyThreshold]);
+        }
+
+        // Le score est composé conditionnellement (et non gardé par un paramètre
+        // booléen) : Laravel convertit les bindings booléens en entiers, ce que
+        // `CASE WHEN ? THEN` refuserait sous PostgreSQL.
+        $scoreExpression = "
             (CASE WHEN ?::text IS NOT NULL AND a.numero_article = ?::text THEN 2.0 ELSE 0.0 END) +
             (CASE WHEN ? != '' AND ld.titre_officiel ILIKE ? THEN 0.5 ELSE 0.0 END) +
             (CASE WHEN ? != '' THEN ts_rank(av.search_tsv, websearch_to_tsquery('french', ?)) * 0.4 ELSE 0.0 END) +
             (CASE WHEN ? != '' THEN ts_rank(av.search_tsv, to_tsquery('french', ?)) * 0.2 ELSE 0.0 END)
-            as total_score
-        ", [
+        ";
+        $scoreBindings = [
             $articleNum, $articleNum,
             $topical, "%$topical%",
             $topical, $topical,
             $orTsQuery, $orTsQuery,
-        ])
-            ->where(function ($q) use ($articleNum, $topical, $orTsQuery, $hasText) {
+        ];
+
+        if ($useApprox) {
+            $scoreExpression .= ' + (strict_word_similarity(f_unaccent(?), f_unaccent(av.contenu_texte)) * 0.3)';
+            $scoreBindings[] = $topical;
+        }
+
+        if ($embeddingString !== null) {
+            // Poids faible : filet de dernier recours, sous le lexical et le trigram.
+            $scoreExpression .= ' + (COALESCE(1 - (av.embedding <=> ?::vector), 0) * 0.25)';
+            $scoreBindings[] = $embeddingString;
+        }
+
+        $query->selectRaw("({$scoreExpression}) as total_score", $scoreBindings)
+            ->where(function ($q) use ($articleNum, $topical, $orTsQuery, $hasText, $useApprox, $embeddingString) {
                 if ($hasText) {
                     $q->whereRaw("av.search_tsv @@ websearch_to_tsquery('french', ?)", [$topical]);
                     if ($orTsQuery !== '') {
                         $q->orWhereRaw("av.search_tsv @@ to_tsquery('french', ?)", [$orTsQuery]);
                     }
                     $q->orWhere('ld.titre_officiel', 'ILIKE', "%$topical%");
+                    // Filet trigram via l'opérateur indexable `%>>` (index GIN
+                    // `f_unaccent(contenu_texte)`), seuil = GUC fixé plus haut.
+                    if ($useApprox) {
+                        $q->orWhereRaw('f_unaccent(av.contenu_texte) %>> f_unaccent(?)', [$topical]);
+                    }
+                    // Filet sémantique : plus proches voisins dans l'espace vectoriel.
+                    if ($embeddingString !== null) {
+                        $q->orWhereRaw('av.embedding IS NOT NULL AND (av.embedding <=> ?::vector) < ?', [$embeddingString, $this->semanticDistanceThreshold]);
+                    }
                     if ($articleNum !== null) {
                         $q->orWhere('a.numero_article', '=', $articleNum);
                     }
@@ -397,13 +453,32 @@ trait SearchesArticles
     ];
 
     /**
+     * Seuil de `strict_word_similarity` (pg_trgm) pour le filet trigram.
+     *
+     * Calibré pour rattraper la même famille de mots (« dote » → 0.5 pour
+     * « dot », 0.375 pour « dotal ») tout en écartant les faux amis
+     * (« dotation » ≈ 0.27 sur « dote »).
+     */
+    protected float $fuzzyThreshold = 0.35;
+
+    /**
+     * Distance cosinus maximale (0 = identique, 2 = opposé) pour qu'un article
+     * soit retenu par le filet sémantique. 0.4 ≈ similarité ≥ 0.6 : on ne garde
+     * que des voisins nettement reliés, le sémantique restant un dernier recours.
+     */
+    protected float $semanticDistanceThreshold = 0.4;
+
+    /**
      * Format query for Postgres to_tsquery
      */
     protected function formatTsQuery(string $query): string
     {
         $clean = preg_replace('/[^\p{L}\p{N}]+/u', ' ', $query);
         $parts = array_filter(explode(' ', trim($clean)), function ($w) {
-            return mb_strlen($w) > 3
+            // ≥ 3 caractères : laisse passer les termes juridiques courts mais
+            // décisifs (« dot », « dol », « TVA », « RCS ») que l'ancien seuil
+            // (> 3) écartait, tout en filtrant le bruit de 1-2 lettres.
+            return mb_strlen($w) >= 3
                 && ! in_array(mb_strtolower($this->stripDiacritics($w)), $this->structuralStopWords, true);
         });
 

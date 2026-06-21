@@ -14,10 +14,12 @@ use Illuminate\Support\Str;
  *
  * Recherche documentaire de la Bibliothèque (poste de travail web).
  *
- * Moteur 100 % PostgreSQL (full-text `tsvector` français + `ts_rank`), sans
- * embedding ni génération IA : déterministe, instantané et totalement
- * découplé de l'IA. La synthèse et l'explication par l'IA sont exposées
- * séparément et à la demande par {@see LibraryAiController}.
+ * Moteur hybride : full-text PostgreSQL (`tsvector` français + `ts_rank`)
+ * primaire, complété de deux filets de rappel en OR — trigram (pg_trgm, pour les
+ * variantes morphologiques et les fautes de frappe) et sémantique (embeddings,
+ * pour le rappel conceptuel). Le moteur retourne toujours une liste classée
+ * d'articles : il ne GÉNÈRE jamais de réponse IA — la synthèse et l'explication
+ * sont exposées séparément et à la demande par {@see LibraryAiController}.
  */
 class LibrarySearchController extends Controller
 {
