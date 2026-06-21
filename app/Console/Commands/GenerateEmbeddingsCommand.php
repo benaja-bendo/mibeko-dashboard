@@ -39,6 +39,10 @@ class GenerateEmbeddingsCommand extends Command
 
         $versions = ArticleVersion::whereNull('embedding')
             ->whereNotNull('contenu_texte')
+            // La formule finale (« Fait à … » + signataire) est du bruit pour la
+            // recherche sémantique : on ne la vectorise pas. Le préambule (visas)
+            // garde une valeur juridique et reste vectorisé.
+            ->whereRaw("source_locator->>'content_format' IS DISTINCT FROM 'signature'")
             ->limit($limit)
             ->get();
 

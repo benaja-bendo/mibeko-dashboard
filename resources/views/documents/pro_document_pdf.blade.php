@@ -12,6 +12,26 @@
         'ohada' => 'OHADA',
         'communautaire' => 'Droit communautaire',
     ];
+
+    // Le préambule (qualité du signataire, visas, considérants) est une feuille
+    // de tête : on le sort des orphelins pour le rendre AVANT le dispositif,
+    // pas sous « Dispositions complémentaires ».
+    $preambleArticles = $orphans->filter(fn ($a) => $a->numero_article === 'PREAMBULE');
+    $orphans = $orphans->reject(fn ($a) => $a->numero_article === 'PREAMBULE')->values();
+
+    // Libellé lisible des feuilles techniques (préambule, tableau) vs vrais articles.
+    $articleLabel = function (string $numero): string {
+        if ($numero === 'PREAMBULE') {
+            return 'Préambule';
+        }
+        if ($numero === 'SIGNATURE') {
+            return 'Signature';
+        }
+        if (preg_match('/^TABLEAU_(\d+)$/', $numero, $m)) {
+            return 'Tableau '.$m[1];
+        }
+        return 'Article '.$numero;
+    };
 @endphp
 
 @section('content')
@@ -96,6 +116,15 @@
 
     {{-- Corps du document --}}
     <div class="main-content" style="position: relative; z-index: 1;">
+        @foreach($preambleArticles as $article)
+            <div class="article-box">
+                <span class="article-head">{{ $articleLabel($article->numero_article) }}</span>
+                <div class="article-body">
+                    {!! nl2br(e($article->activeVersion->contenu_texte ?? $article->latestVersion->contenu_texte ?? 'Contenu non disponible')) !!}
+                </div>
+            </div>
+        @endforeach
+
         @foreach($sections as $section)
             <div class="section-title">
                 <span class="section-kind">{{ $section['node']->type_unite }} {{ $section['node']->numero }}</span>
@@ -104,7 +133,7 @@
 
             @foreach($section['articles'] as $article)
                 <div class="article-box">
-                    <span class="article-head">Article {{ $article->numero_article }}</span>
+                    <span class="article-head">{{ $articleLabel($article->numero_article) }}</span>
                     <div class="article-body">
                         {!! nl2br(e($article->activeVersion->contenu_texte ?? $article->latestVersion->contenu_texte ?? 'Contenu non disponible')) !!}
                     </div>
@@ -118,7 +147,7 @@
             </div>
             @foreach($orphans as $article)
                 <div class="article-box">
-                    <span class="article-head">Article {{ $article->numero_article }}</span>
+                    <span class="article-head">{{ $articleLabel($article->numero_article) }}</span>
                     <div class="article-body">
                         {!! nl2br(e($article->activeVersion->contenu_texte ?? $article->latestVersion->contenu_texte ?? 'Contenu non disponible')) !!}
                     </div>

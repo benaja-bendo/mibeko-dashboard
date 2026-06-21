@@ -89,6 +89,47 @@ it('includes orphan articles at the root of the tree', function () {
         ->and($orphanEntry['content'])->toBe('Contenu article orphelin');
 });
 
+it('orders the orphan preamble before structure nodes by shared root order', function () {
+    $document = LegalDocument::factory()->create();
+
+    // Préambule : article orphelin en tête (clé d'ordre racine = 0).
+    $preamble = $document->articles()->create([
+        'numero_article' => 'PREAMBULE',
+        'ordre_affichage' => 0,
+        'validation_status' => 'validated',
+    ]);
+    $preamble->versions()->create([
+        'contenu_texte' => 'La ministre... Vu la Constitution',
+        'validity_period' => ArticleVersion::makeValidityPeriod('2020-01-01'),
+        'validation_status' => 'validated',
+    ]);
+
+    // Chapitres structurés APRÈS le préambule (clés d'ordre racine 1 et 2).
+    StructureNode::factory()->create([
+        'document_id' => $document->id,
+        'type_unite' => 'CHAPITRE',
+        'sort_order' => 1,
+        'tree_path' => 'c1',
+    ]);
+    StructureNode::factory()->create([
+        'document_id' => $document->id,
+        'type_unite' => 'CHAPITRE',
+        'sort_order' => 2,
+        'tree_path' => 'c2',
+    ]);
+
+    $response = $this->getJson("/api/v1/legal-documents/{$document->id}/tree");
+
+    $response->assertStatus(200)->assertJsonCount(3, 'data');
+
+    // Le préambule (orphelin, ordre 0) doit être EN TÊTE, avant les chapitres,
+    // pas annexé à la fin.
+    expect($response->json('data.0.type'))->toBe('ARTICLE')
+        ->and($response->json('data.0.number'))->toBe('PREAMBULE')
+        ->and($response->json('data.1.type'))->toBe('CHAPITRE')
+        ->and($response->json('data.2.type'))->toBe('CHAPITRE');
+});
+
 it('does not bulk publish documents without articles', function () {
     Role::findOrCreate('editor');
     $editor = User::factory()->create();

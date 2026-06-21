@@ -49,18 +49,37 @@ class StructureNodeController extends Controller
             ->orderBy('ordre_affichage')
             ->get();
 
-        $tree = array_merge(
-            StructureNodeResource::collection($nodes)->resolve($request),
-            $orphanArticles->map(fn (Article $article): array => array_merge(
-                (new ArticleBriefResource($article))->resolve($request),
-                [
-                    'parent_id' => null,
-                    'type' => 'ARTICLE',
-                    'title' => null,
-                    'articles' => [],
-                ],
-            ))->all(),
-        );
+        /**
+         * Nœuds de structure et articles orphelins partagent la même séquence
+         * d'ordre racine (assignée par l'ingestion Python : sort_order pour les
+         * nœuds, ordre_affichage pour les orphelins). On les ENTRELACE par cette
+         * clé au lieu d'annexer les orphelins à la fin — sinon le préambule
+         * (article orphelin, ordre 0) s'afficherait APRÈS les chapitres sur un
+         * acte structuré, au lieu d'être en tête.
+         */
+        $orderedItems = $nodes
+            ->map(fn (StructureNode $node): array => [
+                'order' => $node->sort_order ?? 0,
+                'payload' => (new StructureNodeResource($node))->resolve($request),
+            ])
+            ->concat($orphanArticles->map(fn (Article $article): array => [
+                'order' => $article->ordre_affichage ?? 0,
+                'payload' => array_merge(
+                    (new ArticleBriefResource($article))->resolve($request),
+                    [
+                        'parent_id' => null,
+                        'type' => 'ARTICLE',
+                        'title' => null,
+                        'articles' => [],
+                    ],
+                ),
+            ]));
+
+        $tree = $orderedItems
+            ->sortBy('order')
+            ->pluck('payload')
+            ->values()
+            ->all();
 
         return $this->success($tree, 'Structure récupérée avec succès');
     }
