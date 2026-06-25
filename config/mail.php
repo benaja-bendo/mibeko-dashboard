@@ -115,4 +115,16 @@ return [
         'name' => env('MAIL_FROM_NAME', 'Example'),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Contact Recipient
+    |--------------------------------------------------------------------------
+    |
+    | Destinataire des messages du formulaire de contact public (site vitrine).
+    | À défaut, on retombe sur l'adresse d'expéditeur (cf. ContactController).
+    |
+    */
+
+    'contact_to' => env('MAIL_TO_ADDRESS'),
+
 ];
