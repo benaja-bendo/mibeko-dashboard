@@ -163,6 +163,7 @@ class LibraryHomeController extends Controller
     {
         return $documents->map(fn (LegalDocument $doc): array => [
             'id' => $doc->id,
+            'slug' => $doc->slug,
             'title' => $doc->titre_officiel,
             'type_code' => $doc->type_code,
             'type_name' => $doc->type->nom ?? null,

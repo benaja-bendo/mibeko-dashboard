@@ -196,6 +196,101 @@ class LegalDocumentController extends Controller
     }
 
     /**
+     * Public, slug-addressed view of a published document for the marketing site.
+     *
+     * Serves `/codes/{slug}` (and `?article={numero}`) for SEO pages. Only
+     * published documents are reachable so drafts never get indexed. Returns
+     * the document metadata, a lightweight index of every article (numbers
+     * only, for navigation and sitemaps) and, when requested, the full text of
+     * a single article — keeping the page payload small even on large codes.
+     */
+    public function showBySlug(Request $request, string $slug): JsonResponse
+    {
+        $document = LegalDocument::query()
+            ->published()
+            ->where('slug', $slug)
+            ->with(['institution', 'type', 'officialJournal', 'tags'])
+            ->firstOrFail();
+
+        $articles = $document->articles()
+            ->orderBy('ordre_affichage')
+            ->get(['id', 'document_id', 'numero_article', 'ordre_affichage'])
+            ->map(fn (Article $article) => [
+                'id' => $article->id,
+                'number' => $article->numero_article,
+                'order' => $article->ordre_affichage,
+            ])
+            ->values();
+
+        $currentArticle = null;
+
+        if ($request->filled('article')) {
+            $article = $document->articles()
+                ->where('numero_article', $request->string('article'))
+                ->with('activeVersion')
+                ->first();
+
+            if ($article) {
+                $currentArticle = [
+                    'id' => $article->id,
+                    'number' => $article->numero_article,
+                    'order' => $article->ordre_affichage,
+                    'content' => $article->activeVersion?->contenu_texte,
+                    'related' => $this->relatedTexts($article),
+                ];
+            }
+        }
+
+        return $this->success([
+            'document' => new LegalDocumentResource($document),
+            'articles' => $articles,
+            'current_article' => $currentArticle,
+        ], 'Document public récupéré avec succès');
+    }
+
+    /**
+     * Cross-references publiques d'un article (maillage interne SEO).
+     *
+     * Pour chaque relation de l'article, on renvoie « l'autre bout » (le texte
+     * cité/modifiant/abrogeant), **uniquement s'il est publié et a un slug** —
+     * on ne crée jamais de lien vers une page inexistante. Le numéro d'article
+     * cible peut être absent (relation au niveau document).
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    private function relatedTexts(Article $article): array
+    {
+        return DocumentRelation::query()
+            ->where(fn ($query) => $query
+                ->where('source_article_id', $article->id)
+                ->orWhere('target_article_id', $article->id))
+            ->with(['sourceDocument', 'targetDocument', 'sourceArticle', 'targetArticle'])
+            ->get()
+            ->map(function (DocumentRelation $relation) use ($article) {
+                $isSource = $relation->source_article_id === $article->id;
+                $otherDocument = $isSource ? $relation->targetDocument : $relation->sourceDocument;
+                $otherArticle = $isSource ? $relation->targetArticle : $relation->sourceArticle;
+
+                if (! $otherDocument
+                    || $otherDocument->curation_status !== LegalDocument::STATUS_PUBLISHED
+                    || empty($otherDocument->slug)) {
+                    return null;
+                }
+
+                return [
+                    'type' => $relation->relation_type,
+                    'document_slug' => $otherDocument->slug,
+                    'document_title' => $otherDocument->titre_officiel,
+                    'article_number' => $otherArticle?->numero_article,
+                    'comment' => $relation->commentaire,
+                ];
+            })
+            ->filter()
+            ->values()
+            ->all();
+    }
+
+    /**
      * Create a legal document manually (editor + admin only).
      *
      * Used to handle extraction gaps: when the pipeline missed a text inside
@@ -281,6 +376,22 @@ class LegalDocumentController extends Controller
                 'Impossible de publier un document sans article.',
                 422
             );
+        }
+
+        // Garde-fou qualité : un document conservant des anomalies de curation
+        // non résolues (trous de numérotation, doublons signalés à l'ingestion)
+        // ne doit pas atteindre le catalogue publié. L'éditeur doit d'abord les
+        // traiter/résoudre dans l'espace de curation.
+        if ($isPublishing) {
+            $openFlags = $document->curationFlags()->where('resolved', false)->count();
+
+            if ($openFlags > 0) {
+                return $this->error(
+                    ['curation_status' => ["Ce document a {$openFlags} anomalie(s) de curation non résolue(s). Résolvez-les avant de publier."]],
+                    'Impossible de publier un document avec des anomalies de curation non résolues.',
+                    422
+                );
+            }
         }
 
         // La contrainte chk_legal_documents_role_logic interdit le
@@ -496,9 +607,13 @@ class LegalDocumentController extends Controller
             $query = LegalDocument::whereIn('id', $request->ids);
 
             if ($isPublishing) {
-                // Même garde que la curation unitaire : un document sans aucun
-                // article ne doit pas atteindre le catalogue publié.
-                $query->whereHas('articles');
+                // Mêmes gardes que la curation unitaire : un document sans aucun
+                // article, ou conservant des anomalies de curation non résolues,
+                // ne doit pas atteindre le catalogue publié.
+                $query->whereHas('articles')
+                    ->whereDoesntHave('curationFlags', function ($flagQuery) {
+                        $flagQuery->where('resolved', false);
+                    });
             }
 
             return $query->update([$column => $request->value, 'updated_at' => now()]);
@@ -507,7 +622,7 @@ class LegalDocumentController extends Controller
         $skipped = $isPublishing ? count($request->ids) - $updated : 0;
         $message = "{$updated} document(s) mis à jour avec succès.";
         if ($skipped > 0) {
-            $message .= " {$skipped} document(s) sans article n'ont pas été publiés.";
+            $message .= " {$skipped} document(s) non publié(s) : aucun article ou anomalies de curation non résolues.";
         }
 
         return $this->success(

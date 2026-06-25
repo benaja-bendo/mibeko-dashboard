@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\Article;
+use App\Models\CurationFlag;
 use App\Models\LegalDocument;
 use App\Models\User;
 use App\Observers\ArticleVersionObserver;
@@ -75,6 +76,44 @@ it('refuse de publier un document sans article', function () {
         ->assertStatus(422);
 
     expect($document->fresh()->curation_status)->toBe(LegalDocument::STATUS_REVIEW);
+});
+
+it('refuse de publier un document avec des anomalies de curation non résolues', function () {
+    $document = LegalDocument::factory()->create(['curation_status' => LegalDocument::STATUS_REVIEW]);
+    Article::factory()->create(['document_id' => $document->id]);
+    CurationFlag::create([
+        'document_id' => $document->id,
+        'type_probleme' => 'article_manquant',
+        'description' => 'Article(s) 2 absent(s) (saut de 1 à 3).',
+        'resolved' => false,
+    ]);
+
+    $this->actingAs($this->editor)
+        ->patchJson("/api/v1/legal-documents/{$document->id}", [
+            'curation_status' => LegalDocument::STATUS_PUBLISHED,
+        ])
+        ->assertStatus(422);
+
+    expect($document->fresh()->curation_status)->toBe(LegalDocument::STATUS_REVIEW);
+});
+
+it('publie un document dont toutes les anomalies de curation sont résolues', function () {
+    $document = LegalDocument::factory()->create(['curation_status' => LegalDocument::STATUS_REVIEW]);
+    Article::factory()->create(['document_id' => $document->id]);
+    CurationFlag::create([
+        'document_id' => $document->id,
+        'type_probleme' => 'article_manquant',
+        'description' => 'Article(s) 2 absent(s) (saut de 1 à 3).',
+        'resolved' => true,
+        'resolved_at' => now(),
+    ]);
+
+    $this->actingAs($this->editor)
+        ->patchJson("/api/v1/legal-documents/{$document->id}", [
+            'curation_status' => LegalDocument::STATUS_PUBLISHED,
+        ])
+        ->assertOk()
+        ->assertJsonPath('data.curation_status', LegalDocument::STATUS_PUBLISHED);
 });
 
 it('rejette un statut juridique invalide', function () {

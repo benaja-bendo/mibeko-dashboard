@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphToMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Str;
 use OwenIt\Auditing\Contracts\Auditable;
 
 class LegalDocument extends Model implements Auditable
@@ -29,6 +30,7 @@ class LegalDocument extends Model implements Auditable
         'consolidation_as_of',
         'stock_code',
         'titre_officiel',
+        'slug',
         'reference_nor',
         'date_signature',
         'date_publication',
@@ -77,6 +79,12 @@ class LegalDocument extends Model implements Auditable
      */
     protected static function booted(): void
     {
+        static::creating(function (LegalDocument $document) {
+            if (empty($document->slug)) {
+                $document->slug = static::generateUniqueSlug($document->titre_officiel ?: 'document');
+            }
+        });
+
         static::deleting(function (LegalDocument $document) {
             if ($document->isForceDeleting()) {
                 return;
@@ -124,6 +132,16 @@ class LegalDocument extends Model implements Auditable
     }
 
     /**
+     * Récupère les anomalies de curation (trous/doublons de numérotation, etc.)
+     * détectées à l'ingestion. Servent de garde-fou : un document conservant des
+     * anomalies non résolues ne doit pas être publié au catalogue.
+     */
+    public function curationFlags(): HasMany
+    {
+        return $this->hasMany(CurationFlag::class, 'document_id');
+    }
+
+    /**
      * Récupère les fichiers médias associés au document.
      */
     public function mediaFiles(): HasMany
@@ -146,5 +164,34 @@ class LegalDocument extends Model implements Auditable
     {
         return $query->where('curation_status', self::STATUS_PUBLISHED)
             ->whereHas('articles');
+    }
+
+    /**
+     * Génère un slug unique et stable à partir d'un titre.
+     *
+     * Le slug est tronqué à 80 caractères pour rester lisible dans une URL, et
+     * suffixé (`-2`, `-3`, …) en cas de collision avec un document existant
+     * (corbeille incluse, pour ne pas réutiliser le slug d'un texte restauré).
+     */
+    public static function generateUniqueSlug(string $source, ?string $ignoreId = null): string
+    {
+        $base = trim(Str::limit(Str::slug($source), 80, ''), '-');
+
+        if ($base === '') {
+            $base = 'document';
+        }
+
+        $slug = $base;
+        $suffix = 2;
+
+        while (static::withTrashed()
+            ->where('slug', $slug)
+            ->when($ignoreId, fn ($query) => $query->where('id', '!=', $ignoreId))
+            ->exists()) {
+            $slug = $base.'-'.$suffix;
+            $suffix++;
+        }
+
+        return $slug;
     }
 }

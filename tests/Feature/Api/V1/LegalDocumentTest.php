@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\ArticleVersion;
+use App\Models\CurationFlag;
 use App\Models\Institution;
 use App\Models\LegalDocument;
 use App\Models\StructureNode;
@@ -150,6 +151,34 @@ it('does not bulk publish documents without articles', function () {
 
     expect($withArticles->fresh()->curation_status)->toBe('published')
         ->and($empty->fresh()->curation_status)->toBe('review');
+});
+
+it('does not bulk publish documents with unresolved curation flags', function () {
+    Role::findOrCreate('editor');
+    $editor = User::factory()->create();
+    $editor->assignRole('editor');
+
+    $clean = LegalDocument::factory()->hasArticles(1)->create(['curation_status' => 'review']);
+    $flagged = LegalDocument::factory()->hasArticles(1)->create(['curation_status' => 'review']);
+    CurationFlag::create([
+        'document_id' => $flagged->id,
+        'type_probleme' => 'article_doublon',
+        'description' => "Numéro d'article 1 répété consécutivement.",
+        'resolved' => false,
+    ]);
+
+    $response = $this->actingAs($editor)->patchJson('/api/v1/legal-documents/bulk', [
+        'ids' => [$clean->id, $flagged->id],
+        'action' => 'set_curation_status',
+        'value' => 'published',
+    ]);
+
+    $response->assertStatus(200)
+        ->assertJsonPath('data.updated_count', 1)
+        ->assertJsonPath('data.skipped_count', 1);
+
+    expect($clean->fresh()->curation_status)->toBe('published')
+        ->and($flagged->fresh()->curation_status)->toBe('review');
 });
 
 it('can login and get me', function () {

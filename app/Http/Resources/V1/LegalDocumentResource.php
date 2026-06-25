@@ -19,6 +19,9 @@ class LegalDocumentResource extends JsonResource
         return [
             'id' => $this->id,
 
+            // Slug — clé d'URL publique stable (site vitrine `/codes/{slug}`).
+            'slug' => $this->slug,
+
             // Titre — canonical field matches DB column.
             // `title` kept as alias for mobile backward-compatibility.
             'titre_officiel' => $this->titre_officiel,
