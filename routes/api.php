@@ -15,6 +15,7 @@ use App\Http\Controllers\Api\V1\ArticleSearchController;
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\BillingController;
 use App\Http\Controllers\Api\V1\CatalogController;
+use App\Http\Controllers\Api\V1\ContactController;
 use App\Http\Controllers\Api\V1\CurationFlagController;
 use App\Http\Controllers\Api\V1\DeviceController;
 use App\Http\Controllers\Api\V1\DocumentRelationController;
@@ -39,6 +40,7 @@ use App\Http\Controllers\Api\V1\PreferencesController;
 use App\Http\Controllers\Api\V1\PrivacyController;
 use App\Http\Controllers\Api\V1\ProfileController;
 use App\Http\Controllers\Api\V1\SessionController;
+use App\Http\Controllers\Api\V1\SitemapController;
 use App\Http\Controllers\Api\V1\StructureNodeController;
 use App\Http\Controllers\Api\V1\SyncController;
 use App\Http\Controllers\Api\V1\TwoFactorController;
@@ -145,6 +147,12 @@ Route::prefix('v1')->middleware('throttle:api')->group(function () {
         ->withoutMiddleware('throttle:api')
         ->middleware('throttle:search_suggest');
 
+    // Plan du site vitrine (sitemap.xml) — documents publiés + numéros d'articles.
+    Route::get('sitemap', [SitemapController::class, 'index']);
+
+    // Formulaire de contact public (site vitrine) — limité pour éviter le spam.
+    Route::post('contact', [ContactController::class, 'store'])->middleware('throttle:6,1');
+
     // Resources
     Route::get('home', [HomeController::class, 'index']);
     // Catalog & Sync
@@ -159,6 +167,8 @@ Route::prefix('v1')->middleware('throttle:api')->group(function () {
     Route::apiResource('official-journals', OfficialJournalController::class)->only(['index', 'show'])->names('api.official-journals');
 
     Route::get('legal-documents/search', [LegalDocumentController::class, 'search']);
+    // Vue publique par slug (site vitrine SEO) — publié uniquement.
+    Route::get('legal-documents/slug/{slug}', [LegalDocumentController::class, 'showBySlug']);
     Route::apiResource('legal-documents', LegalDocumentController::class)->only(['index', 'show']);
     Route::get('legal-documents/{document}/tree', [StructureNodeController::class, 'tree']);
 
