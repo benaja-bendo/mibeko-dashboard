@@ -42,6 +42,10 @@ class OverviewController extends Controller
             ],
             'attention' => [
                 'open_flags' => CurationFlag::where('resolved', false)->count(),
+                // Répartition par sévérité : seul `blocking` empêche la publication ;
+                // sert de métrique de pilotage qualité de la curation.
+                'open_flags_blocking' => CurationFlag::where('resolved', false)->where('severity', 'blocking')->count(),
+                'open_flags_warning' => CurationFlag::where('resolved', false)->where('severity', 'warning')->count(),
                 'failed_extractions' => ExtractionRun::where('status', 'failed')->count(),
             ],
         ], 'Vue d\'ensemble admin récupérée avec succès');

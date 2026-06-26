@@ -26,6 +26,15 @@ Schedule::command('mibeko:send-echeance-reminders')
     ->runInBackground()
     ->appendOutputTo(storage_path('logs/echeance-reminders.log'));
 
+// Filet de sécurité : les documents ingérés par le pipeline Python (écriture
+// directe en base, sans Eloquent) arrivent sans slug et resteraient invisibles
+// du site vitrine une fois publiés. On répare les slugs manquants chaque heure.
+Schedule::command('mibeko:backfill-document-slugs')
+    ->hourly()
+    ->withoutOverlapping()
+    ->runInBackground()
+    ->appendOutputTo(storage_path('logs/backfill-document-slugs.log'));
+
 Schedule::command('mibeko:prune-audits --days=365')
     ->monthlyOn(1, '02:00')
     ->withoutOverlapping()

@@ -39,6 +39,14 @@ class Article extends Model
         return $this->hasMany(ArticleVersion::class);
     }
 
+    /**
+     * Anomalies de curation ciblant cet article (numérotation, contenu, etc.).
+     */
+    public function curationFlags(): HasMany
+    {
+        return $this->hasMany(CurationFlag::class, 'article_id');
+    }
+
     public function latestVersion()
     {
         return $this->hasOne(ArticleVersion::class)->orderByDesc('created_at');

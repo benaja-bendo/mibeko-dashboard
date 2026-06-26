@@ -18,6 +18,7 @@ use App\Http\Controllers\Api\V1\CatalogController;
 use App\Http\Controllers\Api\V1\ContactController;
 use App\Http\Controllers\Api\V1\CurationFlagController;
 use App\Http\Controllers\Api\V1\DeviceController;
+use App\Http\Controllers\Api\V1\DocumentCurationController;
 use App\Http\Controllers\Api\V1\DocumentRelationController;
 use App\Http\Controllers\Api\V1\DocumentTypeController;
 use App\Http\Controllers\Api\V1\DossierController;
@@ -191,6 +192,7 @@ Route::prefix('v1')->middleware('throttle:api')->group(function () {
 
     // Delete documents — editor + admin
     Route::middleware(['auth:sanctum', 'role:editor|admin'])->group(function () {
+        Route::get('legal-documents/{id}/deletion-impact', [LegalDocumentController::class, 'deletionImpact']);
         Route::delete('legal-documents/{id}', [LegalDocumentController::class, 'destroy']);
     });
 
@@ -211,6 +213,12 @@ Route::prefix('v1')->middleware('throttle:api')->group(function () {
 
         Route::post('articles/{article}/relations', [DocumentRelationController::class, 'store']);
         Route::delete('relations/{id}', [DocumentRelationController::class, 'destroy']);
+
+        // Vue Contrôle : anomalies d'un document (validation humaine).
+        Route::get('legal-documents/{id}/curation-flags', [DocumentCurationController::class, 'index']);
+        Route::post('legal-documents/{id}/detect-anomalies', [DocumentCurationController::class, 'detect']);
+        Route::post('legal-documents/{id}/analyze-ai', [DocumentCurationController::class, 'analyzeAi']);
+        Route::patch('curation-flags/{flag}', [DocumentCurationController::class, 'update']);
     });
 
     // Read relations — any authenticated user

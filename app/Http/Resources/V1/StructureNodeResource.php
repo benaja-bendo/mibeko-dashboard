@@ -23,6 +23,10 @@ class StructureNodeResource extends JsonResource
             $parentId = str_replace('_', '-', $parts[count($parts) - 2]);
         }
 
+        // Anomalie de division non résolue → l'arbre affiche ✗ (error) sur le
+        // nœud. Auparavant le statut du nœud n'était pas exposé du tout.
+        $openFlags = (int) ($this->open_flags_count ?? 0);
+
         return [
             'id' => $this->id,
             'parent_id' => $parentId,
@@ -30,6 +34,8 @@ class StructureNodeResource extends JsonResource
             'number' => $this->numero,
             'title' => $this->titre,
             'order' => $this->sort_order,
+            'anomaly_count' => $openFlags,
+            'validation_status' => $openFlags > 0 ? 'error' : ($this->validation_status ?? 'validated'),
             'articles' => ArticleBriefResource::collection($this->whenLoaded('articles')),
         ];
     }

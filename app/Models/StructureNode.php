@@ -32,4 +32,12 @@ class StructureNode extends Model
     {
         return $this->hasMany(Article::class, 'parent_node_id');
     }
+
+    /**
+     * Anomalies de curation ciblant cette division (titre vide, division vide…).
+     */
+    public function curationFlags(): HasMany
+    {
+        return $this->hasMany(CurationFlag::class, 'node_id');
+    }
 }

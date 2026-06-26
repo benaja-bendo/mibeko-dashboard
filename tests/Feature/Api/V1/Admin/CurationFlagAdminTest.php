@@ -174,3 +174,51 @@ it('supprime un signalement', function () {
 
     $this->assertDatabaseMissing('curation_flags', ['id' => $flag->id]);
 });
+
+// Note : le quota API en test est de 2 requêtes/min par utilisateur — on scinde
+// pour rester sous la limite (chaque test a un admin frais via beforeEach).
+
+it('trie les signalements bloquants en tête et filtre par source', function () {
+    CurationFlag::create([
+        'document_id' => $this->document->id, 'source' => 'structural',
+        'type_probleme' => 'division_vide', 'severity' => 'warning', 'resolved' => false,
+    ]);
+    CurationFlag::create([
+        'document_id' => $this->document->id, 'source' => 'structural',
+        'type_probleme' => 'article_vide', 'severity' => 'blocking', 'resolved' => false,
+    ]);
+    CurationFlag::create([
+        'document_id' => $this->document->id, 'source' => 'llm',
+        'type_probleme' => 'decoupe_fusion', 'severity' => 'warning', 'resolved' => false,
+    ]);
+
+    // Tri : la bloquante remonte en tête.
+    $this->actingAs($this->admin)
+        ->getJson('/api/v1/admin/flags')
+        ->assertStatus(200)
+        ->assertJsonPath('data.0.severity', 'blocking');
+
+    // Filtre par source.
+    $this->actingAs($this->admin)
+        ->getJson('/api/v1/admin/flags?source=llm')
+        ->assertStatus(200)
+        ->assertJsonCount(1, 'data')
+        ->assertJsonPath('data.0.source', 'llm');
+});
+
+it('filtre les signalements par sévérité', function () {
+    CurationFlag::create([
+        'document_id' => $this->document->id, 'source' => 'structural',
+        'type_probleme' => 'article_vide', 'severity' => 'blocking', 'resolved' => false,
+    ]);
+    CurationFlag::create([
+        'document_id' => $this->document->id, 'source' => 'structural',
+        'type_probleme' => 'division_vide', 'severity' => 'warning', 'resolved' => false,
+    ]);
+
+    $this->actingAs($this->admin)
+        ->getJson('/api/v1/admin/flags?severity=warning')
+        ->assertStatus(200)
+        ->assertJsonCount(1, 'data')
+        ->assertJsonPath('data.0.severity', 'warning');
+});

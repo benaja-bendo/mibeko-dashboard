@@ -1,12 +1,16 @@
 <?php
 
+use App\Models\Article;
 use App\Models\ArticleVersion;
 use App\Models\CurationFlag;
+use App\Models\DocumentRelation;
 use App\Models\Institution;
 use App\Models\LegalDocument;
 use App\Models\StructureNode;
+use App\Models\Tag;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Spatie\Permission\Models\Role;
 
@@ -179,6 +183,108 @@ it('does not bulk publish documents with unresolved curation flags', function ()
 
     expect($clean->fresh()->curation_status)->toBe('published')
         ->and($flagged->fresh()->curation_status)->toBe('review');
+});
+
+it('force deletes a document and ALL its dependencies without FK violation', function () {
+    Role::findOrCreate('admin');
+    $editor = User::factory()->create();
+    $editor->assignRole('admin');
+
+    $document = LegalDocument::factory()->create();
+    $node = StructureNode::factory()->create(['document_id' => $document->id]);
+    $article = Article::factory()->create([
+        'document_id' => $document->id,
+        'parent_node_id' => $node->id,
+    ]);
+    $version = ArticleVersion::factory()->create(['article_id' => $article->id]);
+
+    // Anomalie de curation (réf. document + article) : c'est précisément ce que
+    // l'ancien forceDelete ne nettoyait pas → violation de FK. Doit passer.
+    CurationFlag::create([
+        'document_id' => $document->id,
+        'article_id' => $article->id,
+        'type_probleme' => 'article_doublon',
+        'description' => 'Doublon',
+        'resolved' => false,
+    ]);
+
+    // Relation sortante (doc→autre) + entrante au niveau article (autre→article).
+    $other = LegalDocument::factory()->create();
+    DocumentRelation::factory()->create([
+        'source_doc_id' => $document->id,
+        'target_doc_id' => $other->id,
+    ]);
+    DocumentRelation::factory()->create([
+        'source_doc_id' => $other->id,
+        'target_doc_id' => null,
+        'target_article_id' => $article->id,
+    ]);
+
+    // Thèmes (pivot polymorphe sans FK) sur le document ET l'article.
+    $tag = Tag::create(['name' => 'Travail', 'slug' => 'travail']);
+    $document->tags()->attach($tag->id);
+    $article->tags()->attach($tag->id);
+
+    $response = $this->actingAs($editor)
+        ->deleteJson("/api/v1/legal-documents/{$document->id}?force=1");
+
+    $response->assertStatus(200);
+
+    expect(LegalDocument::withTrashed()->find($document->id))->toBeNull()
+        ->and(StructureNode::where('document_id', $document->id)->count())->toBe(0)
+        ->and(Article::withTrashed()->where('document_id', $document->id)->count())->toBe(0)
+        ->and(ArticleVersion::whereKey($version->id)->count())->toBe(0)
+        ->and(CurationFlag::where('document_id', $document->id)->count())->toBe(0)
+        ->and(DocumentRelation::where('target_article_id', $article->id)->count())->toBe(0)
+        ->and(DB::table('taggables')->where('taggable_id', $document->id)->count())->toBe(0)
+        ->and(DB::table('taggables')->where('taggable_id', $article->id)->count())->toBe(0)
+        // Le document cité (autre extrémité) survit, la relation l'ayant lâché.
+        ->and(LegalDocument::whereKey($other->id)->exists())->toBeTrue();
+});
+
+it('computes deletion impact counts and incoming references', function () {
+    Role::findOrCreate('admin');
+    $editor = User::factory()->create();
+    $editor->assignRole('admin');
+
+    $document = LegalDocument::factory()->create();
+    $node = StructureNode::factory()->create(['document_id' => $document->id]);
+    $article = Article::factory()->create([
+        'document_id' => $document->id,
+        'parent_node_id' => $node->id,
+    ]);
+    ArticleVersion::factory()->create(['article_id' => $article->id]);
+    CurationFlag::create([
+        'document_id' => $document->id,
+        'type_probleme' => 'bloc_manquant',
+        'description' => 'Trou',
+        'resolved' => false,
+    ]);
+
+    $other = LegalDocument::factory()->create();
+    DocumentRelation::factory()->create([
+        'source_doc_id' => $other->id,
+        'target_doc_id' => $document->id,
+    ]);
+
+    $response = $this->actingAs($editor)
+        ->getJson("/api/v1/legal-documents/{$document->id}/deletion-impact");
+
+    $response->assertStatus(200)
+        ->assertJsonPath('data.nodes', 1)
+        ->assertJsonPath('data.articles', 1)
+        ->assertJsonPath('data.versions', 1)
+        ->assertJsonPath('data.flags', 1)
+        ->assertJsonPath('data.incoming_relations', 1);
+});
+
+it('blocks deletion-impact for non editors', function () {
+    $user = User::factory()->create();
+    $document = LegalDocument::factory()->create();
+
+    $this->actingAs($user)
+        ->getJson("/api/v1/legal-documents/{$document->id}/deletion-impact")
+        ->assertStatus(403);
 });
 
 it('can login and get me', function () {

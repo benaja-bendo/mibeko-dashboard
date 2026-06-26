@@ -19,8 +19,12 @@ class CurationFlagResource extends JsonResource
         /** @var CurationFlag $this */
         return [
             'id' => $this->id,
+            'source' => $this->source,
             'type_probleme' => $this->type_probleme,
+            'severity' => $this->severity,
             'description' => $this->description,
+            'suggestion' => $this->suggestion,
+            'confidence' => $this->confidence,
             'resolved' => (bool) $this->resolved,
             'created_at' => $this->created_at?->toIso8601String(),
             'resolved_at' => $this->resolved_at?->toIso8601String(),

@@ -20,13 +20,20 @@ class ArticleBriefResource extends JsonResource
     public function toArray(Request $request): array
     {
         /** @var Article $this */
+        // Une anomalie de curation non résolue prime : l'arbre affiche ✗ (error)
+        // au bon endroit. Sinon, on retombe sur le statut de la version courante.
+        $openFlags = (int) ($this->open_flags_count ?? 0);
+
         return [
             'id' => $this->id,
             'number' => $this->numero_article ?? '',
             'order' => $this->ordre_affichage ?? 0,
             'content' => $this->whenLoaded('activeVersion', fn () => $this->activeVersion?->contenu_texte),
             'source_locator' => $this->whenLoaded('activeVersion', fn () => $this->activeVersion?->source_locator),
-            'validation_status' => $this->whenLoaded('activeVersion', fn () => $this->activeVersion?->validation_status ?? 'validated', 'validated'),
+            'anomaly_count' => $openFlags,
+            'validation_status' => $openFlags > 0
+                ? 'error'
+                : $this->whenLoaded('activeVersion', fn () => $this->activeVersion?->validation_status ?? 'validated', 'validated'),
             'versions' => $this->whenLoaded('versions', function () {
                 return $this->versions->map(fn ($v) => [
                     'id' => $v->id,

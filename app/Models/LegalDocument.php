@@ -79,9 +79,20 @@ class LegalDocument extends Model implements Auditable
      */
     protected static function booted(): void
     {
-        static::creating(function (LegalDocument $document) {
+        // Garantit le slug à *chaque* écriture Eloquent (création comme mise à
+        // jour), et pas seulement à la création : le pipeline Python insère les
+        // documents directement en base (sans slug), puis la publication passe
+        // par Eloquent (`update()`) — c'est ce `saving` qui répare alors le slug
+        // manquant, sans quoi le texte publié resterait invisible du site
+        // vitrine (filtré sur la présence d'un slug). Le backfill planifié
+        // (`mibeko:backfill-document-slugs`) couvre les chemins hors-Eloquent
+        // (mise à jour de masse SQL, insertions brutes).
+        static::saving(function (LegalDocument $document) {
             if (empty($document->slug)) {
-                $document->slug = static::generateUniqueSlug($document->titre_officiel ?: 'document');
+                $document->slug = static::generateUniqueSlug(
+                    $document->titre_officiel ?: $document->id ?: 'document',
+                    $document->id,
+                );
             }
         });
 

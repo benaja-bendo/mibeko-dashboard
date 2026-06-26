@@ -95,7 +95,10 @@ class PdfProxyController extends Controller
             'Cache-Control' => 'no-cache, no-store, must-revalidate',
             'Pragma' => 'no-cache',
             'Expires' => '0',
-            'X-Frame-Options' => 'SAMEORIGIN',
+            // Autorise l'intégration du PDF dans une <iframe> du site vitrine
+            // (origine distincte de l'API). `frame-ancestors` remplace
+            // `X-Frame-Options: SAMEORIGIN` qui bloquait le cross-origin.
+            'Content-Security-Policy' => "frame-ancestors 'self' ".config('app.pdf_frame_ancestors', 'https://mibeko.fr https://www.mibeko.fr http://localhost:4321 http://localhost:4377'),
             'X-Accel-Buffering' => 'no', // Disable proxy buffering (Nginx)
         ];
 

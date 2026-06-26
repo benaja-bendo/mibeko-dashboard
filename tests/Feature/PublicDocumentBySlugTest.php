@@ -5,6 +5,7 @@ use App\Models\ArticleVersion;
 use App\Models\DocumentRelation;
 use App\Models\DocumentType;
 use App\Models\LegalDocument;
+use App\Models\StructureNode;
 use App\Observers\ArticleVersionObserver;
 use Laravel\Ai\Embeddings;
 
@@ -75,6 +76,56 @@ it('renvoie le texte intégral de l\'article demandé', function () {
         ->assertStatus(200)
         ->assertJsonPath('data.current_article.number', '230')
         ->assertJsonPath('data.current_article.content', 'Le mariage est l\'union…');
+});
+
+it('expose le sommaire hiérarchique et l\'indicateur PDF', function () {
+    $document = publishedCodeWithArticle('Code Forestier', '12', 'Texte.');
+
+    $this->getJson("/api/v1/legal-documents/slug/{$document->slug}")
+        ->assertStatus(200)
+        ->assertJsonPath('data.has_pdf', false)
+        ->assertJsonPath('data.structure.nodes.0.parent_id', null)
+        ->assertJsonPath('data.structure.nodes.0.articles.0.number', '12');
+});
+
+it('reconstruit la hiérarchie parent-enfant du sommaire depuis le tree_path', function () {
+    $document = LegalDocument::factory()->create([
+        'type_code' => 'CODE',
+        'titre_officiel' => 'Code de Test Hiérarchie',
+        'curation_status' => 'published',
+    ]);
+
+    $parent = StructureNode::factory()->create([
+        'document_id' => $document->id,
+        'type_unite' => 'LIVRE',
+        'numero' => 'PREMIER',
+        'tree_path' => 'n_aaaaaaaa_aaaa_aaaa_aaaa_aaaaaaaaaaaa',
+        'sort_order' => 0,
+    ]);
+    $child = StructureNode::factory()->create([
+        'document_id' => $document->id,
+        'type_unite' => 'CHAPITRE',
+        'numero' => 'I',
+        'tree_path' => 'n_aaaaaaaa_aaaa_aaaa_aaaa_aaaaaaaaaaaa.n_bbbbbbbb_bbbb_bbbb_bbbb_bbbbbbbbbbbb',
+        'sort_order' => 1,
+    ]);
+
+    Article::factory()->create([
+        'document_id' => $document->id,
+        'numero_article' => '1',
+        'ordre_affichage' => 1,
+        'parent_node_id' => $child->id,
+    ]);
+
+    $nodes = collect(
+        $this->getJson("/api/v1/legal-documents/slug/{$document->slug}")
+            ->assertStatus(200)
+            ->json('data.structure.nodes')
+    )->keyBy('id');
+
+    expect($nodes[$parent->id]['parent_id'])->toBeNull();
+    expect($nodes[$child->id]['parent_id'])->toBe($parent->id);
+    expect($nodes[$child->id]['articles'][0]['number'])->toBe('1');
 });
 
 it('ne rend pas accessible un document non publié', function () {

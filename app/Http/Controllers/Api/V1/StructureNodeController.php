@@ -27,10 +27,16 @@ class StructureNodeController extends Controller
      */
     public function tree(Request $request, LegalDocument $document): JsonResponse
     {
+        // Compteur d'anomalies ouvertes : alimente le badge ✗ de l'arbre (état
+        // 'error') et la navigation de la vue Contrôle, sans requête par nœud.
+        $openFlags = ['curationFlags as open_flags_count' => fn ($q) => $q->where('resolved', false)];
+
         $nodes = StructureNode::query()
             ->where('document_id', $document->id)
-            ->with(['articles.activeVersion', 'articles.versions' => function ($q) {
-                $q->orderByDesc('created_at');
+            ->withCount($openFlags)
+            ->with(['articles' => function ($q) use ($openFlags) {
+                $q->withCount($openFlags)
+                    ->with(['activeVersion', 'versions' => fn ($v) => $v->orderByDesc('created_at')]);
             }])
             ->orderBy('sort_order')
             ->get();
@@ -43,6 +49,7 @@ class StructureNodeController extends Controller
         $orphanArticles = Article::query()
             ->where('document_id', $document->id)
             ->whereNull('parent_node_id')
+            ->withCount($openFlags)
             ->with(['activeVersion', 'versions' => function ($q) {
                 $q->orderByDesc('created_at');
             }])

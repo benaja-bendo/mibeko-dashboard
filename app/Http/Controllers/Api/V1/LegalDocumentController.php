@@ -6,9 +6,12 @@ use App\Ai\ThemeClassifier;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\V1\LegalDocumentResource;
 use App\Models\Article;
+use App\Models\CurationFlag;
 use App\Models\DocumentRelation;
 use App\Models\LegalDocument;
+use App\Models\StructureNode;
 use App\Models\Tag;
+use App\Services\DocumentDeletionService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -241,11 +244,90 @@ class LegalDocumentController extends Controller
             }
         }
 
+        // PDF d'origine disponible ? (média PDF du document, ou à défaut le PDF
+        // du Journal Officiel dont l'acte FLUX a été extrait — cf. PdfProxyController).
+        $document->loadMissing('mediaFiles');
+        $hasPdf = $document->mediaFiles->contains(
+            fn ($file) => $file->mime_type === 'application/pdf'
+                || str_ends_with(strtolower((string) $file->file_path), '.pdf')
+        ) || (bool) $document->officialJournal?->file_path;
+
         return $this->success([
             'document' => new LegalDocumentResource($document),
             'articles' => $articles,
+            // Sommaire hiérarchique pour la navigation du site vitrine. Sans le
+            // texte des articles (poids maîtrisé sur les gros codes) : la lecture
+            // se fait sur la page d'article. Sûr par construction — le document
+            // est déjà filtré sur `published()`, donc rien d'inédit ne fuite.
+            'structure' => $this->publicStructure($document),
+            'has_pdf' => $hasPdf,
             'current_article' => $currentArticle,
         ], 'Document public récupéré avec succès');
+    }
+
+    /**
+     * Sommaire public d'un document : nœuds de structure (aplatis, avec
+     * `parent_id` dérivé du `tree_path`) et articles racine (orphelins). Le
+     * site vitrine reconstruit l'arbre côté client. Aucun contenu d'article
+     * n'est exposé ici (seulement les numéros, pour le maillage de navigation).
+     *
+     * @return array{nodes: array<int, array<string, mixed>>, orphan_articles: array<int, array<string, mixed>>}
+     */
+    private function publicStructure(LegalDocument $document): array
+    {
+        $articlesByNode = $document->articles()
+            ->orderBy('ordre_affichage')
+            ->get(['id', 'numero_article', 'ordre_affichage', 'parent_node_id'])
+            ->groupBy('parent_node_id');
+
+        $rawNodes = StructureNode::query()
+            ->where('document_id', $document->id)
+            ->orderBy('sort_order')
+            ->get(['id', 'type_unite', 'numero', 'titre', 'tree_path', 'sort_order']);
+
+        // Le `tree_path` (ltree) encode chaque nœud par un label `n_<uuid>`.
+        // Plutôt que de reconvertir le label en uuid (fragile : préfixe `n_`,
+        // séparateurs `_`), on retrouve le parent en faisant correspondre son
+        // `tree_path` (chemin courant amputé du dernier segment).
+        $idByPath = $rawNodes->pluck('id', 'tree_path');
+
+        $nodes = $rawNodes
+            ->map(function (StructureNode $node) use ($articlesByNode, $idByPath): array {
+                $parts = explode('.', (string) $node->tree_path);
+                $parentId = null;
+                if (count($parts) > 1) {
+                    array_pop($parts);
+                    $parentId = $idByPath[implode('.', $parts)] ?? null;
+                }
+
+                return [
+                    'id' => $node->id,
+                    'parent_id' => $parentId,
+                    'type' => $node->type_unite,
+                    'number' => $node->numero,
+                    'title' => $node->titre,
+                    'order' => $node->sort_order ?? 0,
+                    'articles' => ($articlesByNode[$node->id] ?? collect())
+                        ->map(fn (Article $article): array => [
+                            'number' => $article->numero_article,
+                            'order' => $article->ordre_affichage ?? 0,
+                        ])
+                        ->values()
+                        ->all(),
+                ];
+            })
+            ->values()
+            ->all();
+
+        $orphanArticles = ($articlesByNode[null] ?? collect())
+            ->map(fn (Article $article): array => [
+                'number' => $article->numero_article,
+                'order' => $article->ordre_affichage ?? 0,
+            ])
+            ->values()
+            ->all();
+
+        return ['nodes' => $nodes, 'orphan_articles' => $orphanArticles];
     }
 
     /**
@@ -379,16 +461,23 @@ class LegalDocumentController extends Controller
         }
 
         // Garde-fou qualité : un document conservant des anomalies de curation
-        // non résolues (trous de numérotation, doublons signalés à l'ingestion)
-        // ne doit pas atteindre le catalogue publié. L'éditeur doit d'abord les
-        // traiter/résoudre dans l'espace de curation.
+        // BLOQUANTES non résolues (trous/doublons de numérotation, contenu perdu…)
+        // ne doit pas atteindre le catalogue publié. Les anomalies `warning`/`info`
+        // informent l'éditeur sans empêcher la publication. (Les lignes antérieures
+        // sans `severity` sont traitées comme bloquantes pour préserver le comportement.)
         if ($isPublishing) {
-            $openFlags = $document->curationFlags()->where('resolved', false)->count();
+            $blockingFlags = $document->curationFlags()
+                ->where('resolved', false)
+                ->where(function ($q) {
+                    $q->where('severity', CurationFlag::SEVERITY_BLOCKING)
+                        ->orWhereNull('severity');
+                })
+                ->count();
 
-            if ($openFlags > 0) {
+            if ($blockingFlags > 0) {
                 return $this->error(
-                    ['curation_status' => ["Ce document a {$openFlags} anomalie(s) de curation non résolue(s). Résolvez-les avant de publier."]],
-                    'Impossible de publier un document avec des anomalies de curation non résolues.',
+                    ['curation_status' => ["Ce document a {$blockingFlags} anomalie(s) bloquante(s) non résolue(s). Résolvez-les avant de publier."]],
+                    'Impossible de publier un document avec des anomalies de curation bloquantes non résolues.',
                     422
                 );
             }
@@ -493,7 +582,7 @@ class LegalDocumentController extends Controller
         return $this->success($themes, 'Thèmes suggérés par l\'IA');
     }
 
-    public function destroy(Request $request, string $id): JsonResponse
+    public function destroy(Request $request, string $id, DocumentDeletionService $deletion): JsonResponse
     {
         $document = LegalDocument::withTrashed()->findOrFail($id);
         $force = $request->boolean('force');
@@ -504,20 +593,30 @@ class LegalDocumentController extends Controller
             Gate::authorize('delete', $document);
         }
 
-        DB::transaction(function () use ($id, $document, $force) {
-            if ($force) {
-                DocumentRelation::where('source_doc_id', $id)
-                    ->orWhere('target_doc_id', $id)
-                    ->delete();
-                $document->forceDelete();
-            } else {
-                $document->delete();
-            }
-        });
+        if ($force) {
+            $deletion->forceDelete($document);
+        } else {
+            $document->delete();
+        }
 
         $message = $force ? 'Document supprimé définitivement avec succès' : 'Document supprimé avec succès';
 
         return $this->success(null, $message);
+    }
+
+    /**
+     * Récapitule l'impact d'une suppression définitive (compteurs + garde-fous).
+     *
+     * Alimente la modale de confirmation côté éditeur : combien de divisions,
+     * articles, versions, anomalies, médias et relations disparaîtront, et si le
+     * document est cité ailleurs ou enregistré dans des dossiers utilisateurs.
+     */
+    public function deletionImpact(string $id, DocumentDeletionService $deletion): JsonResponse
+    {
+        $document = LegalDocument::withTrashed()->findOrFail($id);
+        Gate::authorize('forceDelete', $document);
+
+        return $this->success($deletion->impact($document), 'Impact de la suppression calculé');
     }
 
     /**
@@ -526,7 +625,7 @@ class LegalDocumentController extends Controller
      * @bodyParam ids string[] required List of document UUIDs.
      * @bodyParam force boolean Whether to force delete.
      */
-    public function bulkDestroy(Request $request): JsonResponse
+    public function bulkDestroy(Request $request, DocumentDeletionService $deletion): JsonResponse
     {
         $request->validate([
             'ids' => ['required', 'array', 'min:1', 'max:200'],
@@ -546,21 +645,13 @@ class LegalDocumentController extends Controller
             }
         }
 
-        DB::transaction(function () use ($ids, $documents, $force) {
+        foreach ($documents as $document) {
             if ($force) {
-                DocumentRelation::whereIn('source_doc_id', $ids)
-                    ->orWhereIn('target_doc_id', $ids)
-                    ->delete();
-
-                foreach ($documents as $document) {
-                    $document->forceDelete();
-                }
+                $deletion->forceDelete($document);
             } else {
-                foreach ($documents as $document) {
-                    $document->delete();
-                }
+                $document->delete();
             }
-        });
+        }
 
         $message = $force ? 'Documents supprimés définitivement avec succès' : 'Documents supprimés avec succès';
 

@@ -35,6 +35,11 @@ class CurationFlagController extends Controller
             ->when($status === 'open', fn ($q) => $q->where('resolved', false))
             ->when($status === 'resolved', fn ($q) => $q->where('resolved', true))
             ->when($request->filled('type'), fn ($q) => $q->where('type_probleme', $request->query('type')))
+            ->when($request->filled('source'), fn ($q) => $q->where('source', $request->query('source')))
+            ->when($request->filled('severity'), fn ($q) => $q->where('severity', $request->query('severity')))
+            ->when($request->filled('document_id'), fn ($q) => $q->where('document_id', $request->query('document_id')))
+            // Bloquantes d'abord, puis les plus récentes : on traite le critique en tête.
+            ->orderByRaw("CASE severity WHEN 'blocking' THEN 0 WHEN 'warning' THEN 1 ELSE 2 END")
             ->orderByDesc('created_at')
             ->paginate((int) $request->integer('per_page', 20));
 
