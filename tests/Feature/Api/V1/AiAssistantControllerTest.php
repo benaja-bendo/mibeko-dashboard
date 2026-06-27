@@ -129,6 +129,56 @@ it('returns slim history payloads without tool internals', function () {
         ->assertJsonMissingPath('messages.1.tool_results');
 });
 
+it('orders a same-second exchange by id so the question precedes the answer', function () {
+    $user = User::factory()->create();
+    $conversation = AgentConversation::factory()->create(['user_id' => $user->id]);
+
+    // created_at est tronqué à la seconde : on reproduit fidèlement le bug en
+    // donnant à la question ET à la réponse le même horodatage. La réponse est
+    // insérée EN PREMIER avec un id (UUID v7) plus grand : un tri par created_at
+    // seul (ex æquo) la ferait remonter avant la question. Seul le départage par
+    // id rétablit l'ordre attendu.
+    $sameSecond = now()->startOfSecond();
+
+    $base = [
+        'conversation_id' => $conversation->id,
+        'user_id' => $user->id,
+        'agent' => MibekoIA::class,
+        'attachments' => [],
+        'tool_calls' => [],
+        'tool_results' => [],
+        'usage' => [],
+        'meta' => [],
+    ];
+
+    $createWithId = function (string $id, array $attributes) use ($base, $sameSecond) {
+        $message = new AgentConversationMessage;
+        $message->id = $id; // pré-positionné : HasUuids ne le régénère pas.
+        $message->forceFill(array_merge($base, $attributes));
+        $message->save();
+        $message->created_at = $sameSecond;
+        $message->save();
+    };
+
+    $createWithId('019f0000-0000-7000-8000-000000000002', [
+        'role' => 'assistant',
+        'content' => 'La réponse.',
+    ]);
+    $createWithId('019f0000-0000-7000-8000-000000000001', [
+        'role' => 'user',
+        'content' => 'La question ?',
+    ]);
+
+    Sanctum::actingAs($user);
+
+    $response = $this->getJson("/api/v1/assistant/conversations/{$conversation->id}");
+
+    $response->assertStatus(200)
+        ->assertJsonCount(2, 'messages')
+        ->assertJsonPath('messages.0.content', 'La question ?')
+        ->assertJsonPath('messages.1.content', 'La réponse.');
+});
+
 it('normalizes legacy double-encoded message meta', function () {
     $user = User::factory()->create();
     $conversation = AgentConversation::factory()->create(['user_id' => $user->id]);

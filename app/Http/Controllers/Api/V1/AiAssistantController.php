@@ -91,10 +91,17 @@ class AiAssistantController extends Controller
         // contient le texte intégral des articles trouvés à chaque recherche et
         // peut peser des centaines de Ko sur une conversation — il ne doit
         // jamais transiter vers le client.
+        // Les identifiants sont des UUID v7 (monotones, donc chronologiques).
+        // created_at est tronqué à la seconde : la question et la réponse d'un
+        // échange rapide partagent alors la même valeur et le tri devient non
+        // déterministe (Postgres). On départage par id pour ne jamais afficher
+        // la réponse avant la question — c'est aussi l'ordre que le package
+        // laravel/ai utilise pour rejouer l'historique au modèle.
         $messages = AgentConversationMessage::query()
             ->where('conversation_id', $conversation->id)
             ->whereIn('role', ['user', 'assistant'])
             ->orderBy('created_at')
+            ->orderBy('id')
             ->get(['id', 'role', 'content', 'meta', 'created_at'])
             ->map(function (AgentConversationMessage $message) {
                 $content = $message->content;
@@ -222,8 +229,10 @@ class AiAssistantController extends Controller
 
             // Les colonnes castées en array reçoivent des tableaux PHP (jamais de
             // JSON pré-encodé, sinon double encodage à la lecture de l'historique).
+            // Les id sont des UUID v7 (et non v4) : monotones donc chronologiques,
+            // ils garantissent que la question précède la réponse à la relecture.
             AgentConversationMessage::create([
-                'id' => (string) Str::uuid(),
+                'id' => (string) Str::uuid7(),
                 'conversation_id' => $conversation->id,
                 'user_id' => $user->id,
                 'agent' => MibekoIA::class,
@@ -237,7 +246,7 @@ class AiAssistantController extends Controller
             ]);
 
             AgentConversationMessage::create([
-                'id' => (string) Str::uuid(),
+                'id' => (string) Str::uuid7(),
                 'conversation_id' => $conversation->id,
                 'user_id' => $user->id,
                 'agent' => MibekoIA::class,
