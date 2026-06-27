@@ -568,3 +568,27 @@ it('dispatches AI title generation for a newly created conversation', function (
 
     Queue::assertPushed(GenerateConversationTitle::class);
 });
+
+it('streams a reply over SSE and emits the assistant message id', function () {
+    $user = User::factory()->create();
+    Sanctum::actingAs($user);
+
+    MibekoIA::fake(['Réponse streamée.']);
+
+    $response = $this->postJson('/api/v1/assistant/chat', [
+        'message' => 'Une question streamée',
+        'stream' => true,
+    ]);
+
+    $response->assertStatus(200);
+
+    $content = $response->streamedContent();
+
+    // Le flux se termine proprement et porte l'id backend du message (feedback).
+    expect($content)
+        ->toContain('[DONE]')
+        ->toContain('event: meta');
+
+    // Le tour a bien été persisté (la conversation existe avec ses messages).
+    expect(AgentConversation::where('user_id', $user->id)->count())->toBe(1);
+});

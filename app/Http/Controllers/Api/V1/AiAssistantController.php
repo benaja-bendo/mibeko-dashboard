@@ -3,23 +3,24 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Ai\Agents\MibekoIA;
-use App\Ai\CorpusVersion;
+use App\Ai\AssistantChatService;
 use App\Http\Controllers\Controller;
-use App\Jobs\GenerateConversationTitle;
 use App\Models\AgentConversation;
 use App\Models\AgentConversationMessage;
 use App\Models\AgentMessageFeedback;
+use App\Models\User;
+use App\Support\ServerSentEvents;
 use App\Traits\SearchesArticles;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
 use Laravel\Ai\Responses\StreamedAgentResponse;
 use Laravel\Ai\Streaming\Events\TextDelta;
 use Laravel\Ai\Streaming\Events\ToolCall;
 use Laravel\Ai\Streaming\Events\ToolResult;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
  * @tags Assistant IA
@@ -27,6 +28,8 @@ use Symfony\Component\HttpFoundation\Response;
 class AiAssistantController extends Controller
 {
     use SearchesArticles;
+
+    public function __construct(private readonly AssistantChatService $chatService) {}
 
     /**
      * Liste des conversations
@@ -285,7 +288,7 @@ class AiAssistantController extends Controller
         $agent = new MibekoIA(mode: $mode, scopedDocuments: $references);
 
         if ($id) {
-            // Vérifier que la conversation appartient à l'utilisateur
+            // Vérifier que la conversation appartient à l'utilisateur.
             $conversation = AgentConversation::where('user_id', $user->id)->findOrFail($id);
             $agent->continue($conversation->id, as: $user);
         } else {
@@ -294,354 +297,172 @@ class AiAssistantController extends Controller
 
         $stream = $request->boolean('stream', false);
         $userMessage = $request->input('message');
+        $cacheKey = $this->chatService->cacheKey($userMessage, $mode, $references);
+        $userMeta = $this->chatService->userMeta($mode, $references);
 
-        // Implémentation du Semantic Caching (Mise en cache basée sur le message)
-        // Note: Dans une vraie implémentation sémantique, on utiliserait un vecteur de similarité
-        // Ici on utilise un cache simple basé sur le hash du message normalisé pour éviter les appels répétés.
-        // Le mode et les références épinglées changent la réponse : ils font partie de la clé.
-        // La version du corpus en fait aussi partie : toute évolution des textes
-        // publiés invalide les réponses en cache (jamais de droit périmé resservi).
-        $normalizedMessage = strtolower(trim(preg_replace('/[^a-zA-Z0-9\s]/', '', $userMessage)));
-        $cacheKey = 'ai_response_'.md5($normalizedMessage.'|'.$mode.'|'.implode(',', array_column($references, 'id')).'|'.CorpusVersion::current());
-
-        // Méta du message utilisateur : restitue les références/mode dans l'historique.
-        $userMeta = array_filter([
-            'mode' => $mode === MibekoIA::MODE_CONCISE ? null : $mode,
-            'references' => $references ?: null,
-        ]);
-
+        // 1) Réponse déjà en cache (uniquement pour une nouvelle conversation,
+        //    donc sans contexte conversationnel).
         if (! $id && Cache::has($cacheKey)) {
-            $cachedResponse = Cache::get($cacheKey);
-
-            // Créer une nouvelle conversation pour l'historique de l'utilisateur
-            $conversation = AgentConversation::create([
-                'user_id' => $user->id,
-                'title' => str($userMessage)->limit(50, '...'),
-            ]);
-
-            // Titre IA en tâche de fond : remplace le titre tronqué (le package
-            // ne le génère pas ici, la conversation étant pré-créée).
-            GenerateConversationTitle::dispatch($conversation->id, $userMessage);
-
-            // Les colonnes castées en array reçoivent des tableaux PHP (jamais de
-            // JSON pré-encodé, sinon double encodage à la lecture de l'historique).
-            // Les id sont des UUID v7 (et non v4) : monotones donc chronologiques,
-            // ils garantissent que la question précède la réponse à la relecture.
-            AgentConversationMessage::create([
-                'id' => (string) Str::uuid7(),
-                'conversation_id' => $conversation->id,
-                'user_id' => $user->id,
-                'agent' => MibekoIA::class,
-                'role' => 'user',
-                'content' => $userMessage,
-                'attachments' => [],
-                'tool_calls' => [],
-                'tool_results' => [],
-                'usage' => [],
-                'meta' => $userMeta,
-            ]);
-
-            $assistantMessage = AgentConversationMessage::create([
-                'id' => (string) Str::uuid7(),
-                'conversation_id' => $conversation->id,
-                'user_id' => $user->id,
-                'agent' => MibekoIA::class,
-                'role' => 'assistant',
-                'content' => $cachedResponse['reply'],
-                'attachments' => [],
-                'tool_calls' => [],
-                'tool_results' => [],
-                'usage' => [],
-                'meta' => ['sources' => $cachedResponse['sources'], 'cached' => true],
-            ]);
-
-            if ($stream) {
-                return response()->stream(function () use ($cachedResponse, $assistantMessage) {
-                    if (! empty($cachedResponse['sources'])) {
-                        echo "event: sources\n";
-                        echo 'data: '.json_encode($cachedResponse['sources'])."\n\n";
-                        if (ob_get_level() > 0) {
-                            ob_flush();
-                        } flush();
-                    }
-
-                    // Effet « machine à écrire » léger : une réponse en cache
-                    // doit rester quasi instantanée. Des fragments plus larges et
-                    // une pause courte gardent le rendu fluide sans réintroduire
-                    // une latence sensible (≈ 0,3 s même sur une longue réponse).
-                    $chunks = mb_str_split($cachedResponse['reply'], 24, 'UTF-8');
-                    foreach ($chunks as $chunk) {
-                        $payload = [
-                            'type' => 'text_delta',
-                            'delta' => $chunk,
-                        ];
-                        // S'assurer que le JSON est valide
-                        $jsonPayload = json_encode($payload, JSON_UNESCAPED_UNICODE);
-                        if ($jsonPayload) {
-                            echo 'data: '.$jsonPayload."\n\n";
-                            if (ob_get_level() > 0) {
-                                ob_flush();
-                            } flush();
-                            usleep(5000); // 5ms
-                        }
-                    }
-
-                    // Id backend du message assistant pour le feedback immédiat.
-                    echo "event: meta\n";
-                    echo 'data: '.json_encode(['message_id' => $assistantMessage->id])."\n\n";
-                    if (ob_get_level() > 0) {
-                        ob_flush();
-                    } flush();
-
-                    echo "data: [DONE]\n\n";
-                    if (ob_get_level() > 0) {
-                        ob_flush();
-                    } flush();
-                }, 200, [
-                    'X-Conversation-Id' => $conversation->id,
-                    'X-Accel-Buffering' => 'no',
-                    'Cache-Control' => 'no-cache, must-revalidate',
-                    'Content-Type' => 'text/event-stream',
-                    'Connection' => 'keep-alive',
-                ]);
-            }
-
-            return response()->json([
-                'conversation_id' => $conversation->id,
-                'reply' => $cachedResponse['reply'],
-                'sources' => $cachedResponse['sources'],
-                'cached' => true,
-            ]);
+            return $this->respondFromCache($user, Cache::get($cacheKey), $userMessage, $userMeta, $stream);
         }
 
-        // Agentic RAG: L'IA décide d'utiliser l'outil 'SearchLegalDatabase' si nécessaire.
-        $promptContext = $userMessage;
+        // 2) Streaming agentic (SSE) — le client streame toujours.
+        if ($stream) {
+            return $this->streamReply($agent, $user, $id, $userMessage, $userMeta, $cacheKey);
+        }
+
+        // 3) Réponse synchrone (JSON).
+        return $this->syncReply($agent, $id, $userMessage, $userMeta, $cacheKey);
+    }
+
+    /**
+     * Sert une réponse mémorisée en recréant un tour complet dans l'historique.
+     *
+     * @param  array{reply: string, sources: array<int, mixed>}  $cached
+     * @param  array<string, mixed>  $userMeta
+     */
+    private function respondFromCache(User $user, array $cached, string $userMessage, array $userMeta, bool $stream)
+    {
+        $conversation = $this->chatService->createConversation($user, $userMessage);
+        $assistantMessage = $this->chatService->writeCachedTurn($conversation, $user, $userMessage, $userMeta, $cached);
 
         if ($stream) {
-            if (! $id) {
-                $conversation = AgentConversation::create([
-                    'user_id' => $user->id,
-                    'title' => str($userMessage)->limit(50, '...'),
-                ]);
-                $id = $conversation->id;
-                $agent->continue($id, as: $user);
-
-                // Titre IA en tâche de fond : remplace le titre tronqué (le
-                // package ne le génère pas ici, la conversation étant pré-créée).
-                GenerateConversationTitle::dispatch($conversation->id, $userMessage);
-            }
-
-            // Id (backend) du message assistant, transmis au client en fin de
-            // flux pour qu'il puisse noter immédiatement la réponse (feedback).
-            $assistantMessageId = null;
-
-            $agentResponse = $agent->stream($promptContext)
-                ->then(function (StreamedAgentResponse $response) use ($userMessage, $userMeta, $cacheKey, &$assistantMessageId) {
-                    // Nettoyer le message utilisateur pour ne pas polluer l'historique de l'IA
-                    $lastUserMessage = AgentConversationMessage::where('conversation_id', $response->conversationId)
-                        ->where('role', 'user')
-                        ->orderBy('created_at', 'desc')
-                        ->first();
-
-                    if ($lastUserMessage) {
-                        if ($lastUserMessage->content !== $userMessage) {
-                            $lastUserMessage->content = $userMessage;
-                        }
-                        if (! empty($userMeta)) {
-                            $meta = is_array($lastUserMessage->meta) ? $lastUserMessage->meta : [];
-                            $lastUserMessage->meta = array_merge($meta, $userMeta);
-                        }
-                        $lastUserMessage->save();
-                    }
-
-                    // Concaténer les sources de TOUS les appels de l'outil de recherche,
-                    // dans l'ordre : l'index (1-based) correspond au source_number cité [n].
-                    $sources = collect($response->events)
-                        ->whereInstanceOf(ToolResult::class)
-                        ->filter(fn ($event) => $event->toolResult->name === 'SearchLegalDatabase')
-                        ->flatMap(fn ($event) => json_decode($event->toolResult->result, true) ?: [])
-                        ->values()
-                        ->all();
-
-                    // Update the last assistant message to include sources in metadata
-                    $lastMessage = AgentConversationMessage::where('conversation_id', $response->conversationId)
-                        ->where('role', 'assistant')
-                        ->orderBy('created_at', 'desc')
-                        ->orderBy('id', 'desc')
-                        ->first();
-
-                    $assistantMessageId = $lastMessage?->id;
-
-                    if ($lastMessage && ! empty($sources)) {
-                        $meta = is_array($lastMessage->meta) ? $lastMessage->meta : [];
-                        $meta['sources'] = $sources;
-                        $lastMessage->meta = $meta;
-                        $lastMessage->save();
-                    }
-
-                    // Mettre en cache la réponse pour de futures requêtes identiques
-                    Cache::put($cacheKey, [
-                        'reply' => $response->text,
-                        'sources' => $sources,
-                    ], now()->addHours(24));
-                });
-
-            return response()->stream(function () use ($agentResponse, &$assistantMessageId) {
-                // La persistance (question + réponse) a lieu dans le callback
-                // `then()` du package, déclenché à la FIN de l'itération du flux.
-                // Sans cela, une déconnexion client (onglet fermé, bouton Stop,
-                // réseau coupé) tuerait le script au prochain flush() et ferait
-                // perdre TOUT le tour — laissant une conversation vide à la
-                // relecture. On ignore donc l'abandon : le flux est consommé
-                // jusqu'au bout côté serveur et le tour est toujours enregistré.
-                ignore_user_abort(true);
-
-                try {
-                    foreach ($agentResponse as $event) {
-                        // Intercepter les résultats de recherche pour les envoyer au mobile
-                        if ($event instanceof ToolCall && $event->toolCall->name === 'SearchLegalDatabase') {
-                            $payload = [
-                                'type' => 'status',
-                                'message' => 'Recherche dans la base de données juridique...',
-                            ];
-                            echo "event: status\n";
-                            echo 'data: '.json_encode($payload)."\n\n";
-                            if (ob_get_level() > 0) {
-                                ob_flush();
-                            } flush();
-                        }
-
-                        if ($event instanceof ToolResult && $event->toolResult->name === 'SearchLegalDatabase') {
-                            $sources = json_decode($event->toolResult->result, true) ?: [];
-                            if (! empty($sources)) {
-                                echo "event: sources\n";
-                                echo 'data: '.json_encode($sources)."\n\n";
-                                if (ob_get_level() > 0) {
-                                    ob_flush();
-                                }
-                                flush();
-                            }
-                        }
-
-                        if ($event instanceof TextDelta) {
-                            $payload = [
-                                'type' => 'text_delta',
-                                'delta' => $event->delta,
-                            ];
-                            $jsonPayload = json_encode($payload, JSON_UNESCAPED_UNICODE);
-                            if ($jsonPayload) {
-                                echo 'data: '.$jsonPayload."\n\n";
-                                if (ob_get_level() > 0) {
-                                    ob_flush();
-                                } flush();
-                            }
-                        }
-                    }
-                } catch (\Throwable $e) {
-                    report($e);
-
-                    $payload = [
-                        'message' => config('app.debug')
-                            ? $e->getMessage()
-                            : 'Une erreur est survenue lors de la génération de la réponse.',
-                    ];
-
-                    echo "event: error\n";
-                    echo 'data: '.json_encode($payload)."\n\n";
-                    if (ob_get_level() > 0) {
-                        ob_flush();
-                    }
-                    flush();
-                } finally {
-                    // Id backend du message assistant : permet au client de noter
-                    // (feedback 👍/👎) la réponse fraîchement streamée sans attendre
-                    // un rechargement de la conversation.
-                    if ($assistantMessageId) {
-                        echo "event: meta\n";
-                        echo 'data: '.json_encode(['message_id' => $assistantMessageId])."\n\n";
-                        if (ob_get_level() > 0) {
-                            ob_flush();
-                        }
-                        flush();
-                    }
-
-                    echo "data: [DONE]\n\n";
-                    if (ob_get_level() > 0) {
-                        ob_flush();
-                    }
-                    flush();
+            return $this->streamedResponse(function () use ($cached, $assistantMessage) {
+                if (! empty($cached['sources'])) {
+                    ServerSentEvents::send($cached['sources'], 'sources');
                 }
-            }, 200, [
-                'X-Conversation-Id' => $id,
-                'X-Accel-Buffering' => 'no',
-                'Cache-Control' => 'no-cache, must-revalidate',
-                'Content-Type' => 'text/event-stream',
-                'Connection' => 'keep-alive',
-            ]);
+
+                // Effet « machine à écrire » léger : une réponse en cache reste
+                // quasi instantanée (≈ 0,3 s même sur une longue réponse).
+                foreach (mb_str_split($cached['reply'], 24, 'UTF-8') as $chunk) {
+                    ServerSentEvents::send(['type' => 'text_delta', 'delta' => $chunk]);
+                    usleep(5000);
+                }
+
+                ServerSentEvents::send(['message_id' => $assistantMessage->id], 'meta');
+                ServerSentEvents::done();
+            }, $conversation->id);
         }
 
-        $response = $agent->prompt($promptContext);
+        return response()->json([
+            'conversation_id' => $conversation->id,
+            'reply' => $cached['reply'],
+            'sources' => $cached['sources'],
+            'cached' => true,
+        ]);
+    }
 
-        // Concaténer les sources de TOUS les appels de l'outil (réponses non streamées)
-        $sources = collect($response->toolResults ?? [])
-            ->filter(fn ($result) => $result instanceof \Laravel\Ai\Responses\Data\ToolResult
-                && $result->name === 'SearchLegalDatabase')
-            ->flatMap(fn ($result) => json_decode($result->result, true) ?: [])
-            ->values()
-            ->all();
-
-        // Nettoyer le message utilisateur pour ne pas polluer l'historique de l'IA
-        $lastUserMessage = AgentConversationMessage::where('conversation_id', $response->conversationId)
-            ->where('role', 'user')
-            ->orderBy('created_at', 'desc')
-            ->first();
-
-        if ($lastUserMessage) {
-            if ($lastUserMessage->content !== $userMessage) {
-                $lastUserMessage->content = $userMessage;
-            }
-            if (! empty($userMeta)) {
-                $meta = is_array($lastUserMessage->meta) ? $lastUserMessage->meta : [];
-                $lastUserMessage->meta = array_merge($meta, $userMeta);
-            }
-            $lastUserMessage->save();
+    /**
+     * Streame la réponse de l'agent (RAG agentic) en SSE.
+     *
+     * @param  array<string, mixed>  $userMeta
+     */
+    private function streamReply(MibekoIA $agent, User $user, ?string $id, string $userMessage, array $userMeta, string $cacheKey)
+    {
+        if (! $id) {
+            $conversation = $this->chatService->createConversation($user, $userMessage);
+            $id = $conversation->id;
+            $agent->continue($id, as: $user);
         }
 
-        // Update the last assistant message with sources if not streaming
-        if (! empty($sources)) {
-            $lastMessage = AgentConversationMessage::where('conversation_id', $response->conversationId)
-                ->where('role', 'assistant')
-                ->orderBy('created_at', 'desc')
-                ->first();
+        // Id backend du message assistant, transmis au client en fin de flux pour
+        // qu'il puisse noter immédiatement la réponse (feedback).
+        $assistantMessageId = null;
 
-            if ($lastMessage) {
-                $meta = is_array($lastMessage->meta) ? $lastMessage->meta : [];
-                $meta['sources'] = $sources;
-                $lastMessage->meta = $meta;
-                $lastMessage->save();
+        $agentResponse = $agent->stream($userMessage)->then(
+            function (StreamedAgentResponse $response) use ($userMessage, $userMeta, $cacheKey, &$assistantMessageId) {
+                $sources = $this->chatService->sourcesFromEvents($response->events);
+                $assistantMessageId = $this->chatService->finalizeTurn($response->conversationId, $userMessage, $userMeta, $sources);
+                $this->chatService->cacheResponse($cacheKey, $response->text, $sources);
             }
-        }
+        );
 
-        // Mettre à jour le titre de la conversation si c'est le premier message
+        return $this->streamedResponse(function () use ($agentResponse, &$assistantMessageId) {
+            // La persistance (question + réponse) a lieu dans le callback `then()`
+            // du package, déclenché à la FIN de l'itération. Sans cela, une
+            // déconnexion client (onglet fermé, Stop, réseau) tuerait le script au
+            // prochain flush() et ferait perdre TOUT le tour. On ignore donc
+            // l'abandon : le flux est consommé jusqu'au bout côté serveur.
+            ignore_user_abort(true);
+
+            try {
+                foreach ($agentResponse as $event) {
+                    if ($event instanceof ToolCall && $event->toolCall->name === AssistantChatService::SEARCH_TOOL) {
+                        ServerSentEvents::send(
+                            ['type' => 'status', 'message' => 'Recherche dans la base de données juridique...'],
+                            'status'
+                        );
+                    }
+
+                    if ($event instanceof ToolResult && $event->toolResult->name === AssistantChatService::SEARCH_TOOL) {
+                        $sources = json_decode($event->toolResult->result, true) ?: [];
+                        if (! empty($sources)) {
+                            ServerSentEvents::send($sources, 'sources');
+                        }
+                    }
+
+                    if ($event instanceof TextDelta) {
+                        ServerSentEvents::send(['type' => 'text_delta', 'delta' => $event->delta]);
+                    }
+                }
+            } catch (\Throwable $e) {
+                report($e);
+
+                ServerSentEvents::send([
+                    'message' => config('app.debug')
+                        ? $e->getMessage()
+                        : 'Une erreur est survenue lors de la génération de la réponse.',
+                ], 'error');
+            } finally {
+                // Id backend du message assistant : feedback immédiat possible.
+                if ($assistantMessageId) {
+                    ServerSentEvents::send(['message_id' => $assistantMessageId], 'meta');
+                }
+
+                ServerSentEvents::done();
+            }
+        }, $id);
+    }
+
+    /**
+     * Réponse synchrone (JSON), sans streaming.
+     *
+     * @param  array<string, mixed>  $userMeta
+     */
+    private function syncReply(MibekoIA $agent, ?string $id, string $userMessage, array $userMeta, string $cacheKey): JsonResponse
+    {
+        $response = $agent->prompt($userMessage);
+        $sources = $this->chatService->sourcesFromResponse($response);
+        $this->chatService->finalizeTurn($response->conversationId, $userMessage, $userMeta, $sources);
+
+        // Titre de repli si le package n'en a pas généré (première réponse).
         if (! $id) {
             $conversation = AgentConversation::find($response->conversationId);
             if ($conversation && empty($conversation->title)) {
-                $conversation->update([
-                    'title' => str($userMessage)->limit(50, '...'),
-                ]);
+                $conversation->update(['title' => str($userMessage)->limit(50, '...')]);
             }
         }
 
-        // Mettre en cache la réponse non streamée
-        Cache::put($cacheKey, [
-            'reply' => $response->text,
-            'sources' => $sources,
-        ], now()->addHours(24));
+        $this->chatService->cacheResponse($cacheKey, $response->text, $sources);
 
         return response()->json([
             'conversation_id' => $response->conversationId,
             'reply' => $response->text,
             'sources' => $sources,
+        ]);
+    }
+
+    /**
+     * Réponse SSE standardisée (en-têtes anti-tampon).
+     */
+    private function streamedResponse(\Closure $callback, ?string $conversationId): StreamedResponse
+    {
+        return response()->stream($callback, 200, [
+            'X-Conversation-Id' => $conversationId,
+            'X-Accel-Buffering' => 'no',
+            'Cache-Control' => 'no-cache, must-revalidate',
+            'Content-Type' => 'text/event-stream',
+            'Connection' => 'keep-alive',
         ]);
     }
 
