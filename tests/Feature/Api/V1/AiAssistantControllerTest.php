@@ -8,6 +8,16 @@ use App\Models\User;
 use Illuminate\Support\Facades\Cache;
 use Laravel\Sanctum\Sanctum;
 
+it('caps the conversation history replayed to the model', function () {
+    // Garde-fou de coût : ne jamais revenir au défaut du package (100), qui
+    // rejouerait des dizaines de tours (et leurs extraits) à chaque requête.
+    $method = new ReflectionMethod(MibekoIA::class, 'maxConversationMessages');
+
+    expect($method->invoke(new MibekoIA))
+        ->toBeLessThanOrEqual(40)
+        ->toBeGreaterThanOrEqual(10);
+});
+
 it('can list conversations for a user', function () {
     $user = User::factory()->create();
     AgentConversation::factory()->count(3)->create(['user_id' => $user->id])

@@ -87,4 +87,18 @@ RECHERCHE CIBLÉE : l'utilisateur a restreint la recherche aux documents suivant
             $this->searchTool,
         ];
     }
+
+    /**
+     * Plafonne l'historique rejoué au modèle à chaque tour.
+     *
+     * Le défaut du package (100) gonfle inutilement tokens, latence et risque de
+     * dépassement de la fenêtre de contexte : chaque message d'assistant traîne
+     * ses tool_results (le texte intégral des articles). ~20 messages ≈ 10 tours,
+     * largement assez pour le suivi conversationnel. Le volume des extraits des
+     * tours précédents est en plus réduit par CompactingConversationStore.
+     */
+    protected function maxConversationMessages(): int
+    {
+        return 20;
+    }
 }

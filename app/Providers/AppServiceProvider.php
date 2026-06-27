@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Ai\Storage\CompactingConversationStore;
 use App\Models\ArticleVersion;
 use App\Observers\ArticleVersionObserver;
 use Dedoc\Scramble\Scramble;
@@ -17,6 +18,7 @@ use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\ServiceProvider;
+use Laravel\Ai\Contracts\ConversationStore;
 use League\Flysystem\Filesystem;
 use Masbug\Flysystem\GoogleDriveAdapter;
 
@@ -27,7 +29,10 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        // Remplace le store de conversation de laravel/ai par une version qui
+        // ne rejoue pas les extraits complets des tours précédents au modèle
+        // (cf. CompactingConversationStore) : contexte, coût et latence bornés.
+        $this->app->singleton(ConversationStore::class, CompactingConversationStore::class);
     }
 
     /**
