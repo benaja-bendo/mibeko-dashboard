@@ -132,6 +132,10 @@ Route::prefix('v1')->middleware('throttle:api')->group(function () {
         Route::delete('assistant/conversations/{id}', [AiAssistantController::class, 'destroy']);
         Route::post('assistant/chat/{id?}', [AiAssistantController::class, 'chat'])->middleware('throttle:ai_assistant');
 
+        // Avis 👍/👎 sur une réponse de l'assistant.
+        Route::post('assistant/messages/{message}/feedback', [AiAssistantController::class, 'feedback']);
+        Route::delete('assistant/messages/{message}/feedback', [AiAssistantController::class, 'deleteFeedback']);
+
         // Bibliothèque — IA à la demande (streaming SSE, sans état)
         Route::post('library/explain', [LibraryAiController::class, 'explain'])->middleware('throttle:ai_assistant');
         Route::post('library/synthesis', [LibraryAiController::class, 'synthesis'])->middleware('throttle:ai_assistant');

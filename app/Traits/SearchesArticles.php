@@ -11,133 +11,41 @@ use Illuminate\Support\Str;
 trait SearchesArticles
 {
     /**
-     * Search articles (Hybrid: Vector + Full-Text).
+     * Recherche d'articles pour l'IA (agent) et le serveur MCP.
+     *
+     * Adaptateur fin vers le moteur hybride unique `lexicalArticleContext`
+     * (full-text + filets trigram & sémantique, parseur « article N », stop-words
+     * structurels, embedding mis en cache). On ne réexpose que les champs utiles
+     * à l'outil et aux citations, pour ne pas gonfler le contexte du modèle.
      *
      * @param  array<int, string>|null  $documentIds  Restreint la recherche à ces documents (références épinglées).
+     * @return array<int, array<string, mixed>>
      */
     protected function searchArticles(string $query, int $limit = 5, ?string $documentType = null, ?string $documentTitle = null, ?array $documentIds = null): array
     {
-        if (empty($query)) {
+        if (trim($query) === '') {
             return [];
         }
 
-        $results = DB::table('article_versions as av')
-            ->join('articles as a', 'av.article_id', '=', 'a.id')
-            ->join('legal_documents as ld', 'a.document_id', '=', 'ld.id')
-            ->join('document_types as dt', 'ld.type_code', '=', 'dt.code')
-            ->leftJoin('structure_nodes as sn', 'a.parent_node_id', '=', 'sn.id')
-            ->where('av.validation_status', 'validated')
-            ->whereNull('a.deleted_at')
-            ->whereNull('ld.deleted_at')
-            ->where('ld.curation_status', 'published')
-            ->select([
-                'a.id as article_id',
-                'a.numero_article',
-                'a.ordre_affichage',
-                'av.contenu_texte',
-                'av.validation_status',
-                'ld.id as document_id',
-                'ld.titre_officiel as document_title',
-                'dt.code as document_type_code',
-                'dt.nom as type_name',
-                'sn.titre as node_title',
-            ]);
+        $filters = array_filter([
+            'type_like' => $documentType,
+            'document_title' => $documentTitle,
+            'document_ids' => $documentIds,
+        ]);
 
-        // Application des filtres optionnels pour améliorer la précision
-        if (! empty($documentType)) {
-            $results->where('dt.code', 'ILIKE', "%$documentType%");
-        }
-        if (! empty($documentTitle)) {
-            $results->where('ld.titre_officiel', 'ILIKE', "%$documentTitle%");
-        }
-        if (! empty($documentIds)) {
-            $results->whereIn('ld.id', $documentIds);
-        }
-
-        $embeddingString = null;
-        try {
-            if (strlen($query) > 2) {
-                $embedding = Str::of($query)->toEmbeddings();
-                if (! empty($embedding)) {
-                    $embeddingString = '['.implode(',', $embedding).']';
-                }
-            }
-        } catch (\Exception $e) {
-            Log::warning('Erreur lors de la génération de l\'embedding: '.$e->getMessage());
-        }
-
-        $orTsQuery = $this->formatTsQuery($query);
-        $articleNum = $query;
-        if (preg_match('/article\s+(\d+)/i', $query, $matches)) {
-            $articleNum = $matches[1];
-        }
-
-        $results->selectRaw("ts_rank(av.search_tsv, websearch_to_tsquery('french', ?)) as rank_score", [$query])
-            ->selectRaw('CASE WHEN ld.titre_officiel ILIKE ? THEN 1.0 ELSE 0.0 END as title_exact_match', ["%$query%"])
-            ->selectRaw('CASE WHEN a.numero_article = ? THEN 1.0 ELSE 0.0 END as article_num_match', [$articleNum]);
-
-        if ($embeddingString) {
-            $results->selectRaw('COALESCE(1 - (av.embedding <=> ?::vector), 0) as similarity_score', [$embeddingString])
-                ->selectRaw("
-                    (CASE WHEN ld.titre_officiel ILIKE ? THEN 0.4 ELSE 0.0 END) +
-                    (ts_rank(av.search_tsv, websearch_to_tsquery('french', ?)) * 0.3) +
-                    (CASE WHEN ? != '' THEN ts_rank(av.search_tsv, to_tsquery('french', ?)) * 0.1 ELSE 0.0 END) +
-                    (COALESCE(1 - (av.embedding <=> ?::vector), 0) * 0.2) +
-                    (CASE WHEN a.numero_article = ? THEN 0.2 ELSE 0.0 END)
-                    as total_score
-                ", ["%$query%", $query, $orTsQuery, $orTsQuery, $embeddingString, $articleNum])
-                ->where(function ($q) use ($query, $embeddingString, $orTsQuery, $articleNum) {
-                    $q->whereRaw("av.search_tsv @@ websearch_to_tsquery('french', ?)", [$query]);
-                    if ($orTsQuery !== '') {
-                        $q->orWhereRaw("av.search_tsv @@ to_tsquery('french', ?)", [$orTsQuery]);
-                    }
-                    $q->orWhereRaw('av.embedding <=> ?::vector < 0.5', [$embeddingString])
-                        ->orWhere('ld.titre_officiel', 'ILIKE', "%$query%")
-                        ->orWhere('a.numero_article', '=', $articleNum);
-                });
-        } else {
-            $results->selectRaw('0 as similarity_score')
-                ->selectRaw("
-                    (CASE WHEN ld.titre_officiel ILIKE ? THEN 0.5 ELSE 0.0 END) +
-                    (ts_rank(av.search_tsv, websearch_to_tsquery('french', ?)) * 0.4) +
-                    (CASE WHEN ? != '' THEN ts_rank(av.search_tsv, to_tsquery('french', ?)) * 0.2 ELSE 0.0 END) +
-                    (CASE WHEN a.numero_article = ? THEN 0.2 ELSE 0.0 END)
-                    as total_score
-                ", ["%$query%", $query, $orTsQuery, $orTsQuery, $articleNum])
-                ->where(function ($q) use ($query, $orTsQuery, $articleNum) {
-                    $q->whereRaw("av.search_tsv @@ websearch_to_tsquery('french', ?)", [$query]);
-                    if ($orTsQuery !== '') {
-                        $q->orWhereRaw("av.search_tsv @@ to_tsquery('french', ?)", [$orTsQuery]);
-                    }
-                    $q->orWhere('ld.titre_officiel', 'ILIKE', "%$query%")
-                        ->orWhere('a.numero_article', '=', $articleNum);
-                });
-        }
-
-        $results->orderByDesc('total_score');
-        $items = $results->take($limit)->get();
-
-        return $items->map(function ($item) {
-            $breadcrumb = implode(' > ', array_filter([
-                $item->type_name,
-                $item->document_title,
-                $item->node_title,
-            ]));
-
-            return [
-                'id' => $item->article_id,
-                'number' => $item->numero_article ?? '',
-                'order' => $item->ordre_affichage ?? 0,
-                'content' => $item->contenu_texte,
-                'document_id' => $item->document_id,
-                'document_title' => $item->document_title ?? '',
-                'document_type' => $item->document_type_code ?? '',
-                'node_title' => $item->node_title ?? '',
-                'breadcrumb' => $breadcrumb,
-                'validation_status' => $item->validation_status ?? 'validated',
-                'score' => isset($item->total_score) ? round((float) $item->total_score, 4) : 0,
-            ];
-        })->toArray();
+        return array_map(fn (array $row): array => [
+            'id' => $row['id'],
+            'number' => $row['number'],
+            'order' => $row['order'],
+            'content' => $row['content'],
+            'document_id' => $row['document_id'],
+            'document_title' => $row['document_title'],
+            'document_type' => $row['document_type'],
+            'node_title' => $row['node_title'],
+            'breadcrumb' => $row['breadcrumb'],
+            'validation_status' => $row['validation_status'],
+            'score' => $row['score'],
+        ], $this->lexicalArticleContext($query, $filters, max(1, min(10, $limit))));
     }
 
     /**
@@ -191,6 +99,20 @@ trait SearchesArticles
     {
         if (! empty($filters['type'])) {
             $query->where('ld.type_code', $filters['type']);
+        }
+        // Variante tolérante (ILIKE) du filtre de type, pour l'outil IA/MCP qui
+        // reçoit un code de type approximatif du modèle (« code », « Loi »…).
+        if (! empty($filters['type_like'])) {
+            $query->where('ld.type_code', 'ILIKE', '%'.$filters['type_like'].'%');
+        }
+        // Filtre par titre (ILIKE) : l'IA peut cibler « Code du travail » sans
+        // connaître l'identifiant du document.
+        if (! empty($filters['document_title'])) {
+            $query->where('ld.titre_officiel', 'ILIKE', '%'.$filters['document_title'].'%');
+        }
+        // Périmètre multi-documents : références « @ » épinglées par l'utilisateur.
+        if (! empty($filters['document_ids'])) {
+            $query->whereIn('ld.id', $filters['document_ids']);
         }
         if (! empty($filters['institution_id'])) {
             $query->where('ld.institution_id', $filters['institution_id']);

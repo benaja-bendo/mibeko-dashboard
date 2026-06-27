@@ -4,7 +4,9 @@ namespace App\Providers;
 
 use App\Ai\Storage\CompactingConversationStore;
 use App\Models\ArticleVersion;
+use App\Models\LegalDocument;
 use App\Observers\ArticleVersionObserver;
+use App\Observers\LegalDocumentObserver;
 use Dedoc\Scramble\Scramble;
 use Dedoc\Scramble\Support\Generator\OpenApi;
 use Dedoc\Scramble\Support\Generator\SecurityScheme;
@@ -43,6 +45,7 @@ class AppServiceProvider extends ServiceProvider
         JsonResource::withoutWrapping();
 
         ArticleVersion::observe(ArticleVersionObserver::class);
+        LegalDocument::observe(LegalDocumentObserver::class);
 
         Gate::define('viewApiDocs', function ($user = null) {
             // Autoriser tout le monde (ou mettre une condition spécifique, par ex: return true;)

@@ -2,6 +2,7 @@
 
 namespace App\Observers;
 
+use App\Ai\CorpusVersion;
 use App\Models\ArticleVersion;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
@@ -22,14 +23,31 @@ class ArticleVersionObserver
      */
     public function saved(ArticleVersion $articleVersion): void
     {
+        $contentChanged = $articleVersion->wasChanged('contenu_texte') || $articleVersion->wasRecentlyCreated;
+
+        // Le contenu publié change → on invalide le cache des réponses de l'IA,
+        // y compris pendant l'ingestion (skip embeddings) : la fraîcheur du droit
+        // prime. saveQuietly() de l'embedding ne re-déclenche pas cet événement.
+        if ($contentChanged) {
+            CorpusVersion::bump();
+        }
+
         if (static::$shouldSkipEmbeddings) {
             return;
         }
 
         // On ne génère l'embedding que si le contenu a changé ou si c'est une nouvelle version
-        if ($articleVersion->wasChanged('contenu_texte') || $articleVersion->wasRecentlyCreated) {
+        if ($contentChanged) {
             $this->generateEmbedding($articleVersion);
         }
+    }
+
+    /**
+     * Handle the ArticleVersion "deleted" event.
+     */
+    public function deleted(ArticleVersion $articleVersion): void
+    {
+        CorpusVersion::bump();
     }
 
     /**

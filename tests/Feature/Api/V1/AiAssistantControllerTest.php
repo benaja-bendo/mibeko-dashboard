@@ -1,11 +1,15 @@
 <?php
 
 use App\Ai\Agents\MibekoIA;
+use App\Ai\CorpusVersion;
+use App\Jobs\GenerateConversationTitle;
 use App\Models\AgentConversation;
 use App\Models\AgentConversationMessage;
+use App\Models\AgentMessageFeedback;
 use App\Models\LegalDocument;
 use App\Models\User;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Queue;
 use Laravel\Sanctum\Sanctum;
 
 it('caps the conversation history replayed to the model', function () {
@@ -93,9 +97,10 @@ it('caches the ai response for identical queries', function () {
 
     MibekoIA::assertPrompted('Quelles sont les conditions de mariage ?');
 
-    // Vérifier que la réponse est dans le cache (clé = message normalisé + mode + références)
+    // Vérifier que la réponse est dans le cache (clé = message normalisé + mode
+    // + références + version du corpus).
     $normalizedMessage = 'quelles sont les conditions de mariage'; // sans point d'interrogation et espaces en trop
-    $cacheKey = 'ai_response_'.md5($normalizedMessage.'|concise|');
+    $cacheKey = 'ai_response_'.md5($normalizedMessage.'|concise|'.'|'.CorpusVersion::current());
     expect(Cache::has($cacheKey))->toBeTrue();
 
     // Deuxième requête identique : doit utiliser le cache
@@ -111,6 +116,31 @@ it('caches the ai response for identical queries', function () {
 
     // Une nouvelle conversation a été créée même si le cache est utilisé
     expect(AgentConversation::where('user_id', $user->id)->count())->toBe(2);
+});
+
+it('invalidates the cached response when the legal corpus changes', function () {
+    $user = User::factory()->create();
+    Sanctum::actingAs($user);
+
+    MibekoIA::fake(['Réponse initiale.']);
+
+    $question = ['message' => 'Quels sont les délais de préavis ?'];
+
+    // 1er appel : calcule et met en cache (le hit sans changement de corpus est
+    // déjà couvert par le test « caches the ai response »). On reste à 2 appels :
+    // le limiteur `api` est à 2/min en test.
+    $this->postJson('/api/v1/assistant/chat', $question)
+        ->assertStatus(200)
+        ->assertJson(['reply' => 'Réponse initiale.']);
+
+    // Le corpus change → la version est bumpée → la clé de cache change.
+    CorpusVersion::bump();
+
+    // Appel identique : le cache est manqué (l'IA est rappelée). L'absence du
+    // drapeau `cached` prouve qu'on ne resert pas la réponse mémorisée.
+    $this->postJson('/api/v1/assistant/chat', $question)
+        ->assertStatus(200)
+        ->assertJsonMissingPath('cached');
 });
 
 it('can retrieve a conversation details', function () {
@@ -409,4 +439,132 @@ it('lists published documents as pinnable references', function () {
     $response->assertStatus(200)
         ->assertJsonCount(1, 'data')
         ->assertJsonPath('data.0.title', 'Code du travail');
+});
+
+it('records and updates feedback on an assistant message', function () {
+    $user = User::factory()->create();
+    Sanctum::actingAs($user);
+
+    $conversation = AgentConversation::factory()->create(['user_id' => $user->id]);
+    $message = AgentConversationMessage::factory()->assistant()->create([
+        'conversation_id' => $conversation->id,
+        'user_id' => $user->id,
+    ]);
+
+    // Pouce haut.
+    $this->postJson("/api/v1/assistant/messages/{$message->id}/feedback", ['rating' => 'up'])
+        ->assertStatus(200)
+        ->assertJsonPath('rating', 'up');
+
+    // Bascule en pouce bas avec commentaire : upsert, jamais de doublon.
+    $this->postJson("/api/v1/assistant/messages/{$message->id}/feedback", [
+        'rating' => 'down',
+        'comment' => 'Réponse imprécise',
+    ])->assertStatus(200)->assertJsonPath('rating', 'down');
+
+    expect(AgentMessageFeedback::where('message_id', $message->id)->where('user_id', $user->id)->count())
+        ->toBe(1)
+        ->and(AgentMessageFeedback::where('message_id', $message->id)->first()->comment)
+        ->toBe('Réponse imprécise');
+});
+
+it('clears feedback on an assistant message', function () {
+    $user = User::factory()->create();
+    Sanctum::actingAs($user);
+
+    $conversation = AgentConversation::factory()->create(['user_id' => $user->id]);
+    $message = AgentConversationMessage::factory()->assistant()->create([
+        'conversation_id' => $conversation->id,
+        'user_id' => $user->id,
+    ]);
+
+    $this->postJson("/api/v1/assistant/messages/{$message->id}/feedback", ['rating' => 'up'])
+        ->assertStatus(200);
+
+    $this->deleteJson("/api/v1/assistant/messages/{$message->id}/feedback")
+        ->assertNoContent();
+
+    expect(AgentMessageFeedback::where('message_id', $message->id)->count())->toBe(0);
+});
+
+it('rejects feedback on another user message', function () {
+    $owner = User::factory()->create();
+    $intruder = User::factory()->create();
+
+    $conversation = AgentConversation::factory()->create(['user_id' => $owner->id]);
+    $message = AgentConversationMessage::factory()->assistant()->create([
+        'conversation_id' => $conversation->id,
+        'user_id' => $owner->id,
+    ]);
+
+    Sanctum::actingAs($intruder);
+
+    $this->postJson("/api/v1/assistant/messages/{$message->id}/feedback", ['rating' => 'up'])
+        ->assertNotFound();
+
+    expect(AgentMessageFeedback::count())->toBe(0);
+});
+
+it('validates the feedback rating', function () {
+    $user = User::factory()->create();
+    Sanctum::actingAs($user);
+
+    $conversation = AgentConversation::factory()->create(['user_id' => $user->id]);
+    $message = AgentConversationMessage::factory()->assistant()->create([
+        'conversation_id' => $conversation->id,
+        'user_id' => $user->id,
+    ]);
+
+    $this->postJson("/api/v1/assistant/messages/{$message->id}/feedback", ['rating' => 'meh'])
+        ->assertStatus(422)
+        ->assertJsonValidationErrors(['rating']);
+});
+
+it('exposes the current user feedback when showing a conversation', function () {
+    $user = User::factory()->create();
+    $conversation = AgentConversation::factory()->create(['user_id' => $user->id]);
+
+    $question = AgentConversationMessage::factory()->create([
+        'conversation_id' => $conversation->id,
+        'user_id' => $user->id,
+        'role' => 'user',
+        'content' => 'Ma question ?',
+    ]);
+    $answer = AgentConversationMessage::factory()->assistant()->create([
+        'conversation_id' => $conversation->id,
+        'user_id' => $user->id,
+        'content' => 'Ma réponse.',
+    ]);
+
+    AgentMessageFeedback::create([
+        'message_id' => $answer->id,
+        'user_id' => $user->id,
+        'rating' => 'up',
+    ]);
+
+    Sanctum::actingAs($user);
+
+    $response = $this->getJson("/api/v1/assistant/conversations/{$conversation->id}");
+
+    $response->assertStatus(200)
+        ->assertJsonPath('messages.0.feedback', null)
+        ->assertJsonPath('messages.1.feedback', 'up');
+});
+
+it('dispatches AI title generation for a newly created conversation', function () {
+    Queue::fake();
+
+    $user = User::factory()->create();
+    Sanctum::actingAs($user);
+
+    MibekoIA::fake(['Réponse.']);
+
+    // 1er appel : conversation créée par le package (titre IA déjà côté package).
+    // 2e appel identique : notre chemin « cache » pré-crée la conversation et
+    // dispatche la génération de titre.
+    $question = ['message' => 'Question identique sur les délais'];
+    $this->postJson('/api/v1/assistant/chat', $question)->assertOk();
+    $this->postJson('/api/v1/assistant/chat', $question)->assertOk()->assertJson(['cached' => true]);
+
+    Queue::assertPushed(GenerateConversationTitle::class);
 });

@@ -3,9 +3,12 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Ai\Agents\MibekoIA;
+use App\Ai\CorpusVersion;
 use App\Http\Controllers\Controller;
+use App\Jobs\GenerateConversationTitle;
 use App\Models\AgentConversation;
 use App\Models\AgentConversationMessage;
+use App\Models\AgentMessageFeedback;
 use App\Traits\SearchesArticles;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -134,6 +137,20 @@ class AiAssistantController extends Controller
             ->filter(fn (array $message) => trim((string) $message['content']) !== '')
             ->values();
 
+        // Avis 👍/👎 de l'utilisateur courant, pour restituer l'état des boutons
+        // de feedback à la relecture (null = pas encore noté).
+        $feedbackByMessage = AgentMessageFeedback::query()
+            ->where('user_id', $request->user()->id)
+            ->whereIn('message_id', $messages->pluck('id'))
+            ->pluck('rating', 'message_id');
+
+        $messages = $messages
+            ->map(fn (array $message) => [
+                ...$message,
+                'feedback' => $feedbackByMessage[$message['id']] ?? null,
+            ])
+            ->values();
+
         return response()->json([
             'id' => $conversation->id,
             'title' => $conversation->title,
@@ -141,6 +158,70 @@ class AiAssistantController extends Controller
             'updated_at' => $conversation->updated_at?->toISOString(),
             'messages' => $messages,
         ]);
+    }
+
+    /**
+     * Noter une réponse de l'assistant
+     *
+     * Enregistre ou met à jour l'avis 👍/👎 de l'utilisateur sur un message de
+     * l'assistant (un seul avis par utilisateur et par message).
+     *
+     * @param  string  $message  L'identifiant du message assistant
+     */
+    public function feedback(Request $request, string $message): JsonResponse
+    {
+        $validated = $request->validate([
+            'rating' => ['required', 'string', 'in:up,down'],
+            'comment' => ['sometimes', 'nullable', 'string', 'max:1000'],
+        ]);
+
+        $target = $this->findOwnedAssistantMessage($request, $message);
+
+        $feedback = AgentMessageFeedback::updateOrCreate(
+            ['message_id' => $target->id, 'user_id' => $request->user()->id],
+            ['rating' => $validated['rating'], 'comment' => $validated['comment'] ?? null],
+        );
+
+        return response()->json([
+            'message_id' => $target->id,
+            'rating' => $feedback->rating,
+        ]);
+    }
+
+    /**
+     * Retirer son avis sur une réponse de l'assistant
+     *
+     * @param  string  $message  L'identifiant du message assistant
+     */
+    public function deleteFeedback(Request $request, string $message): JsonResponse
+    {
+        $target = $this->findOwnedAssistantMessage($request, $message);
+
+        AgentMessageFeedback::where('message_id', $target->id)
+            ->where('user_id', $request->user()->id)
+            ->delete();
+
+        return response()->json(null, Response::HTTP_NO_CONTENT);
+    }
+
+    /**
+     * Récupère un message assistant appartenant à l'utilisateur courant, ou 404.
+     *
+     * La possession est vérifiée au niveau SQL (la conversation parente doit
+     * être celle de l'utilisateur) : impossible de noter le message d'autrui.
+     */
+    private function findOwnedAssistantMessage(Request $request, string $messageId): AgentConversationMessage
+    {
+        return AgentConversationMessage::query()
+            ->where('agent_conversation_messages.id', $messageId)
+            ->where('role', 'assistant')
+            ->whereExists(function ($query) use ($request) {
+                $query->selectRaw('1')
+                    ->from('agent_conversations')
+                    ->whereColumn('agent_conversations.id', 'agent_conversation_messages.conversation_id')
+                    ->where('agent_conversations.user_id', $request->user()->id);
+            })
+            ->firstOrFail();
     }
 
     /**
@@ -218,8 +299,10 @@ class AiAssistantController extends Controller
         // Note: Dans une vraie implémentation sémantique, on utiliserait un vecteur de similarité
         // Ici on utilise un cache simple basé sur le hash du message normalisé pour éviter les appels répétés.
         // Le mode et les références épinglées changent la réponse : ils font partie de la clé.
+        // La version du corpus en fait aussi partie : toute évolution des textes
+        // publiés invalide les réponses en cache (jamais de droit périmé resservi).
         $normalizedMessage = strtolower(trim(preg_replace('/[^a-zA-Z0-9\s]/', '', $userMessage)));
-        $cacheKey = 'ai_response_'.md5($normalizedMessage.'|'.$mode.'|'.implode(',', array_column($references, 'id')));
+        $cacheKey = 'ai_response_'.md5($normalizedMessage.'|'.$mode.'|'.implode(',', array_column($references, 'id')).'|'.CorpusVersion::current());
 
         // Méta du message utilisateur : restitue les références/mode dans l'historique.
         $userMeta = array_filter([
@@ -235,6 +318,10 @@ class AiAssistantController extends Controller
                 'user_id' => $user->id,
                 'title' => str($userMessage)->limit(50, '...'),
             ]);
+
+            // Titre IA en tâche de fond : remplace le titre tronqué (le package
+            // ne le génère pas ici, la conversation étant pré-créée).
+            GenerateConversationTitle::dispatch($conversation->id, $userMessage);
 
             // Les colonnes castées en array reçoivent des tableaux PHP (jamais de
             // JSON pré-encodé, sinon double encodage à la lecture de l'historique).
@@ -254,7 +341,7 @@ class AiAssistantController extends Controller
                 'meta' => $userMeta,
             ]);
 
-            AgentConversationMessage::create([
+            $assistantMessage = AgentConversationMessage::create([
                 'id' => (string) Str::uuid7(),
                 'conversation_id' => $conversation->id,
                 'user_id' => $user->id,
@@ -269,7 +356,7 @@ class AiAssistantController extends Controller
             ]);
 
             if ($stream) {
-                return response()->stream(function () use ($cachedResponse) {
+                return response()->stream(function () use ($cachedResponse, $assistantMessage) {
                     if (! empty($cachedResponse['sources'])) {
                         echo "event: sources\n";
                         echo 'data: '.json_encode($cachedResponse['sources'])."\n\n";
@@ -298,6 +385,13 @@ class AiAssistantController extends Controller
                             usleep(5000); // 5ms
                         }
                     }
+
+                    // Id backend du message assistant pour le feedback immédiat.
+                    echo "event: meta\n";
+                    echo 'data: '.json_encode(['message_id' => $assistantMessage->id])."\n\n";
+                    if (ob_get_level() > 0) {
+                        ob_flush();
+                    } flush();
 
                     echo "data: [DONE]\n\n";
                     if (ob_get_level() > 0) {
@@ -331,10 +425,18 @@ class AiAssistantController extends Controller
                 ]);
                 $id = $conversation->id;
                 $agent->continue($id, as: $user);
+
+                // Titre IA en tâche de fond : remplace le titre tronqué (le
+                // package ne le génère pas ici, la conversation étant pré-créée).
+                GenerateConversationTitle::dispatch($conversation->id, $userMessage);
             }
 
+            // Id (backend) du message assistant, transmis au client en fin de
+            // flux pour qu'il puisse noter immédiatement la réponse (feedback).
+            $assistantMessageId = null;
+
             $agentResponse = $agent->stream($promptContext)
-                ->then(function (StreamedAgentResponse $response) use ($userMessage, $userMeta, $cacheKey) {
+                ->then(function (StreamedAgentResponse $response) use ($userMessage, $userMeta, $cacheKey, &$assistantMessageId) {
                     // Nettoyer le message utilisateur pour ne pas polluer l'historique de l'IA
                     $lastUserMessage = AgentConversationMessage::where('conversation_id', $response->conversationId)
                         ->where('role', 'user')
@@ -365,7 +467,10 @@ class AiAssistantController extends Controller
                     $lastMessage = AgentConversationMessage::where('conversation_id', $response->conversationId)
                         ->where('role', 'assistant')
                         ->orderBy('created_at', 'desc')
+                        ->orderBy('id', 'desc')
                         ->first();
+
+                    $assistantMessageId = $lastMessage?->id;
 
                     if ($lastMessage && ! empty($sources)) {
                         $meta = is_array($lastMessage->meta) ? $lastMessage->meta : [];
@@ -381,7 +486,7 @@ class AiAssistantController extends Controller
                     ], now()->addHours(24));
                 });
 
-            return response()->stream(function () use ($agentResponse) {
+            return response()->stream(function () use ($agentResponse, &$assistantMessageId) {
                 // La persistance (question + réponse) a lieu dans le callback
                 // `then()` du package, déclenché à la FIN de l'itération du flux.
                 // Sans cela, une déconnexion client (onglet fermé, bouton Stop,
@@ -448,6 +553,18 @@ class AiAssistantController extends Controller
                     }
                     flush();
                 } finally {
+                    // Id backend du message assistant : permet au client de noter
+                    // (feedback 👍/👎) la réponse fraîchement streamée sans attendre
+                    // un rechargement de la conversation.
+                    if ($assistantMessageId) {
+                        echo "event: meta\n";
+                        echo 'data: '.json_encode(['message_id' => $assistantMessageId])."\n\n";
+                        if (ob_get_level() > 0) {
+                            ob_flush();
+                        }
+                        flush();
+                    }
+
                     echo "data: [DONE]\n\n";
                     if (ob_get_level() > 0) {
                         ob_flush();
