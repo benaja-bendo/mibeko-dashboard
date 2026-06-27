@@ -32,7 +32,12 @@ class AiAssistantController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
-        $query = AgentConversation::where('user_id', $request->user()->id);
+        $query = AgentConversation::where('user_id', $request->user()->id)
+            // N'expose que les conversations ayant réellement un échange : les
+            // coquilles vides (échange interrompu très tôt, erreur fournisseur)
+            // ne polluent pas l'historique et ne mènent jamais à un fil vide au
+            // clic. Sous-requête EXISTS indexée sur conversation_id : négligeable.
+            ->whereHas('messages');
 
         if ($request->has('filter.date') && ! empty($request->input('filter.date'))) {
             $date = $request->input('filter.date');
@@ -106,10 +111,14 @@ class AiAssistantController extends Controller
             ->map(function (AgentConversationMessage $message) {
                 $content = $message->content;
 
-                // Nettoyer le contexte RAG des anciens messages utilisateur
+                // Nettoyer le contexte RAG des anciens messages utilisateur.
+                // Quantificateur paresseux (.*?) pour éviter le backtracking
+                // catastrophique sur de gros messages legacy ; on retombe sur le
+                // contenu d'origine si la regex échoue (jamais de null silencieux
+                // qui supprimerait le message du fil).
                 if ($message->role === 'user') {
-                    $pattern = '/Voici les extraits de loi pertinents trouvés dans la base Mibeko :\s*.*Question de l\'utilisateur : /s';
-                    $content = preg_replace($pattern, '', $content);
+                    $pattern = '/Voici les extraits de loi pertinents trouvés dans la base Mibeko :\s*.*?Question de l\'utilisateur : /s';
+                    $content = preg_replace($pattern, '', $content) ?? $content;
                 }
 
                 return [
@@ -269,8 +278,11 @@ class AiAssistantController extends Controller
                         } flush();
                     }
 
-                    // Simuler un effet de stream
-                    $chunks = mb_str_split($cachedResponse['reply'], 10, 'UTF-8');
+                    // Effet « machine à écrire » léger : une réponse en cache
+                    // doit rester quasi instantanée. Des fragments plus larges et
+                    // une pause courte gardent le rendu fluide sans réintroduire
+                    // une latence sensible (≈ 0,3 s même sur une longue réponse).
+                    $chunks = mb_str_split($cachedResponse['reply'], 24, 'UTF-8');
                     foreach ($chunks as $chunk) {
                         $payload = [
                             'type' => 'text_delta',
@@ -283,7 +295,7 @@ class AiAssistantController extends Controller
                             if (ob_get_level() > 0) {
                                 ob_flush();
                             } flush();
-                            usleep(10000); // 10ms pause
+                            usleep(5000); // 5ms
                         }
                     }
 
@@ -370,6 +382,15 @@ class AiAssistantController extends Controller
                 });
 
             return response()->stream(function () use ($agentResponse) {
+                // La persistance (question + réponse) a lieu dans le callback
+                // `then()` du package, déclenché à la FIN de l'itération du flux.
+                // Sans cela, une déconnexion client (onglet fermé, bouton Stop,
+                // réseau coupé) tuerait le script au prochain flush() et ferait
+                // perdre TOUT le tour — laissant une conversation vide à la
+                // relecture. On ignore donc l'abandon : le flux est consommé
+                // jusqu'au bout côté serveur et le tour est toujours enregistré.
+                ignore_user_abort(true);
+
                 try {
                     foreach ($agentResponse as $event) {
                         // Intercepter les résultats de recherche pour les envoyer au mobile

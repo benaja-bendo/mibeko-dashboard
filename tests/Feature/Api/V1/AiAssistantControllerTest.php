@@ -10,7 +10,11 @@ use Laravel\Sanctum\Sanctum;
 
 it('can list conversations for a user', function () {
     $user = User::factory()->create();
-    AgentConversation::factory()->count(3)->create(['user_id' => $user->id]);
+    AgentConversation::factory()->count(3)->create(['user_id' => $user->id])
+        ->each(fn (AgentConversation $conversation) => AgentConversationMessage::factory()->create([
+            'conversation_id' => $conversation->id,
+            'user_id' => $user->id,
+        ]));
 
     Sanctum::actingAs($user);
 
@@ -18,6 +22,45 @@ it('can list conversations for a user', function () {
 
     $response->assertStatus(200)
         ->assertJsonCount(3, 'data');
+});
+
+it('hides empty shell conversations from the history list', function () {
+    $user = User::factory()->create();
+    Sanctum::actingAs($user);
+
+    $withMessage = AgentConversation::factory()->create(['user_id' => $user->id]);
+    AgentConversationMessage::factory()->create([
+        'conversation_id' => $withMessage->id,
+        'user_id' => $user->id,
+    ]);
+
+    // Coquille vide : conversation créée mais échange interrompu avant la
+    // persistance du moindre message — elle ne doit pas apparaître.
+    AgentConversation::factory()->create(['user_id' => $user->id]);
+
+    $response = $this->getJson('/api/v1/assistant/conversations');
+
+    $response->assertStatus(200)
+        ->assertJsonCount(1, 'data')
+        ->assertJsonPath('data.0.id', $withMessage->id);
+});
+
+it('cascades message deletion when a conversation is deleted', function () {
+    $user = User::factory()->create();
+    Sanctum::actingAs($user);
+
+    $conversation = AgentConversation::factory()->create(['user_id' => $user->id]);
+    AgentConversationMessage::factory()->count(2)->create([
+        'conversation_id' => $conversation->id,
+        'user_id' => $user->id,
+    ]);
+
+    $this->deleteJson("/api/v1/assistant/conversations/{$conversation->id}")
+        ->assertNoContent();
+
+    // Aucun message orphelin ne subsiste après suppression de la conversation.
+    expect(AgentConversationMessage::where('conversation_id', $conversation->id)->count())
+        ->toBe(0);
 });
 
 it('caches the ai response for identical queries', function () {
@@ -209,7 +252,11 @@ it('normalizes legacy double-encoded message meta', function () {
 
 it('lists conversations with slim columns only', function () {
     $user = User::factory()->create();
-    AgentConversation::factory()->create(['user_id' => $user->id]);
+    $conversation = AgentConversation::factory()->create(['user_id' => $user->id]);
+    AgentConversationMessage::factory()->create([
+        'conversation_id' => $conversation->id,
+        'user_id' => $user->id,
+    ]);
 
     Sanctum::actingAs($user);
 
