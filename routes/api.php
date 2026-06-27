@@ -143,7 +143,9 @@ Route::prefix('v1')->middleware('throttle:api')->group(function () {
     Route::get('library/home', [LibraryHomeController::class, 'index']);
     Route::get('library/themes', [LibraryHomeController::class, 'themes']);
     Route::get('library/themes/{slug}', [LibraryHomeController::class, 'themeDocuments']);
-    Route::get('library/search', [LibrarySearchController::class, 'search']);
+    Route::get('library/search', [LibrarySearchController::class, 'search'])
+        ->withoutMiddleware('throttle:api')
+        ->middleware('throttle:search_public');
     Route::get('library/suggest', [LibrarySearchController::class, 'suggest'])
         ->withoutMiddleware('throttle:api')
         ->middleware('throttle:search_suggest');

@@ -4,6 +4,9 @@ namespace App\Providers;
 
 use App\Models\ArticleVersion;
 use App\Observers\ArticleVersionObserver;
+use Dedoc\Scramble\Scramble;
+use Dedoc\Scramble\Support\Generator\OpenApi;
+use Dedoc\Scramble\Support\Generator\SecurityScheme;
 use Google\Client as GoogleClient;
 use Google\Service\Drive;
 use Illuminate\Cache\RateLimiting\Limit;
@@ -41,6 +44,14 @@ class AppServiceProvider extends ServiceProvider
             return true;
         });
 
+        // Documentation API (Scramble) : déclare l'authentification par jeton
+        // Bearer (Sanctum) au niveau du document OpenAPI, afin que la doc
+        // affiche le schéma de sécurité et que le bouton « Try It » envoie le
+        // header `Authorization: Bearer …`.
+        Scramble::extendOpenApi(function (OpenApi $openApi) {
+            $openApi->secure(SecurityScheme::http('bearer'));
+        });
+
         RateLimiter::for('api', function (Request $request) {
             $limit = app()->environment('testing') ? 2 : 60;
 
@@ -51,6 +62,14 @@ class AppServiceProvider extends ServiceProvider
         // client), elle a son propre quota pour ne pas consommer celui de l'API.
         RateLimiter::for('search_suggest', function (Request $request) {
             return Limit::perMinute(180)->by($request->user()?->id ?: $request->ip());
+        });
+
+        // Recherche publique du fonds (site vitrine, sans compte) : endpoint non
+        // authentifié et requêtes SQL coûteuses (ILIKE + trigram) → quota par IP
+        // pour protéger la base d'un abus, sans pénaliser l'usage humain normal.
+        RateLimiter::for('search_public', function (Request $request) {
+            return Limit::perMinute(app()->environment('testing') ? 5 : 30)
+                ->by($request->user()?->id ?: $request->ip());
         });
 
         // Réinitialisation de mot de passe : quota serré par email + IP pour

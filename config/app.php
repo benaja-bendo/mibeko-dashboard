@@ -17,6 +17,18 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Site vitrine public (mibeko.fr)
+    |--------------------------------------------------------------------------
+    |
+    | URL de base du site public (lecteur juridique). Sert à construire les
+    | liens canoniques des pages de partage de l'hôte API vers mibeko.fr.
+    |
+    */
+
+    'site_url' => env('SITE_URL', 'https://mibeko.fr'),
+
+    /*
+    |--------------------------------------------------------------------------
     | Application Environment
     |--------------------------------------------------------------------------
     |

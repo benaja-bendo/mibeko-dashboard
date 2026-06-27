@@ -12,6 +12,10 @@
     <meta property="og:url" content="{{ url()->current() }}">
     <meta property="og:image" content="{{ asset('logo.svg') }}">
     <meta property="og:site_name" content="Mibeko">
+
+    @if(!empty($canonical))
+    <link rel="canonical" href="{{ $canonical }}">
+    @endif
     
     <!-- App Links for Android -->
     <meta property="al:android:package" content="com.mibeko.mibeko">
@@ -78,6 +82,14 @@
         .btn:hover {
             background-color: #1d4ed8;
         }
+        .btn-secondary {
+            background-color: transparent;
+            color: #2563eb;
+            border: 1px solid #cbd5e1;
+        }
+        .btn-secondary:hover {
+            background-color: #f1f5f9;
+        }
         .footer {
             margin-top: 24px;
             font-size: 12px;
@@ -94,6 +106,12 @@
         <a href="mibeko://article/{{ $article->id }}" class="btn">
             Ouvrir dans l'application Mibeko
         </a>
+
+        @if(!empty($canonical))
+        <a href="{{ $canonical }}" class="btn btn-secondary">
+            Lire sur mibeko.fr
+        </a>
+        @endif
         
         <div class="footer">
             &copy; {{ date('Y') }} Mibeko - Le Droit numérique
