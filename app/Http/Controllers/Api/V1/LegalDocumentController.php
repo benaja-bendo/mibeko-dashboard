@@ -19,6 +19,7 @@ use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rule;
 use Spatie\QueryBuilder\AllowedFilter;
 use Spatie\QueryBuilder\QueryBuilder;
@@ -445,12 +446,16 @@ class LegalDocumentController extends Controller
                 LegalDocument::STATUS_VALIDATED,
                 LegalDocument::STATUS_PUBLISHED,
             ])],
+            // Publication forcée : l'éditeur assume la publication malgré des
+            // anomalies de curation bloquantes non résolues (« publier quand même »).
+            'force' => ['sometimes', 'boolean'],
             // Thèmes (taxonomie « tags » réutilisée) — tableau d'ids de tags.
             'themes' => ['sometimes', 'array'],
             'themes.*' => ['string', 'exists:tags,id'],
         ]);
 
         $isPublishing = ($validated['curation_status'] ?? null) === LegalDocument::STATUS_PUBLISHED;
+        $force = $request->boolean('force');
 
         if ($isPublishing && ! $document->articles()->exists()) {
             return $this->error(
@@ -465,7 +470,8 @@ class LegalDocumentController extends Controller
         // ne doit pas atteindre le catalogue publié. Les anomalies `warning`/`info`
         // informent l'éditeur sans empêcher la publication. (Les lignes antérieures
         // sans `severity` sont traitées comme bloquantes pour préserver le comportement.)
-        if ($isPublishing) {
+        // `force` permet à l'éditeur d'outrepasser ce garde-fou en connaissance de cause.
+        if ($isPublishing && ! $force) {
             $blockingFlags = $document->curationFlags()
                 ->where('resolved', false)
                 ->where(function ($q) {
@@ -476,11 +482,20 @@ class LegalDocumentController extends Controller
 
             if ($blockingFlags > 0) {
                 return $this->error(
-                    ['curation_status' => ["Ce document a {$blockingFlags} anomalie(s) bloquante(s) non résolue(s). Résolvez-les avant de publier."]],
+                    ['curation_status' => ["Ce document a {$blockingFlags} anomalie(s) bloquante(s) non résolue(s). Résolvez-les avant de publier, ou utilisez « Publier quand même »."]],
                     'Impossible de publier un document avec des anomalies de curation bloquantes non résolues.',
                     422
                 );
             }
+        }
+
+        // Publication forcée malgré des anomalies bloquantes : on trace la décision
+        // de l'éditeur pour garder un fil d'audit (le contenu peut être imparfait).
+        if ($isPublishing && $force) {
+            Log::warning('Publication forcée d\'un document malgré le garde-fou de curation.', [
+                'document_id' => $document->id,
+                'user_id' => $request->user()?->id,
+            ]);
         }
 
         // La contrainte chk_legal_documents_role_logic interdit le
@@ -493,7 +508,7 @@ class LegalDocumentController extends Controller
             );
         }
 
-        $document->update(Arr::except($validated, ['themes']));
+        $document->update(Arr::except($validated, ['themes', 'force']));
 
         if (array_key_exists('themes', $validated)) {
             $themeIds = $validated['themes'];

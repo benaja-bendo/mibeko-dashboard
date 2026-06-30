@@ -97,6 +97,40 @@ it('refuse de publier un document avec des anomalies de curation non résolues',
     expect($document->fresh()->curation_status)->toBe(LegalDocument::STATUS_REVIEW);
 });
 
+it('force la publication malgré des anomalies de curation non résolues quand force=true', function () {
+    $document = LegalDocument::factory()->create(['curation_status' => LegalDocument::STATUS_REVIEW]);
+    Article::factory()->create(['document_id' => $document->id]);
+    CurationFlag::create([
+        'document_id' => $document->id,
+        'type_probleme' => 'article_manquant',
+        'description' => 'Article(s) 2 absent(s) (saut de 1 à 3).',
+        'resolved' => false,
+    ]);
+
+    $this->actingAs($this->editor)
+        ->patchJson("/api/v1/legal-documents/{$document->id}", [
+            'curation_status' => LegalDocument::STATUS_PUBLISHED,
+            'force' => true,
+        ])
+        ->assertOk()
+        ->assertJsonPath('data.curation_status', LegalDocument::STATUS_PUBLISHED);
+
+    expect($document->fresh()->curation_status)->toBe(LegalDocument::STATUS_PUBLISHED);
+});
+
+it('refuse même avec force=true de publier un document sans article', function () {
+    $document = LegalDocument::factory()->create(['curation_status' => LegalDocument::STATUS_REVIEW]);
+
+    $this->actingAs($this->editor)
+        ->patchJson("/api/v1/legal-documents/{$document->id}", [
+            'curation_status' => LegalDocument::STATUS_PUBLISHED,
+            'force' => true,
+        ])
+        ->assertStatus(422);
+
+    expect($document->fresh()->curation_status)->toBe(LegalDocument::STATUS_REVIEW);
+});
+
 it('publie un document dont toutes les anomalies de curation sont résolues', function () {
     $document = LegalDocument::factory()->create(['curation_status' => LegalDocument::STATUS_REVIEW]);
     Article::factory()->create(['document_id' => $document->id]);
