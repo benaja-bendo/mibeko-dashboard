@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V1\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Api\V1\Admin\BulkCurationFlagRequest;
 use App\Http\Requests\Api\V1\Admin\UpdateCurationFlagRequest;
 use App\Http\Resources\V1\Admin\CurationFlagResource;
 use App\Models\CurationFlag;
@@ -84,5 +85,41 @@ class CurationFlagController extends Controller
         $flag->delete();
 
         return $this->success(null, 'Signalement supprimé avec succès');
+    }
+
+    /**
+     * Action groupée sur une sélection de signalements : résoudre, ré-ouvrir
+     * ou supprimer plusieurs signalements en une seule requête.
+     *
+     * Renvoie `{ affected: <n> }`, le nombre de signalements réellement touchés
+     * (les identifiants déjà disparus sont ignorés).
+     */
+    public function bulk(BulkCurationFlagRequest $request): JsonResponse
+    {
+        $ids = $request->validated('ids');
+        $action = $request->validated('action');
+
+        if ($action === 'delete') {
+            $affected = CurationFlag::whereIn('id', $ids)->delete();
+
+            return $this->success(
+                ['affected' => $affected],
+                trans_choice('{0}Aucun signalement supprimé|{1}1 signalement supprimé|[2,*]:count signalements supprimés', $affected, ['count' => $affected])
+            );
+        }
+
+        $resolved = $action === 'resolve';
+
+        $affected = CurationFlag::whereIn('id', $ids)->update([
+            'resolved' => $resolved,
+            'resolved_at' => $resolved ? now() : null,
+            'resolved_by' => $resolved ? $request->user()->id : null,
+        ]);
+
+        $message = $resolved
+            ? trans_choice('{0}Aucun signalement résolu|{1}1 signalement résolu|[2,*]:count signalements résolus', $affected, ['count' => $affected])
+            : trans_choice('{0}Aucun signalement ré-ouvert|{1}1 signalement ré-ouvert|[2,*]:count signalements ré-ouverts', $affected, ['count' => $affected]);
+
+        return $this->success(['affected' => $affected], $message);
     }
 }

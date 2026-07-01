@@ -222,3 +222,80 @@ it('filtre les signalements par sévérité', function () {
         ->assertJsonCount(1, 'data')
         ->assertJsonPath('data.0.severity', 'warning');
 });
+
+// ---------------------------------------------------------------------------
+// Actions groupées (bulk)
+// ---------------------------------------------------------------------------
+
+it('résout en masse une sélection de signalements avec traçabilité', function () {
+    $a = CurationFlag::create(['document_id' => $this->document->id, 'type_probleme' => 'erreur', 'resolved' => false]);
+    $b = CurationFlag::create(['document_id' => $this->document->id, 'type_probleme' => 'doublon', 'resolved' => false]);
+    $untouched = CurationFlag::create(['document_id' => $this->document->id, 'type_probleme' => 'autre', 'resolved' => false]);
+
+    $this->actingAs($this->admin)
+        ->postJson('/api/v1/admin/flags/bulk', ['action' => 'resolve', 'ids' => [$a->id, $b->id]])
+        ->assertOk()
+        ->assertJsonPath('data.affected', 2);
+
+    expect($a->refresh()->resolved)->toBeTrue();
+    expect($a->resolved_by)->toBe($this->admin->id);
+    expect($a->resolved_at)->not->toBeNull();
+    expect($b->refresh()->resolved)->toBeTrue();
+    // Le signalement non sélectionné reste ouvert.
+    expect($untouched->refresh()->resolved)->toBeFalse();
+});
+
+it('ré-ouvre en masse une sélection et efface la traçabilité', function () {
+    $a = CurationFlag::create([
+        'document_id' => $this->document->id, 'type_probleme' => 'erreur',
+        'resolved' => true, 'resolved_at' => now(), 'resolved_by' => $this->admin->id,
+    ]);
+    $b = CurationFlag::create([
+        'document_id' => $this->document->id, 'type_probleme' => 'doublon',
+        'resolved' => true, 'resolved_at' => now(), 'resolved_by' => $this->admin->id,
+    ]);
+
+    $this->actingAs($this->admin)
+        ->postJson('/api/v1/admin/flags/bulk', ['action' => 'reopen', 'ids' => [$a->id, $b->id]])
+        ->assertOk()
+        ->assertJsonPath('data.affected', 2);
+
+    expect($a->refresh()->resolved)->toBeFalse();
+    expect($a->resolved_at)->toBeNull();
+    expect($a->resolved_by)->toBeNull();
+    expect($b->refresh()->resolved)->toBeFalse();
+});
+
+it('supprime en masse une sélection de signalements', function () {
+    $a = CurationFlag::create(['document_id' => $this->document->id, 'type_probleme' => 'doublon', 'resolved' => false]);
+    $b = CurationFlag::create(['document_id' => $this->document->id, 'type_probleme' => 'hors_sujet', 'resolved' => false]);
+    $keep = CurationFlag::create(['document_id' => $this->document->id, 'type_probleme' => 'erreur', 'resolved' => false]);
+
+    $this->actingAs($this->admin)
+        ->postJson('/api/v1/admin/flags/bulk', ['action' => 'delete', 'ids' => [$a->id, $b->id]])
+        ->assertOk()
+        ->assertJsonPath('data.affected', 2);
+
+    $this->assertDatabaseMissing('curation_flags', ['id' => $a->id]);
+    $this->assertDatabaseMissing('curation_flags', ['id' => $b->id]);
+    $this->assertDatabaseHas('curation_flags', ['id' => $keep->id]);
+});
+
+it('rejette une action groupée invalide', function () {
+    $flag = CurationFlag::create(['document_id' => $this->document->id, 'type_probleme' => 'erreur', 'resolved' => false]);
+
+    $this->actingAs($this->admin)
+        ->postJson('/api/v1/admin/flags/bulk', ['action' => 'purge', 'ids' => [$flag->id]])
+        ->assertStatus(422)
+        ->assertJsonValidationErrors('action');
+});
+
+it('refuse une action groupée à un non-admin', function () {
+    $flag = CurationFlag::create(['document_id' => $this->document->id, 'type_probleme' => 'erreur', 'resolved' => false]);
+
+    $this->actingAs($this->proUser)
+        ->postJson('/api/v1/admin/flags/bulk', ['action' => 'delete', 'ids' => [$flag->id]])
+        ->assertForbidden();
+
+    $this->assertDatabaseHas('curation_flags', ['id' => $flag->id]);
+});

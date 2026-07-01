@@ -264,6 +264,8 @@ Route::prefix('v1')->middleware('throttle:api')->group(function () {
                 ->only(['index', 'store', 'update', 'destroy']);
 
             // Triage des signalements (CurationFlag)
+            Route::post('flags/bulk', [AdminCurationFlagController::class, 'bulk'])
+                ->name('flags.bulk');
             Route::apiResource('flags', AdminCurationFlagController::class)
                 ->only(['index', 'update', 'destroy']);
 
