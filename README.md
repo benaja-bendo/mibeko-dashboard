@@ -1,198 +1,150 @@
-# Mibeko Dashboard
+# Mibeko — Backend & API (`mibeko-tableau-de-bord`)
 
-Mibeko Dashboard est une plateforme de gestion et de curation de textes juridiques et réglementaires. Elle permet d'administrer une base de données de documents légaux (lois, décrets, arrêtés, actes uniformes, conventions collectives), leurs structures, ainsi que les institutions associées.
+> Statut : à jour au 2 juillet 2026 · API Laravel de l'écosystème Mibeko (droit du Congo-Brazzaville) servant le dashboard React, l'application mobile et le site public.
 
-Le projet est conçu comme une application "Single Page" (SPA) moderne utilisant l'architecture monolithique de Laravel couplée à Inertia.js et React.
+Ce dépôt est le **backend** de Mibeko : une API Laravel 13 qui centralise la base de données juridique (lois, décrets, arrêtés, actes uniformes OHADA, journaux officiels), l'authentification, l'assistant IA et la facturation. Il est l'unique source de vérité de l'écosystème.
 
-## 🛠 Stack Technique
+Il **ne rend plus d'interface** : le legacy Inertia est quasi mort (`resources/js/pages` est vide). L'interface réelle est le SPA React séparé **`mibeko-front`** (dashboard pro `/app`, éditorial `/editor`, admin `/admin`). Le backend expose une API JSON `/api/v1`, des pages de partage social, une page de statut et la documentation Scramble.
 
-Ce projet utilise les dernières technologies de l'écosystème Laravel et React :
+La documentation technique détaillée se trouve dans [`docs/`](docs/README.md).
 
-* **Backend** : [Laravel 12](https://laravel.com)
-* **Frontend** : [React 19](https://react.dev) avec [Inertia.js v2](https://inertiajs.com)
-* **Style** : [Tailwind CSS v4](https://tailwindcss.com)
-* **Base de données** : PostgreSQL (avec pgvector)
-* **Stockage de fichiers** : MinIO (Compatible S3 local)
-* **Authentification** : Laravel Fortify & Sanctum
+## Stack technique
 
-## ✨ Fonctionnalités Clés
+- **Framework** : [Laravel 13](https://laravel.com) (PHP ≥ 8.2 ; l'image de production tourne sous PHP 8.4).
+- **Base de données** : PostgreSQL avec `pgvector` (recherche sémantique), `ltree` (arborescence) et `btree_gist` (contraintes temporelles).
+- **Authentification** : [Laravel Sanctum](https://laravel.com/docs/sanctum) (jetons API) + [Fortify](https://laravel.com/docs/fortify) (2FA TOTP au login). Rôles via `spatie/laravel-permission`.
+- **Stockage de fichiers** : MinIO (compatible S3) pour les PDF sources.
+- **Assistant IA & MCP** : `laravel/ai` (assistant conversationnel, détection d'anomalies, embeddings) et `laravel/mcp` (serveur MCP exposant la base juridique).
+- **Facturation** : `laravel/cashier` (Stripe) — **codée mais dormante en production** (Stripe non configuré ; les endpoints se dégradent proprement).
+- **Temps réel** : [Laravel Reverb](https://laravel.com/docs/reverb) (WebSocket).
+- **Documentation API** : `dedoc/scramble` (`/docs/api`).
+- **Tests** : [Pest](https://pestphp.com) — environ 365 tests exécutés contre une base PostgreSQL réelle.
 
-* **Gestion Documentaire** : CRUD complet pour les documents légaux, articles de loi et nœuds de structure.
-* **Curation** : Interface dédiée pour la validation, le "flagging" et l'édition des contenus juridiques.
-* **Institutions** : Gestion des entités émettrices des textes.
-* **Audit** : Traçabilité des actions utilisateurs via `laravel-auditing`.
-* **Sécurité** : Authentification complète avec support de l'authentification à deux facteurs (2FA).
-* **Recherche** : Intégration de fonctionnalités de recherche avancée avec RAG (Mistral/OpenAI).
-* **Notifications Push** : Envoi de notifications mobiles via Firebase Cloud Messaging (FCM).
-* **Sauvegardes Automatisées** : Sauvegardes planifiées (DB & fichiers) via `spatie/laravel-backup` (voir [BACKUP.md](BACKUP.md)).
-* **Monitoring** : Surveillance applicative intégrée avec Nightwatch.
+Les clients servis par cette API sont : le SPA `mibeko-front`, l'application mobile `mibeko-app-kmp` (Kotlin Multiplatform) et le site public `mibeko-site` (Astro).
 
-## 🚀 Prérequis
+## Fonctionnalités clés
 
-Assurez-vous d'avoir installé les outils suivants sur votre machine :
+- **Gestion documentaire** : CRUD des documents légaux, articles, versions (SCD Type 2) et nœuds de structure.
+- **Curation** : détection d'anomalies, signalements (`curation_flags`), garde-fou à la publication.
+- **Recherche hybride** : lexicale (`tsvector`) + trigram (`pg_trgm`) + sémantique (`pgvector`).
+- **Assistant IA** : conversations, IA à la demande (explication / synthèse en streaming SSE), suggestion de thèmes.
+- **Synchronisation mobile** : catalogue « offline-ready », téléchargement à plat, synchronisation des dossiers.
+- **Audit** : traçabilité via `owen-it/laravel-auditing`.
+- **Notifications push** : Firebase Cloud Messaging (FCM).
+- **Sauvegardes automatisées** : `spatie/laravel-backup` (voir [`docs/guides/sauvegardes.md`](docs/guides/sauvegardes.md)).
 
-* [Docker Desktop](https://www.docker.com/products/docker-desktop) (recommandé pour l'environnement Sail)
-* PHP 8.2 ou supérieur (si exécution locale sans Docker)
-* Node.js & NPM
+## Prérequis
 
-## 📦 Installation
+- [Docker Desktop](https://www.docker.com/products/docker-desktop) (recommandé, via Laravel Sail).
+- PHP 8.2 ou supérieur (si exécution locale sans Docker).
+- Node.js & NPM (uniquement pour les outils de build et le linting front résiduels).
 
-1.  **Cloner le dépôt**
-    ```bash
-    git clone [https://github.com/benaja-bendo/mibeko-dashboard.git](https://github.com/benaja-bendo/mibeko-dashboard.git)
-    cd mibeko-dashboard
-    ```
+## Installation
 
-2.  **Installer les dépendances PHP**
-    ```bash
-    composer install
-    ```
+1. **Cloner le dépôt**
+   ```bash
+   git clone https://github.com/benaja-bendo/mibeko-dashboard.git
+   cd mibeko-dashboard
+   ```
 
-3.  **Configurer l'environnement**
-    Copiez le fichier d'exemple et générez la clé d'application.
-    ```bash
-    cp .env.example .env
-    php artisan key:generate
-    ```
+2. **Installer les dépendances PHP**
+   ```bash
+   composer install
+   ```
 
-4.  **Démarrer l'environnement Docker (Sail)**
-    Cette commande lance les conteneurs pour l'application, PostgreSQL et MinIO.
-    ```bash
-    ./vendor/bin/sail up -d
-    ```
-    *(Note : Vous pouvez créer un alias pour `sail` pour simplifier les commandes suivantes)*
-    ```bash
-    php artisan serve --host=0.0.0.0 --port=8000
-    php artisan db:seed --class=RealisticLegalSeeder
-    ```
+3. **Configurer l'environnement**
+   ```bash
+   cp .env.example .env
+   php artisan key:generate
+   ```
 
-5.  **Installer les dépendances JavaScript**
-    ```bash
-    ./vendor/bin/sail npm install
-    ./vendor/bin/sail npm run build
-    ```
+4. **Démarrer l'environnement Docker (Sail)**
+   Cette commande lance les conteneurs pour l'application, PostgreSQL et MinIO.
+   ```bash
+   ./vendor/bin/sail up -d
+   ```
 
-6.  **Base de données & Migration**
-    Exécutez les migrations et les seeders pour initialiser la base de données.
-    ```bash
-    ./vendor/bin/sail artisan migrate --seed
-    ```
+5. **Base de données & migrations**
+   ```bash
+   ./vendor/bin/sail artisan migrate --seed
+   ```
 
-## 🧠 RAG & génération des embeddings
+## RAG & génération des embeddings
 
-Par défaut, le seeding ne fait **aucun appel à l'API d'IA** : les seeders remplissent la base (`articles`, `article_versions`, etc.) sans générer d'embeddings. Cela permet d'initialiser la base de données sans coût externe.
+Par défaut, le seeding ne fait **aucun appel à l'API d'IA** : les seeders remplissent la base (`articles`, `article_versions`, etc.) sans générer d'embeddings, ce qui permet d'initialiser la base sans coût externe.
 
-### 1. Peupler la base sans IA
-
-Vous pouvez réinitialiser et peupler la base comme d'habitude :
+Une fois la base peuplée, la génération des embeddings manquants se lance via une commande dédiée :
 
 ```bash
-./vendor/bin/sail artisan migrate:fresh --seed
+./vendor/bin/sail artisan mibeko:process-rag --limit=200 --batch=20 --delay=500
 ```
 
-ou, pour lancer un seeder spécifique (ex. données réalistes) :
+- `--limit` : nombre maximum d'articles traités lors de l'appel.
+- `--batch` : taille des lots envoyés à l'API d'IA.
+- `--delay` : délai (en millisecondes) entre chaque lot pour éviter le rate limit.
+
+La commande est réentrante : seuls les articles **sans embedding** sont traités, on peut donc la relancer avec un `--limit` plus élevé.
+
+## Configuration MinIO (stockage local)
+
+MinIO simule un stockage S3 en local. Le `docker-compose.yml` inclut un service qui configure automatiquement le bucket par défaut.
+
+- **Console** : [http://localhost:9001](http://localhost:9001)
+- **Identifiants par défaut** : `sail` / `password`
+
+La convention d'organisation des objets est décrite dans [`docs/architecture/stockage-minio.md`](docs/architecture/stockage-minio.md).
+
+## Tests
+
+La suite Pest s'exécute contre une **base PostgreSQL réelle** (`mibeko_testing`, cf. `phpunit.xml`) et non SQLite : elle couvre `ltree`, `pgvector` et les contraintes `gist`. Voir [`docs/guides/base-de-donnees-test.md`](docs/guides/base-de-donnees-test.md) pour la préparation de cette base.
 
 ```bash
-./vendor/bin/sail artisan db:seed --class=RealisticLegalSeeder
+./vendor/bin/sail artisan test --compact
 ```
 
-Dans tous les cas, les embeddings ne seront **pas** générés pendant ces seeders.
-
-### 2. Générer les embeddings (RAG) plus tard
-
-Une fois la base peuplée, vous pouvez lancer la génération des embeddings manquants via une commande dédiée :
+Analyse statique et formatage :
 
 ```bash
-./vendor/bin/sail artisan mibeko:process-rag \
-    --limit=200 \
-    --batch=20 \
-    --delay=500
+./vendor/bin/pint          # Formatage PHP (Laravel Pint)
 ```
 
-- `--limit` : nombre maximum d'articles à traiter lors de cet appel
-- `--batch` : taille des lots envoyés à l'API d'IA
-- `--delay` : délai **en millisecondes** entre chaque batch pour éviter le rate limit
+## Déploiement en production
 
-Vous pouvez relancer la commande plusieurs fois (par exemple avec un `--limit` plus élevé) : seuls les articles **sans embedding** seront pris en compte.
+Le projet est déployé de façon automatisée et conteneurisée sur un VPS.
 
-### 3. Tester le RAG sur un petit échantillon (optionnel)
+### Architecture Docker
 
-Pour vérifier la configuration IA sur un faible volume, vous pouvez limiter le seeding à un seul JSON via une variable d'environnement :
+L'image de production est construite via le `Dockerfile` racine (multi-stage, base **PHP 8.4-fpm** avec OPcache). L'orchestration passe par `.deploy/docker-compose.yml` (copié sur le VPS par la CI), composé de cinq services :
 
-```bash
-MIBEKO_SEED_LIMIT=1 ./vendor/bin/sail artisan db:seed --class=CongoJournalOfficielSeeder
-```
+- `app` : serveur PHP-FPM.
+- `nginx` : serveur web (reverse proxy).
+- `queue` : worker des files d'attente.
+- `scheduler` : planificateur de tâches (cron).
+- `reverb` : serveur WebSocket (temps réel).
 
-Puis lancer la génération des embeddings sur un petit batch :
+Ces services dialoguent avec les instances **PostgreSQL** et **MinIO** hébergées sur le VPS. Le trafic HTTPS est géré par **Traefik** : l'API répond sur `api.mibeko.fr` et les WebSockets sur `reverb.mibeko.fr`. Le SPA `mibeko-front` est servi sur `app.mibeko.fr` et le site public sur `mibeko.fr`.
 
-```bash
-./vendor/bin/sail artisan mibeko:process-rag --limit=50 --batch=10 --delay=500
-```
+### CI/CD (GitHub Actions)
 
-## ⚙️ Configuration MinIO (Stockage Local)
+Le workflow `deploy-prod.yml` se déclenche sur push vers `main` :
 
-Le projet utilise MinIO pour simuler un stockage S3 en local. Le fichier `docker-compose.yml` inclut un service `createbuckets` qui configure automatiquement le bucket par défaut.
+1. **Build & push** : construction de l'image Docker et publication sur GitHub Container Registry (GHCR).
+2. **Déploiement VPS (SSH)** : génération dynamique de la configuration à partir des GitHub Secrets, pull de la nouvelle image, redémarrage des conteneurs, puis migrations et mise en cache Laravel (routes/vues/config).
 
-* **Console MinIO** : [http://localhost:9001](http://localhost:9001)
-* **User** : `sail`
-* **Password** : `password`
+Le fichier `.env.vps` sert de référence pour les variables requises en production (base de données, accès MinIO, clés IA, credentials Firebase).
 
-## 🧪 Tests
+## Structure du projet
 
-Pour exécuter la suite de tests (Pest PHP) :
+- `app/Http/Controllers/Api/V1` : contrôleurs de l'API versionnée.
+- `app/Models` : modèles Eloquent (`LegalDocument`, `Article`, `ArticleVersion`, `Institution`, etc.).
+- `app/Ai` : assistant IA, agents et outils (`laravel/ai`).
+- `app/Mcp` : serveur et outils MCP (`laravel/mcp`).
+- `routes/api.php` : définition des endpoints `/api/v1`.
+- `database/migrations` : structure de la base (pilote unique du schéma partagé avec le service Python).
+- `docs/` : documentation technique ([index](docs/README.md)).
 
-```bash
-./vendor/bin/sail artisan test
+> Note : `resources/js/pages` est vide. L'interface utilisateur vit dans le dépôt séparé `mibeko-front` ; ne pas rétablir de pages Inertia ici.
 
-```
-
-Pour lancer l'analyse statique et le formatage du code :
-
-```bash
-./vendor/bin/sail npm run lint    # ESLint
-./vendor/bin/sail npm run format  # Prettier
-./vendor/bin/pint                 # Laravel Pint
-
-```
-
-## 🌍 Déploiement en Production
-
-Le projet est configuré pour un déploiement automatisé et conteneurisé sur un VPS.
-
-### 🏗 Architecture Docker
-L'application en production utilise une image Docker optimisée (multi-stage build) construite via le `Dockerfile` à la racine, qui inclut :
-- La compilation du frontend (Vite/React).
-- L'installation des dépendances backend (Composer).
-- L'environnement d'exécution basé sur PHP 8.4 FPM (avec OPcache et extensions nécessaires).
-
-L'orchestration s'effectue via le fichier `.deploy/docker-compose.yml` (copié sur le VPS par la CI) composé de 5 services :
-- `app` : Serveur PHP-FPM.
-- `nginx` : Serveur web (reverse proxy).
-- `queue` : Worker pour les files d'attente (background jobs).
-- `scheduler` : Planificateur de tâches (cron).
-- `reverb` : Serveur WebSocket (broadcasting temps réel).
-
-Ces services communiquent avec les instances **PostgreSQL** et **MinIO** hébergées directement sur le VPS (via un réseau Docker `proxy`). Le trafic entrant (HTTPS) est géré par **Traefik** (domaine `api.mibeko.fr`, et `reverb.mibeko.fr` pour les WebSockets).
-
-### 🚀 CI/CD avec GitHub Actions
-Un workflow de déploiement continu (`deploy-prod.yml`) se déclenche automatiquement lors d'un push sur la branche `main` :
-1. **Build & Push** : Construction de l'image Docker et publication sur GitHub Container Registry (GHCR).
-2. **Déploiement VPS (SSH)** : 
-   - Connexion au serveur de production.
-   - Génération dynamique de la configuration (`.env`, `docker-compose.yml`, config Nginx) à l'aide des GitHub Secrets.
-   - Téléchargement (pull) de la nouvelle image et redémarrage des conteneurs sans interruption (`docker compose up -d`).
-   - Exécution des commandes d'optimisation Laravel (migrations, cache des routes/vues/configs).
-
-### 🔑 Variables d'environnement
-Le fichier `.env.vps` sert de référence pour les variables requises en production, notamment les identifiants de la base de données, les accès S3 (MinIO), les clés d'API (Mistral/OpenAI) et les credentials Firebase pour les notifications Push.
-
-## 📂 Structure du Projet
-
-* `app/Models` : Modèles Eloquent (LegalDocument, Article, Institution, etc.).
-* `resources/js/pages` : Pages React (Inertia).
-* `resources/js/components` : Composants UI réutilisables.
-* `database/migrations` : Définitions de la structure de la base de données.
-
-## 📄 Licence
+## Licence
 
 Ce projet est sous licence [MIT](https://opensource.org/licenses/MIT).
