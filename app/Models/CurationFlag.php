@@ -49,6 +49,14 @@ class CurationFlag extends Model
 
     const SOURCE_HUMAN = 'human';
 
+    /**
+     * Signalement public (app mobile, sans compte). Distinct de `human`
+     * (réservé aux éditeurs authentifiés) : jamais purgé par les détecteurs,
+     * mais ne doit jamais bloquer une publication tant qu'un admin ne l'a
+     * pas requalifié au triage.
+     */
+    const SOURCE_REPORT = 'report';
+
     /** Sévérités : seul `blocking` empêche la publication. */
     const SEVERITY_BLOCKING = 'blocking';
 
