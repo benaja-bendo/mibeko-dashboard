@@ -46,7 +46,7 @@ class ArticleSearchController extends Controller
      *
      * This endpoint performs a sophisticated hybrid search:
      * 1. **Full-Text Search**: Uses PostgreSQL `ts_rank` for precise keyword matching.
-     * 2. **Semantic Search**: Uses `pgvector` and OpenAI embeddings to find conceptually related articles.
+     * 2. **Semantic Search**: Uses `pgvector` and Mistral embeddings to find conceptually related articles.
      * 3. **AI Answer**: If a query is provided, it uses the top results as context for a RAG (Retrieval-Augmented Generation) answer.
      *
      * @queryParam q string required The search query or question (e.g., "quels sont mes droits au travail ?").
