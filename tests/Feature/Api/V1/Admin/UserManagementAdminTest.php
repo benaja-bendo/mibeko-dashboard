@@ -51,13 +51,15 @@ it('liste les utilisateurs paginés avec leurs rôles', function () {
 });
 
 it('recherche par nom ou email', function () {
-    User::factory()->create(['name' => 'Jean Dupont', 'status' => 'active']);
+    // Terme volontairement non collisionnable : faker (fr_FR) ne génère jamais
+    // « Zzxqv » dans un nom ou un email, contrairement à un patronyme courant.
+    User::factory()->create(['name' => 'Zzxqv Testperson', 'status' => 'active']);
 
     $this->actingAs($this->admin)
-        ->getJson('/api/v1/admin/users?search=Dupont')
+        ->getJson('/api/v1/admin/users?search=Zzxqv')
         ->assertOk()
         ->assertJsonCount(1, 'data')
-        ->assertJsonPath('data.0.name', 'Jean Dupont');
+        ->assertJsonPath('data.0.name', 'Zzxqv Testperson');
 });
 
 it('filtre par rôle', function () {
