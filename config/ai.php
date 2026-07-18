@@ -142,4 +142,53 @@ return [
         ],
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Quotas de l'assistant IA (Mibeko)
+    |--------------------------------------------------------------------------
+    |
+    | Plafonds appliqués par le limiteur `ai_assistant` (AppServiceProvider) :
+    | requêtes par minute (confort d'usage) ET par jour (maîtrise du coût des
+    | fournisseurs LLM). Les administrateurs ont aussi un plafond journalier —
+    | un jeton admin compromis ne doit pas pouvoir générer une facture
+    | illimitée.
+    |
+    */
+
+    'quotas' => [
+        'standard' => [
+            'per_minute' => (int) env('AI_QUOTA_STANDARD_PER_MINUTE', 20),
+            'per_day' => (int) env('AI_QUOTA_STANDARD_PER_DAY', 200),
+        ],
+        'premium' => [
+            'per_minute' => (int) env('AI_QUOTA_PREMIUM_PER_MINUTE', 60),
+            'per_day' => (int) env('AI_QUOTA_PREMIUM_PER_DAY', 1000),
+        ],
+        'admin' => [
+            'per_day' => (int) env('AI_QUOTA_ADMIN_PER_DAY', 2000),
+        ],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Assistant IA — chaîne de fournisseurs (failover)
+    |--------------------------------------------------------------------------
+    |
+    | Liste ORDONNÉE de fournisseurs pour l'assistant Mibeko IA. Le premier est
+    | le principal ; sur une erreur « failover-able » (rate-limit, surcharge,
+    | crédits épuisés — jamais une erreur de requête), le SDK bascule sur le
+    | suivant. Vide = comportement par défaut (seul `ai.default`). N'active le
+    | failover qu'avec des fournisseurs dont la clé est valide, et en gardant à
+    | l'esprit la résidence des données : un fournisseur étranger recevrait alors
+    | les requêtes juridiques des utilisateurs. Ex. : AI_ASSISTANT_FAILOVER="mistral,openai".
+    |
+    */
+
+    'assistant' => [
+        'providers' => array_values(array_filter(array_map(
+            'trim',
+            explode(',', (string) env('AI_ASSISTANT_FAILOVER', '')),
+        ))),
+    ],
+
 ];

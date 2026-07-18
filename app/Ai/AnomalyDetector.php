@@ -2,7 +2,11 @@
 
 namespace App\Ai;
 
+use Illuminate\Contracts\JsonSchema\JsonSchema;
+use Illuminate\JsonSchema\Types\Type;
+use Laravel\Ai\Attributes\UseCheapestModel;
 use Laravel\Ai\Contracts\Agent;
+use Laravel\Ai\Contracts\HasStructuredOutput;
 use Laravel\Ai\Promptable;
 use Stringable;
 
@@ -16,10 +20,14 @@ use Stringable;
  * charabia OCR, numéro incohérent. Posture strictement assistive : il SIGNALE
  * et peut PROPOSER une correction, jamais l'appliquer.
  *
- * Calqué sur {@see ThemeClassifier} : sortie JSON stricte, parsing robuste au
- * bavardage, échec gracieux (une panne IA ne crée aucun flag et ne casse rien).
+ * Sortie structurée (schéma strict natif Mistral) : le modèle renvoie
+ * directement un objet `{anomalies: [...]}` — plus de parsing regex du texte.
+ * On conserve la validation métier (refs connues, vocabulaire fermé, sévérité,
+ * confiance) et l'échec gracieux (une panne IA ne crée aucun flag et ne casse
+ * rien). Tâche assistive → modèle le moins cher du fournisseur ({@see UseCheapestModel}).
  */
-class AnomalyDetector implements Agent
+#[UseCheapestModel]
+class AnomalyDetector implements Agent, HasStructuredOutput
 {
     use Promptable;
 
@@ -34,6 +42,9 @@ class AnomalyDetector implements Agent
         'numero_incoherent',
     ];
 
+    /** Sévérités admises, de la plus grave à la plus mineure. */
+    public const SEVERITIES = ['blocking', 'warning', 'info'];
+
     public function instructions(): Stringable|string
     {
         return 'Tu es un relecteur expert de textes juridiques de la République du Congo (Congo-Brazzaville) '
@@ -43,10 +54,28 @@ class AnomalyDetector implements Agent
             .implode(', ', self::TYPES).'. '
             ."Sévérités : 'blocking' (contenu perdu/illisible, fusion d'articles), 'warning' (fragment, "
             ."classification douteuse, renvoi mort), 'info' (mineur). "
-            .'Réponds STRICTEMENT par un objet JSON {"anomalies": [{"ref": "<ref fournie>", "type_probleme": '
-            .'"<type>", "severity": "<sévérité>", "description": "<courte explication en français>", '
-            .'"suggestion": "<correction proposée ou null>", "confidence": <0..1>}]}, sans aucun autre texte '
-            .'ni balise de code. N\'invente pas de ref. Si un élément est correct, ne le liste pas.';
+            ."Réutilise exactement les 'ref' fournies ; n'en invente pas. Si un élément est correct, ne le liste pas.";
+    }
+
+    /**
+     * Schéma de sortie : la liste des anomalies détectées (vide si tout est correct).
+     *
+     * @return array<string, Type>
+     */
+    public function schema(JsonSchema $schema): array
+    {
+        return [
+            'anomalies' => $schema->array()
+                ->items($schema->object([
+                    'ref' => $schema->string()->description('Ref de l\'élément concerné, parmi celles fournies.')->required(),
+                    'type_probleme' => $schema->string()->enum(self::TYPES)->required(),
+                    'severity' => $schema->string()->enum(self::SEVERITIES)->required(),
+                    'description' => $schema->string()->description('Courte explication en français.')->required(),
+                    'suggestion' => $schema->string()->nullable()->description('Correction proposée, ou null.'),
+                    'confidence' => $schema->number()->nullable()->description('Confiance entre 0 et 1.'),
+                ]))
+                ->description('Anomalies d\'extraction détectées ; tableau vide si aucun défaut.'),
+        ];
     }
 
     /**
@@ -72,8 +101,7 @@ class AnomalyDetector implements Agent
             ->all();
 
         $prompt = "Éléments à contrôler (JSON) :\n"
-            .json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT)
-            ."\n\nRéponds en JSON : {\"anomalies\": [...]}.";
+            .json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
 
         // Échec gracieux : une panne IA (réseau, clé, quota) ne doit jamais
         // empêcher l'ingestion ni les couches déterministes.
@@ -85,28 +113,29 @@ class AnomalyDetector implements Agent
             return [];
         }
 
-        return $this->parseAnomalies($response->text, collect($items)->pluck('ref')->all());
+        $anomalies = is_array($response['anomalies'] ?? null) ? $response['anomalies'] : [];
+
+        return $this->validateAnomalies($anomalies, collect($items)->pluck('ref')->all());
     }
 
     /**
-     * Extrait et valide les anomalies de la réponse (robuste au bavardage).
+     * Valide et normalise les anomalies renvoyées par le modèle (refs connues,
+     * type et sévérité dans le vocabulaire fermé, suggestion/confiance propres).
      *
+     * @param  array<int, mixed>  $anomalies
      * @param  array<int, string>  $validRefs
      * @return array<int, array<string, mixed>>
      */
-    private function parseAnomalies(string $text, array $validRefs): array
+    private function validateAnomalies(array $anomalies, array $validRefs): array
     {
-        if (! preg_match('/\{.*\}/s', $text, $matches)) {
-            return [];
-        }
-
-        $decoded = json_decode($matches[0], true);
-        $anomalies = is_array($decoded['anomalies'] ?? null) ? $decoded['anomalies'] : [];
-
         $valid = array_flip($validRefs);
         $clean = [];
 
         foreach ($anomalies as $anomaly) {
+            if (! is_array($anomaly)) {
+                continue;
+            }
+
             $ref = $anomaly['ref'] ?? null;
             $type = $anomaly['type_probleme'] ?? null;
 
@@ -114,7 +143,7 @@ class AnomalyDetector implements Agent
                 continue;
             }
 
-            $severity = in_array($anomaly['severity'] ?? null, ['blocking', 'warning', 'info'], true)
+            $severity = in_array($anomaly['severity'] ?? null, self::SEVERITIES, true)
                 ? $anomaly['severity']
                 : 'warning';
 

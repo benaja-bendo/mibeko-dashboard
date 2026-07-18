@@ -153,7 +153,9 @@ it('exige une requête texte pour la recherche d\'articles (pas de thème seul)'
 // ---------------------------------------------------------------------------
 
 it('suggère des thèmes via l\'IA en filtrant à la taxonomie', function () {
-    ThemeClassifier::fake(['{"slugs": ["travail", "slug-inexistant"]}']);
+    // Sortie structurée : le fake fournit directement l'objet (le filtrage à la
+    // taxonomie doit écarter « slug-inexistant »).
+    ThemeClassifier::fake([['slugs' => ['travail', 'slug-inexistant']]]);
 
     $this->actingAs($this->editor)
         ->postJson("/api/v1/legal-documents/{$this->document->id}/suggest-themes")

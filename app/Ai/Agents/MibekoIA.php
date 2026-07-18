@@ -3,6 +3,7 @@
 namespace App\Ai\Agents;
 
 use App\Ai\Tools\SearchLegalDatabase;
+use Laravel\Ai\Attributes\MaxSteps;
 use Laravel\Ai\Concerns\RemembersConversations;
 use Laravel\Ai\Contracts\Agent;
 use Laravel\Ai\Contracts\Conversational;
@@ -11,6 +12,20 @@ use Laravel\Ai\Contracts\Tool;
 use Laravel\Ai\Promptable;
 use Stringable;
 
+/**
+ * Budget d'étapes explicite (recherches + réponse) pour un seul tour.
+ *
+ * Sans attribut, le SDK plafonne à `round(nbOutils × 1,5)` = 2 étapes pour un
+ * agent à un outil : le modèle ne peut alors chercher QU'UNE fois avant de
+ * devoir répondre. Or l'outil {@see SearchLegalDatabase} est conçu pour des
+ * appels multiples (numérotation `source_number` continue) et les instructions
+ * invitent à couvrir la question en plusieurs recherches. On relève donc le
+ * budget à 6 (jusqu'à ~5 recherches puis la réponse), borné pour éviter toute
+ * boucle d'outils incontrôlée. Compromis coût/latence : chaque étape est un
+ * appel modèle — le plafond journalier par utilisateur (config `ai.quotas`)
+ * garde la dépense sous contrôle. Ajustable si besoin.
+ */
+#[MaxSteps(6)]
 class MibekoIA implements Agent, Conversational, HasTools
 {
     use Promptable, RemembersConversations;

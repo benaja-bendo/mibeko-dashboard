@@ -118,7 +118,12 @@ it('surfaces anomalies as error state in the document tree', function () {
 
     app(StructuralAnomalyDetector::class)->detect($document);
 
-    $response = $this->getJson("/api/v1/legal-documents/{$document->id}/tree");
+    // La vue Contrôle est un usage éditeur : le garde public de l'arbre masque
+    // désormais les documents sans articles / non publiés aux anonymes.
+    $editor = User::factory()->create();
+    $editor->assignRole(Role::findOrCreate('editor'));
+
+    $response = $this->actingAs($editor)->getJson("/api/v1/legal-documents/{$document->id}/tree");
     $response->assertStatus(200);
 
     $nodePayload = collect($response->json('data'))->firstWhere('id', $node->id);
@@ -135,7 +140,14 @@ it('creates llm anomaly flags from the agent on suspect articles', function () {
     makeVersion($article, 'court', ['page' => 4]); // < 40 caractères → suspect
 
     AnomalyDetector::fake([
-        '{"anomalies":[{"ref":"'.$article->id.'","type_probleme":"decoupe_fragment","severity":"warning","description":"Fragment d\'article.","suggestion":"Fusionner avec le precedent.","confidence":0.8}]}',
+        ['anomalies' => [[
+            'ref' => $article->id,
+            'type_probleme' => 'decoupe_fragment',
+            'severity' => 'warning',
+            'description' => "Fragment d'article.",
+            'suggestion' => 'Fusionner avec le precedent.',
+            'confidence' => 0.8,
+        ]]],
     ]);
 
     (new DetectDocumentAnomalies($document->id))->handle(app(AnomalyDetector::class));
@@ -149,7 +161,7 @@ it('creates llm anomaly flags from the agent on suspect articles', function () {
         ->and($flag->anchor)->toBe(['page' => 4]);
 });
 
-it('degrades gracefully when the llm returns no usable json', function () {
+it('degrades gracefully when the llm returns no anomalies', function () {
     $document = LegalDocument::factory()->create();
     $node = StructureNode::factory()->create([
         'document_id' => $document->id, 'numero' => 'I', 'titre' => 'Titre', 'tree_path' => 'n1',
@@ -157,7 +169,8 @@ it('degrades gracefully when the llm returns no usable json', function () {
     $article = $document->articles()->create(['numero_article' => '1', 'parent_node_id' => $node->id, 'ordre_affichage' => 1]);
     makeVersion($article, 'court');
 
-    AnomalyDetector::fake(['Désolé, je ne peux pas répondre.']);
+    // Réponse structurée sans la clé attendue : le repli ne doit créer aucun flag.
+    AnomalyDetector::fake([[]]);
 
     (new DetectDocumentAnomalies($document->id))->handle(app(AnomalyDetector::class));
 
@@ -172,8 +185,15 @@ it('is idempotent across llm re-runs', function () {
     $article = $document->articles()->create(['numero_article' => '1', 'parent_node_id' => $node->id, 'ordre_affichage' => 1]);
     makeVersion($article, 'court');
 
-    $json = '{"anomalies":[{"ref":"'.$article->id.'","type_probleme":"contenu_tronque","severity":"blocking","description":"Tronqué.","suggestion":null,"confidence":0.9}]}';
-    AnomalyDetector::fake([$json, $json]);
+    $anomaly = ['anomalies' => [[
+        'ref' => $article->id,
+        'type_probleme' => 'contenu_tronque',
+        'severity' => 'blocking',
+        'description' => 'Tronqué.',
+        'suggestion' => null,
+        'confidence' => 0.9,
+    ]]];
+    AnomalyDetector::fake([$anomaly, $anomaly]);
 
     (new DetectDocumentAnomalies($document->id))->handle(app(AnomalyDetector::class));
     (new DetectDocumentAnomalies($document->id))->handle(app(AnomalyDetector::class));
@@ -258,7 +278,14 @@ it('runs the AI analysis from the document endpoint', function () {
     makeVersion($article, 'court'); // < 40 caractères → feuille suspecte
 
     AnomalyDetector::fake([
-        '{"anomalies":[{"ref":"'.$article->id.'","type_probleme":"contenu_tronque","severity":"blocking","description":"Texte tronqué.","suggestion":null,"confidence":0.9}]}',
+        ['anomalies' => [[
+            'ref' => $article->id,
+            'type_probleme' => 'contenu_tronque',
+            'severity' => 'blocking',
+            'description' => 'Texte tronqué.',
+            'suggestion' => null,
+            'confidence' => 0.9,
+        ]]],
     ]);
 
     $this->actingAs($editor)

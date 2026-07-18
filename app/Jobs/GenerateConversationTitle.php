@@ -2,13 +2,12 @@
 
 namespace App\Jobs;
 
+use App\Ai\Agents\ConversationTitler;
 use App\Models\AgentConversation;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Support\Str;
 use Throwable;
-
-use function Laravel\Ai\agent;
 
 /**
  * Génère un titre court et lisible pour une conversation à partir du premier
@@ -19,6 +18,12 @@ class GenerateConversationTitle implements ShouldQueue
 {
     use Queueable;
 
+    /** Deux tentatives : le titre est cosmétique, inutile d'insister. */
+    public int $tries = 2;
+
+    /** Délai (secondes) avant la nouvelle tentative. */
+    public array $backoff = [15];
+
     public function __construct(
         public string $conversationId,
         public string $firstMessage,
@@ -26,6 +31,11 @@ class GenerateConversationTitle implements ShouldQueue
 
     /**
      * Execute the job.
+     *
+     * Idempotent : le job ne fait que (re)poser le titre d'une conversation
+     * existante. On laisse donc l'exception d'un appel LLM raté remonter pour
+     * que la file honore réellement `$tries`/`$backoff` (au lieu de l'avaler,
+     * ce qui rendait le retry fictif). L'échec final est traité par {@see failed()}.
      */
     public function handle(): void
     {
@@ -35,19 +45,22 @@ class GenerateConversationTitle implements ShouldQueue
             return;
         }
 
-        try {
-            $response = agent(
-                instructions: 'Génère un titre court (3 à 5 mots) résumant le sujet du message, sans guillemets ni ponctuation finale. Réponds uniquement par le titre, dans la langue du message.',
-            )->prompt(Str::limit($this->firstMessage, 500));
+        $response = (new ConversationTitler)->prompt(Str::limit($this->firstMessage, 500));
 
-            $title = trim(Str::limit(trim((string) $response->text), 100, ''));
+        $title = trim(Str::limit(trim((string) $response->text), 100, ''));
 
-            if ($title !== '') {
-                $conversation->update(['title' => $title]);
-            }
-        } catch (Throwable $e) {
-            // Échec non bloquant : on conserve le titre tronqué par défaut.
-            report($e);
+        if ($title !== '') {
+            $conversation->update(['title' => $title]);
         }
+    }
+
+    /**
+     * Toutes les tentatives ont échoué : le titre est cosmétique, on ne bloque
+     * rien. La conversation conserve son titre tronqué par défaut ; on trace
+     * seulement l'échec pour le monitoring.
+     */
+    public function failed(Throwable $e): void
+    {
+        report($e);
     }
 }
