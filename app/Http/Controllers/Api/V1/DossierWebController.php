@@ -94,11 +94,18 @@ class DossierWebController extends Controller
     }
 
     /**
-     * Recharge le dossier avec ses échéances triées (date croissante, nulles en fin).
+     * Recharge le dossier avec ses échéances triées (date croissante, nulles en
+     * fin) et ses annexes (références, pièces, documents générés), afin que le
+     * web charge un dossier complet en une seule requête.
      */
     private function present(Dossier $dossier): DossierResource
     {
-        $dossier->load(['echeances' => fn ($query) => $query->orderByRaw('due_date ASC NULLS LAST')]);
+        $dossier->load([
+            'echeances' => fn ($query) => $query->orderByRaw('due_date ASC NULLS LAST'),
+            'references' => fn ($query) => $query->orderBy('created_at'),
+            'pieces' => fn ($query) => $query->orderByDesc('added_at'),
+            'generatedDocuments' => fn ($query) => $query->orderByDesc('created_at'),
+        ]);
 
         return new DossierResource($dossier);
     }

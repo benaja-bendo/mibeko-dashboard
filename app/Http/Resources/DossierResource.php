@@ -37,6 +37,9 @@ class DossierResource extends JsonResource
             'description' => $this->description,
             'color' => $this->color,
             'echeances' => DossierEcheanceResource::collection($this->whenLoaded('echeances')),
+            'references' => DossierReferenceResource::collection($this->whenLoaded('references')),
+            'pieces' => DossierPieceResource::collection($this->whenLoaded('pieces')),
+            'documents' => DossierGeneratedDocumentResource::collection($this->whenLoaded('generatedDocuments')),
             'created_at' => $this->created_at?->toISOString(),
             'updated_at' => $this->updated_at?->toISOString(),
         ];

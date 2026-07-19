@@ -90,4 +90,19 @@ class Dossier extends Model implements Auditable
     {
         return $this->hasMany(DossierEcheance::class);
     }
+
+    public function references(): HasMany
+    {
+        return $this->hasMany(DossierReference::class);
+    }
+
+    public function pieces(): HasMany
+    {
+        return $this->hasMany(DossierPiece::class);
+    }
+
+    public function generatedDocuments(): HasMany
+    {
+        return $this->hasMany(DossierGeneratedDocument::class);
+    }
 }

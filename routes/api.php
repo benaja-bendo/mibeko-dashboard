@@ -21,6 +21,7 @@ use App\Http\Controllers\Api\V1\DeviceController;
 use App\Http\Controllers\Api\V1\DocumentCurationController;
 use App\Http\Controllers\Api\V1\DocumentRelationController;
 use App\Http\Controllers\Api\V1\DocumentTypeController;
+use App\Http\Controllers\Api\V1\DossierAnnexController;
 use App\Http\Controllers\Api\V1\DossierController;
 use App\Http\Controllers\Api\V1\DossierEcheanceController;
 use App\Http\Controllers\Api\V1\DossierExportController;
@@ -117,6 +118,14 @@ Route::prefix('v1')->middleware('throttle:api')->group(function () {
         Route::post('dossiers/{dossier}/echeances', [DossierEcheanceController::class, 'store']);
         Route::patch('echeances/{echeance}', [DossierEcheanceController::class, 'update']);
         Route::delete('echeances/{echeance}', [DossierEcheanceController::class, 'destroy']);
+
+        // Dossiers — annexes (références juridiques, pièces, documents générés)
+        Route::post('dossiers/{dossier}/references', [DossierAnnexController::class, 'storeReference']);
+        Route::delete('dossiers/{dossier}/references/{target}', [DossierAnnexController::class, 'destroyReference']);
+        Route::post('dossiers/{dossier}/pieces', [DossierAnnexController::class, 'storePiece']);
+        Route::delete('dossiers/{dossier}/pieces/{piece}', [DossierAnnexController::class, 'destroyPiece']);
+        Route::post('dossiers/{dossier}/documents', [DossierAnnexController::class, 'storeDocument']);
+        Route::delete('dossiers/{dossier}/documents/{document}', [DossierAnnexController::class, 'destroyDocument']);
 
         // Notifications
         Route::get('notifications', [NotificationController::class, 'index']);

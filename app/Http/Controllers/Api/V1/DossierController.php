@@ -47,7 +47,12 @@ class DossierController extends Controller
     private function webDossiers(string $userId): AnonymousResourceCollection
     {
         $dossiers = Dossier::where('user_id', $userId)
-            ->with(['echeances' => fn ($query) => $query->orderByRaw('due_date ASC NULLS LAST')])
+            ->with([
+                'echeances' => fn ($query) => $query->orderByRaw('due_date ASC NULLS LAST'),
+                'references' => fn ($query) => $query->orderBy('created_at'),
+                'pieces' => fn ($query) => $query->orderByDesc('added_at'),
+                'generatedDocuments' => fn ($query) => $query->orderByDesc('created_at'),
+            ])
             ->orderByDesc('client_updated_at')
             ->get();
 
