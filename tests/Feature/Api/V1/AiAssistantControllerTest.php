@@ -1,6 +1,7 @@
 <?php
 
 use App\Ai\Agents\MibekoIA;
+use App\Ai\AssistantChatService;
 use App\Ai\CorpusVersion;
 use App\Jobs\GenerateConversationTitle;
 use App\Models\AgentConversation;
@@ -591,4 +592,109 @@ it('streams a reply over SSE and emits the assistant message id', function () {
 
     // Le tour a bien été persisté (la conversation existe avec ses messages).
     expect(AgentConversation::where('user_id', $user->id)->count())->toBe(1);
+});
+
+/*
+|--------------------------------------------------------------------------
+| Vérification des citations [n] (P2.8)
+|--------------------------------------------------------------------------
+|
+| Un marqueur [n] persisté / restitué / mis en cache ne doit jamais pointer
+| vers une source inexistante : c'est une référence légale hallucinée.
+*/
+
+it('strips orphan citation markers from the JSON reply and its cache', function () {
+    $user = User::factory()->create();
+    Sanctum::actingAs($user);
+
+    // Le faux fournisseur ne déclenche aucun outil : la réponse n'a AUCUNE source
+    // réelle. Tous les marqueurs [n] qu'il contient sont donc orphelins et doivent
+    // être retirés avant restitution ET avant mise en cache.
+    MibekoIA::fake(['Le preavis est un mois [1]. Voir aussi [2].']);
+
+    $message = 'Quel est le delai de preavis';
+
+    $response = $this->postJson('/api/v1/assistant/chat', [
+        'message' => $message,
+    ]);
+
+    $response->assertStatus(200)
+        ->assertJsonPath('reply', 'Le preavis est un mois. Voir aussi.')
+        ->assertJsonPath('sources', []);
+
+    // Le texte persisté est nettoyé (relecture de l'historique honnête).
+    $assistant = AgentConversationMessage::where('role', 'assistant')->latest('id')->first();
+    expect($assistant->content)->toBe('Le preavis est un mois. Voir aussi.');
+
+    // La réponse mise en cache est déjà nettoyée : une requête identique
+    // ultérieure ne resservira aucun marqueur orphelin.
+    $cacheKey = 'ai_response_'.md5(strtolower($message).'|concise||'.CorpusVersion::current());
+    expect(Cache::get($cacheKey)['reply'])->toBe('Le preavis est un mois. Voir aussi.');
+});
+
+it('does not leak an orphan marker in the streamed SSE deltas', function () {
+    $user = User::factory()->create();
+    Sanctum::actingAs($user);
+
+    // Aucun outil déclenché → aucune source → [1] est orphelin.
+    MibekoIA::fake(['Règle applicable [1] au litige.']);
+
+    $response = $this->postJson('/api/v1/assistant/chat', [
+        'message' => 'Une question streamée avec citation',
+        'stream' => true,
+    ]);
+
+    $response->assertStatus(200);
+
+    $content = $response->streamedContent();
+
+    // Reconstitue le texte streamé à partir des deltas SSE.
+    preg_match_all('/data: (\{.*?"text_delta".*?\})/', $content, $matches);
+    $streamed = collect($matches[1])
+        ->map(fn (string $json): string => json_decode($json, true)['delta'] ?? '')
+        ->implode('');
+
+    expect($streamed)
+        ->toContain('Règle applicable')
+        ->not->toContain('[1]');
+
+    // Le texte persisté est lui aussi nettoyé.
+    $assistant = AgentConversationMessage::where('role', 'assistant')->latest('id')->first();
+    expect($assistant->content)->not->toContain('[1]');
+});
+
+it('finalizeTurn keeps valid markers and drops orphans in the persisted assistant message', function () {
+    $user = User::factory()->create();
+    $conversation = AgentConversation::factory()->create(['user_id' => $user->id]);
+
+    AgentConversationMessage::factory()->create([
+        'conversation_id' => $conversation->id,
+        'user_id' => $user->id,
+        'role' => 'user',
+        'content' => 'Contexte RAG à recaler',
+    ]);
+    $assistant = AgentConversationMessage::factory()->assistant()->create([
+        'conversation_id' => $conversation->id,
+        'user_id' => $user->id,
+        // [1] et [2] valides (2 sources), [5] orphelin.
+        'content' => 'Première règle [1], seconde règle [2], et une hallucination [5].',
+    ]);
+
+    $sources = [
+        ['id' => 'art-1', 'source_number' => 1],
+        ['id' => 'art-2', 'source_number' => 2],
+    ];
+
+    app(AssistantChatService::class)->finalizeTurn(
+        $conversation->id,
+        'Question recalée',
+        [],
+        $sources,
+    );
+
+    $assistant->refresh();
+
+    expect($assistant->content)
+        ->toBe('Première règle [1], seconde règle [2], et une hallucination.')
+        ->and($assistant->meta['sources'])->toBe($sources);
 });

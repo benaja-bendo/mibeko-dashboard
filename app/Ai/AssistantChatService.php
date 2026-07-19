@@ -146,7 +146,8 @@ class AssistantChatService
 
     /**
      * Finalise un tour : recale le dernier message utilisateur (nettoyage du
-     * contexte RAG, méta) et attache les sources au dernier message assistant.
+     * contexte RAG, méta), attache les sources au dernier message assistant et
+     * neutralise ses éventuels marqueurs de citation orphelins.
      *
      * @param  array<string, mixed>  $userMeta
      * @param  array<int, mixed>  $sources
@@ -177,11 +178,28 @@ class AssistantChatService
             ->orderBy('id', 'desc')
             ->first();
 
-        if ($lastAssistant && ! empty($sources)) {
-            $meta = is_array($lastAssistant->meta) ? $lastAssistant->meta : [];
-            $meta['sources'] = $sources;
-            $lastAssistant->meta = $meta;
-            $lastAssistant->save();
+        if ($lastAssistant) {
+            $dirty = false;
+
+            // Retire du texte persisté les marqueurs [n] sans source réelle : la
+            // relecture de l'historique (et le rejeu au modèle) ne doit jamais
+            // exhiber une référence hallucinée.
+            $verified = $this->verifyCitations((string) $lastAssistant->content, $sources);
+            if ($verified !== $lastAssistant->content) {
+                $lastAssistant->content = $verified;
+                $dirty = true;
+            }
+
+            if (! empty($sources)) {
+                $meta = is_array($lastAssistant->meta) ? $lastAssistant->meta : [];
+                $meta['sources'] = $sources;
+                $lastAssistant->meta = $meta;
+                $dirty = true;
+            }
+
+            if ($dirty) {
+                $lastAssistant->save();
+            }
         }
 
         return $lastAssistant?->id;
@@ -198,5 +216,56 @@ class AssistantChatService
             'reply' => $reply,
             'sources' => $sources,
         ], now()->addHours(self::CACHE_TTL_HOURS));
+    }
+
+    /**
+     * Neutralise les marqueurs de citation [n] orphelins d'une réponse.
+     *
+     * Le modèle peut halluciner une référence : écrire « [5] » alors que seules
+     * trois sources ont réellement été retournées par l'outil de recherche. Un
+     * tel marqueur pointe vers le vide côté client (bouton mort sur le web,
+     * « [5] » littéral sur mobile) et — plus grave — donne l'illusion d'un
+     * fondement légal inexistant. La fiabilité juridique étant le cœur de valeur,
+     * on retire ces marqueurs du texte AVANT persistance et mise en cache.
+     *
+     * On ne garde que les marqueurs dont le numéro correspond à une source
+     * réellement fournie (champ `source_number`, sinon position 1-based dans le
+     * tableau — les deux coïncident, l'outil numérotant les sources en continu).
+     * Le retrait est purement textuel : le contrat SSE et la charge `sources` ne
+     * changent pas (fix additif, aucun client existant cassé).
+     *
+     * L'espace éventuel qui précède un marqueur retiré est absorbé pour ne pas
+     * laisser de double espace (« préavis  ») ni d'espace avant ponctuation.
+     *
+     * @param  array<int, mixed>  $sources  Sources réellement retournées par le RAG.
+     */
+    public function verifyCitations(string $reply, array $sources): string
+    {
+        // Aucune source : aucun marqueur ne peut être fondé, on les retire tous.
+        // Une source sans `source_number` retombe sur sa position 1-based.
+        $validNumbers = [];
+        foreach (array_values($sources) as $position => $source) {
+            $number = is_array($source) && isset($source['source_number'])
+                ? (int) $source['source_number']
+                : $position + 1;
+            $validNumbers[$number] = true;
+        }
+
+        // On n'absorbe qu'UN espace horizontal avant le marqueur (jamais un saut
+        // de ligne), à l'identique du filtre SSE : retirer un « \n » fusionnerait
+        // un titre markdown avec le corps qui suit (« ## Titre\n[9] … »).
+        return preg_replace_callback(
+            '/[ \t]?\[(\d+)\]/',
+            function (array $matches) use ($validNumbers): string {
+                // Marqueur fondé : on le conserve tel quel (espace inclus).
+                if (isset($validNumbers[(int) $matches[1]])) {
+                    return $matches[0];
+                }
+
+                // Marqueur orphelin : retiré avec l'espace horizontal qui le précédait.
+                return '';
+            },
+            $reply,
+        ) ?? $reply;
     }
 }

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Ai\Agents\MibekoIA;
 use App\Ai\AssistantChatService;
+use App\Ai\CitationStreamFilter;
 use App\Http\Controllers\Controller;
 use App\Models\AgentConversation;
 use App\Models\AgentConversationMessage;
@@ -369,11 +370,14 @@ class AiAssistantController extends Controller
         // qu'il puisse noter immédiatement la réponse (feedback).
         $assistantMessageId = null;
 
-        $agentResponse = $agent->stream($userMessage)->then(
+        $agentResponse = $agent->stream($userMessage, provider: $this->assistantProviders())->then(
             function (StreamedAgentResponse $response) use ($userMessage, $userMeta, $cacheKey, &$assistantMessageId) {
                 $sources = $this->chatService->sourcesFromEvents($response->events);
+                // finalizeTurn nettoie déjà le texte persisté ; on met en cache la
+                // même version vérifiée pour que les requêtes identiques ultérieures
+                // ne resservent pas de marqueur [n] orphelin.
                 $assistantMessageId = $this->chatService->finalizeTurn($response->conversationId, $userMessage, $userMeta, $sources);
-                $this->chatService->cacheResponse($cacheKey, $response->text, $sources);
+                $this->chatService->cacheResponse($cacheKey, $this->chatService->verifyCitations($response->text, $sources), $sources);
             }
         );
 
@@ -384,6 +388,17 @@ class AiAssistantController extends Controller
             // prochain flush() et ferait perdre TOUT le tour. On ignore donc
             // l'abandon : le flux est consommé jusqu'au bout côté serveur.
             ignore_user_abort(true);
+
+            // Neutralise les marqueurs [n] orphelins À LA VOLÉE : l'ensemble des
+            // numéros valides s'enrichit à chaque résultat de recherche, avant que
+            // le texte cité n'arrive (le persisté est lui aussi nettoyé côté then).
+            $citationFilter = new CitationStreamFilter;
+
+            $emitDelta = function (string $text): void {
+                if ($text !== '') {
+                    ServerSentEvents::send(['type' => 'text_delta', 'delta' => $text]);
+                }
+            };
 
             try {
                 foreach ($agentResponse as $event) {
@@ -397,14 +412,18 @@ class AiAssistantController extends Controller
                     if ($event instanceof ToolResult && $event->toolResult->name === AssistantChatService::SEARCH_TOOL) {
                         $sources = json_decode($event->toolResult->result, true) ?: [];
                         if (! empty($sources)) {
+                            $citationFilter->registerSources($sources);
                             ServerSentEvents::send($sources, 'sources');
                         }
                     }
 
                     if ($event instanceof TextDelta) {
-                        ServerSentEvents::send(['type' => 'text_delta', 'delta' => $event->delta]);
+                        $emitDelta($citationFilter->push($event->delta));
                     }
                 }
+
+                // Vide le tampon résiduel (marqueur incomplet, texte en attente).
+                $emitDelta($citationFilter->flush());
             } catch (\Throwable $e) {
                 report($e);
 
@@ -431,9 +450,13 @@ class AiAssistantController extends Controller
      */
     private function syncReply(MibekoIA $agent, ?string $id, string $userMessage, array $userMeta, string $cacheKey): JsonResponse
     {
-        $response = $agent->prompt($userMessage);
+        $response = $agent->prompt($userMessage, provider: $this->assistantProviders());
         $sources = $this->chatService->sourcesFromResponse($response);
         $this->chatService->finalizeTurn($response->conversationId, $userMessage, $userMeta, $sources);
+
+        // Marqueurs [n] sans source réelle neutralisés avant restitution : le
+        // client (JSON) ne reçoit jamais de citation hallucinée.
+        $reply = $this->chatService->verifyCitations($response->text, $sources);
 
         // Titre de repli si le package n'en a pas généré (première réponse).
         if (! $id) {
@@ -443,11 +466,11 @@ class AiAssistantController extends Controller
             }
         }
 
-        $this->chatService->cacheResponse($cacheKey, $response->text, $sources);
+        $this->chatService->cacheResponse($cacheKey, $reply, $sources);
 
         return response()->json([
             'conversation_id' => $response->conversationId,
-            'reply' => $response->text,
+            'reply' => $reply,
             'sources' => $sources,
         ]);
     }
@@ -464,6 +487,21 @@ class AiAssistantController extends Controller
             'Content-Type' => 'text/event-stream',
             'Connection' => 'keep-alive',
         ]);
+    }
+
+    /**
+     * Chaîne de fournisseurs (failover) de l'assistant, ou null pour laisser le
+     * fournisseur par défaut (`ai.default`). Configurée via `AI_ASSISTANT_FAILOVER`
+     * (cf. config/ai.php) ; le failover ne se déclenche que sur rate-limit /
+     * surcharge / crédits épuisés, jamais sur une erreur de requête.
+     *
+     * @return array<int, string>|null
+     */
+    private function assistantProviders(): ?array
+    {
+        $providers = config('ai.assistant.providers', []);
+
+        return is_array($providers) && $providers !== [] ? array_values($providers) : null;
     }
 
     /**
