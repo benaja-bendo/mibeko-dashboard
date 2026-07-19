@@ -35,6 +35,7 @@ use App\Http\Controllers\Api\V1\LegalDocumentExportController;
 use App\Http\Controllers\Api\V1\LibraryAiController;
 use App\Http\Controllers\Api\V1\LibraryHomeController;
 use App\Http\Controllers\Api\V1\LibrarySearchController;
+use App\Http\Controllers\Api\V1\NewsletterSubscriptionController;
 use App\Http\Controllers\Api\V1\NotificationController;
 use App\Http\Controllers\Api\V1\OfficialJournalController;
 use App\Http\Controllers\Api\V1\PasswordResetController;
@@ -168,6 +169,11 @@ Route::prefix('v1')->middleware('throttle:api')->group(function () {
 
     // Formulaire de contact public (site vitrine) — limité pour éviter le spam.
     Route::post('contact', [ContactController::class, 'store'])->middleware('throttle:6,1');
+
+    // Inscription newsletter (site vitrine) — publique, idempotente, sans envoi
+    // d'e-mail. Quota par IP contre l'inscription en masse.
+    Route::post('newsletter-subscriptions', [NewsletterSubscriptionController::class, 'store'])
+        ->middleware('throttle:6,1');
 
     // Resources
     Route::get('home', [HomeController::class, 'index']);
