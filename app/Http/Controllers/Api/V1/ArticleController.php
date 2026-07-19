@@ -80,7 +80,7 @@ class ArticleController extends Controller
         } catch (\Exception $e) {
             Log::error('Erreur lors de la création de l\'article: '.$e->getMessage());
 
-            return $this->error(null, 'Impossible de créer l\'article : '.$e->getMessage(), 500);
+            return $this->error(null, 'Impossible de créer l\'article. Réessayez ou contactez le support.', 500);
         }
     }
 
@@ -106,8 +106,8 @@ class ArticleController extends Controller
                     $today = now()->toDateString();
                     $activeVersion = $article->activeVersion;
 
-                    $contentChanged = isset($validated['content']) && (!$activeVersion || $activeVersion->contenu_texte !== $validated['content']);
-                    $locatorChanged = isset($validated['source_locator']) && (!$activeVersion || $activeVersion->source_locator !== $validated['source_locator']);
+                    $contentChanged = isset($validated['content']) && (! $activeVersion || $activeVersion->contenu_texte !== $validated['content']);
+                    $locatorChanged = isset($validated['source_locator']) && (! $activeVersion || $activeVersion->source_locator !== $validated['source_locator']);
 
                     if ($contentChanged || $locatorChanged) {
                         // Find any version that would overlap with a new version starting today [today, infinity)
@@ -124,18 +124,26 @@ class ArticleController extends Controller
                             if ($startedToday) {
                                 // Update in place if it's the same day
                                 $updateData = [];
-                                if (isset($validated['content'])) $updateData['contenu_texte'] = $validated['content'];
-                                if (isset($validated['source_locator'])) $updateData['source_locator'] = $validated['source_locator'];
-                                if (isset($validated['validation_status'])) $updateData['validation_status'] = $validated['validation_status'];
-                                
+                                if (isset($validated['content'])) {
+                                    $updateData['contenu_texte'] = $validated['content'];
+                                }
+                                if (isset($validated['source_locator'])) {
+                                    $updateData['source_locator'] = $validated['source_locator'];
+                                }
+                                if (isset($validated['validation_status'])) {
+                                    $updateData['validation_status'] = $validated['validation_status'];
+                                }
+
                                 $overlappingVersion->update($updateData);
                             } else {
                                 // Close the overlapping version (it must have started before today)
-                                DB::table('article_versions')
-                                    ->where('id', $overlappingVersion->id)
-                                    ->update([
-                                        'validity_period' => DB::raw("daterange(lower(validity_period), '$today')"),
-                                    ]);
+                                // Binding paramétré : jamais de date interpolée dans le SQL brut.
+                                DB::update(
+                                    'UPDATE article_versions
+                                     SET validity_period = daterange(lower(validity_period), ?::date)
+                                     WHERE id = ?',
+                                    [$today, $overlappingVersion->id]
+                                );
 
                                 // Create new version starting today
                                 $article->versions()->create([
@@ -180,9 +188,10 @@ class ArticleController extends Controller
         } catch (\Exception $e) {
             Log::error('Erreur lors de la mise à jour de l\'article: '.$e->getMessage(), [
                 'article_id' => $id,
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ]);
-            return $this->error(null, 'Erreur lors de la mise à jour : '.$e->getMessage(), 500);
+
+            return $this->error(null, 'Erreur lors de la mise à jour de l\'article. Réessayez ou contactez le support.', 500);
         }
     }
 
@@ -223,11 +232,13 @@ class ArticleController extends Controller
                         ]);
                     } else {
                         // Close it at the new start date (exclusive)
-                        DB::table('article_versions')
-                            ->where('id', $overlappingVersion->id)
-                            ->update([
-                                'validity_period' => DB::raw("daterange(lower(validity_period), '$startDate')"),
-                            ]);
+                        // Binding paramétré : jamais de date interpolée dans le SQL brut.
+                        DB::update(
+                            'UPDATE article_versions
+                             SET validity_period = daterange(lower(validity_period), ?::date)
+                             WHERE id = ?',
+                            [$startDate, $overlappingVersion->id]
+                        );
 
                         // Create new one
                         $article->versions()->create([
@@ -254,7 +265,8 @@ class ArticleController extends Controller
             });
         } catch (\Exception $e) {
             Log::error('Erreur lors de l\'ajout de version: '.$e->getMessage());
-            return $this->error(null, 'Erreur lors de l\'ajout de version : '.$e->getMessage(), 500);
+
+            return $this->error(null, 'Erreur lors de l\'ajout de version. Réessayez ou contactez le support.', 500);
         }
     }
 
