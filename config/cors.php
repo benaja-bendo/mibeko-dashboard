@@ -19,16 +19,15 @@ return [
 
     'allowed_methods' => ['*'],
 
+    // Origines de confiance : domaines de prod en HTTPS uniquement (jamais de
+    // http:// hors localhost — `supports_credentials` est actif) + serveurs de
+    // dev Vite. NB : un en-tête Origin ne porte jamais de barre oblique finale.
     'allowed_origins' => [
         'https://app.mibeko.fr',
-        'http://app.mibeko.fr',
-        "http://api.mibeko.fr/",
-        "https://api.mibeko.fr/",
         'https://mibeko.fr',
-        'https://mibeko.fr/',
         'https://www.mibeko.fr',
         'http://localhost:5173',
-        'http://localhost:5174'
+        'http://localhost:5174',
     ],
 
     'allowed_origins_patterns' => [],
