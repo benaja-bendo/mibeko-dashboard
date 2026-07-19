@@ -28,6 +28,12 @@ class DetectDocumentAnomalies implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
+    /** Trois tentatives : les pannes LLM sont souvent transitoires. */
+    public int $tries = 3;
+
+    /** Délais (secondes) entre les tentatives. */
+    public array $backoff = [30, 120];
+
     /** Plafond de feuilles analysées par exécution (budget tokens). */
     private const MAX_ITEMS = 80;
 

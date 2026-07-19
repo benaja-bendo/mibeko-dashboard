@@ -23,6 +23,21 @@ class ProcessDocumentExtraction implements ShouldQueue
 
     public $timeout = 600; // 10 minutes (polling MinerU takes time)
 
+    /**
+     * Une seule tentative — l'ingestion n'est PAS rejouable sans dégât.
+     *
+     * `handle()` insère une extraction brute puis appelle `ingestStructure`, qui
+     * CRÉE systématiquement les nœuds/articles/versions (aucune purge, aucun
+     * upsert). Une seconde exécution après un échec partiel dupliquerait donc la
+     * structure du document. Tant que l'ingestion n'est pas idempotente, la
+     * config doit refléter la réalité : pas de retry automatique. En cas
+     * d'échec, l'éditeur relance manuellement (nettoyage préalable) via le
+     * mécanisme de replay d'ingestion. `handle()` capture ses exceptions et
+     * marque immédiatement le run/document `failed` (pas de hook `failed()` :
+     * il n'y aurait rien à rattraper).
+     */
+    public int $tries = 1;
+
     protected string $documentId;
 
     protected string $runId;

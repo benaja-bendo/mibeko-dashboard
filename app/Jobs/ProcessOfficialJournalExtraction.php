@@ -24,6 +24,18 @@ class ProcessOfficialJournalExtraction implements ShouldQueue
 
     public $timeout = 600; // 10 minutes
 
+    /**
+     * Une seule tentative — le découpage du JO n'est PAS rejouable sans dégât.
+     *
+     * `handle()` crée un `LegalDocument` par texte extrait (plus l'extraction
+     * brute et sa structure) sans aucune déduplication ni upsert. Une seconde
+     * exécution après un échec partiel créerait des actes en double. Tant que le
+     * découpage n'est pas idempotent, la config reflète la réalité : pas de
+     * retry automatique. `handle()` capture ses exceptions et marque
+     * immédiatement le JO `failed` ; le retraitement passe par le replay manuel.
+     */
+    public int $tries = 1;
+
     protected string $journalId;
 
     public function __construct(string $journalId)
