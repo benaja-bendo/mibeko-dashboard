@@ -28,6 +28,17 @@ class ArticleResource extends JsonResource
             'node_title' => $this->parentNode?->titre ?? '',
             'breadcrumb' => $this->breadcrumb,
             'validation_status' => $this->validation_status,
+
+            // Signal de confiance — borne basse de validité de la version active.
+            // Date de début de la période enregistrée (peut refléter l'ingestion,
+            // exposée telle quelle sans être présentée comme une entrée en vigueur
+            // garantie). Le client affiche « à jour au … » de façon honnête.
+            'validity_start' => $this->whenLoaded('activeVersion', fn () => $this->activeVersion?->validity_start),
+
+            // Signal de confiance — relecture juriste. `reviewed_at` reste null
+            // tant qu'aucun juriste n'a réellement relu ce contenu : le client ne
+            // doit afficher « vérifié par un juriste le … » QUE si non-null.
+            'reviewed_at' => $this->whenLoaded('activeVersion', fn () => $this->activeVersion?->reviewed_at?->toIso8601String()),
             'versions' => $this->whenLoaded('versions', function () {
                 return $this->versions->map(fn ($v) => [
                     'id' => $v->id,

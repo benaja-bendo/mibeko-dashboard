@@ -24,6 +24,14 @@ class ArticleSyncResource extends JsonResource
             'number' => $this->numero_article,
             'order' => $this->ordre_affichage,
             'content' => $this->whenLoaded('activeVersion', fn () => $this->activeVersion->contenu_texte),
+
+            // Signaux de confiance (borne basse de validité + relecture juriste),
+            // exposés quand la version active est chargée. `reviewed_at` est null
+            // tant qu'aucun juriste n'a relu : le client n'affiche la mention de
+            // vérification QUE si non-null (jamais de garantie inventée).
+            'validity_start' => $this->whenLoaded('activeVersion', fn () => $this->activeVersion?->validity_start),
+            'reviewed_at' => $this->whenLoaded('activeVersion', fn () => $this->activeVersion?->reviewed_at?->toIso8601String()),
+
             'tags' => $this->whenLoaded('tags', fn () => $this->tags->pluck('name')), // or full tag objects if needed. PRD "Semantic Tagging" implies using string names for search.
             'updated_at' => $this->updated_at->toIso8601String(),
         ];

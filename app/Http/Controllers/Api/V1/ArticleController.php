@@ -20,7 +20,7 @@ class ArticleController extends Controller
     {
         $article = Article::with(['versions' => function ($q) {
             $q->orderByDesc('created_at');
-        }, 'parentNode'])->findOrFail($id);
+        }, 'activeVersion', 'parentNode'])->findOrFail($id);
 
         return $this->success(
             new ArticleResource($article),
