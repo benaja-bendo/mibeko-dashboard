@@ -26,6 +26,9 @@ class UserProfileResource extends JsonResource
             'name' => $this->name,
             'email' => $this->email,
             'email_verified' => $this->email_verified_at !== null,
+            // Timestamp exposé en plus du booléen (l'app mobile en a besoin pour
+            // l'écran de vérification) — ajout non destructif.
+            'email_verified_at' => $this->email_verified_at?->toIso8601String(),
             'status' => $this->status,
             // Profil étendu (téléphone, fonction, organisation) — entité unique côté DRC.
             'profile' => [

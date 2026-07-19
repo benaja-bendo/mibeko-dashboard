@@ -26,6 +26,7 @@ use App\Http\Controllers\Api\V1\DossierController;
 use App\Http\Controllers\Api\V1\DossierEcheanceController;
 use App\Http\Controllers\Api\V1\DossierExportController;
 use App\Http\Controllers\Api\V1\DossierWebController;
+use App\Http\Controllers\Api\V1\EmailVerificationController;
 use App\Http\Controllers\Api\V1\EmbeddingController;
 use App\Http\Controllers\Api\V1\HomeController;
 use App\Http\Controllers\Api\V1\InstitutionController;
@@ -72,6 +73,11 @@ Route::prefix('v1')->middleware('throttle:api')->group(function () {
     Route::middleware('auth:sanctum')->group(function () {
         Route::get('me', [AuthController::class, 'me']);
         Route::post('logout', [AuthController::class, 'logout']);
+
+        // Renvoi du lien de vérification d'e-mail (app mobile / SPA) — quota
+        // serré pour éviter le spam d'envoi. L'état est exposé par le profil.
+        Route::post('email/verification-notification', [EmailVerificationController::class, 'resend'])
+            ->middleware('throttle:3,1');
 
         // Profile — informations personnelles & mot de passe
         Route::get('profile', [ProfileController::class, 'show']);

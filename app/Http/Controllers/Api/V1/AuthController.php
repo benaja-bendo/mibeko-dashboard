@@ -153,6 +153,17 @@ class AuthController extends Controller
             ]);
         }
 
+        // Sans email vérifié côté fournisseur d'identité, un attaquant pourrait
+        // créer un compte Firebase avec l'email d'autrui et prendre la main sur
+        // le compte Mibeko correspondant (le firstOrCreate lie par email).
+        if ($verifiedIdToken->claims()->get('email_verified') !== true) {
+            return $this->error(
+                ['id_token' => ['Adresse email non vérifiée.']],
+                'Votre adresse email n\'est pas vérifiée auprès du fournisseur d\'identité. Vérifiez-la puis réessayez.',
+                403,
+            );
+        }
+
         $uid = $verifiedIdToken->claims()->get('sub');
         $userRecord = $auth->getUser($uid);
 
