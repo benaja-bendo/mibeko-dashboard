@@ -141,6 +141,40 @@ it('résout un signalement avec traçabilité', function () {
     expect($flag->resolved_by)->toBe($this->admin->id);
 });
 
+it('requalifie la sévérité d\'un signalement public au triage', function () {
+    $flag = CurationFlag::create([
+        'document_id' => $this->document->id,
+        'type_probleme' => 'erreur_contenu',
+        'source' => CurationFlag::SOURCE_REPORT,
+        'severity' => CurationFlag::SEVERITY_INFO,
+        'resolved' => false,
+    ]);
+
+    $this->actingAs($this->admin)
+        ->patchJson("/api/v1/admin/flags/{$flag->id}", ['resolved' => false, 'severity' => 'blocking'])
+        ->assertOk()
+        ->assertJsonPath('data.severity', 'blocking');
+
+    expect($flag->refresh()->severity)->toBe('blocking');
+});
+
+it('rejette une sévérité invalide lors de la requalification', function () {
+    $flag = CurationFlag::create([
+        'document_id' => $this->document->id,
+        'type_probleme' => 'erreur_contenu',
+        'source' => CurationFlag::SOURCE_REPORT,
+        'severity' => CurationFlag::SEVERITY_INFO,
+        'resolved' => false,
+    ]);
+
+    $this->actingAs($this->admin)
+        ->patchJson("/api/v1/admin/flags/{$flag->id}", ['resolved' => false, 'severity' => 'urgent'])
+        ->assertStatus(422)
+        ->assertJsonValidationErrors('severity');
+
+    expect($flag->refresh()->severity)->toBe('info');
+});
+
 it('ré-ouvre un signalement et efface la traçabilité', function () {
     $flag = CurationFlag::create([
         'document_id' => $this->document->id,

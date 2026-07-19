@@ -9,6 +9,7 @@ use App\Http\Resources\V1\Admin\CurationFlagResource;
 use App\Models\CurationFlag;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Triage des signalements (CurationFlag) émis depuis les apps clientes.
@@ -53,15 +54,28 @@ class CurationFlagController extends Controller
 
     /**
      * Marque un signalement comme résolu (avec traçabilité) ou le ré-ouvre.
+     * Permet aussi de requalifier sa sévérité au triage (ex : un signalement
+     * public confirmé comme bloquant, ou à l'inverse rétrogradé).
      */
     public function update(UpdateCurationFlagRequest $request, CurationFlag $flag): JsonResponse
     {
         $resolved = $request->validated('resolved');
+        $severity = $request->validated('severity');
+
+        if ($severity !== null && $severity !== $flag->severity) {
+            Log::info('Signalement requalifié au triage.', [
+                'flag_id' => $flag->id,
+                'from' => $flag->severity,
+                'to' => $severity,
+                'admin_id' => $request->user()->id,
+            ]);
+        }
 
         $flag->update([
             'resolved' => $resolved,
             'resolved_at' => $resolved ? now() : null,
             'resolved_by' => $resolved ? $request->user()->id : null,
+            ...($severity !== null ? ['severity' => $severity] : []),
         ]);
 
         $flag->load([

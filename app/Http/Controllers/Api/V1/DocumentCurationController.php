@@ -11,6 +11,8 @@ use App\Services\Curation\StructuralAnomalyDetector;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\Rule;
 
 /**
  * Vue Contrôle (validation humaine) des anomalies d'un document, côté éditeur :
@@ -85,21 +87,41 @@ class DocumentCurationController extends Controller
     }
 
     /**
-     * Résout (ou rouvre) une anomalie, avec traçabilité.
+     * Résout (ou rouvre) une anomalie, avec traçabilité. Permet aussi de
+     * requalifier sa sévérité (ex : un signalement public confirmé comme
+     * bloquant, ou à l'inverse rétrogradé).
      */
     public function update(Request $request, CurationFlag $flag): JsonResponse
     {
         $document = LegalDocument::findOrFail($flag->document_id);
         Gate::authorize('update', $document);
 
-        $resolved = $request->validate([
+        $validated = $request->validate([
             'resolved' => ['required', 'boolean'],
-        ])['resolved'];
+            'severity' => ['sometimes', 'string', Rule::in([
+                CurationFlag::SEVERITY_BLOCKING,
+                CurationFlag::SEVERITY_WARNING,
+                CurationFlag::SEVERITY_INFO,
+            ])],
+        ]);
+
+        $resolved = $validated['resolved'];
+        $severity = $validated['severity'] ?? null;
+
+        if ($severity !== null && $severity !== $flag->severity) {
+            Log::info('Signalement requalifié au triage.', [
+                'flag_id' => $flag->id,
+                'from' => $flag->severity,
+                'to' => $severity,
+                'admin_id' => $request->user()->id,
+            ]);
+        }
 
         $flag->update([
             'resolved' => $resolved,
             'resolved_at' => $resolved ? now() : null,
             'resolved_by' => $resolved ? $request->user()->id : null,
+            ...($severity !== null ? ['severity' => $severity] : []),
         ]);
 
         return $this->success(
