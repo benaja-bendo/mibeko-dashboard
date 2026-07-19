@@ -52,9 +52,10 @@ use App\Http\Controllers\PdfProxyController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->middleware('throttle:api')->group(function () {
-    // Auth
-    Route::post('register', [AuthController::class, 'register']);
-    Route::post('login', [AuthController::class, 'login']);
+    // Auth — la connexion a son limiteur dédié par email + IP (anti brute-force
+    // de compte) ; l'inscription est bornée par IP contre la création en masse.
+    Route::post('register', [AuthController::class, 'register'])->middleware('throttle:6,1');
+    Route::post('login', [AuthController::class, 'login'])->middleware('throttle:login');
     Route::post('auth/firebase', [AuthController::class, 'firebaseLogin']);
 
     // Réinitialisation de mot de passe par code OTP (mobile)
@@ -265,8 +266,11 @@ Route::prefix('v1')->middleware('throttle:api')->group(function () {
     Route::get('legal-documents/{id}/export', [LegalDocumentExportController::class, 'export']);
     Route::get('articles/{id}/export', [LegalDocumentExportController::class, 'exportArticle']);
 
-    // Curation / Signalements (Mobile App)
-    Route::post('reports', [CurationFlagController::class, 'store']);
+    // Curation / Signalements (Mobile App) — endpoint public : le contrôleur
+    // force source='report'/severity='info' (jamais bloquant) et le quota
+    // dédié freine le remplissage anonyme de la file de triage.
+    Route::post('reports', [CurationFlagController::class, 'store'])
+        ->middleware('throttle:reports');
 
     // BE6 - Dossier PDF Export
     Route::post('dossiers/export-pdf', [DossierExportController::class, 'exportPdf']);

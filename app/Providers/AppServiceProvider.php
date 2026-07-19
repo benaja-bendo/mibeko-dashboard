@@ -20,6 +20,7 @@ use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\ServiceProvider;
+use Illuminate\Support\Str;
 use Laravel\Ai\Contracts\ConversationStore;
 use League\Flysystem\Filesystem;
 use Masbug\Flysystem\GoogleDriveAdapter;
@@ -80,6 +81,26 @@ class AppServiceProvider extends ServiceProvider
                 ->by($request->user()?->id ?: $request->ip());
         });
 
+        // Signalements publics (POST /reports, app mobile sans compte) :
+        // l'endpoint écrit en base sans authentification → quota serré par IP
+        // (minute + jour) pour empêcher le remplissage en masse de la file de
+        // triage. Un humain ne signale que quelques problèmes à la fois.
+        RateLimiter::for('reports', function (Request $request) {
+            $key = $request->user()?->id ?: $request->ip();
+            $response = function () {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Trop de signalements envoyés. Réessayez plus tard.',
+                    'errors' => null,
+                ], 429);
+            };
+
+            return [
+                Limit::perMinute(5)->by('minute:'.$key)->response($response),
+                Limit::perDay(30)->by('day:'.$key)->response($response),
+            ];
+        });
+
         // Réinitialisation de mot de passe : quota serré par email + IP pour
         // empêcher l'envoi en masse et le brute-force du code OTP.
         RateLimiter::for('password_reset', function (Request $request) {
@@ -88,7 +109,28 @@ class AppServiceProvider extends ServiceProvider
             );
         });
 
-        // Rate limiter spécifique pour l'IA basé sur les rôles (Spatie) ou statuts
+        // Connexion : quota serré par combinaison email + IP — freine le
+        // brute-force d'un compte précis sans pénaliser les autres comptes
+        // derrière la même adresse (NAT, cybercafé). Sert aussi le POST /login
+        // web de Fortify (config fortify.limiters.login) : ne pas redéclarer
+        // ce limiteur dans FortifyServiceProvider, il écraserait celui-ci.
+        RateLimiter::for('login', function (Request $request) {
+            return Limit::perMinute(5)->by(
+                Str::transliterate(Str::lower((string) $request->input('email')).'|'.$request->ip()),
+            )->response(function () {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Trop de tentatives de connexion. Réessayez dans une minute.',
+                    'errors' => null,
+                ], 429);
+            });
+        });
+
+        // Rate limiter spécifique pour l'IA basé sur les rôles (Spatie) ou statuts.
+        // Deux plafonds par utilisateur : par minute (confort d'usage) et par
+        // JOUR (maîtrise du coût LLM — cf. config/ai.php `quotas`). Les admins
+        // n'ont pas de limite par minute mais gardent un plafond journalier :
+        // un jeton admin compromis ne doit pas générer une facture illimitée.
         RateLimiter::for('ai_assistant', function (Request $request) {
             $user = $request->user();
 
@@ -96,22 +138,35 @@ class AppServiceProvider extends ServiceProvider
                 return Limit::perMinute(5)->by($request->ip());
             }
 
-            // Les administrateurs n'ont pas de limite
+            $dailyResponse = function () {
+                return response()->json(['message' => 'Plafond journalier de requêtes IA atteint. Réessayez demain.'], 429);
+            };
+
             if ($user->hasRole('admin')) {
-                return Limit::none();
+                return [
+                    Limit::perDay(config('ai.quotas.admin.per_day'))
+                        ->by('day:'.$user->id)
+                        ->response($dailyResponse),
+                ];
             }
 
             // Utilisateurs pro/premium (si tu as un rôle premium)
             if ($user->hasRole('premium')) {
-                return Limit::perMinute(60)->by($user->id)->response(function () {
-                    return response()->json(['message' => 'Limite de requêtes IA atteinte pour votre abonnement Premium.'], 429);
-                });
+                return [
+                    Limit::perMinute(config('ai.quotas.premium.per_minute'))->by('minute:'.$user->id)->response(function () {
+                        return response()->json(['message' => 'Limite de requêtes IA atteinte pour votre abonnement Premium.'], 429);
+                    }),
+                    Limit::perDay(config('ai.quotas.premium.per_day'))->by('day:'.$user->id)->response($dailyResponse),
+                ];
             }
 
             // Utilisateurs standards
-            return Limit::perMinute(20)->by($user->id)->response(function () {
-                return response()->json(['message' => 'Limite de requêtes IA atteinte. Passez à un abonnement supérieur pour plus de requêtes.'], 429);
-            });
+            return [
+                Limit::perMinute(config('ai.quotas.standard.per_minute'))->by('minute:'.$user->id)->response(function () {
+                    return response()->json(['message' => 'Limite de requêtes IA atteinte. Passez à un abonnement supérieur pour plus de requêtes.'], 429);
+                }),
+                Limit::perDay(config('ai.quotas.standard.per_day'))->by('day:'.$user->id)->response($dailyResponse),
+            ];
         });
 
         Storage::extend('gdrive', function ($app, $config) {
