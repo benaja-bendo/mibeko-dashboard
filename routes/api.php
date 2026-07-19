@@ -248,7 +248,10 @@ Route::prefix('v1')->middleware('throttle:api')->group(function () {
         Route::patch('curation-flags/{flag}', [DocumentCurationController::class, 'update']);
     });
 
-    // Read relations — any authenticated user
+    // Lecture des relations — routes publiques (comme le reste du corpus REST).
+    // Le dashboard éditeur les consomme avec un jeton Bearer editor/admin ; un
+    // appelant non privilégié ne voit que les relations du corpus publié
+    // (garde anti-fuite dans DocumentRelationController, cf. GuardsUnpublishedDocuments).
     Route::get('articles/{article}/relations', [DocumentRelationController::class, 'index']);
     Route::get('relations/search', [DocumentRelationController::class, 'searchTargets']);
 

@@ -8,6 +8,7 @@ use App\Http\Resources\V1\StructureNodeResource;
 use App\Models\Article;
 use App\Models\LegalDocument;
 use App\Models\StructureNode;
+use App\Traits\GuardsUnpublishedDocuments;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -19,6 +20,8 @@ use Illuminate\Support\Str;
  */
 class StructureNodeController extends Controller
 {
+    use GuardsUnpublishedDocuments;
+
     /**
      * Get document hierarchy.
      *
@@ -27,6 +30,10 @@ class StructureNodeController extends Controller
      */
     public function tree(Request $request, LegalDocument $document): JsonResponse
     {
+        // Route publique : l'arbre (et le texte des articles qu'il embarque)
+        // d'un document non publié reste réservé aux éditeurs/admins.
+        $this->ensureDocumentIsVisible($request, $document);
+
         // Compteur d'anomalies ouvertes : alimente le badge ✗ de l'arbre (état
         // 'error') et la navigation de la vue Contrôle, sans requête par nœud.
         $openFlags = ['curationFlags as open_flags_count' => fn ($q) => $q->where('resolved', false)];
@@ -142,7 +149,7 @@ class StructureNodeController extends Controller
 
             return $this->error(
                 null,
-                'Impossible de créer le nœud : '.$e->getMessage(),
+                'Impossible de créer le nœud. Réessayez ou contactez le support.',
                 500
             );
         }
@@ -256,7 +263,7 @@ class StructureNodeController extends Controller
                 'trace' => $e->getTraceAsString(),
             ]);
 
-            return $this->error(null, 'Erreur lors du déplacement : '.$e->getMessage(), 500);
+            return $this->error(null, 'Erreur lors du déplacement du nœud. Réessayez ou contactez le support.', 500);
         }
     }
 
@@ -293,7 +300,7 @@ class StructureNodeController extends Controller
         } catch (\Exception $e) {
             Log::error('Erreur lors de la suppression du nœud: '.$e->getMessage());
 
-            return $this->error(null, 'Impossible de supprimer le nœud : '.$e->getMessage(), 500);
+            return $this->error(null, 'Impossible de supprimer le nœud. Réessayez ou contactez le support.', 500);
         }
     }
 }

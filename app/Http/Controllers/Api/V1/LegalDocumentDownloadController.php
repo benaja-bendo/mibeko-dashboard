@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\V1\ArticleSyncResource;
 use App\Models\LegalDocument;
+use App\Traits\GuardsUnpublishedDocuments;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -15,6 +16,8 @@ use Illuminate\Http\Request;
  */
 class LegalDocumentDownloadController extends Controller
 {
+    use GuardsUnpublishedDocuments;
+
     /**
      * Download legal document data (Flat List).
      *
@@ -48,6 +51,10 @@ class LegalDocumentDownloadController extends Controller
 
         // Load document
         $document = LegalDocument::findOrFail($id);
+
+        // Route publique : le contenu intégral d'un document non publié reste
+        // réservé aux éditeurs/admins (404 sinon).
+        $this->ensureDocumentIsVisible($request, $document);
 
         // Fetch Nodes (Flattened)
         $nodesQuery = $document->structureNodes()->orderBy('sort_order');

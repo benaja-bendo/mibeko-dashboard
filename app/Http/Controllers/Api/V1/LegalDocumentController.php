@@ -12,6 +12,7 @@ use App\Models\LegalDocument;
 use App\Models\StructureNode;
 use App\Models\Tag;
 use App\Services\DocumentDeletionService;
+use App\Traits\GuardsUnpublishedDocuments;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -31,16 +32,37 @@ use Spatie\QueryBuilder\QueryBuilder;
  */
 class LegalDocumentController extends Controller
 {
-    /** Shared filter definitions used across index and search. */
-    private function allowedFilters(): array
+    use GuardsUnpublishedDocuments;
+
+    /**
+     * Shared filter definitions used across index and search.
+     *
+     * Le filtre `curation_status` est TOUJOURS accepté (aucune 400), mais son
+     * effet dépend du privilège de l'appelant : un éditeur/admin filtre
+     * librement (brouillons inclus) ; pour tout autre appel, la valeur cliente
+     * est ignorée et clampée à `published`. C'est indispensable au site vitrine,
+     * qui envoie systématiquement `filter[curation_status]=published` en anonyme
+     * (cf. mibeko-site `fetchPublishedDocuments`) : rejeter ce filtre casserait
+     * la page /textes. Le clamp est de toute façon redondant — la requête est
+     * déjà scopée `published()` pour les non-privilégiés — mais il garde le
+     * filtre valide et sans fuite.
+     */
+    private function allowedFilters(bool $canViewUnpublished = true): array
     {
-        return [
+        return array_values(array_filter([
             AllowedFilter::partial('titre_officiel'),
             'type_code',
             'institution_id',
             'official_journal_id',
             'statut',
-            'curation_status',
+            $canViewUnpublished
+                ? 'curation_status'
+                : AllowedFilter::callback('curation_status', function ($query) {
+                    // Non privilégié : on n'applique jamais la valeur cliente.
+                    // Le scope published() déjà posé sur la requête est la seule
+                    // vérité — accepter le filtre sans l'honorer évite la 400.
+                    $query->where('curation_status', LegalDocument::STATUS_PUBLISHED);
+                }),
             'document_role',
             'legal_scope',
             AllowedFilter::callback('date_from', function ($query, $value) {
@@ -54,7 +76,7 @@ class LegalDocumentController extends Controller
                 $days = is_numeric($value) ? (int) $value : 7;
                 $query->where('updated_at', '>=', now()->subDays($days));
             }),
-        ];
+        ]));
     }
 
     /** Shared sort definitions. */
@@ -79,7 +101,12 @@ class LegalDocumentController extends Controller
     {
         $perPage = min((int) $request->input('per_page', 20), 100);
 
+        // Un appel non privilégié (anonyme ou sans rôle éditorial) ne voit que
+        // le corpus publié : les brouillons restent réservés au dashboard.
+        $canViewUnpublished = $this->canViewUnpublishedDocuments($request);
+
         $documents = QueryBuilder::for(LegalDocument::class)
+            ->when(! $canViewUnpublished, fn ($q) => $q->published())
             ->with(['institution', 'type'])
             ->withCount([
                 'articles',
@@ -90,7 +117,7 @@ class LegalDocumentController extends Controller
                     fn ($q2) => $q2->whereNotNull('embedding')
                 ),
             ])
-            ->allowedFilters($this->allowedFilters())
+            ->allowedFilters($this->allowedFilters($canViewUnpublished))
             ->allowedSorts($this->allowedSorts())
             ->latest('updated_at')
             ->paginate($perPage);
@@ -115,7 +142,11 @@ class LegalDocumentController extends Controller
         $query = $request->input('q', '');
         $perPage = min((int) $request->input('per_page', 20), 100);
 
+        // Même garde que l'index : la recherche liste les mêmes documents.
+        $canViewUnpublished = $this->canViewUnpublishedDocuments($request);
+
         $documents = QueryBuilder::for(LegalDocument::class)
+            ->when(! $canViewUnpublished, fn ($q) => $q->published())
             ->with(['institution', 'type'])
             ->withCount([
                 'articles',
@@ -133,7 +164,7 @@ class LegalDocumentController extends Controller
                         ->orWhere('stock_code', 'ilike', "%{$query}%");
                 });
             })
-            ->allowedFilters($this->allowedFilters())
+            ->allowedFilters($this->allowedFilters($canViewUnpublished))
             ->allowedSorts($this->allowedSorts())
             ->latest('updated_at')
             ->paginate($perPage);
@@ -177,10 +208,12 @@ class LegalDocumentController extends Controller
      * Get a legal document.
      *
      * Returns a single legal document with its articles, relations, and their latest versions.
+     * Un document non publié n'est visible que des éditeurs/admins (404 sinon).
      */
-    public function show(string $id): JsonResponse
+    public function show(Request $request, string $id): JsonResponse
     {
         $document = QueryBuilder::for(LegalDocument::class)
+            ->when(! $this->canViewUnpublishedDocuments($request), fn ($q) => $q->published())
             ->with(['institution', 'type', 'officialJournal', 'articles.latestVersion', 'relations.targetDocument', 'tags'])
             ->withCount([
                 'articles',

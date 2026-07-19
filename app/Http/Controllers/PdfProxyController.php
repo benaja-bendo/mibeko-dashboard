@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\LegalDocument;
 use App\Models\OfficialJournal;
+use App\Traits\GuardsUnpublishedDocuments;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -15,6 +16,8 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
  */
 class PdfProxyController extends Controller
 {
+    use GuardsUnpublishedDocuments;
+
     /**
      * Download or view a PDF.
      *
@@ -40,6 +43,12 @@ class PdfProxyController extends Controller
             $path = $journal->file_path;
         } else {
             $document = LegalDocument::with(['mediaFiles', 'officialJournal'])->findOrFail($id);
+
+            // Route publique : le PDF source d'un document non publié reste
+            // réservé aux éditeurs/admins (404 sinon). Les journaux officiels
+            // (`type=journal`) restent publics par nature.
+            $this->ensureDocumentIsVisible($request, $document);
+
             $mediaFile = $document->mediaFiles->firstWhere('mime_type', 'application/pdf')
                 ?? $document->mediaFiles->first(fn ($file) => str_ends_with(strtolower((string) $file->file_path), '.pdf'));
 
@@ -79,7 +88,9 @@ class PdfProxyController extends Controller
                 abort(404, 'File not found in storage');
             }
         } catch (\Throwable $e) {
-            abort(404, 'File not accessible: '.$e->getMessage());
+            // Ne pas refléter l'erreur du disque au client (internals S3/MinIO).
+            report($e);
+            abort(404, 'File not accessible');
         }
 
         $isPdf = str_ends_with(strtolower($cleanPath), '.pdf');

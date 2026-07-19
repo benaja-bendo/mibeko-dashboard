@@ -58,6 +58,8 @@ it('renvoie 404 sur l’arbre d’un document supprimé', function () {
 
 it('garde l’arbre d’un document actif accessible', function () {
     $document = LegalDocument::factory()->create();
+    // Un article : le garde public n'expose que le publié AVEC articles.
+    Article::factory()->create(['document_id' => $document->id]);
 
     $this->getJson("/api/v1/legal-documents/{$document->id}/tree")
         ->assertOk();

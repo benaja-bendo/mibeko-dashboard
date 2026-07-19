@@ -29,7 +29,8 @@ it('can proxy a pdf file', function () {
     Storage::fake('s3');
     Storage::disk('s3')->put('test.pdf', 'dummy content');
 
-    $document = LegalDocument::factory()->create();
+    // Avec article : le garde public n'expose que le publié AVEC articles.
+    $document = LegalDocument::factory()->hasArticles(1)->create();
 
     $document->mediaFiles()->create([
         'file_path' => 'test.pdf',
@@ -48,7 +49,7 @@ it('can proxy a pdf file', function () {
 it('returns 404 if pdf does not exist in storage', function () {
     Storage::fake('s3');
 
-    $document = LegalDocument::factory()->create();
+    $document = LegalDocument::factory()->hasArticles(1)->create();
 
     $document->mediaFiles()->create([
         'file_path' => 'missing.pdf',
@@ -64,7 +65,7 @@ it('returns 404 if pdf does not exist in storage', function () {
 });
 
 it('returns 404 if document has no pdf', function () {
-    $document = LegalDocument::factory()->create();
+    $document = LegalDocument::factory()->hasArticles(1)->create();
 
     $response = $this->get("/api/v1/legal-documents/{$document->id}/pdf");
 

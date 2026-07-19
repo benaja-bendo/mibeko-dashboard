@@ -49,8 +49,15 @@ it('can list institutions', function () {
 
 it('can get document tree hierarchy', function () {
     $document = LegalDocument::factory()->create();
-    StructureNode::factory()->count(2)->create([
+    $nodes = StructureNode::factory()->count(2)->create([
         'document_id' => $document->id,
+    ]);
+
+    // Un article rattaché : le garde public ne montre que les documents
+    // publiés AVEC articles (scope published), comme le site vitrine.
+    Article::factory()->create([
+        'document_id' => $document->id,
+        'parent_node_id' => $nodes->first()->id,
     ]);
 
     $response = $this->getJson("/api/v1/legal-documents/{$document->id}/tree");
