@@ -82,6 +82,12 @@ it('caches the ai response for identical queries', function () {
     $user = User::factory()->create();
     Sanctum::actingAs($user);
 
+    // Le titre est produit par un job (ConversationTitler) : en prod il tourne
+    // sur la file, APRÈS la requête. En test (file `sync`) il s'exécuterait en
+    // ligne et appellerait un vrai fournisseur IA (non couvert par MibekoIA::fake) ;
+    // on neutralise la file pour rester hermétique — aucune clé API en CI.
+    Queue::fake();
+
     MibekoIA::fake([
         'Ceci est une réponse de test qui sera mise en cache.',
     ]);
@@ -574,6 +580,11 @@ it('streams a reply over SSE and emits the assistant message id', function () {
     $user = User::factory()->create();
     Sanctum::actingAs($user);
 
+    // Le chemin streamé crée la conversation et dispatche le job de titre
+    // (ConversationTitler, appel IA non faké). En prod il tourne sur la file,
+    // hors requête ; en test (`sync`) il s'exécuterait en ligne → on l'isole.
+    Queue::fake();
+
     MibekoIA::fake(['Réponse streamée.']);
 
     $response = $this->postJson('/api/v1/assistant/chat', [
@@ -635,6 +646,10 @@ it('strips orphan citation markers from the JSON reply and its cache', function 
 it('does not leak an orphan marker in the streamed SSE deltas', function () {
     $user = User::factory()->create();
     Sanctum::actingAs($user);
+
+    // Même raison que le test SSE ci-dessus : on empêche le job de titre
+    // (appel IA réel) de tourner en ligne sous la file `sync` du test.
+    Queue::fake();
 
     // Aucun outil déclenché → aucune source → [1] est orphelin.
     MibekoIA::fake(['Règle applicable [1] au litige.']);
