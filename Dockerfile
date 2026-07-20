@@ -90,8 +90,15 @@ RUN apk add --no-cache \
         intl \
         sockets \
         opcache \
-    && pecl install redis \
-    && docker-php-ext-enable redis \
+    # Extension redis compilée depuis la release GitHub de phpredis (et non via
+    # `pecl install`, qui dépend de pecl.php.net — régulièrement en panne : un
+    # 504 sur channel.xml faisait échouer tout le build). Version épinglée pour
+    # des builds reproductibles ; `docker-php-ext-install` compile ET active.
+    && mkdir -p /usr/src/php/ext/redis \
+    && wget -qO /tmp/redis.tar.gz https://github.com/phpredis/phpredis/archive/refs/tags/6.3.0.tar.gz \
+    && tar xzf /tmp/redis.tar.gz -C /usr/src/php/ext/redis --strip-components=1 \
+    && rm /tmp/redis.tar.gz \
+    && docker-php-ext-install redis \
     && apk del $PHPIZE_DEPS \
     && rm -rf /var/cache/apk/*
 
