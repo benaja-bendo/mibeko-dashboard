@@ -245,7 +245,10 @@ Route::prefix('v1')->middleware('throttle:api')->group(function () {
         // Vue Contrôle : anomalies d'un document (validation humaine).
         Route::get('legal-documents/{id}/curation-flags', [DocumentCurationController::class, 'index']);
         Route::post('legal-documents/{id}/detect-anomalies', [DocumentCurationController::class, 'detect']);
-        Route::post('legal-documents/{id}/analyze-ai', [DocumentCurationController::class, 'analyzeAi']);
+        // L'analyse sémantique exécute jusqu'à ~6 appels LLM en synchrone :
+        // même plafond de coût IA que les autres endpoints IA (minute + jour).
+        Route::post('legal-documents/{id}/analyze-ai', [DocumentCurationController::class, 'analyzeAi'])
+            ->middleware('throttle:ai_assistant');
         Route::patch('curation-flags/{flag}', [DocumentCurationController::class, 'update']);
     });
 

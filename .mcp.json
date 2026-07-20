@@ -1,5 +1,13 @@
 {
     "mcpServers": {
+        "mibeko": {
+            "command": "php",
+            "args": [
+                "artisan",
+                "mcp:start",
+                "mibeko"
+            ]
+        },
         "laravel-boost": {
             "command": "php",
             "args": [

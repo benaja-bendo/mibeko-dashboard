@@ -296,6 +296,21 @@ it('runs the AI analysis from the document endpoint', function () {
     expect(CurationFlag::where('document_id', $document->id)->where('source', 'llm')->count())->toBe(1);
 });
 
+it('rate limits the ai analysis per user', function () {
+    config(['ai.quotas.standard.per_minute' => 1]);
+    $editor = makeEditor();
+    // Sans article, aucune feuille suspecte : le premier appel n'appelle pas le LLM.
+    $document = LegalDocument::factory()->create();
+
+    $this->actingAs($editor)
+        ->postJson("/api/v1/legal-documents/{$document->id}/analyze-ai")
+        ->assertStatus(200);
+
+    $this->actingAs($editor)
+        ->postJson("/api/v1/legal-documents/{$document->id}/analyze-ai")
+        ->assertStatus(429);
+});
+
 it('blocks curation endpoints for non editors', function () {
     $intruder = User::factory()->create();
     $document = LegalDocument::factory()->create();
