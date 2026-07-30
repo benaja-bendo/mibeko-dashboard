@@ -4,11 +4,14 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Models\Article;
+use App\Traits\GuardsUnpublishedDocuments;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 
 class DossierExportController extends Controller
 {
+    use GuardsUnpublishedDocuments;
+
     /**
      * Generate a PDF export of a dossier.
      * Expects a JSON body with:
@@ -38,10 +41,19 @@ class DossierExportController extends Controller
         $articleIds = $items->where('type', 'article')->pluck('id');
         // $documentIds = $items->where('type', 'document')->pluck('id'); // Future support
 
-        $articles = Article::with(['activeVersion', 'latestVersion', 'document', 'parentNode'])
-            ->whereIn('id', $articleIds)
-            ->get()
-            ->keyBy('id');
+        $articlesQuery = Article::with(['activeVersion', 'latestVersion', 'document', 'parentNode'])
+            ->whereIn('id', $articleIds);
+
+        // Les ids d'articles arrivent librement dans le corps de la requête :
+        // sans ce filtre, n'importe quel compte pourrait exfiltrer en PDF des
+        // articles de documents non publiés (brouillons, en revue). Seuls les
+        // rôles éditoriaux voient le corpus complet, comme sur les endpoints
+        // de lecture publics (cf. GuardsUnpublishedDocuments).
+        if (! $this->canViewUnpublishedDocuments($request)) {
+            $articlesQuery->whereHas('document', fn ($query) => $query->published());
+        }
+
+        $articles = $articlesQuery->get()->keyBy('id');
 
         // Prepare data for view keeping the order requested
         $exportItems = $items->map(function ($item) use ($articles) {
@@ -74,7 +86,10 @@ class DossierExportController extends Controller
 
         $pdf->setPaper('a4');
         $pdf->setOption('isHtml5ParserEnabled', true);
-        $pdf->setOption('isRemoteEnabled', true);
+        // Le gabarit n'embarque aucune ressource distante et tout le contenu
+        // utilisateur y est échappé : on interdit à DomPDF toute requête
+        // sortante (anti-SSRF/exfiltration via contenu injecté).
+        $pdf->setOption('isRemoteEnabled', false);
 
         // Return raw PDF bytes for API consumption (mobile apps)
         return response($pdf->output(), 200, [
