@@ -10,7 +10,7 @@ return [
     | Catalogue des plans proposés. `stripe_price` est l'identifiant de prix
     | Stripe (Price ID) ; laissé nul tant que Stripe n'est pas configuré, le
     | checkout reste alors indisponible côté API. Les libellés de prix sont en
-    | francs congolais (FC) — marché cible République Congoaise.
+    | francs CFA (FCFA / XAF) — marché cible République du Congo (Brazzaville).
     |
     */
 
@@ -18,7 +18,7 @@ return [
         [
             'id' => 'pro_monthly',
             'name' => 'Pro mensuel',
-            'price_label' => '15 000 FC / mois',
+            'price_label' => '15 000 FCFA / mois',
             'features' => [
                 'Bibliothèque juridique complète',
                 'Assistant IA avec citations',
@@ -30,7 +30,7 @@ return [
         [
             'id' => 'pro_yearly',
             'name' => 'Pro annuel',
-            'price_label' => '150 000 FC / an',
+            'price_label' => '150 000 FCFA / an',
             'features' => [
                 'Tous les avantages du plan mensuel',
                 '2 mois offerts',
