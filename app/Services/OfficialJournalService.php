@@ -3,7 +3,6 @@
 namespace App\Services;
 
 use App\Models\OfficialJournal;
-use Illuminate\Filesystem\FilesystemAdapter;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -70,35 +69,5 @@ class OfficialJournalService
         return $journal->update([
             'transcription_status' => $status,
         ]);
-    }
-
-    /**
-     * Get the temporary URL to download or view the PDF from MinIO.
-     */
-    public function getFileUrl(OfficialJournal $journal): ?string
-    {
-        if (! $journal->file_path) {
-            return null;
-        }
-
-        $disk = config('filesystems.default', 'local');
-
-        /** @var FilesystemAdapter $storageDisk */
-        $storageDisk = Storage::disk($disk);
-
-        if ($storageDisk->exists($journal->file_path)) {
-            // If it's an S3 disk (MinIO), we can generate a temporary URL.
-            // For local, we can just return the URL.
-            if ($disk === 's3') {
-                return $storageDisk->temporaryUrl(
-                    $journal->file_path,
-                    now()->addMinutes(60)
-                );
-            }
-
-            return $storageDisk->url($journal->file_path);
-        }
-
-        return null;
     }
 }

@@ -30,6 +30,23 @@ use Illuminate\Support\Facades\Storage;
 class DocumentDeletionService
 {
     /**
+     * Correspondance `media_files.storage_provider` → disque `config/filesystems`.
+     *
+     * Le service Python écrit systématiquement `MINIO`, qui n'est pas un disque
+     * Laravel : MinIO est exposé par le driver S3 (même bucket, `AWS_ENDPOINT`
+     * pointant sur MinIO). Sans ce mapping, `Storage::disk('MINIO')` lève une
+     * `InvalidArgumentException` avalée par le best-effort → objets orphelins.
+     *
+     * @var array<string, string>
+     */
+    private const PROVIDER_DISKS = [
+        'MINIO' => 's3',
+        'S3' => 's3',
+        'LOCAL' => 'local',
+        'PUBLIC' => 'public',
+    ];
+
+    /**
      * Récapitule ce qu'une suppression définitive emporterait, et signale les
      * dépendances externes (citations entrantes, articles enregistrés dans des
      * dossiers utilisateurs) pour une confirmation éclairée.
@@ -150,13 +167,23 @@ class DocumentDeletionService
     private function purgePhysicalMedia(Collection $mediaFiles): void
     {
         foreach ($mediaFiles as $media) {
-            $key = $media->object_key ?: $media->file_path;
-            if (empty($key)) {
+            $key = $this->objectKey($media);
+            if ($key === null) {
+                continue;
+            }
+
+            $disk = $this->diskFor($media->storage_provider);
+            if ($disk === null) {
+                Log::warning('Purge média physique ignorée : aucun disque configuré pour ce fournisseur', [
+                    'storage_provider' => $media->storage_provider,
+                    'object_key' => $key,
+                ]);
+
                 continue;
             }
 
             try {
-                Storage::disk($media->storage_provider ?: config('filesystems.default'))->delete($key);
+                Storage::disk($disk)->delete($key);
             } catch (\Throwable $e) {
                 Log::warning('Purge média physique échouée lors de la suppression du document', [
                     'object_key' => $key,
@@ -164,5 +191,37 @@ class DocumentDeletionService
                 ]);
             }
         }
+    }
+
+    /**
+     * Clé de l'objet, telle que l'attend le disque : `file_path` sert de repli
+     * quand `object_key` est vide, mais il porte le préfixe `s3://<bucket>/`
+     * écrit par le service Python, alors que le disque est déjà borné au bucket.
+     */
+    private function objectKey(MediaFile $media): ?string
+    {
+        $key = (string) ($media->object_key ?: $media->file_path);
+
+        if (str_starts_with($key, 's3://')) {
+            // s3://bucket/chemin/fichier.pdf → ['s3:', '', 'bucket', 'chemin/fichier.pdf']
+            $key = explode('/', $key, 4)[3] ?? '';
+        }
+
+        return $key !== '' ? $key : null;
+    }
+
+    /**
+     * Disque à utiliser pour un `storage_provider` donné, ou `null` si aucun
+     * disque correspondant n'est configuré (on préfère un avertissement explicite
+     * à une exception avalée qui laisserait croire à une purge réussie).
+     */
+    private function diskFor(?string $provider): ?string
+    {
+        $provider = trim((string) $provider);
+        $disk = $provider === ''
+            ? (string) config('filesystems.default')
+            : (self::PROVIDER_DISKS[strtoupper($provider)] ?? $provider);
+
+        return config("filesystems.disks.{$disk}") !== null ? $disk : null;
     }
 }
