@@ -35,6 +35,9 @@ class SystemRequirementsSeeder extends Seeder
             ['code' => 'CONV', 'nom' => 'Convention collective', 'niveau_hierarchique' => 85],
             ['code' => 'DOCT', 'nom' => 'Doctrine / Ouvrage', 'niveau_hierarchique' => 120],
             ['code' => 'TEXTE', 'nom' => 'Texte Juridique (Générique)', 'niveau_hierarchique' => 100],
+            // Journaux officiels ingérés par le pipeline : un JO est un contenant,
+            // pas une norme — il se place sous le texte générique dans la hiérarchie.
+            ['code' => 'JO', 'nom' => 'Journal officiel', 'niveau_hierarchique' => 110],
         ];
 
         foreach ($types as $type) {
