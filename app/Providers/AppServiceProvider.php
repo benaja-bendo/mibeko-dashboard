@@ -67,6 +67,29 @@ class AppServiceProvider extends ServiceProvider
             return Limit::perMinute($limit)->by($request->user()?->id ?: $request->ip());
         });
 
+        // Lecture froide du corpus (catalogue, documents, arbre, téléchargement).
+        // La synchronisation initiale d'un téléphone enchaîne ~1 + N requêtes
+        // (une par document) : sous le quota générique de 60/min elle serait
+        // hachée de 429 et laisserait un corpus incomplet. Le quota est donc
+        // large, et surtout clé par APPAREIL quand l'en-tête est fourni : au
+        // Congo, le CGNAT des opérateurs fait partager une même IP publique à
+        // des centaines d'abonnés, qui se pénaliseraient mutuellement.
+        // Le contenu servi est du droit publié, déjà public sur le site : le
+        // quota protège le coût serveur, pas un secret.
+        RateLimiter::for('corpus_read', function (Request $request) {
+            $identity = $request->user()?->id
+                ?: ($request->header('X-Mibeko-Device')
+                    ? 'device:'.sha1($request->header('X-Mibeko-Device'))
+                    : $request->ip());
+
+            return [
+                Limit::perMinute(app()->environment('testing') ? 60 : 300)->by($identity),
+                // Garde-fou : empêche une seule IP de saturer le serveur en
+                // faisant tourner de faux identifiants d'appareil.
+                Limit::perMinute(app()->environment('testing') ? 120 : 1200)->by('corpus_ip:'.$request->ip()),
+            ];
+        });
+
         // Autocomplétion de la recherche : appelée à la frappe (debounce côté
         // client), elle a son propre quota pour ne pas consommer celui de l'API.
         RateLimiter::for('search_suggest', function (Request $request) {
@@ -101,6 +124,40 @@ class AppServiceProvider extends ServiceProvider
             ];
         });
 
+        // Enregistrement d'un appareil (POST /devices/register, route publique
+        // qui ÉCRIT en base). Le quota générique `api` (60/min, clé IP pour un
+        // invité) est ici doublement inadapté : trop large pour une écriture
+        // anonyme, et clé par IP alors que le CGNAT des opérateurs congolais
+        // fait partager une même adresse à des centaines d'abonnés — un seul
+        // téléphone bavard bloquerait tous les autres.
+        // Clé principale : l'identifiant d'appareil, comme le limiteur
+        // `corpus_read` déjà en place. Un téléphone n'enregistre son jeton qu'au
+        // démarrage et à chaque rotation FCM : 5/min laisse de la marge aux
+        // reprises réseau tout en fermant la porte au martèlement. Le second
+        // plafond, par IP, borne la fabrication en masse de faux appareils sans
+        // pénaliser un cybercafé (même logique de largeur que `auth_firebase`).
+        RateLimiter::for('device_register', function (Request $request) {
+            $deviceId = (string) $request->input('device_id');
+            $identity = $deviceId !== ''
+                ? 'device:'.sha1($deviceId)
+                : 'ip:'.$request->ip();
+
+            $response = function () {
+                return response()->json([
+                    'success' => false,
+                    'message' => "Trop d'enregistrements d'appareil. Réessayez dans une minute.",
+                    'errors' => null,
+                ], 429);
+            };
+
+            return [
+                Limit::perMinute(5)->by($identity)->response($response),
+                Limit::perMinute(app()->environment('testing') ? 60 : 120)
+                    ->by('device_register_ip:'.$request->ip())
+                    ->response($response),
+            ];
+        });
+
         // Réinitialisation de mot de passe : quota serré par email + IP pour
         // empêcher l'envoi en masse et le brute-force du code OTP.
         RateLimiter::for('password_reset', function (Request $request) {
@@ -126,21 +183,54 @@ class AppServiceProvider extends ServiceProvider
             });
         });
 
+        // Connexion Firebase (app mobile). Le jeton est opaque avant
+        // vérification : la clé est l'IP seule, faute de compte identifiable.
+        // Le plafond reste donc plus large que celui du login (clé email|IP) —
+        // derrière le CGNAT des opérateurs congolais ou un wifi partagé,
+        // 5/min ferait échouer la connexion d'utilisateurs DISTINCTS ; 30/min
+        // freine le spam de jetons forgés sans casser un cybercafé.
+        RateLimiter::for('auth_firebase', function (Request $request) {
+            return Limit::perMinute(30)
+                ->by($request->ip())
+                ->response(function (Request $request, array $headers) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Trop de tentatives de connexion. Réessayez dans une minute.',
+                        'errors' => null,
+                    ], 429, $headers);
+                });
+        });
+
         // Rate limiter spécifique pour l'IA basé sur les rôles (Spatie) ou statuts.
         // Deux plafonds par utilisateur : par minute (confort d'usage) et par
         // JOUR (maîtrise du coût LLM — cf. config/ai.php `quotas`). Les admins
         // n'ont pas de limite par minute mais gardent un plafond journalier :
         // un jeton admin compromis ne doit pas générer une facture illimitée.
+        //
+        // Les messages 429 doivent rester NEUTRES — aucune mention d'abonnement
+        // ou d'achat : ils s'affichent tels quels dans le chat de l'app mobile,
+        // et une incitation à payer sans achat in-app violerait la règle 3.1.1
+        // de l'App Store. Le client s'appuie sur le champ machine `code`/`scope`
+        // et le header standard Retry-After (transmis via `$headers`).
         RateLimiter::for('ai_assistant', function (Request $request) {
+            $rateLimitedResponse = function (string $scope, string $message) {
+                return function (Request $request, array $headers) use ($scope, $message) {
+                    return response()->json([
+                        'message' => $message,
+                        'code' => 'AI_RATE_LIMITED',
+                        'scope' => $scope,
+                    ], 429, $headers);
+                };
+            };
+
+            $minuteResponse = $rateLimitedResponse('minute', 'Limite temporaire de requêtes atteinte. Réessayez dans quelques minutes.');
+            $dailyResponse = $rateLimitedResponse('day', 'Plafond journalier de requêtes IA atteint. Réessayez demain.');
+
             $user = $request->user();
 
             if (! $user) {
-                return Limit::perMinute(5)->by($request->ip());
+                return Limit::perMinute(5)->by($request->ip())->response($minuteResponse);
             }
-
-            $dailyResponse = function () {
-                return response()->json(['message' => 'Plafond journalier de requêtes IA atteint. Réessayez demain.'], 429);
-            };
 
             if ($user->hasRole('admin')) {
                 return [
@@ -150,22 +240,15 @@ class AppServiceProvider extends ServiceProvider
                 ];
             }
 
-            // Utilisateurs pro/premium (si tu as un rôle premium)
-            if ($user->hasRole('premium')) {
-                return [
-                    Limit::perMinute(config('ai.quotas.premium.per_minute'))->by('minute:'.$user->id)->response(function () {
-                        return response()->json(['message' => 'Limite de requêtes IA atteinte pour votre abonnement Premium.'], 429);
-                    }),
-                    Limit::perDay(config('ai.quotas.premium.per_day'))->by('day:'.$user->id)->response($dailyResponse),
-                ];
-            }
+            $quota = $user->hasRole('premium') ? 'premium' : 'standard';
 
-            // Utilisateurs standards
             return [
-                Limit::perMinute(config('ai.quotas.standard.per_minute'))->by('minute:'.$user->id)->response(function () {
-                    return response()->json(['message' => 'Limite de requêtes IA atteinte. Passez à un abonnement supérieur pour plus de requêtes.'], 429);
-                }),
-                Limit::perDay(config('ai.quotas.standard.per_day'))->by('day:'.$user->id)->response($dailyResponse),
+                Limit::perMinute(config("ai.quotas.{$quota}.per_minute"))
+                    ->by('minute:'.$user->id)
+                    ->response($minuteResponse),
+                Limit::perDay(config("ai.quotas.{$quota}.per_day"))
+                    ->by('day:'.$user->id)
+                    ->response($dailyResponse),
             ];
         });
 

@@ -94,6 +94,23 @@ it('plafonne les signalements publics anonymes par IP (quota journalier)', funct
         ->assertJsonPath('message', 'Trop de signalements envoyés. Réessayez plus tard.');
 });
 
+it('limite les connexions firebase à 30 par minute et par IP', function () {
+    // 30 tentatives déjà consommées depuis cette IP : la 31e est refusée par le
+    // limiteur dédié, AVANT toute vérification du jeton (aucun mock Firebase).
+    // Plafond volontairement plus large que le login : la clé est l'IP seule
+    // (jeton opaque), et le CGNAT congolais fait partager une IP à des
+    // utilisateurs distincts.
+    simulateThrottleHits('auth_firebase', '127.0.0.1', 30, 60);
+
+    $this->postJson('/api/v1/auth/firebase', [
+        'id_token' => 'jeton-factice',
+        'device_name' => 'Pixel 8',
+    ])
+        ->assertStatus(429)
+        ->assertHeader('Retry-After')
+        ->assertJsonPath('message', 'Trop de tentatives de connexion. Réessayez dans une minute.');
+});
+
 it('plafonne les requêtes IA journalières d\'un utilisateur standard', function () {
     $user = User::factory()->create();
 
@@ -103,7 +120,32 @@ it('plafonne les requêtes IA journalières d\'un utilisateur standard', functio
     $this->actingAs($user)
         ->postJson('/api/v1/assistant/chat', ['message' => 'Bonjour'])
         ->assertStatus(429)
-        ->assertJsonPath('message', 'Plafond journalier de requêtes IA atteint. Réessayez demain.');
+        ->assertHeader('Retry-After')
+        ->assertJsonPath('message', 'Plafond journalier de requêtes IA atteint. Réessayez demain.')
+        ->assertJsonPath('code', 'AI_RATE_LIMITED')
+        ->assertJsonPath('scope', 'day');
+});
+
+it('renvoie un 429 IA par minute neutre, sans incitation à l\'achat (App Store 3.1.1)', function () {
+    $user = User::factory()->create();
+
+    // Quota minute consommé (le quota journalier reste vierge).
+    simulateThrottleHits('ai_assistant', 'minute:'.$user->id, config('ai.quotas.standard.per_minute'), 60);
+
+    $response = $this->actingAs($user)
+        ->postJson('/api/v1/assistant/chat', ['message' => 'Bonjour'])
+        ->assertStatus(429)
+        ->assertHeader('Retry-After')
+        ->assertJsonPath('message', 'Limite temporaire de requêtes atteinte. Réessayez dans quelques minutes.')
+        ->assertJsonPath('code', 'AI_RATE_LIMITED')
+        ->assertJsonPath('scope', 'minute');
+
+    // Le message s'affiche tel quel dans le chat de l'app mobile : toute
+    // mention d'abonnement serait une incitation à l'achat hors achat in-app
+    // (motif de rejet Apple 3.1.1).
+    expect($response->getContent())
+        ->not->toContain('abonnement')
+        ->not->toContain('Passez à');
 });
 
 it('plafonne aussi les requêtes IA journalières des administrateurs', function () {
