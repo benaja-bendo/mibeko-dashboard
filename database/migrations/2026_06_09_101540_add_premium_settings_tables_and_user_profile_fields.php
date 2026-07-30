@@ -35,7 +35,7 @@ return new class extends Migration
             $table->boolean('analytics_consent')->default(false);
             $table->timestamp('analytics_consent_at')->nullable();
 
-            // Infos légales de facturation : { company, rccm, tax_id, address } (contexte RDC)
+            // Infos légales de facturation : { company, rccm, tax_id, address } (contexte OHADA / République du Congo)
             $table->json('billing_info')->nullable();
 
             $table->timestamps();

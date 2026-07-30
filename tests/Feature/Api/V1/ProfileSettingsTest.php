@@ -25,7 +25,7 @@ it('returns the full account payload with settings', function () {
         ->assertJsonPath('success', true)
         ->assertJsonPath('data.name', 'Me Tshala')
         ->assertJsonPath('data.settings.locale', 'fr')
-        ->assertJsonPath('data.settings.timezone', 'Africa/Kinshasa')
+        ->assertJsonPath('data.settings.timezone', 'Africa/Brazzaville')
         ->assertJsonStructure([
             'data' => ['id', 'email', 'roles', 'permissions', 'security' => ['two_factor_enabled'], 'settings'],
         ]);
@@ -36,7 +36,7 @@ it('updates personal information including the extended profile', function () {
 
     $response = $this->actingAs($user)->putJson('/api/v1/profile', [
         'name' => 'Nouveau Nom',
-        'phone' => '+243810000000',
+        'phone' => '+242068000000',
         'profession' => 'Avocat',
         'company' => 'Cabinet Mibeko',
     ]);

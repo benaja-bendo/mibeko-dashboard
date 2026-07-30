@@ -105,7 +105,7 @@ class UserSetting extends Model implements Auditable
         return [
             'locale' => 'fr',
             'theme' => 'lex-gold',
-            'timezone' => 'Africa/Kinshasa',
+            'timezone' => 'Africa/Brazzaville',
             'date_format' => 'd/m/Y',
             'notification_preferences' => self::defaultNotificationPreferences(),
             'marketing_consent' => false,
