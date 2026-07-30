@@ -25,10 +25,21 @@
         <env name="CACHE_STORE" value="array" />
         <!-- <env name="DB_CONNECTION" value="sqlite"/> -->
         <!-- <env name="DB_DATABASE" value=":memory:"/> -->
+        <!--
+            La cible des tests est épinglée ICI, jamais héritée du .env : la suite
+            utilise RefreshDatabase, qui migre et vide la base visée. Sans l'hôte et
+            le port fixés, un .env pointant la production (tunnel SSH) suffirait à
+            faire migrer la production au premier `php artisan test`.
+            127.0.0.1:5433 = Postgres de développement (docker-compose.local.yml).
+        -->
         <env name="DB_CONNECTION" value="pgsql" />
+        <env name="DB_HOST" value="127.0.0.1" />
+        <env name="DB_PORT" value="5433" />
         <env name="DB_DATABASE" value="mibeko_testing" />
         <env name="DB_USERNAME" value="root" />
         <env name="DB_PASSWORD" value="root" />
+        <!-- Le stockage objet des tests reste local : jamais le MinIO de production. -->
+        <env name="FILESYSTEM_DISK" value="local" />
         <env name="MAIL_MAILER" value="array" />
         <env name="QUEUE_CONNECTION" value="sync" />
         <env name="SESSION_DRIVER" value="array" />

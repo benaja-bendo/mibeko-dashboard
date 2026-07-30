@@ -60,6 +60,26 @@ return [
             'report' => false,
         ],
 
+        /*
+         * Diagnostic du MinIO de PRODUCTION en lecture seule, à travers un tunnel SSH.
+         *
+         * La lecture seule est imposée côté serveur par la policy du service account
+         * MinIO dédié (readonly), pas par ce fichier. Endpoint 9100 par défaut, jamais
+         * 9000 : le 9000 est le MinIO de développement.
+         * Voir docs/infra/acces-prod-diagnostic.md.
+         */
+        's3_prod_ro' => [
+            'driver' => 's3',
+            'key' => env('PROD_RO_AWS_ACCESS_KEY_ID'),
+            'secret' => env('PROD_RO_AWS_SECRET_ACCESS_KEY'),
+            'region' => env('PROD_RO_AWS_DEFAULT_REGION', 'us-east-1'),
+            'bucket' => env('PROD_RO_AWS_BUCKET', 'mibeko-documents'),
+            'endpoint' => env('PROD_RO_AWS_ENDPOINT', 'http://127.0.0.1:9100'),
+            'use_path_style_endpoint' => true,
+            'throw' => true,
+            'report' => false,
+        ],
+
         'gdrive' => [
             'driver' => 'gdrive',
             'client_id' => env('GOOGLE_DRIVE_CLIENT_ID'),

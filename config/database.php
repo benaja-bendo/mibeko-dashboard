@@ -104,6 +104,56 @@ return [
             ],
         ],
 
+        /*
+         * Diagnostic de la PRODUCTION en lecture seule, à travers un tunnel SSH.
+         *
+         * La lecture seule n'est PAS garantie ici : elle est imposée côté serveur par
+         * le rôle Postgres dédié (GRANT SELECT + default_transaction_read_only = on).
+         * Cette connexion n'est jamais utilisée par l'application : aucun job, aucune
+         * file, aucune migration ne doit la viser. Elle s'invoque explicitement
+         * (DB::connection('pgsql_prod_ro')) ou via `php artisan mibeko:prod-preflight`.
+         *
+         * Port 5434 par défaut, jamais 5433 : le 5433 est le Postgres de développement,
+         * et une prod indiscernable du dev est le scénario d'accident à éviter.
+         * Voir docs/infra/acces-prod-diagnostic.md.
+         */
+        'pgsql_prod_ro' => [
+            'driver' => 'pgsql',
+            'host' => env('PROD_RO_DB_HOST', '127.0.0.1'),
+            'port' => env('PROD_RO_DB_PORT', '5434'),
+            'database' => env('PROD_RO_DB_DATABASE'),
+            'username' => env('PROD_RO_DB_USERNAME'),
+            'password' => env('PROD_RO_DB_PASSWORD'),
+            'charset' => 'utf8',
+            'prefix' => '',
+            'prefix_indexes' => true,
+            'search_path' => 'public',
+            'sslmode' => 'prefer',
+        ],
+
+        /*
+         * Connexion d'ESCALADE : écriture en production.
+         *
+         * Les variables PROD_RW_DB_* ne doivent JAMAIS figurer dans un fichier .env
+         * ni dans le dépôt. Elles sont exportées à la main dans le shell, pour une
+         * opération unique autorisée explicitement par un humain, puis retirées.
+         * Aucune valeur par défaut n'est fournie : sans export, la connexion échoue,
+         * ce qui est le comportement voulu.
+         */
+        'pgsql_prod_rw' => [
+            'driver' => 'pgsql',
+            'host' => env('PROD_RW_DB_HOST'),
+            'port' => env('PROD_RW_DB_PORT'),
+            'database' => env('PROD_RW_DB_DATABASE'),
+            'username' => env('PROD_RW_DB_USERNAME'),
+            'password' => env('PROD_RW_DB_PASSWORD'),
+            'charset' => 'utf8',
+            'prefix' => '',
+            'prefix_indexes' => true,
+            'search_path' => 'public',
+            'sslmode' => 'prefer',
+        ],
+
         'sqlsrv' => [
             'driver' => 'sqlsrv',
             'url' => env('DB_URL'),

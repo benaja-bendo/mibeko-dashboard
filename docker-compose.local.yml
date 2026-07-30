@@ -26,7 +26,7 @@ services:
               sleep 2;
             done;
             /usr/bin/mc mb -p myminio/${AWS_BUCKET:-mibeko-documents} || true;
-            /usr/bin/mc anonymous set download myminio/${AWS_BUCKET:-mibeko-documents} || true;
+            /usr/bin/mc anonymous set none myminio/${AWS_BUCKET:-mibeko-documents} || true;
             exit 0;
             "
         networks:
@@ -38,9 +38,13 @@ services:
         ports:
             - '${FORWARD_POSTGRES_PORT:-5433}:5432'
         environment:
-            POSTGRES_USER: '${DB_USERNAME:-root}'
-            POSTGRES_PASSWORD: '${DB_PASSWORD:-root}'
-            POSTGRES_DB: '${DB_DATABASE:-mibeko-db}'
+            # Identifiants du Postgres de DÉVELOPPEMENT, volontairement découplés des
+            # variables DB_* du .env : celles-ci peuvent pointer la production (tunnel
+            # SSH), et la base locale ne doit jamais en hériter — sinon la suite de
+            # tests, qui vise root/root sur 5433 (cf. phpunit.xml), perd son accès.
+            POSTGRES_USER: '${LOCAL_DB_USERNAME:-root}'
+            POSTGRES_PASSWORD: '${LOCAL_DB_PASSWORD:-root}'
+            POSTGRES_DB: '${LOCAL_DB_DATABASE:-mibeko-db}'
         volumes:
             - 'postgres_data:/var/lib/postgresql/data'
         networks:
