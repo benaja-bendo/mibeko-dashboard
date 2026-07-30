@@ -35,6 +35,17 @@ Schedule::command('mibeko:backfill-document-slugs')
     ->runInBackground()
     ->appendOutputTo(storage_path('logs/backfill-document-slugs.log'));
 
+// Reprise de la veille légale : un lot réservé (les textes portent déjà
+// `watch_notified_at`) mais dont la diffusion n'a jamais abouti ne redeviendrait
+// jamais candidat de lui-même. On rejoue toutes les demi-heures les lots âgés
+// d'au moins 15 min — la file a largement eu le temps de faire son travail, et
+// le rejeu ne peut pas produire de doublon.
+Schedule::command('mibeko:retry-legal-watch --older-than=15')
+    ->everyThirtyMinutes()
+    ->withoutOverlapping()
+    ->runInBackground()
+    ->appendOutputTo(storage_path('logs/retry-legal-watch.log'));
+
 Schedule::command('mibeko:prune-audits --days=365')
     ->monthlyOn(1, '02:00')
     ->withoutOverlapping()

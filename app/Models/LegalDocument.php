@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -66,6 +67,7 @@ class LegalDocument extends Model implements Auditable
             'date_publication' => 'date',
             'date_entree_vigueur' => 'date',
             'consolidation_as_of' => 'date',
+            'watch_notified_at' => 'datetime',
             'metadata' => 'array',
         ];
     }
@@ -204,5 +206,59 @@ class LegalDocument extends Model implements Auditable
         }
 
         return $slug;
+    }
+
+    /**
+     * Répare le slug des documents qui n'en ont pas.
+     *
+     * Point unique de réparation, partagé par la commande planifiée
+     * (`mibeko:backfill-document-slugs`, filet de sécurité horaire) et par la
+     * veille légale, qui doit garantir un slug AVANT d'annoncer un texte : le
+     * slug est la cible du deep link, une alerte sans slug retombe sur
+     * l'accueil de l'app et n'est plus rattrapable une fois le document marqué
+     * comme annoncé.
+     *
+     * Idempotent (ne touche que les slugs vides) et sûr en production.
+     * `chunkById` ordonne par clé primaire : ne PAS ajouter d'orderBy, le
+     * curseur sauterait des lignes au-delà du premier lot. `saveQuietly` écrit
+     * sans déclencher d'événement (l'audit n'a pas à journaliser ce backfill
+     * technique) ; chaque slug posé est visible des itérations suivantes, ce qui
+     * garantit l'unicité au fil de l'eau.
+     *
+     * @param  array<int, string>|null  $ids  Restreint la réparation à ces documents (null = tous).
+     * @return int Nombre de slugs générés.
+     */
+    public static function backfillMissingSlugs(?array $ids = null): int
+    {
+        $backfilled = 0;
+
+        static::missingSlug($ids)->chunkById(200, function ($documents) use (&$backfilled): void {
+            foreach ($documents as $document) {
+                $document->slug = static::generateUniqueSlug(
+                    $document->titre_officiel ?: $document->id,
+                    $document->id,
+                );
+                $document->saveQuietly();
+                $backfilled++;
+            }
+        });
+
+        return $backfilled;
+    }
+
+    /**
+     * Documents dépourvus de slug (corbeille incluse : un texte restauré doit
+     * lui aussi retrouver son URL).
+     *
+     * @param  array<int, string>|null  $ids
+     * @return Builder<static>
+     */
+    public static function missingSlug(?array $ids = null)
+    {
+        return static::withTrashed()
+            ->when($ids !== null, fn ($query) => $query->whereIn('id', $ids))
+            ->where(function ($query) {
+                $query->whereNull('slug')->orWhere('slug', '');
+            });
     }
 }

@@ -16,6 +16,10 @@ class Notification extends Model
         'title',
         'message',
         'type',
+        // Identité métier de l'alerte pour ce destinataire : l'unicité
+        // `(user_id, dedupe_key)` rend une diffusion rejouable sans doublon
+        // (cf. veille légale). Nul pour les notifications non dédupliquées.
+        'dedupe_key',
         'data',
         'read_at',
     ];

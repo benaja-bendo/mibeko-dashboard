@@ -49,9 +49,12 @@ class UserSetting extends Model implements Auditable
      *
      * @var list<string>
      */
+    /** Nouveau texte juridique publié — c'est le type porté par la veille légale. */
+    public const TYPE_NEW_DOCUMENT = 'new_document';
+
     public const NOTIFICATION_TYPES = [
         'extraction_update', // Mise à jour d'une extraction de document
-        'new_document',      // Nouveau document juridique publié
+        self::TYPE_NEW_DOCUMENT, // Nouveau document juridique publié
         'share',             // Partage d'un dossier / document
         'legal_alert',       // Alerte légale (échéances, nouveautés réglementaires)
         'system',            // Messages système / sécurité
@@ -87,12 +90,51 @@ class UserSetting extends Model implements Auditable
         foreach (self::NOTIFICATION_TYPES as $type) {
             $channels[$type] = [
                 'email' => true,
-                'push' => false,
+                // La veille légale (publication d'un nouveau texte) est la
+                // raison d'être des notifications de l'app : un push désactivé
+                // par défaut la rendait invisible pour tout compte connecté,
+                // alors même que l'utilisateur a accordé la permission système.
+                // Les autres types restent en opt-in explicite.
+                'push' => $type === self::TYPE_NEW_DOCUMENT,
                 'in_app' => true,
             ];
         }
 
         return array_merge($channels, ['_frequency' => 'instant']);
+    }
+
+    /**
+     * Valeur par défaut d'un couple (type, canal) — sert de repli quand un
+     * utilisateur n'a jamais enregistré de préférences, ou quand la matrice
+     * stockée est antérieure à l'ajout d'un type/canal.
+     */
+    public static function notificationDefaultFor(string $type, string $channel): bool
+    {
+        return (bool) (self::defaultNotificationPreferences()[$type][$channel] ?? false);
+    }
+
+    /**
+     * L'utilisateur accepte-t-il ce type de notification sur ce canal ?
+     *
+     * Premier consommateur : la veille légale (`LegalWatchNotifier`), qui gate
+     * l'écriture d'une ligne `notifications` sur le canal `in_app` et l'envoi
+     * push sur le canal `push`.
+     */
+    public function allowsNotification(string $type, string $channel): bool
+    {
+        $preferences = $this->notification_preferences;
+
+        if (! is_array($preferences) || ! array_key_exists($type, $preferences)) {
+            return self::notificationDefaultFor($type, $channel);
+        }
+
+        $matrix = $preferences[$type];
+
+        if (! is_array($matrix) || ! array_key_exists($channel, $matrix)) {
+            return self::notificationDefaultFor($type, $channel);
+        }
+
+        return (bool) $matrix[$channel];
     }
 
     /**

@@ -12,6 +12,7 @@ use App\Models\LegalDocument;
 use App\Models\StructureNode;
 use App\Models\Tag;
 use App\Services\DocumentDeletionService;
+use App\Services\LegalWatchNotifier;
 use App\Traits\GuardsUnpublishedDocuments;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -456,7 +457,7 @@ class LegalDocumentController extends Controller
      * scope, type) and the curation workflow status. Publishing requires the
      * document to have at least one article.
      */
-    public function update(Request $request, string $id): JsonResponse
+    public function update(Request $request, string $id, LegalWatchNotifier $watch): JsonResponse
     {
         $document = LegalDocument::findOrFail($id);
 
@@ -552,6 +553,15 @@ class LegalDocumentController extends Controller
             // on les invalide pour refléter le rattachement immédiatement.
             Cache::forget('library:themes');
             Cache::forget('library:home');
+        }
+
+        // Veille légale — appel EXPLICITE plutôt qu'un observer : le chemin de
+        // publication en masse (`bulkUpdate`) n'émet aucun événement Eloquent,
+        // un observer y serait aveugle (cf. LegalWatchNotifier). Le service est
+        // idempotent : une republication n'annonce rien de nouveau, et il ne
+        // met rien en file quand il n'a rien à annoncer.
+        if ($isPublishing) {
+            $watch->documentsPublished([$document->id]);
         }
 
         return $this->success(
@@ -713,7 +723,7 @@ class LegalDocumentController extends Controller
      * @bodyParam action string required Action to perform: set_curation_status, set_statut.
      * @bodyParam value string required New value for the action.
      */
-    public function bulkUpdate(Request $request): JsonResponse
+    public function bulkUpdate(Request $request, LegalWatchNotifier $watch): JsonResponse
     {
         $request->validate([
             'ids' => ['required', 'array', 'min:1', 'max:200'],
@@ -757,6 +767,17 @@ class LegalDocumentController extends Controller
 
             return $query->update([$column => $request->value, 'updated_at' => now()]);
         });
+
+        // Veille légale : ce chemin est un `UPDATE` de masse, donc muet côté
+        // Eloquent — l'annonce doit être déclenchée à la main. Le service
+        // re-filtre lui-même (publié, vivant, jamais annoncé), les documents
+        // écartés par les gardes ci-dessus ne risquent donc pas d'être annoncés.
+        // Il répare aussi les slugs manquants avant de réserver : aucun mutateur
+        // Eloquent n'a tourné sur cet `UPDATE`, et une alerte sans slug ouvrirait
+        // l'accueil de l'app au lieu du texte (cf. LegalWatchNotifier).
+        if ($isPublishing && $updated > 0) {
+            $watch->documentsPublished($request->ids);
+        }
 
         $skipped = $isPublishing ? count($request->ids) - $updated : 0;
         $message = "{$updated} document(s) mis à jour avec succès.";

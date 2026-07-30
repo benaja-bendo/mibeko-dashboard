@@ -28,12 +28,7 @@ class BackfillDocumentSlugs extends Command
 
     public function handle(): int
     {
-        $query = LegalDocument::withTrashed()
-            ->where(function ($q) {
-                $q->whereNull('slug')->orWhere('slug', '');
-            });
-
-        $missing = (clone $query)->count();
+        $missing = LegalDocument::missingSlug()->count();
 
         if ($missing === 0) {
             $this->info('Aucun document sans slug : rien à faire.');
@@ -47,23 +42,9 @@ class BackfillDocumentSlugs extends Command
             return self::SUCCESS;
         }
 
-        $backfilled = 0;
-
-        // chunkById ordonne par clé primaire : ne PAS ajouter d'orderBy, le
-        // curseur sauterait des lignes au-delà du premier lot. saveQuietly écrit
-        // sans déclencher d'événement (l'audit n'a pas à journaliser ce backfill
-        // technique) ; chaque slug posé est visible des itérations suivantes, ce
-        // qui garantit l'unicité au fil de l'eau comme dans la migration initiale.
-        $query->chunkById(200, function ($documents) use (&$backfilled): void {
-            foreach ($documents as $document) {
-                $document->slug = LegalDocument::generateUniqueSlug(
-                    $document->titre_officiel ?: $document->id,
-                    $document->id,
-                );
-                $document->saveQuietly();
-                $backfilled++;
-            }
-        });
+        // La réparation elle-même vit sur le modèle : la veille légale l'appelle
+        // aussi, sur le seul lot qu'elle s'apprête à annoncer.
+        $backfilled = LegalDocument::backfillMissingSlugs();
 
         $this->info("Slugs générés : {$backfilled}");
 
