@@ -7,6 +7,7 @@ use App\Http\Resources\V1\LegalDocumentCatalogResource;
 use App\Models\LegalDocument;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -45,12 +46,26 @@ class CatalogController extends Controller
         $documents = LegalDocument::query()
             ->published()
             ->with(['type'])
+            // Alimentent l'empreinte de version : une correction d'article doit
+            // être détectable même quand la ligne du document n'a pas bougé.
+            ->withCount('articles')
+            ->withMax('articles', 'updated_at')
             ->get();
 
+        $resources = LegalDocumentCatalogResource::collection($documents);
+
         return $this->success([
+            // Conservés pour compatibilité avec les applications déjà
+            // publiées ; aucune écriture ne les alimente (cf. catalog_version).
             'global_update_required' => cache()->get('global_update_required', false),
             'last_essential_sync' => cache()->get('last_essential_sync', now()->toIso8601String()),
-            'resources' => LegalDocumentCatalogResource::collection($documents),
+            // Empreinte de tout le catalogue : inchangée, le client sait qu'il
+            // n'a rien à faire sans comparer document par document.
+            'catalog_version' => $this->catalogVersion($documents),
+            // Horloge du serveur : le client horodate sa synchronisation
+            // dessus plutôt que sur une horloge d'appareil parfois fausse.
+            'server_time' => now()->toIso8601String(),
+            'resources' => $resources,
         ], 'Catalogue récupéré avec succès');
     }
 
@@ -77,5 +92,29 @@ class CatalogController extends Controller
             ->get();
 
         return $this->success($stats, 'Statistiques récupérées avec succès');
+    }
+
+    /**
+     * Empreinte de l'ensemble du catalogue.
+     *
+     * Change dès qu'un document entre, sort ou évolue — l'app mobile peut donc
+     * conclure « rien à faire » sur une seule comparaison, sans parcourir les
+     * centaines d'entrées.
+     *
+     * @param  Collection<int, LegalDocument>  $documents
+     */
+    private function catalogVersion($documents): string
+    {
+        $fingerprint = $documents
+            ->map(fn ($document) => implode(':', [
+                $document->id,
+                $document->updated_at->getTimestamp(),
+                $document->articles_max_updated_at ?? '',
+                $document->articles_count ?? 0,
+            ]))
+            ->sort()
+            ->implode('|');
+
+        return md5($fingerprint);
     }
 }

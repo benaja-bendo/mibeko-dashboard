@@ -83,10 +83,24 @@ class LegalDocumentDownloadController extends Controller
         // Fetch Articles (Latest Active Version)
         $nodeIds = $nodes->pluck('id');
 
-        $articles = $document->articles()
-            ->whereIn('parent_node_id', $nodeIds)
-            ->with(['activeVersion', 'tags'])
-            ->get();
+        $articlesQuery = $document->articles()
+            ->with(['activeVersion', 'tags']);
+
+        if ($nodeId) {
+            // Sous-arbre demandé : seuls les articles rattachés à ces nœuds.
+            $articlesQuery->whereIn('parent_node_id', $nodeIds);
+        } else {
+            // Document entier : les articles ORPHELINS (parent_node_id null,
+            // fréquents sur les textes courts sans découpage en titres) étaient
+            // silencieusement exclus, produisant un téléchargement hors-ligne
+            // incomplet. L'endpoint /tree, lui, les renvoie déjà.
+            $articlesQuery->where(function ($query) use ($nodeIds) {
+                $query->whereIn('parent_node_id', $nodeIds)
+                    ->orWhereNull('parent_node_id');
+            });
+        }
+
+        $articles = $articlesQuery->get();
 
         return $this->success([
             'resource_id' => $document->id,

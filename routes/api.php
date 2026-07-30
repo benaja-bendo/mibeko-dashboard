@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\V1\Admin\TagController as AdminTagController;
 use App\Http\Controllers\Api\V1\Admin\UserController as AdminUserController;
 use App\Http\Controllers\Api\V1\Admin\UserInvitationController as AdminUserInvitationController;
 use App\Http\Controllers\Api\V1\AiAssistantController;
+use App\Http\Controllers\Api\V1\AppConfigController;
 use App\Http\Controllers\Api\V1\ArticleController;
 use App\Http\Controllers\Api\V1\ArticleSearchController;
 use App\Http\Controllers\Api\V1\AuthController;
@@ -56,7 +57,10 @@ Route::prefix('v1')->middleware('throttle:api')->group(function () {
     // de compte) ; l'inscription est bornée par IP contre la création en masse.
     Route::post('register', [AuthController::class, 'register'])->middleware('throttle:6,1');
     Route::post('login', [AuthController::class, 'login'])->middleware('throttle:login');
-    Route::post('auth/firebase', [AuthController::class, 'firebaseLogin']);
+    // Connexion Firebase (mobile) : quota dédié aligné sur le login (5/min/IP),
+    // le quota générique `api` (60/min) laisserait passer un brute-force.
+    Route::post('auth/firebase', [AuthController::class, 'firebaseLogin'])
+        ->middleware('throttle:auth_firebase');
 
     // Réinitialisation de mot de passe par code OTP (mobile)
     Route::post('forgot-password', [PasswordResetController::class, 'forgot'])
@@ -67,8 +71,14 @@ Route::prefix('v1')->middleware('throttle:api')->group(function () {
     // Acceptation d'une invitation d'équipe (création de compte + auto-login)
     Route::post('invitations/accept', [AdminUserInvitationController::class, 'accept']);
 
-    // Device Registration (No Auth required)
-    Route::post('devices/register', [DeviceController::class, 'register']);
+    // Enregistrement d'appareil — route publique : l'app mobile pousse son
+    // jeton FCM au démarrage, avant toute connexion (un invité reçoit la veille
+    // générale). Le contrôleur rattache l'appareil à l'utilisateur dès qu'un
+    // jeton Sanctum accompagne la requête. Quota dédié (clé par appareil, cf.
+    // limiteur `device_register`) qui REMPLACE le quota générique `api`.
+    Route::post('devices/register', [DeviceController::class, 'register'])
+        ->withoutMiddleware('throttle:api')
+        ->middleware('throttle:device_register');
     Route::post('devices/unregister', [DeviceController::class, 'unregister']);
 
     Route::middleware('auth:sanctum')->group(function () {
@@ -174,6 +184,10 @@ Route::prefix('v1')->middleware('throttle:api')->group(function () {
     // Plan du site vitrine (sitemap.xml) — documents publiés + numéros d'articles.
     Route::get('sitemap', [SitemapController::class, 'index']);
 
+    // Configuration de l'app mobile (force-update) — publique : appelée au
+    // démarrage de l'app, avant toute authentification (cf. config/mobile.php).
+    Route::get('app-config', [AppConfigController::class, 'show']);
+
     // Formulaire de contact public (site vitrine) — limité pour éviter le spam.
     Route::post('contact', [ContactController::class, 'store'])->middleware('throttle:6,1');
 
@@ -184,10 +198,21 @@ Route::prefix('v1')->middleware('throttle:api')->group(function () {
 
     // Resources
     Route::get('home', [HomeController::class, 'index']);
-    // Catalog & Sync
-    Route::get('catalog', [CatalogController::class, 'index']); // BE1
-    Route::get('catalog/stats', [CatalogController::class, 'stats']);
-    Route::get('sync', [SyncController::class, 'sync']);
+
+    // Lecture froide du corpus : la synchronisation d'un téléphone enchaîne
+    // une requête par document. Quota dédié, clé par appareil (cf. limiteur
+    // `corpus_read`) pour ne pas hacher la synchronisation de 429 derrière le
+    // CGNAT des opérateurs congolais.
+    // `withoutMiddleware` est indispensable : ce groupe est imbriqué dans le
+    // `throttle:api` du préfixe v1, dont le plafond de 60/min par IP
+    // s'appliquerait EN PLUS et annulerait tout le bénéfice.
+    Route::withoutMiddleware('throttle:api')->middleware('throttle:corpus_read')->group(function () {
+        Route::get('catalog', [CatalogController::class, 'index']); // BE1
+        Route::get('catalog/stats', [CatalogController::class, 'stats']);
+        Route::get('sync', [SyncController::class, 'sync']);
+        Route::get('legal-documents/{document}/tree', [StructureNodeController::class, 'tree']);
+        Route::get('legal-documents/{id}/download', [LegalDocumentDownloadController::class, 'download']);
+    });
 
     Route::apiResource('institutions', InstitutionController::class)->only(['index']);
     Route::apiResource('document-types', DocumentTypeController::class)->only(['index']);
@@ -199,7 +224,6 @@ Route::prefix('v1')->middleware('throttle:api')->group(function () {
     // Vue publique par slug (site vitrine SEO) — publié uniquement.
     Route::get('legal-documents/slug/{slug}', [LegalDocumentController::class, 'showBySlug']);
     Route::apiResource('legal-documents', LegalDocumentController::class)->only(['index', 'show']);
-    Route::get('legal-documents/{document}/tree', [StructureNodeController::class, 'tree']);
 
     // Bulk update and delete — editor + admin only
     Route::middleware(['auth:sanctum', 'role:editor|admin'])->group(function () {
@@ -259,8 +283,7 @@ Route::prefix('v1')->middleware('throttle:api')->group(function () {
     Route::get('articles/{article}/relations', [DocumentRelationController::class, 'index']);
     Route::get('relations/search', [DocumentRelationController::class, 'searchTargets']);
 
-    // BE2 - Flat List Download
-    Route::get('legal-documents/{id}/download', [LegalDocumentDownloadController::class, 'download']);
+    // BE2 - Flat List Download : déclaré plus haut sous `throttle:corpus_read`.
 
     // BE4 - PDF Proxy
     Route::get('legal-documents/{id}/pdf', [PdfProxyController::class, 'show']);
@@ -275,8 +298,13 @@ Route::prefix('v1')->middleware('throttle:api')->group(function () {
     Route::post('reports', [CurationFlagController::class, 'store'])
         ->middleware('throttle:reports');
 
-    // BE6 - Dossier PDF Export
-    Route::post('dossiers/export-pdf', [DossierExportController::class, 'exportPdf']);
+    // BE6 - Dossier PDF Export — endpoint public : les dossiers de l'app mobile
+    // sont locaux et exportables sans compte (mode invité, versions déjà
+    // publiées comprises). Les ids d'articles arrivant librement dans le corps
+    // de la requête, le contrôleur restreint l'export au corpus publié pour
+    // tout appelant sans rôle éditorial (cf. GuardsUnpublishedDocuments).
+    Route::post('dossiers/export-pdf', [DossierExportController::class, 'exportPdf'])
+        ->middleware('throttle:6,1');
 
     // ─── Espace Administration (/admin/*) — réservé au rôle admin ─────────────
     // Centre de gestion du dashboard React. Les référentiels (types de loi,
