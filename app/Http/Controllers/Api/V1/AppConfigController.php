@@ -3,7 +3,9 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Models\AppSetting;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 
 /**
@@ -23,6 +25,8 @@ class AppConfigController extends Controller
      */
     private const CACHE_TTL_SECONDS = 600;
 
+    private const LATEST_VERSION_SETTING_KEY = 'mobile.latest_version';
+
     public function show(): JsonResponse
     {
         $payload = Cache::remember('mobile:app-config', self::CACHE_TTL_SECONDS, function (): array {
@@ -30,7 +34,8 @@ class AppConfigController extends Controller
 
             return [
                 'min_supported_version' => (string) config('mobile.min_supported_version'),
-                'latest_version' => (string) config('mobile.latest_version'),
+                'latest_version' => AppSetting::get(self::LATEST_VERSION_SETTING_KEY)
+                    ?? (string) config('mobile.latest_version'),
                 'message' => config('mobile.update_message') ?: null,
                 'store_urls' => [
                     'android' => (string) config('mobile.store_urls.android'),
@@ -41,5 +46,25 @@ class AppConfigController extends Controller
 
         return response()->json($payload)
             ->header('Cache-Control', 'public, max-age=300');
+    }
+
+    /**
+     * Écrit `latest_version` (mécanisme d'incitation douce uniquement — le seuil
+     * `min_supported_version` du force-update reste une décision manuelle,
+     * jamais bougée automatiquement par une release).
+     *
+     * Protégé par secret partagé (`EnsureMobileReleaseSecret`), pas par
+     * Sanctum : l'appelant est la CI de mibeko-app-kmp, pas un utilisateur.
+     */
+    public function updateLatestVersion(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'version' => ['required', 'string', 'regex:/^\d+\.\d+(\.\d+)?$/'],
+        ]);
+
+        AppSetting::set(self::LATEST_VERSION_SETTING_KEY, $validated['version']);
+        Cache::forget('mobile:app-config');
+
+        return response()->json(['latest_version' => $validated['version']]);
     }
 }

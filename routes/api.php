@@ -50,6 +50,7 @@ use App\Http\Controllers\Api\V1\StructureNodeController;
 use App\Http\Controllers\Api\V1\SyncController;
 use App\Http\Controllers\Api\V1\TwoFactorController;
 use App\Http\Controllers\PdfProxyController;
+use App\Http\Middleware\EnsureMobileReleaseSecret;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->middleware('throttle:api')->group(function () {
@@ -187,6 +188,12 @@ Route::prefix('v1')->middleware('throttle:api')->group(function () {
     // Configuration de l'app mobile (force-update) — publique : appelée au
     // démarrage de l'app, avant toute authentification (cf. config/mobile.php).
     Route::get('app-config', [AppConfigController::class, 'show']);
+
+    // Écriture de `latest_version` par la CI de mibeko-app-kmp après une
+    // publication Play Store en production — secret partagé, pas de session
+    // humaine (cf. EnsureMobileReleaseSecret).
+    Route::middleware(EnsureMobileReleaseSecret::class)
+        ->post('app-config/latest-version', [AppConfigController::class, 'updateLatestVersion']);
 
     // Formulaire de contact public (site vitrine) — limité pour éviter le spam.
     Route::post('contact', [ContactController::class, 'store'])->middleware('throttle:6,1');

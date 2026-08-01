@@ -23,6 +23,16 @@ return [
     'latest_version' => env('MOBILE_LATEST_VERSION', '1.1.0'),
 
     /*
+    | Secret partagé attendu dans l'en-tête `X-Mobile-Release-Secret` par
+    | POST /v1/app-config/latest-version (appelé par la CI de mibeko-app-kmp
+    | après une publication Play Store en production, pour tenir
+    | `latest_version` à jour sans intervention manuelle). Vide = endpoint
+    | fermé (401 systématique).
+    */
+
+    'release_webhook_secret' => env('MOBILE_RELEASE_WEBHOOK_SECRET'),
+
+    /*
     | Message optionnel affiché avec l'écran de mise à jour (null = message
     | par défaut du client).
     */
