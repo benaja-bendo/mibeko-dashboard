@@ -83,7 +83,10 @@ it('n\'écrit rien en mode dry-run', function () {
 });
 
 it('répare le slug d\'un document slugless dès sa publication via Eloquent', function () {
-    $id = insertSluglessDocument('Loi de Finances', curationStatus: 'draft');
+    // 'review' (pas 'draft') : seule transition avant valide vers 'published'
+    // (audit phase 3b, machine à états) — le test porte sur la réparation du
+    // slug à la mise à jour Eloquent, pas sur l'état de départ.
+    $id = insertSluglessDocument('Loi de Finances', curationStatus: 'review');
 
     LegalDocument::find($id)->update(['curation_status' => 'published']);
 

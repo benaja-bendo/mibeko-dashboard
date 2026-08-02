@@ -12,6 +12,7 @@ use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 
 uses(RefreshDatabase::class);
@@ -144,6 +145,8 @@ it('orders the orphan preamble before structure nodes by shared root order', fun
 
 it('does not bulk publish documents without articles', function () {
     Role::findOrCreate('editor');
+    Permission::findOrCreate('documents.update');
+    Role::findByName('editor')->givePermissionTo('documents.update');
     $editor = User::factory()->create();
     $editor->assignRole('editor');
 
@@ -166,6 +169,8 @@ it('does not bulk publish documents without articles', function () {
 
 it('does not bulk publish documents with unresolved curation flags', function () {
     Role::findOrCreate('editor');
+    Permission::findOrCreate('documents.update');
+    Role::findByName('editor')->givePermissionTo('documents.update');
     $editor = User::factory()->create();
     $editor->assignRole('editor');
 

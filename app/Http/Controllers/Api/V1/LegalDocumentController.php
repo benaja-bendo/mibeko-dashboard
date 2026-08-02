@@ -23,6 +23,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Spatie\QueryBuilder\AllowedFilter;
 use Spatie\QueryBuilder\QueryBuilder;
 
@@ -469,6 +470,10 @@ class LegalDocumentController extends Controller
             'date_signature' => ['sometimes', 'nullable', 'date'],
             'date_publication' => ['sometimes', 'nullable', 'date'],
             'date_entree_vigueur' => ['sometimes', 'nullable', 'date'],
+            // Gate éditorial (audit phase 3c) : assume explicitement l'absence
+            // de date d'entrée en vigueur plutôt que de la laisser simplement
+            // oubliée avant publication.
+            'date_entree_vigueur_inconnue' => ['sometimes', 'boolean'],
             'statut' => ['sometimes', 'string', 'in:vigueur,abroge,projet'],
             'legal_scope' => ['sometimes', 'string', Rule::in(LegalDocument::LEGAL_SCOPES)],
             'type_code' => ['sometimes', 'string', 'exists:document_types,code'],
@@ -483,6 +488,9 @@ class LegalDocumentController extends Controller
             // Publication forcée : l'éditeur assume la publication malgré des
             // anomalies de curation bloquantes non résolues (« publier quand même »).
             'force' => ['sometimes', 'boolean'],
+            // Motif obligatoire pour une dépublication (sortie de PUBLISHED,
+            // réservée aux admins — cf. LegalDocument::guardUnpublishing).
+            'motif' => ['sometimes', 'nullable', 'string', 'max:1000'],
             // Thèmes (taxonomie « tags » réutilisée) — tableau d'ids de tags.
             'themes' => ['sometimes', 'array'],
             'themes.*' => ['string', 'exists:tags,id'],
@@ -497,6 +505,25 @@ class LegalDocumentController extends Controller
                 'Impossible de publier un document sans article.',
                 422
             );
+        }
+
+        // Gate éditorial (audit phase 3c) : pas de publication sur une date
+        // d'entrée en vigueur simplement absente — soit elle est renseignée
+        // (ici ou déjà en base), soit son absence est explicitement assumée.
+        if ($isPublishing) {
+            $dateConnue = ! is_null($validated['date_entree_vigueur'] ?? $document->date_entree_vigueur);
+            $inconnueAssumee = $validated['date_entree_vigueur_inconnue'] ?? $document->date_entree_vigueur_inconnue;
+
+            if (! $dateConnue && ! $inconnueAssumee) {
+                return $this->error(
+                    ['date_entree_vigueur' => [
+                        "La date d'entrée en vigueur est inconnue. Renseignez-la, ou confirmez explicitement "
+                        ."(date_entree_vigueur_inconnue) qu'elle est inconnue pour publier quand même.",
+                    ]],
+                    "Impossible de publier sans date d'entrée en vigueur, sauf confirmation explicite qu'elle est inconnue.",
+                    422
+                );
+            }
         }
 
         // Garde-fou qualité : un document conservant des anomalies de curation
@@ -542,7 +569,11 @@ class LegalDocumentController extends Controller
             );
         }
 
-        $document->update(Arr::except($validated, ['themes', 'force']));
+        // Contexte non persisté lu par LegalDocument::guardUnpublishing —
+        // doit être posé AVANT update() pour être visible du hook `saving`.
+        $document->transitionMotif = $validated['motif'] ?? null;
+
+        $document->update(Arr::except($validated, ['themes', 'force', 'motif']));
 
         if (array_key_exists('themes', $validated)) {
             $themeIds = $validated['themes'];
@@ -725,11 +756,14 @@ class LegalDocumentController extends Controller
      */
     public function bulkUpdate(Request $request, LegalWatchNotifier $watch): JsonResponse
     {
-        $request->validate([
+        $validated = $request->validate([
             'ids' => ['required', 'array', 'min:1', 'max:200'],
             'ids.*' => ['uuid'],
             'action' => ['required', 'string', 'in:set_curation_status,set_statut'],
             'value' => ['required', 'string'],
+            // Motif obligatoire pour une dépublication en masse (sortie de
+            // PUBLISHED) — même garde que le chemin unitaire.
+            'motif' => ['sometimes', 'nullable', 'string', 'max:1000'],
         ]);
 
         $allowedCurationStatuses = [
@@ -751,38 +785,77 @@ class LegalDocumentController extends Controller
         $column = $request->action === 'set_curation_status' ? 'curation_status' : 'statut';
         $isPublishing = $request->action === 'set_curation_status'
             && $request->value === LegalDocument::STATUS_PUBLISHED;
+        $motif = $validated['motif'] ?? null;
 
-        $updated = DB::transaction(function () use ($request, $column, $isPublishing) {
-            $query = LegalDocument::whereIn('id', $request->ids);
+        $documents = LegalDocument::whereIn('id', $validated['ids'])->get();
 
-            if ($isPublishing) {
-                // Mêmes gardes que la curation unitaire : un document sans aucun
-                // article, ou conservant des anomalies de curation non résolues,
-                // ne doit pas atteindre le catalogue publié.
-                $query->whereHas('articles')
-                    ->whereDoesntHave('curationFlags', function ($flagQuery) {
-                        $flagQuery->where('resolved', false);
-                    });
-            }
-
-            return $query->update([$column => $request->value, 'updated_at' => now()]);
-        });
-
-        // Veille légale : ce chemin est un `UPDATE` de masse, donc muet côté
-        // Eloquent — l'annonce doit être déclenchée à la main. Le service
-        // re-filtre lui-même (publié, vivant, jamais annoncé), les documents
-        // écartés par les gardes ci-dessus ne risquent donc pas d'être annoncés.
-        // Il répare aussi les slugs manquants avant de réserver : aucun mutateur
-        // Eloquent n'a tourné sur cet `UPDATE`, et une alerte sans slug ouvrirait
-        // l'accueil de l'app au lieu du texte (cf. LegalWatchNotifier).
-        if ($isPublishing && $updated > 0) {
-            $watch->documentsPublished($request->ids);
+        // Autorisation par document AVANT toute écriture (parité avec
+        // bulkDestroy, audit phase 3a) : un rôle non autorisé sur UN SEUL
+        // document doit faire échouer tout le lot en 403, pas en écrire une
+        // partie puis échouer au milieu.
+        foreach ($documents as $document) {
+            Gate::authorize('update', $document);
         }
 
-        $skipped = $isPublishing ? count($request->ids) - $updated : 0;
+        $publishedIds = [];
+        $skipped = 0;
+
+        DB::transaction(function () use ($documents, $column, $request, $isPublishing, $motif, &$publishedIds, &$skipped) {
+            foreach ($documents as $document) {
+                if ($isPublishing) {
+                    // Mêmes gardes que la curation unitaire, plus strictes sur un
+                    // point assumé (audit initial) : bulkUpdate bloque sur TOUTE
+                    // anomalie non résolue, pas seulement `blocking` — pas de
+                    // `force` en masse.
+                    $sansArticle = ! $document->articles()->exists();
+                    $anomalieNonResolue = $document->curationFlags()->where('resolved', false)->exists();
+                    $dateInconnueNonAssumee = is_null($document->date_entree_vigueur)
+                        && ! $document->date_entree_vigueur_inconnue;
+
+                    if ($sansArticle || $anomalieNonResolue || $dateInconnueNonAssumee) {
+                        $skipped++;
+
+                        continue;
+                    }
+                }
+
+                // Contexte non persisté lu par LegalDocument::guardUnpublishing.
+                $document->transitionMotif = $motif;
+
+                try {
+                    // `update()` sur l'INSTANCE (pas le query builder) : déclenche
+                    // le cycle de vie Eloquent complet (audit, observers, garde de
+                    // transition) — c'est tout l'objet de la phase 3a.
+                    $document->update([$column => $request->value]);
+                } catch (ValidationException) {
+                    // Transition de statut refusée (cf. LegalDocument) : comptée
+                    // comme un skip, cohérent avec le reste de cette boucle — un
+                    // lot partiellement invalide ne doit pas faire échouer les
+                    // documents par ailleurs valides.
+                    $skipped++;
+
+                    continue;
+                }
+
+                if ($isPublishing) {
+                    $publishedIds[] = $document->id;
+                }
+            }
+        });
+
+        $updated = $documents->count() - $skipped;
+
+        // Veille légale : déclenchée pour de vrai maintenant (chemin Eloquent),
+        // mais l'appel explicite reste nécessaire — plusieurs documents publiés
+        // dans la même requête, un seul appel groupé.
+        if ($isPublishing && ! empty($publishedIds)) {
+            $watch->documentsPublished($publishedIds);
+        }
+
         $message = "{$updated} document(s) mis à jour avec succès.";
         if ($skipped > 0) {
-            $message .= " {$skipped} document(s) non publié(s) : aucun article ou anomalies de curation non résolues.";
+            $message .= " {$skipped} document(s) non mis à jour : aucun article, anomalies de curation non résolues, "
+                ."date d'entrée en vigueur non assumée, ou transition de statut non autorisée.";
         }
 
         return $this->success(

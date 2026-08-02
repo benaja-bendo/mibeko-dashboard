@@ -10,12 +10,25 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphToMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 use OwenIt\Auditing\Contracts\Auditable;
 
 class LegalDocument extends Model implements Auditable
 {
     use HasFactory, HasUuids, \OwenIt\Auditing\Auditable, SoftDeletes;
+
+    /**
+     * Contexte de transition NON persisté (audit
+     * docs/audit-ingestion-2026-08-02.md phase 3b) : motif d'une
+     * dépublication, à renseigner par le contrôleur avant `save()`/`update()`.
+     * Propriété PHP déclarée (pas un attribut Eloquent) — un simple
+     * `$document->transitionMotif = …` sur un nom non déclaré serait capté
+     * par les magic methods d'Eloquent et tenterait d'écrire une colonne
+     * `transition_motif` inexistante.
+     */
+    public ?string $transitionMotif = null;
 
     protected $auditExclude = [
         'created_at',
@@ -36,6 +49,7 @@ class LegalDocument extends Model implements Auditable
         'date_signature',
         'date_publication',
         'date_entree_vigueur',
+        'date_entree_vigueur_inconnue',
         'statut',
         'curation_status',
         'extraction_status',
@@ -60,12 +74,47 @@ class LegalDocument extends Model implements Auditable
 
     const STATUS_PUBLISHED = 'published';
 
+    /**
+     * Machine à états maison de `curation_status` (audit
+     * docs/audit-ingestion-2026-08-02.md, phase 3b — implémentation maison,
+     * aucun package de state machine). Deux listes de transitions autorisées
+     * SANS condition particulière ; toute sortie de PUBLISHED est traitée à
+     * part (cf. `guardUnpublishing`, admin + motif obligatoires).
+     *
+     * `review` → `published` (sans passer par `validated`) est autorisé :
+     * constaté à l'exécution réelle des tests existants (LegalWatchNotificationTest
+     * et consorts, 25 cas) que ce raccourci est un usage établi et voulu de
+     * l'application — `validated` est une étape optionnelle, pas un palier
+     * obligatoire. `draft` → `validated` et `draft` → `published` restent en
+     * revanche refusés (aucun usage existant ne s'appuie dessus, et c'est le
+     * saut que l'audit visait explicitement : sauter la revue elle-même).
+     *
+     * @var array<string, string[]>
+     */
+    const CURATION_TRANSITIONS_AVANT = [
+        self::STATUS_DRAFT => [self::STATUS_REVIEW],
+        self::STATUS_REVIEW => [self::STATUS_VALIDATED, self::STATUS_PUBLISHED],
+        self::STATUS_VALIDATED => [self::STATUS_PUBLISHED],
+    ];
+
+    /**
+     * Retours arrière explicitement autorisés (mission phase 3b) —
+     * PUBLISHED en est volontairement absent : cf. `guardUnpublishing`.
+     *
+     * @var array<string, string[]>
+     */
+    const CURATION_TRANSITIONS_ARRIERE = [
+        self::STATUS_REVIEW => [self::STATUS_DRAFT],
+        self::STATUS_VALIDATED => [self::STATUS_REVIEW, self::STATUS_DRAFT],
+    ];
+
     protected function casts(): array
     {
         return [
             'date_signature' => 'date',
             'date_publication' => 'date',
             'date_entree_vigueur' => 'date',
+            'date_entree_vigueur_inconnue' => 'boolean',
             'consolidation_as_of' => 'date',
             'watch_notified_at' => 'datetime',
             'metadata' => 'array',
@@ -98,6 +147,16 @@ class LegalDocument extends Model implements Auditable
             }
         });
 
+        // Garde de transition (audit docs/audit-ingestion-2026-08-02.md,
+        // phase 3b) : ne s'applique qu'aux écritures Eloquent d'un document
+        // DÉJÀ existant dont `curation_status` change réellement — jamais à
+        // la création, ni aux mises à jour qui ne touchent pas ce champ.
+        static::saving(function (LegalDocument $document) {
+            if ($document->exists && $document->isDirty('curation_status')) {
+                static::guardCurationStatusTransition($document);
+            }
+        });
+
         static::deleting(function (LegalDocument $document) {
             if ($document->isForceDeleting()) {
                 return;
@@ -109,6 +168,66 @@ class LegalDocument extends Model implements Auditable
         static::restoring(function (LegalDocument $document) {
             $document->articles()->onlyTrashed()->restore();
         });
+    }
+
+    /**
+     * Vérifie qu'une transition de `curation_status` est autorisée. Lève une
+     * `ValidationException` (422) sinon — jamais un simple `return false`
+     * silencieux, cohérent avec les autres garde-fous de publication du
+     * contrôleur.
+     */
+    protected static function guardCurationStatusTransition(LegalDocument $document): void
+    {
+        $from = $document->getOriginal('curation_status');
+        $to = $document->curation_status;
+
+        if ($from === null || $from === $to) {
+            return;
+        }
+
+        if ($from === self::STATUS_PUBLISHED) {
+            static::guardUnpublishing($document, $from, $to);
+
+            return;
+        }
+
+        $autorisee = in_array($to, self::CURATION_TRANSITIONS_AVANT[$from] ?? [], true)
+            || in_array($to, self::CURATION_TRANSITIONS_ARRIERE[$from] ?? [], true);
+
+        if (! $autorisee) {
+            throw ValidationException::withMessages([
+                'curation_status' => ["Transition de statut « {$from} » → « {$to} » non autorisée."],
+            ]);
+        }
+    }
+
+    /**
+     * Sortie de PUBLISHED : réservée aux administrateurs, motif obligatoire,
+     * décision tracée (même esprit que la publication forcée,
+     * `LegalDocumentController::update`) — un document déjà publié est
+     * visible du public, en sortir n'est jamais anodin.
+     */
+    protected static function guardUnpublishing(LegalDocument $document, string $from, string $to): void
+    {
+        $user = auth()->user();
+        $estAdmin = $user && method_exists($user, 'hasRole') && $user->hasRole('admin');
+        $motif = trim((string) ($document->transitionMotif ?? ''));
+
+        if (! $estAdmin || $motif === '') {
+            throw ValidationException::withMessages([
+                'curation_status' => [
+                    "Dépublication (« {$from} » → « {$to} ») réservée aux administrateurs, avec un motif obligatoire.",
+                ],
+            ]);
+        }
+
+        Log::warning('Dépublication d\'un document juridique.', [
+            'document_id' => $document->id,
+            'user_id' => $user->id,
+            'from' => $from,
+            'to' => $to,
+            'motif' => $motif,
+        ]);
     }
 
     public function type(): BelongsTo

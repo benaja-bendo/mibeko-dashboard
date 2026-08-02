@@ -39,7 +39,11 @@ it('bumps the corpus version when an article content changes', function () {
 });
 
 it('bumps the corpus version when a document is published', function () {
-    $document = LegalDocument::factory()->create(['curation_status' => 'draft']);
+    // 'review' (pas 'draft') : seule transition avant valide vers 'published'
+    // pour un document déjà en base (audit phase 3b, machine à états) — le
+    // test porte sur l'événement de mise à jour lui-même, pas sur l'état de
+    // départ.
+    $document = LegalDocument::factory()->create(['curation_status' => 'review']);
 
     $before = CorpusVersion::current();
     $document->update(['curation_status' => 'published']);

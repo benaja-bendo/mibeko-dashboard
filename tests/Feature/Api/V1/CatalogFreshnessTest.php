@@ -3,7 +3,9 @@
 use App\Models\Article;
 use App\Models\ArticleVersion;
 use App\Models\LegalDocument;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Spatie\Permission\Models\Role;
 
 uses(RefreshDatabase::class);
 
@@ -97,6 +99,12 @@ it('retire du catalogue un document dépublié', function () {
 
     // L'absence de la liste vaut signal de retrait : la liste est complète,
     // le client supprime localement ce qu'il n'y retrouve plus.
+    // Dépublication (audit phase 3b) : réservée à un admin, motif obligatoire.
+    Role::findOrCreate('admin');
+    $admin = User::factory()->create();
+    $admin->assignRole('admin');
+    $this->actingAs($admin);
+    $document->transitionMotif = 'Test : retrait du catalogue après dépublication';
     $document->update(['curation_status' => 'draft']);
 
     expect(catalogEntryFor($document->id))->toBeNull();
