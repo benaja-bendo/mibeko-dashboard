@@ -309,3 +309,59 @@ it('applique le gate date d\'entrée en vigueur dans bulkUpdate aussi', function
     expect($sansDate->fresh()->curation_status)->toBe(LegalDocument::STATUS_VALIDATED)
         ->and($avecDate->fresh()->curation_status)->toBe(LegalDocument::STATUS_PUBLISHED);
 });
+
+it('bulkUpdate accepte la confirmation « date inconnue » pour tout le lot et la persiste', function () {
+    // Le cas du corpus réel : le pipeline ne renseigne jamais la date d'entrée
+    // en vigueur. Sans ce drapeau, aucun document publiable en masse.
+    $premier = gouvernanceDocument([
+        'curation_status' => LegalDocument::STATUS_VALIDATED,
+        'date_entree_vigueur' => null,
+    ]);
+    $second = gouvernanceDocument([
+        'curation_status' => LegalDocument::STATUS_VALIDATED,
+        'date_entree_vigueur' => null,
+    ]);
+
+    $this->actingAs($this->editor)
+        ->patchJson('/api/v1/legal-documents/bulk', [
+            'ids' => [$premier->id, $second->id],
+            'action' => 'set_curation_status',
+            'value' => LegalDocument::STATUS_PUBLISHED,
+            'date_entree_vigueur_inconnue' => true,
+        ])
+        ->assertOk()
+        ->assertJsonPath('data.updated_count', 2)
+        ->assertJsonPath('data.skipped_count', 0);
+
+    foreach ([$premier, $second] as $document) {
+        $fresh = $document->fresh();
+        expect($fresh->curation_status)->toBe(LegalDocument::STATUS_PUBLISHED)
+            ->and($fresh->date_entree_vigueur_inconnue)->toBeTrue();
+    }
+});
+
+it('bulkUpdate rend le motif de chaque document écarté', function () {
+    $sansArticle = LegalDocument::factory()->create([
+        'curation_status' => LegalDocument::STATUS_VALIDATED,
+        'date_entree_vigueur' => '2020-01-01',
+    ]);
+    $sautDeRevue = gouvernanceDocument([
+        'curation_status' => LegalDocument::STATUS_DRAFT,
+        'date_entree_vigueur' => '2020-01-01',
+    ]);
+
+    $response = $this->actingAs($this->editor)
+        ->patchJson('/api/v1/legal-documents/bulk', [
+            'ids' => [$sansArticle->id, $sautDeRevue->id],
+            'action' => 'set_curation_status',
+            'value' => LegalDocument::STATUS_PUBLISHED,
+        ])
+        ->assertOk()
+        ->assertJsonPath('data.updated_count', 0)
+        ->assertJsonPath('data.skipped_count', 2);
+
+    $motifs = collect($response->json('data.skipped'))->keyBy('id');
+
+    expect($motifs->get($sansArticle->id)['motif'])->toBe('aucun article')
+        ->and($motifs->get($sautDeRevue->id)['motif'])->toContain('draft');
+});

@@ -764,6 +764,14 @@ class LegalDocumentController extends Controller
             // Motif obligatoire pour une dépublication en masse (sortie de
             // PUBLISHED) — même garde que le chemin unitaire.
             'motif' => ['sometimes', 'nullable', 'string', 'max:1000'],
+            // Assume, pour tout le lot, l'absence de date d'entrée en vigueur —
+            // symétrique du chemin unitaire (cf. `update`), qui lit ce drapeau
+            // dans la REQUÊTE. Sans lui, la garde de date ne regardait que la
+            // base : aucun document issu du pipeline (qui ne renseigne jamais
+            // cette date) ne pouvait être publié en masse, et l'échec était
+            // silencieux. La valeur est persistée sur les documents concernés,
+            // pour que la décision reste tracée et non rejouée à chaque lot.
+            'date_entree_vigueur_inconnue' => ['sometimes', 'boolean'],
         ]);
 
         $allowedCurationStatuses = [
@@ -799,9 +807,16 @@ class LegalDocumentController extends Controller
 
         $publishedIds = [];
         $skipped = 0;
+        $motifsDeSkip = [];
+        $inconnueAssumeePourLeLot = $request->boolean('date_entree_vigueur_inconnue');
 
-        DB::transaction(function () use ($documents, $column, $request, $isPublishing, $motif, &$publishedIds, &$skipped) {
+        DB::transaction(function () use (
+            $documents, $column, $request, $isPublishing, $motif,
+            $inconnueAssumeePourLeLot, &$publishedIds, &$skipped, &$motifsDeSkip
+        ) {
             foreach ($documents as $document) {
+                $donnees = [$column => $request->value];
+
                 if ($isPublishing) {
                     // Mêmes gardes que la curation unitaire, plus strictes sur un
                     // point assumé (audit initial) : bulkUpdate bloque sur TOUTE
@@ -810,12 +825,29 @@ class LegalDocumentController extends Controller
                     $sansArticle = ! $document->articles()->exists();
                     $anomalieNonResolue = $document->curationFlags()->where('resolved', false)->exists();
                     $dateInconnueNonAssumee = is_null($document->date_entree_vigueur)
-                        && ! $document->date_entree_vigueur_inconnue;
+                        && ! $document->date_entree_vigueur_inconnue
+                        && ! $inconnueAssumeePourLeLot;
 
                     if ($sansArticle || $anomalieNonResolue || $dateInconnueNonAssumee) {
                         $skipped++;
+                        $motifsDeSkip[] = [
+                            'id' => $document->id,
+                            'titre' => $document->titre_officiel,
+                            'motif' => match (true) {
+                                $sansArticle => 'aucun article',
+                                $anomalieNonResolue => 'anomalies de curation non résolues',
+                                default => "date d'entrée en vigueur non renseignée et absence non assumée",
+                            },
+                        ];
 
                         continue;
+                    }
+
+                    // La décision « date inconnue » est persistée, pas seulement
+                    // consommée : le document reste publiable ensuite sans avoir
+                    // à repasser le drapeau.
+                    if ($inconnueAssumeePourLeLot && is_null($document->date_entree_vigueur)) {
+                        $donnees['date_entree_vigueur_inconnue'] = true;
                     }
                 }
 
@@ -826,13 +858,19 @@ class LegalDocumentController extends Controller
                     // `update()` sur l'INSTANCE (pas le query builder) : déclenche
                     // le cycle de vie Eloquent complet (audit, observers, garde de
                     // transition) — c'est tout l'objet de la phase 3a.
-                    $document->update([$column => $request->value]);
-                } catch (ValidationException) {
+                    $document->update($donnees);
+                } catch (ValidationException $e) {
                     // Transition de statut refusée (cf. LegalDocument) : comptée
                     // comme un skip, cohérent avec le reste de cette boucle — un
                     // lot partiellement invalide ne doit pas faire échouer les
                     // documents par ailleurs valides.
                     $skipped++;
+                    $motifsDeSkip[] = [
+                        'id' => $document->id,
+                        'titre' => $document->titre_officiel,
+                        'motif' => $e->validator->errors()->first('curation_status')
+                            ?: 'transition de statut non autorisée',
+                    ];
 
                     continue;
                 }
@@ -859,7 +897,13 @@ class LegalDocumentController extends Controller
         }
 
         return $this->success(
-            ['updated_count' => $updated, 'skipped_count' => $skipped],
+            [
+                'updated_count' => $updated,
+                'skipped_count' => $skipped,
+                // Le détail par document : sans lui, un lot intégralement rejeté
+                // était indiscernable d'un succès côté client.
+                'skipped' => $motifsDeSkip,
+            ],
             $message
         );
     }
