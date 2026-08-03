@@ -72,6 +72,12 @@ trait SearchesArticles
             // sur la quasi-totalité du corpus publié. Seul `error` reste exclu :
             // il signale un article dont le contenu est su fautif.
             ->where('av.validation_status', '!=', 'error')
+            // Seule la version ACTIVE d'un article est citable : une correction de
+            // contenu (PATCH /articles/{id}) ferme l'ancienne version au lieu de la
+            // supprimer (historique, cf. Article::activeVersion). Sans ce filtre, un
+            // texte déjà remplacé restait trouvable indéfiniment aux côtés du texte
+            // à jour — un utilisateur pouvait citer un article déjà amendé.
+            ->whereRaw('upper_inf(av.validity_period)')
             ->whereNull('a.deleted_at')
             ->whereNull('ld.deleted_at')
             ->where('ld.curation_status', 'published')

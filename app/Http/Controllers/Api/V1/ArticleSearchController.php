@@ -112,6 +112,9 @@ class ArticleSearchController extends Controller
             // Même garde que SearchesArticles::baseArticleQuery : la publication
             // du document fait foi, seuls les articles marqués `error` sont exclus.
             ->where('av.validation_status', '!=', 'error')
+            // Seule la version active est citable — une version fermée par une
+            // correction de contenu ne doit plus remonter dans les résultats.
+            ->whereRaw('upper_inf(av.validity_period)')
             ->whereNull('a.deleted_at')
             ->whereNull('ld.deleted_at')
             ->where('ld.curation_status', 'published')
