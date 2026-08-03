@@ -32,10 +32,22 @@ Route::get('/', function (Request $request) {
 // (cela casserait l'unfurl social et le deep-link mobile). À la place, quand le
 // contenu est publié sur le site, on émet un `rel=canonical` vers le lecteur
 // public mibeko.fr et on autorise l'indexation (consolidation SEO vers mibeko.fr).
+//
+// Ces deux routes sont ANONYMES (déclarées hors du groupe `auth` plus bas) : elles
+// ne doivent donc servir que du corpus publié. `X-Robots-Tag: noindex` empêche
+// l'indexation, pas la lecture — un brouillon exposait titre officiel et 200
+// caractères de texte en `og:description` à qui connaissait l'UUID. On répond 404
+// (et non 403) pour ne pas transformer la route en oracle d'existence.
 Route::get('/article/{articleId}', function (string $articleId) {
     $article = Article::with(['document', 'activeVersion'])->findOrFail($articleId);
 
     $document = $article->document;
+
+    abort_unless(
+        $document && $document->curation_status === LegalDocument::STATUS_PUBLISHED,
+        404
+    );
+
     $canonical = null;
     if ($document && $document->curation_status === LegalDocument::STATUS_PUBLISHED && $document->slug) {
         $canonical = rtrim((string) config('app.site_url'), '/')
@@ -53,6 +65,8 @@ Route::get('/article/{articleId}', function (string $articleId) {
 Route::get('/document/{documentId}', function (string $documentId) {
     $document = LegalDocument::with(['type', 'institution'])->findOrFail($documentId);
 
+    abort_unless($document->curation_status === LegalDocument::STATUS_PUBLISHED, 404);
+
     $canonical = null;
     if ($document->curation_status === LegalDocument::STATUS_PUBLISHED && $document->slug) {
         $canonical = rtrim((string) config('app.site_url'), '/').'/textes/'.$document->slug;
@@ -65,7 +79,6 @@ Route::get('/document/{documentId}', function (string $documentId) {
 
     return $canonical ? $response->header('X-Robots-Tag', 'all') : $response;
 })->name('share.document');
-
 
 Route::middleware(['auth', 'verified'])->group(function () {
 

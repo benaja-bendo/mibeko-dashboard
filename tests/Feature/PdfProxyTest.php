@@ -25,6 +25,22 @@ it('can proxy a journal pdf (type=journal)', function () {
         ->assertHeader('Content-Type', 'application/pdf');
 });
 
+it('hides the pdf of an unpublished journal', function () {
+    // Le PDF d'un JO non publié porte le texte source d'actes encore en
+    // brouillon : la route étant publique, il doit être introuvable.
+    $disk = config('filesystems.default');
+    Storage::fake($disk);
+    Storage::disk($disk)->put('official_journals/jo-brouillon.pdf', 'dummy journal');
+
+    $journal = OfficialJournal::factory()->create([
+        'file_path' => 'official_journals/jo-brouillon.pdf',
+        'is_published' => false,
+    ]);
+
+    $this->get("/api/v1/legal-documents/{$journal->id}/pdf?type=journal")
+        ->assertNotFound();
+});
+
 it('can proxy a pdf file', function () {
     Storage::fake('s3');
     Storage::disk('s3')->put('test.pdf', 'dummy content');

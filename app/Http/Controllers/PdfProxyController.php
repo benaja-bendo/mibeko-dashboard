@@ -40,13 +40,20 @@ class PdfProxyController extends Controller
 
         if ($type === 'journal') {
             $journal = OfficialJournal::findOrFail($id);
+
+            // Un JO publié est public par nature. Un JO NON publié, en revanche,
+            // porte le PDF source d'actes encore en brouillon : le servir ici
+            // contournerait la garde posée sur les documents (404, pas 403, pour
+            // ne pas révéler l'existence de la ressource).
+            abort_unless($journal->is_published, 404);
+
             $path = $journal->file_path;
         } else {
             $document = LegalDocument::with(['mediaFiles', 'officialJournal'])->findOrFail($id);
 
             // Route publique : le PDF source d'un document non publié reste
             // réservé aux éditeurs/admins (404 sinon). Les journaux officiels
-            // (`type=journal`) restent publics par nature.
+            // (`type=journal`) suivent la même logique via leur `is_published`.
             $this->ensureDocumentIsVisible($request, $document);
 
             $mediaFile = $document->mediaFiles->firstWhere('mime_type', 'application/pdf')
