@@ -38,7 +38,46 @@ Route::get('/', function (Request $request) {
 // l'indexation, pas la lecture — un brouillon exposait titre officiel et 200
 // caractères de texte en `og:description` à qui connaissait l'UUID. On répond 404
 // (et non 403) pour ne pas transformer la route en oracle d'existence.
-Route::get('/article/{articleId}', function (string $articleId) {
+//
+// Contexte de plateforme pour le bouton "ouvrir dans l'app" de ces deux vues.
+// Sans Universal Links / App Links valides sur ce domaine (résidu périmé,
+// cf. docs/produit/positionnement-site-app.md), le scheme personnalisé
+// mibeko:// ne route vers l'app QUE si elle est déjà installée : sans
+// détection ni fallback, le bouton ne fait rien de visible quand elle ne
+// l'est pas. On calcule donc ici la plateforme et les URLs de store (source
+// unique : config/mobile.php) pour construire un lien Android intent://
+// (fallback natif vers le Play Store, géré par Chrome) et amorcer le
+// fallback JS iOS vers l'App Store (pas d'équivalent intent:// sur Safari).
+// Ce fichier étant rechargé à chaque (ré)initialisation de l'application (donc
+// plusieurs fois par process en test), la déclaration doit être idempotente.
+if (! function_exists('mobileAppLinkContext')) {
+    function mobileAppLinkContext(Request $request): array
+    {
+        $userAgent = (string) $request->userAgent();
+
+        $platform = match (true) {
+            (bool) preg_match('/iPad|iPhone|iPod/', $userAgent) => 'ios',
+            str_contains($userAgent, 'Android') => 'android',
+            default => 'other',
+        };
+
+        $androidStoreUrl = (string) config('mobile.store_urls.android');
+        parse_str((string) parse_url($androidStoreUrl, PHP_URL_QUERY), $androidStoreQuery);
+
+        $iosStoreUrl = (string) config('mobile.store_urls.ios');
+        preg_match('/id(\d+)/', $iosStoreUrl, $iosIdMatch);
+
+        return [
+            'platform' => $platform,
+            'androidPackage' => $androidStoreQuery['id'] ?? 'cg.mibeko.app',
+            'androidStoreUrl' => $androidStoreUrl,
+            'iosAppId' => $iosIdMatch[1] ?? '6768865781',
+            'iosStoreUrl' => $iosStoreUrl,
+        ];
+    }
+}
+
+Route::get('/article/{articleId}', function (Request $request, string $articleId) {
     $article = Article::with(['document', 'activeVersion'])->findOrFail($articleId);
 
     $document = $article->document;
@@ -57,12 +96,13 @@ Route::get('/article/{articleId}', function (string $articleId) {
     $response = response()->view('share.article', [
         'article' => $article,
         'canonical' => $canonical,
+        ...mobileAppLinkContext($request),
     ]);
 
     return $canonical ? $response->header('X-Robots-Tag', 'all') : $response;
 })->name('share.article');
 
-Route::get('/document/{documentId}', function (string $documentId) {
+Route::get('/document/{documentId}', function (Request $request, string $documentId) {
     $document = LegalDocument::with(['type', 'institution'])->findOrFail($documentId);
 
     abort_unless($document->curation_status === LegalDocument::STATUS_PUBLISHED, 404);
@@ -75,6 +115,7 @@ Route::get('/document/{documentId}', function (string $documentId) {
     $response = response()->view('share.document', [
         'document' => $document,
         'canonical' => $canonical,
+        ...mobileAppLinkContext($request),
     ]);
 
     return $canonical ? $response->header('X-Robots-Tag', 'all') : $response;
