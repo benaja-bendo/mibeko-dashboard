@@ -109,7 +109,9 @@ class ArticleSearchController extends Controller
             ->join('document_types as dt', 'ld.type_code', '=', 'dt.code')
             ->leftJoin('structure_nodes as sn', 'a.parent_node_id', '=', 'sn.id')
             ->leftJoin('institutions as i', 'ld.institution_id', '=', 'i.id')
-            ->where('av.validation_status', 'validated')
+            // Même garde que SearchesArticles::baseArticleQuery : la publication
+            // du document fait foi, seuls les articles marqués `error` sont exclus.
+            ->where('av.validation_status', '!=', 'error')
             ->whereNull('a.deleted_at')
             ->whereNull('ld.deleted_at')
             ->where('ld.curation_status', 'published')

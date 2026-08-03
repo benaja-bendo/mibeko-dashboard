@@ -64,7 +64,14 @@ trait SearchesArticles
             ->leftJoin('structure_nodes as sn', 'a.parent_node_id', '=', 'sn.id')
             ->leftJoin('institutions as i', 'ld.institution_id', '=', 'i.id')
             ->leftJoin('official_journals as oj', 'ld.official_journal_id', '=', 'oj.id')
-            ->where('av.validation_status', 'validated')
+            // La publication du document EST la garde éditoriale : c'est un acte
+            // humain explicite, tracé et réversible (cf. LegalDocument::guardUnpublishing).
+            // Exiger EN PLUS un `validated` article par article créait une seconde
+            // barrière que rien n'alimente — le pipeline Python écrit `pending`
+            // (structurer.py, journals.py) — et qui rendait la recherche aveugle
+            // sur la quasi-totalité du corpus publié. Seul `error` reste exclu :
+            // il signale un article dont le contenu est su fautif.
+            ->where('av.validation_status', '!=', 'error')
             ->whereNull('a.deleted_at')
             ->whereNull('ld.deleted_at')
             ->where('ld.curation_status', 'published')
