@@ -10,6 +10,7 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Symfony\Component\HttpFoundation\StreamedResponse;
+use Throwable;
 
 /**
  * Rendu et mise en cache du PDF Mibeko (export « partage ») d'un document
@@ -36,7 +37,15 @@ class DocumentExportPdfService
     {
         $path = $this->pathFor($document);
 
-        return Storage::disk(self::DISK)->exists($path) ? $path : null;
+        try {
+            return Storage::disk(self::DISK)->exists($path) ? $path : null;
+        } catch (Throwable $e) {
+            // Un MinIO indisponible ne doit pas faire échouer un partage :
+            // on se rabat sur le rendu synchrone plutôt que de renvoyer une 500.
+            report($e);
+
+            return null;
+        }
     }
 
     /**

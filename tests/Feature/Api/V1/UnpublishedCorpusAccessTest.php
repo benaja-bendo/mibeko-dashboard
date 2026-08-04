@@ -18,6 +18,11 @@ use Spatie\Permission\Models\Role;
  * (jamais 403) pour ne pas révéler son existence.
  */
 beforeEach(function () {
+    // Le cache du PDF d'export (DocumentExportPdfService) écrit sur le
+    // disque s3 : sans ce fake, l'appel touche un disque non configuré en
+    // CI et échoue au lieu de renvoyer un simple cache miss.
+    Storage::fake('s3');
+
     // Document publié avec article (visible de tous).
     $this->published = LegalDocument::factory()->create([
         'titre_officiel' => 'Loi publiée de test',
