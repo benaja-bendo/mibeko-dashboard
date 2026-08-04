@@ -190,6 +190,16 @@ class ArticleSearchController extends Controller
                 ->selectRaw('CASE WHEN a.numero_article = ? THEN 1.0 ELSE 0.0 END as article_num_match', [$articleNum]);
 
             if ($embeddingString) {
+                // Filet sémantique borné aux `semanticTopK` plus proches voisins
+                // (SearchesArticles::semanticCandidateIds), jamais un seuil de
+                // distance non borné : le seuil fixe précédent (< 0.5, alors que
+                // la distance maximale mesurée sur tout le corpus est ~0.30)
+                // faisait remonter la quasi-totalité des articles embeddés pour
+                // n'importe quelle requête. Cloné avant les selectRaw ci-dessous :
+                // ceux-ci ne comptent pas, semanticCandidateIds réinitialise le
+                // SELECT du clone (voir sa docblock).
+                $semanticIds = $this->semanticCandidateIds($results, $embeddingString);
+
                 $results->selectRaw('COALESCE(1 - (av.embedding <=> ?::vector), 0) as similarity_score', [$embeddingString])
                     ->selectRaw("
                         (CASE WHEN ld.titre_officiel ILIKE ? THEN 0.4 ELSE 0.0 END) +
@@ -199,13 +209,15 @@ class ArticleSearchController extends Controller
                         (CASE WHEN a.numero_article = ? THEN 0.2 ELSE 0.0 END)
                         as total_score
                     ", ["%$query%", $query, $orTsQuery, $orTsQuery, $embeddingString, $articleNum])
-                    ->where(function ($q) use ($query, $embeddingString, $orTsQuery, $articleNum) {
+                    ->where(function ($q) use ($query, $orTsQuery, $articleNum, $semanticIds) {
                         $q->whereRaw("av.search_tsv @@ websearch_to_tsquery('french', ?)", [$query]);
                         if ($orTsQuery !== '') {
                             $q->orWhereRaw("av.search_tsv @@ to_tsquery('french', ?)", [$orTsQuery]);
                         }
-                        $q->orWhereRaw('av.embedding <=> ?::vector < 0.5', [$embeddingString])
-                            ->orWhere('ld.titre_officiel', 'ILIKE', "%$query%")
+                        if (! empty($semanticIds)) {
+                            $q->orWhereIn('a.id', $semanticIds);
+                        }
+                        $q->orWhere('ld.titre_officiel', 'ILIKE', "%$query%")
                             ->orWhere('a.numero_article', '=', $articleNum);
                     });
             } else {

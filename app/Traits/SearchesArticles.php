@@ -163,10 +163,22 @@ trait SearchesArticles
      *  - trigram (`%>>` / `strict_word_similarity` via l'index GIN
      *    `f_unaccent(contenu_texte)`) pour les variantes morphologiques que le
      *    stemmer français n'unifie pas (dot ↔ dotal) et les fautes de frappe ;
-     *  - sémantique (distance cosinus sur `av.embedding`) pour le rappel
-     *    conceptuel (« héritage » ↔ « succession »).
+     *  - sémantique (plus proches voisins par distance cosinus sur
+     *    `av.embedding`, bornés à `semanticTopK` candidats — voir
+     *    {@see semanticCandidateIds}) pour le rappel conceptuel
+     *    (« héritage » ↔ « succession »).
      * Le filet sémantique se dégrade gracieusement : si l'embedding de la
      * requête ne peut être généré, la recherche reste purement lexicale.
+     *
+     * Le filet sémantique n'est PAS un seuil de distance dans le WHERE : mesuré
+     * sur le corpus prod, la distance maximale entre deux articles quelconques
+     * est d'environ 0.30, bien en-deçà de tout seuil de similarité raisonnable
+     * (l'ancien seuil, 0.4, laissait donc passer la quasi-totalité du corpus
+     * embeddé pour n'importe quelle requête — jusqu'à 98 % des articles pour
+     * une chaîne sans aucun rapport avec le corpus). Le nombre de candidats
+     * sémantiques est borné en amont ({@see semanticCandidateIds}), pas leur
+     * distance ; ce terme ne fait plus qu'affiner le classement des candidats
+     * déjà retenus par ailleurs.
      */
     protected function applyLexicalScoring(Builder $query, string $search): void
     {
@@ -194,6 +206,15 @@ trait SearchesArticles
             } catch (\Throwable $e) {
                 Log::warning('Filet sémantique de la recherche bibliothèque indisponible : '.$e->getMessage());
             }
+        }
+
+        // Candidats sémantiques bornés en top-K, calculés AVANT d'ajouter les
+        // conditions lexicales : le clone ne porte que les filtres déjà présents
+        // sur $query (document publié, version active, périmètre demandé…), pas
+        // encore le WHERE lexical ni le SELECT de score qu'on construit plus bas.
+        $semanticIds = [];
+        if ($embeddingString !== null) {
+            $semanticIds = $this->semanticCandidateIds($query, $embeddingString);
         }
 
         // L'opérateur indexable `%>>` lit `pg_trgm.strict_word_similarity_threshold` :
@@ -231,7 +252,7 @@ trait SearchesArticles
         }
 
         $query->selectRaw("({$scoreExpression}) as total_score", $scoreBindings)
-            ->where(function ($q) use ($articleNum, $topical, $orTsQuery, $hasText, $useApprox, $embeddingString) {
+            ->where(function ($q) use ($articleNum, $topical, $orTsQuery, $hasText, $useApprox, $semanticIds) {
                 if ($hasText) {
                     $q->whereRaw("av.search_tsv @@ websearch_to_tsquery('french', ?)", [$topical]);
                     if ($orTsQuery !== '') {
@@ -243,9 +264,12 @@ trait SearchesArticles
                     if ($useApprox) {
                         $q->orWhereRaw('f_unaccent(av.contenu_texte) %>> f_unaccent(?)', [$topical]);
                     }
-                    // Filet sémantique : plus proches voisins dans l'espace vectoriel.
-                    if ($embeddingString !== null) {
-                        $q->orWhereRaw('av.embedding IS NOT NULL AND (av.embedding <=> ?::vector) < ?', [$embeddingString, $this->semanticDistanceThreshold]);
+                    // Filet sémantique : borné aux `semanticTopK` plus proches
+                    // voisins (voir semanticCandidateIds), jamais un seuil de
+                    // distance non borné — c'est ce qui faisait remonter jusqu'à
+                    // 98 % du corpus embeddé pour n'importe quelle requête.
+                    if (! empty($semanticIds)) {
+                        $q->orWhereIn('a.id', $semanticIds);
                     }
                     if ($articleNum !== null) {
                         $q->orWhere('a.numero_article', '=', $articleNum);
@@ -256,6 +280,35 @@ trait SearchesArticles
                     $q->where('a.numero_article', '=', $articleNum);
                 }
             });
+    }
+
+    /**
+     * Plus proches voisins sémantiques d'une requête, bornés à `semanticTopK`.
+     *
+     * Remplace un seuil de distance cosinus : mesuré sur le corpus prod, la
+     * distance maximale entre deux articles quelconques est d'environ 0.30,
+     * bien en-deçà de tout seuil de similarité raisonnable — avec ce modèle
+     * d'embedding, un seuil ne borne donc RIEN (une requête sans aucun rapport
+     * avec le corpus faisait remonter jusqu'à 98 % des articles embeddés). Ce
+     * qui borne réellement le bruit, c'est le NOMBRE de candidats retenus,
+     * indépendamment de leur distance.
+     *
+     * `$filteredQuery` doit déjà porter tous les filtres de base (document
+     * publié, version active, périmètre demandé…) : le clone hérite du WHERE
+     * existant, remplace uniquement la liste SELECT.
+     *
+     * @return array<int, string> Identifiants d'articles (a.id), au plus `semanticTopK`.
+     */
+    protected function semanticCandidateIds(Builder $filteredQuery, string $embeddingString): array
+    {
+        return (clone $filteredQuery)
+            ->select('a.id')
+            ->whereNotNull('av.embedding')
+            ->orderByRaw('av.embedding <=> ?::vector', [$embeddingString])
+            ->limit($this->semanticTopK)
+            ->get()
+            ->pluck('id')
+            ->all();
     }
 
     /**
@@ -399,11 +452,13 @@ trait SearchesArticles
     protected float $fuzzyThreshold = 0.35;
 
     /**
-     * Distance cosinus maximale (0 = identique, 2 = opposé) pour qu'un article
-     * soit retenu par le filet sémantique. 0.4 ≈ similarité ≥ 0.6 : on ne garde
-     * que des voisins nettement reliés, le sémantique restant un dernier recours.
+     * Nombre maximal de candidats ajoutés par le seul filet sémantique
+     * (voir {@see semanticCandidateIds}). Borne le bruit à la source : avec ce
+     * modèle d'embedding, un seuil de distance ne discrimine presque rien sur
+     * ce corpus — c'est le NOMBRE de candidats, pas leur distance, qui doit
+     * être plafonné.
      */
-    protected float $semanticDistanceThreshold = 0.4;
+    protected int $semanticTopK = 40;
 
     /**
      * Format query for Postgres to_tsquery
