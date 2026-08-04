@@ -7,16 +7,19 @@ use App\Models\Institution;
 use App\Models\LegalDocument;
 use App\Models\StructureNode;
 use App\Observers\ArticleVersionObserver;
+use Illuminate\Support\Facades\Storage;
 use Laravel\Ai\Embeddings;
 
 /**
  * Couvre l'export PDF Mibeko (`/legal-documents/{id}/export` et
  * `/articles/{id}/export`) : génération effective du PDF avec la mise en
- * page Mibeko (couverture, sommaire, corps) sans erreur de rendu Blade.
+ * page Mibeko (couverture, sommaire, corps) sans erreur de rendu Blade, et
+ * mise en cache (voir DocumentExportPdfService) du rendu par version.
  */
 beforeEach(function () {
     ArticleVersionObserver::$shouldSkipEmbeddings = true;
     Embeddings::fake();
+    Storage::fake('s3');
 
     DocumentType::create(['code' => 'LOI', 'nom' => 'Loi']);
     $institution = Institution::factory()->create(['nom' => 'Ministère de la Justice']);
@@ -68,7 +71,50 @@ it('exporte un document complet en PDF', function () {
     $response->assertStatus(200)
         ->assertHeader('content-type', 'application/pdf');
 
-    expect($response->getContent())->toStartWith('%PDF');
+    expect($response->streamedContent())->toStartWith('%PDF');
+});
+
+it('met le PDF en cache et le réutilise au lieu de le regénérer', function () {
+    $this->get("/api/v1/legal-documents/{$this->document->id}/export")->assertStatus(200);
+
+    $directory = "exports/documents/{$this->document->id}";
+    $files = Storage::disk('s3')->files($directory);
+    expect($files)->toHaveCount(1);
+
+    // Remplace le contenu mis en cache par un marqueur : si le second appel
+    // régénérait au lieu de servir le cache, la réponse serait un nouveau
+    // PDF (`%PDF...`), pas ce marqueur.
+    Storage::disk('s3')->put($files[0], 'CACHE-HIT-MARKER');
+
+    $response = $this->get("/api/v1/legal-documents/{$this->document->id}/export");
+
+    $response->assertStatus(200);
+    expect($response->streamedContent())->toBe('CACHE-HIT-MARKER');
+});
+
+it('régénère le PDF en cache quand le contenu du document change', function () {
+    $this->get("/api/v1/legal-documents/{$this->document->id}/export")->assertStatus(200);
+
+    $directory = "exports/documents/{$this->document->id}";
+    $pathBefore = Storage::disk('s3')->files($directory)[0];
+
+    // Cascade ArticleVersion → Article → LegalDocument ($touches) : modifier
+    // le contenu d'une version bouge document->updated_at, donc la clé de
+    // cache.
+    $this->article->activeVersion->update(['contenu_texte' => 'Texte modifié après publication.']);
+
+    // `updated_at` est en précision seconde (timestamp(0) en base) : les deux
+    // sauvegardes de ce test tombent dans la même seconde. On force un écart
+    // pour simuler le passage du temps réel entre deux vraies éditions,
+    // plutôt que d'avoir un test flaky dépendant de la vitesse d'exécution.
+    $this->document->refresh();
+    $this->document->forceFill(['updated_at' => $this->document->updated_at->addSecond()])->saveQuietly();
+
+    $this->get("/api/v1/legal-documents/{$this->document->id}/export")->assertStatus(200);
+
+    $filesAfter = Storage::disk('s3')->files($directory);
+    expect($filesAfter)->toHaveCount(1)
+        ->and($filesAfter[0])->not->toBe($pathBefore);
 });
 
 it('exporte un article seul en PDF', function () {

@@ -12,6 +12,13 @@ class StructureNode extends Model
 {
     use HasFactory, HasUuids;
 
+    /**
+     * Un renommage/déplacement de section change le PDF Mibeko exporté du
+     * document (voir DocumentExportPdfService) : sans ce touch, ce cache ne
+     * s'invaliderait qu'aux changements d'article, pas de structure.
+     */
+    protected $touches = ['document'];
+
     protected $fillable = [
         'id',
         'document_id',
