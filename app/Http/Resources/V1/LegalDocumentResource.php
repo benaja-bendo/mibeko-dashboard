@@ -48,6 +48,11 @@ class LegalDocumentResource extends JsonResource
             'date_signature' => $this->date_signature?->toDateString(),
             'date_publication' => $this->date_publication?->toDateString(),
             'date_entree_vigueur' => $this->date_entree_vigueur?->toDateString(),
+            // Distingue « on ne sait pas » de « le champ n'a pas encore été
+            // rempli » : le client affiche une mention neutre plutôt que
+            // d'affirmer un statut « en vigueur » qu'on ne peut pas prouver
+            // (cf. docs/_archive/audit-prod-2026-08-04.md § 4).
+            'date_entree_vigueur_inconnue' => (bool) $this->date_entree_vigueur_inconnue,
             'consolidation_as_of' => $this->consolidation_as_of?->toDateString(),
             'dates' => [
                 'signature' => $this->date_signature?->toIso8601String(),
