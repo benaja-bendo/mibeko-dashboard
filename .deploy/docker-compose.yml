@@ -31,12 +31,17 @@ services:
     image: ghcr.io/${GITHUB_REPOSITORY}:latest
     container_name: mibeko-queue
     restart: unless-stopped
-    command: ["php", "artisan", "queue:work", "--sleep=3", "--tries=3", "--max-time=3600"]
+    # --memory=400 : le worker se redémarre proprement entre deux jobs s'il
+    # dépasse 400 Mo (ex. rendu PDF d'un gros document), plutôt que de
+    # laisser l'OOM killer du VPS choisir une victime au hasard sur la
+    # machine. mem_limit est le filet de sécurité dur au niveau du container.
+    command: ["php", "artisan", "queue:work", "--sleep=3", "--tries=3", "--max-time=3600", "--memory=400"]
     env_file: [.env]
     volumes:
       - mibeko_storage:/var/www/html/storage
     networks: [internal, proxy, db_internal]
     depends_on: [app]
+    mem_limit: 512m
 
   scheduler:
     image: ghcr.io/${GITHUB_REPOSITORY}:latest
