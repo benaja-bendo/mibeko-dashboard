@@ -27,13 +27,15 @@ use Illuminate\Support\Str;
  *
  *   php artisan mibeko:corriger-extraction-vide                                   # simulation, dev
  *   php artisan mibeko:corriger-extraction-vide --connection=pgsql_prod_ro         # simulation, prod (lecture seule)
- *   php artisan mibeko:corriger-extraction-vide --connection=pgsql_prod_rw --execute --revert-file=…
+ *   php artisan mibeko:corriger-extraction-vide --connection=pgsql_prod_rw --limit=5 --execute   # lot pilote
+ *   php artisan mibeko:corriger-extraction-vide --connection=pgsql_prod_rw --execute             # exécution complète
  */
 class CorrigerExtractionVideCommand extends Command
 {
     protected $signature = 'mibeko:corriger-extraction-vide
         {--connection=pgsql : Connexion visée (pgsql_prod_ro en diagnostic, pgsql_prod_rw pour écrire)}
         {--execute : Écrit réellement. Sans cette option, simulation seule.}
+        {--limit= : Ne corrige que les N premiers (créés le plus tôt) — lot pilote avant --execute sans limite}
         {--rapport= : Fichier où écrire la liste des documents concernés (JSON)}
         {--revert-file= : Où écrire l\'état avant correction (défaut : storage/app/)}';
 
@@ -90,15 +92,22 @@ class CorrigerExtractionVideCommand extends Command
             return self::SUCCESS;
         }
 
+        $limite = $this->option('limit');
+        $aCorriger = $limite !== null ? $candidats->take((int) $limite)->values() : $candidats;
+
+        if ($limite !== null) {
+            $this->info("Lot pilote : {$aCorriger->count()} sur {$candidats->count()} document(s) candidat(s).");
+        }
+
         $fichierRetour = (string) ($this->option('revert-file')
             ?: storage_path('app/retour-extraction-vide-'.now()->format('Ymd-His').'.json'));
         file_put_contents($fichierRetour, json_encode(
-            $candidats->map(fn ($d) => ['id' => $d->id, 'extraction_status' => 'completed'])->values(),
+            $aCorriger->map(fn ($d) => ['id' => $d->id, 'extraction_status' => 'completed'])->values(),
             JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE
         ));
         $this->info("Retour arrière écrit : {$fichierRetour}");
 
-        $ids = $candidats->pluck('id');
+        $ids = $aCorriger->pluck('id');
         $corriges = $db->transaction(
             fn () => $db->table('legal_documents')->whereIn('id', $ids)->update([
                 'extraction_status' => 'failed',
@@ -108,8 +117,8 @@ class CorrigerExtractionVideCommand extends Command
 
         $this->info("{$corriges} document(s) corrigé(s) sur « {$connexion} ».");
 
-        if ($corriges !== $candidats->count()) {
-            $this->error("Écart : {$candidats->count()} annoncé(s), {$corriges} effectivement touché(s) — à investiguer avant de poursuivre.");
+        if ($corriges !== $aCorriger->count()) {
+            $this->error("Écart : {$aCorriger->count()} annoncé(s), {$corriges} effectivement touché(s) — à investiguer avant de poursuivre.");
 
             return self::FAILURE;
         }

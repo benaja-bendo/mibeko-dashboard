@@ -47,6 +47,16 @@ it('ecrit un fichier de retour arriere restaurable avant toute ecriture', functi
     expect($retour)->toBe([['id' => $vide->id, 'extraction_status' => 'completed']]);
 });
 
+it('ne corrige que le lot pilote quand --limit est fourni', function () {
+    $plusAncien = LegalDocument::factory()->create(['extraction_status' => 'completed', 'created_at' => now()->subMinutes(2)]);
+    $plusRecent = LegalDocument::factory()->create(['extraction_status' => 'completed', 'created_at' => now()->subMinute()]);
+
+    $this->artisan('mibeko:corriger-extraction-vide', ['--execute' => true, '--limit' => 1])->assertSuccessful();
+
+    expect($plusAncien->fresh()->extraction_status)->toBe('failed')
+        ->and($plusRecent->fresh()->extraction_status)->toBe('completed');
+});
+
 it('refuse --execute sur une connexion en lecture seule', function () {
     $this->artisan('mibeko:corriger-extraction-vide', [
         '--execute' => true,
