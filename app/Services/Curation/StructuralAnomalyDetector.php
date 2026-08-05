@@ -44,6 +44,7 @@ class StructuralAnomalyDetector
             ->get();
 
         $candidates = array_merge(
+            $this->emptyExtraction($document, $nodes, $articles),
             $this->emptyArticles($articles),
             $this->untitledDivisions($nodes),
             $this->emptyDivisions($nodes),
@@ -70,6 +71,32 @@ class StructuralAnomalyDetector
 
             return $created;
         });
+    }
+
+    /**
+     * Document déclaré `extraction_status=completed` sans AUCUNE structure ni
+     * article — le pipeline a créé la fiche sans jamais réussir à en extraire
+     * le contenu (constat prod du 05/08/2026 : 32 actes JO du 02/08/2026,
+     * deux titres d'acte détectés côte à côte sans corps entre eux). Aucun
+     * autre contrôle de cette classe ne le voit : ils itèrent tous des
+     * collections déjà vides. Sévérité bloquante : publier laisserait un
+     * document sans le moindre texte.
+     *
+     * @param  Collection<int, StructureNode>  $nodes
+     * @param  Collection<int, Article>  $articles
+     * @return array<int, array<string, mixed>>
+     */
+    private function emptyExtraction(LegalDocument $document, $nodes, $articles): array
+    {
+        if ($document->extraction_status !== 'completed' || $nodes->isNotEmpty() || $articles->isNotEmpty()) {
+            return [];
+        }
+
+        return [[
+            'type_probleme' => 'extraction_vide',
+            'severity' => CurationFlag::SEVERITY_BLOCKING,
+            'description' => "Extraction marquée « terminée » mais aucune structure ni article n'a été produit : le contenu n'a jamais été extrait.",
+        ]];
     }
 
     /**

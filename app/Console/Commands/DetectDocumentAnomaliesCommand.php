@@ -15,7 +15,7 @@ use Illuminate\Console\Command;
 class DetectDocumentAnomaliesCommand extends Command
 {
     protected $signature = 'documents:detect-anomalies
-        {id? : UUID du document (sinon tous les documents porteurs d\'articles)}
+        {id? : UUID du document (sinon tous les documents porteurs d\'articles ou à l\'extraction déclarée terminée)}
         {--llm : Ajoute la couche sémantique (LLM) en plus de la structurelle}
         {--queue : Avec --llm, met le Job LLM en file plutôt que de l\'exécuter en synchrone}';
 
@@ -23,7 +23,13 @@ class DetectDocumentAnomaliesCommand extends Command
 
     public function handle(StructuralAnomalyDetector $detector): int
     {
-        $query = LegalDocument::query()->whereHas('articles');
+        // `orWhere('extraction_status', 'completed')` : sans ce second membre, un
+        // document sans le moindre article (les 32 actes JO du 02/08/2026, cf.
+        // StructuralAnomalyDetector::emptyExtraction) ne serait JAMAIS visité par
+        // le scan en masse — exactement le cas que ce contrôle existe pour attraper.
+        $query = LegalDocument::query()->where(
+            fn ($q) => $q->whereHas('articles')->orWhere('extraction_status', 'completed')
+        );
 
         if ($id = $this->argument('id')) {
             $query->whereKey($id);

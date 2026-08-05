@@ -44,6 +44,33 @@ it('flags an article with empty content as blocking', function () {
         ->and($flag->article_id)->toBe($article->id);
 });
 
+it('flags a document marked completed with no structure and no article at all', function () {
+    // Régression prod du 05/08/2026 : 32 actes JO du 02/08/2026 marqués
+    // extraction_status=completed avec 0 structure_nodes et 0 article — aucun
+    // des autres contrôles ne les voit puisqu'ils itèrent des collections déjà
+    // vides pour ce document précis.
+    $document = LegalDocument::factory()->create(['extraction_status' => 'completed']);
+
+    app(StructuralAnomalyDetector::class)->detect($document);
+
+    $flag = CurationFlag::where('document_id', $document->id)->where('type_probleme', 'extraction_vide')->first();
+    expect($flag)->not->toBeNull()
+        ->and($flag->severity)->toBe('blocking')
+        ->and($flag->source)->toBe('structural')
+        ->and($flag->article_id)->toBeNull()
+        ->and($flag->node_id)->toBeNull();
+});
+
+it('does not flag an empty document whose extraction is not marked completed', function () {
+    // Un document encore en cours de traitement (processing/pending/failed) est
+    // légitimement vide pour l'instant — ce n'est pas la même anomalie.
+    $document = LegalDocument::factory()->create(['extraction_status' => 'processing']);
+
+    app(StructuralAnomalyDetector::class)->detect($document);
+
+    expect(CurationFlag::where('document_id', $document->id)->where('type_probleme', 'extraction_vide')->exists())->toBeFalse();
+});
+
 it('flags untitled and empty divisions as warnings', function () {
     $document = LegalDocument::factory()->create();
 
