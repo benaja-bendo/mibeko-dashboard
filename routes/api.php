@@ -219,6 +219,14 @@ Route::prefix('v1')->middleware('throttle:api')->group(function () {
         Route::get('sync', [SyncController::class, 'sync']);
         Route::get('legal-documents/{document}/tree', [StructureNodeController::class, 'tree']);
         Route::get('legal-documents/{id}/download', [LegalDocumentDownloadController::class, 'download']);
+        // Le lecteur PDF de l'app mobile charge cette URL dans une WKWebView /
+        // WebView native (PdfViewer.ios.kt), qui n'envoie NI `Authorization` NI
+        // `X-Mibeko-Device` : la requête est anonyme et retombe sur l'IP. Sous
+        // `throttle:api` (60/min par IP) elle rendait un 429 dans la visionneuse
+        // — constaté en production le 06/08/2026, page d'erreur HTML affichée à
+        // la place du PDF. Ici le plafond par IP passe à 300/min, ce qui absorbe
+        // le CGNAT des opérateurs congolais (cf. limiteur `corpus_read`).
+        Route::get('legal-documents/{id}/pdf', [PdfProxyController::class, 'show']);
     });
 
     Route::apiResource('institutions', InstitutionController::class)->only(['index']);
@@ -292,8 +300,9 @@ Route::prefix('v1')->middleware('throttle:api')->group(function () {
 
     // BE2 - Flat List Download : déclaré plus haut sous `throttle:corpus_read`.
 
-    // BE4 - PDF Proxy
-    Route::get('legal-documents/{id}/pdf', [PdfProxyController::class, 'show']);
+    // BE4 - PDF Proxy : déclaré plus haut sous `throttle:corpus_read`, comme
+    // `download` — c'est la même nature d'opération (lecture froide d'un PDF
+    // du corpus publié, streamé depuis MinIO).
 
     // BE5 - PDF Export
     Route::get('legal-documents/{id}/export', [LegalDocumentExportController::class, 'export']);
