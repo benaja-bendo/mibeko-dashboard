@@ -7,34 +7,11 @@ The Laravel Boost guidelines are specifically curated by Laravel maintainers for
 
 ## Foundational Context
 
-This application is a Laravel application and its main Laravel ecosystems package & versions are below. You are an expert with them all. Ensure you abide by these specific packages & versions.
+This application is a Laravel application running on PHP 8.5. You are an expert with the Laravel ecosystem. Always use the APIs that match the installed major version of each package — do not assume a version.
 
-- php - 8.5
-- inertiajs/inertia-laravel (INERTIA_LARAVEL) - v2
-- laravel/ai (AI) - v0
-- laravel/cashier (CASHIER) - v16
-- laravel/fortify (FORTIFY) - v1
-- laravel/framework (LARAVEL) - v13
-- laravel/mcp (MCP) - v0
-- laravel/nightwatch (NIGHTWATCH) - v1
-- laravel/prompts (PROMPTS) - v0
-- laravel/reverb (REVERB) - v1
-- laravel/sanctum (SANCTUM) - v4
-- laravel/wayfinder (WAYFINDER) - v0
-- laravel/boost (BOOST) - v2
-- laravel/pail (PAIL) - v1
-- laravel/pint (PINT) - v1
-- laravel/sail (SAIL) - v1
-- pestphp/pest (PEST) - v4
-- phpunit/phpunit (PHPUNIT) - v12
-- @inertiajs/react (INERTIA_REACT) - v2
-- react (REACT) - v19
-- tailwindcss (TAILWINDCSS) - v4
-- @laravel/echo-react (ECHO_REACT) - v2
-- @laravel/vite-plugin-wayfinder (WAYFINDER_VITE) - v0
-- eslint (ESLINT) - v9
-- laravel-echo (ECHO) - v2
-- prettier (PRETTIER) - v3
+Before relying on a package's API, confirm its installed version:
+- PHP packages: run `composer show --direct` to list direct dependencies with versions, or `composer show <vendor/package>` for a single package.
+- JS packages: check `package.json` for the installed versions.
 
 ## Skills Activation
 
@@ -141,7 +118,7 @@ This project has domain-specific skills available in `**/skills/**`. You MUST ac
 # Inertia v2
 
 - Use all Inertia features from v1 and v2. Check the documentation before making changes to ensure the correct approach.
-- New features: deferred props, infinite scroll, merging props, polling, prefetching, once props, flash data.
+- New features: deferred props, infinite scrolling (merging props + `WhenVisible`), lazy loading on scroll, polling, prefetching.
 - When using deferred props, add an empty state with a pulsing or animated skeleton.
 
 === laravel/core rules ===

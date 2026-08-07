@@ -13,10 +13,12 @@
     "mcp": true,
     "nightwatch_mcp": true,
     "packages": [
-        "spatie/laravel-backup"
+        "spatie/laravel-backup",
+        "spatie/laravel-permission"
     ],
     "sail": false,
     "skills": [
+        "infer-conventions",
         "ai-sdk-development",
         "cashier-stripe-development",
         "fortify-development",
@@ -28,6 +30,9 @@
         "tailwindcss-development",
         "echo-react-development",
         "echo-development",
-        "laravel-backup"
+        "laravel-backup",
+        "laravel-permission-development",
+        "configure-nightwatch",
+        "mibeko-invariants"
     ]
 }
