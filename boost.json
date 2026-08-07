@@ -19,6 +19,7 @@
         "fortify-development",
         "laravel-best-practices",
         "mcp-development",
+        "configure-nightwatch",
         "wayfinder-development",
         "pest-testing",
         "inertia-react-development",
@@ -27,7 +28,6 @@
         "echo-development",
         "laravel-backup",
         "laravel-permission-development",
-        "configure-nightwatch",
         "mibeko-invariants"
     ]
 }
