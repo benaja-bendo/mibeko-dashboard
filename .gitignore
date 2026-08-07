@@ -28,13 +28,10 @@ yarn-error.log
 /.zed
 
 # Laravel Boost & AI Agents
-.mcp.json
+# Versionnés volontairement (config partagée + guidelines relues en diff) :
+#   .mcp.json, boost.json, CLAUDE.md, AGENTS.md, .ai/
+# Ignorés : artefacts locaux régénérables par `php artisan boost:update`.
 opencode.json
-boost.json
-CLAUDE.md
-AGENTS.md
-GEMINI.md
-
 .gemini
 .junie
 .trae
