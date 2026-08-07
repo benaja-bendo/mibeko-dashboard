@@ -94,23 +94,6 @@ it('plafonne les signalements publics anonymes par IP (quota journalier)', funct
         ->assertJsonPath('message', 'Trop de signalements envoyés. Réessayez plus tard.');
 });
 
-it('limite les connexions firebase à 30 par minute et par IP', function () {
-    // 30 tentatives déjà consommées depuis cette IP : la 31e est refusée par le
-    // limiteur dédié, AVANT toute vérification du jeton (aucun mock Firebase).
-    // Plafond volontairement plus large que le login : la clé est l'IP seule
-    // (jeton opaque), et le CGNAT congolais fait partager une IP à des
-    // utilisateurs distincts.
-    simulateThrottleHits('auth_firebase', '127.0.0.1', 30, 60);
-
-    $this->postJson('/api/v1/auth/firebase', [
-        'id_token' => 'jeton-factice',
-        'device_name' => 'Pixel 8',
-    ])
-        ->assertStatus(429)
-        ->assertHeader('Retry-After')
-        ->assertJsonPath('message', 'Trop de tentatives de connexion. Réessayez dans une minute.');
-});
-
 it('plafonne les requêtes IA journalières d\'un utilisateur standard', function () {
     $user = User::factory()->create();
 

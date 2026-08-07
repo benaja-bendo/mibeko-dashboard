@@ -9,9 +9,7 @@ use Illuminate\Contracts\Encryption\DecryptException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
-use Kreait\Laravel\Firebase\Facades\Firebase;
 use Laravel\Fortify\Contracts\TwoFactorAuthenticationProvider;
 
 /**
@@ -129,73 +127,6 @@ class AuthController extends Controller
         throw ValidationException::withMessages([
             'code' => ['Le code de double authentification est invalide.'],
         ]);
-    }
-
-    /**
-     * Firebase Login.
-     *
-     * Authenticate or register a user via Firebase ID Token, returning a Sanctum token.
-     */
-    public function firebaseLogin(Request $request): JsonResponse
-    {
-        $request->validate([
-            'id_token' => 'required|string',
-            'device_name' => 'required|string',
-        ]);
-
-        $auth = Firebase::auth();
-
-        try {
-            $verifiedIdToken = $auth->verifyIdToken($request->id_token);
-        } catch (\Throwable $e) {
-            throw ValidationException::withMessages([
-                'id_token' => ['Le token Firebase est invalide ou expiré.'],
-            ]);
-        }
-
-        // Sans email vérifié côté fournisseur d'identité, un attaquant pourrait
-        // créer un compte Firebase avec l'email d'autrui et prendre la main sur
-        // le compte Mibeko correspondant (le firstOrCreate lie par email).
-        if ($verifiedIdToken->claims()->get('email_verified') !== true) {
-            return $this->error(
-                ['id_token' => ['Adresse email non vérifiée.']],
-                'Votre adresse email n\'est pas vérifiée auprès du fournisseur d\'identité. Vérifiez-la puis réessayez.',
-                403,
-            );
-        }
-
-        $uid = $verifiedIdToken->claims()->get('sub');
-        $userRecord = $auth->getUser($uid);
-
-        $email = $userRecord->email;
-        $name = $userRecord->displayName ?? 'Mobile User';
-
-        if (! $email) {
-            throw ValidationException::withMessages([
-                'id_token' => ['L\'adresse email est requise depuis le fournisseur d\'identité.'],
-            ]);
-        }
-
-        $user = User::firstOrCreate(
-            ['email' => $email],
-            [
-                'name' => $name,
-                'password' => Hash::make(Str::random(16)),
-            ]
-        );
-
-        if (! $user->hasRole('mobile_user')) {
-            $user->assignRole('mobile_user');
-        }
-
-        if (! $user->mobileProfile) {
-            $user->mobileProfile()->create();
-        }
-
-        return $this->success([
-            'token' => $user->createToken($request->device_name)->plainTextToken,
-            'user' => $this->formatUser($user),
-        ], 'Connexion Firebase réussie.');
     }
 
     /**

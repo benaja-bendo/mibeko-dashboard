@@ -58,10 +58,6 @@ Route::prefix('v1')->middleware('throttle:api')->group(function () {
     // de compte) ; l'inscription est bornée par IP contre la création en masse.
     Route::post('register', [AuthController::class, 'register'])->middleware('throttle:6,1');
     Route::post('login', [AuthController::class, 'login'])->middleware('throttle:login');
-    // Connexion Firebase (mobile) : quota dédié aligné sur le login (5/min/IP),
-    // le quota générique `api` (60/min) laisserait passer un brute-force.
-    Route::post('auth/firebase', [AuthController::class, 'firebaseLogin'])
-        ->middleware('throttle:auth_firebase');
 
     // Réinitialisation de mot de passe par code OTP (mobile)
     Route::post('forgot-password', [PasswordResetController::class, 'forgot'])

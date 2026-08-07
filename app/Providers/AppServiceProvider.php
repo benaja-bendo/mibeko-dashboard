@@ -135,7 +135,7 @@ class AppServiceProvider extends ServiceProvider
         // démarrage et à chaque rotation FCM : 5/min laisse de la marge aux
         // reprises réseau tout en fermant la porte au martèlement. Le second
         // plafond, par IP, borne la fabrication en masse de faux appareils sans
-        // pénaliser un cybercafé (même logique de largeur que `auth_firebase`).
+        // pénaliser un cybercafé.
         RateLimiter::for('device_register', function (Request $request) {
             $deviceId = (string) $request->input('device_id');
             $identity = $deviceId !== ''
@@ -181,24 +181,6 @@ class AppServiceProvider extends ServiceProvider
                     'errors' => null,
                 ], 429);
             });
-        });
-
-        // Connexion Firebase (app mobile). Le jeton est opaque avant
-        // vérification : la clé est l'IP seule, faute de compte identifiable.
-        // Le plafond reste donc plus large que celui du login (clé email|IP) —
-        // derrière le CGNAT des opérateurs congolais ou un wifi partagé,
-        // 5/min ferait échouer la connexion d'utilisateurs DISTINCTS ; 30/min
-        // freine le spam de jetons forgés sans casser un cybercafé.
-        RateLimiter::for('auth_firebase', function (Request $request) {
-            return Limit::perMinute(30)
-                ->by($request->ip())
-                ->response(function (Request $request, array $headers) {
-                    return response()->json([
-                        'success' => false,
-                        'message' => 'Trop de tentatives de connexion. Réessayez dans une minute.',
-                        'errors' => null,
-                    ], 429, $headers);
-                });
         });
 
         // Rate limiter spécifique pour l'IA basé sur les rôles (Spatie) ou statuts.
