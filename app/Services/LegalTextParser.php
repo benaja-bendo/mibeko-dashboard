@@ -4,11 +4,20 @@ namespace App\Services;
 
 class LegalTextParser
 {
+    public function __construct(private readonly LatexArtifactCleaner $latex = new LatexArtifactCleaner) {}
+
     /**
      * Nettoie le contenu pour corriger les erreurs communes d'OCR.
+     *
+     * Le passage LaTeX vient en premier : MinerU rend « le 1er juin » en
+     * `le $1^{\text{er}}$ juin`, et les motifs OCR ci-dessous raisonnent sur
+     * du texte, pas sur du mode mathématique (`$\mathbf{N}^{\circ}$ o` ne
+     * ressemble à `N° o` qu'une fois déséchappé).
      */
     public function sanitizeContent(string $content): string
     {
+        $content = $this->latex->nettoyer($content);
+
         $replacements = [
             '/\bL0I\b/i' => 'LOI',
             '/\bArtide\b/i' => 'Article',
