@@ -8,6 +8,8 @@
 /resources/js/routes
 /resources/js/wayfinder
 /storage/*.key
+# File d'opérations Classe 1 (production.md § 6 bis) : lots locaux, jamais versionnés.
+/storage/app/operations/
 /storage/pail
 /vendor
 .DS_Store
