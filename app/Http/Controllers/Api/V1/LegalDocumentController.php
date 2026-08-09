@@ -270,11 +270,18 @@ class LegalDocumentController extends Controller
                 ->first();
 
             if ($article) {
+                $locator = $article->activeVersion?->source_locator ?? [];
+
                 $currentArticle = [
                     'id' => $article->id,
                     'number' => $article->numero_article,
                     'order' => $article->ordre_affichage,
                     'content' => $article->activeVersion?->contenu_texte,
+                    // Nature de la feuille (preamble, signature, table) et
+                    // tableaux structurés : sans eux le site ne peut que rendre
+                    // du texte, et un tableau ressort en balises à l'écran.
+                    'content_format' => $locator['content_format'] ?? null,
+                    'tables' => $this->publicTables($locator),
                     'related' => $this->relatedTexts($article),
                 ];
             }
@@ -364,6 +371,56 @@ class LegalDocumentController extends Controller
             ->all();
 
         return ['nodes' => $nodes, 'orphan_articles' => $orphanArticles];
+    }
+
+    /**
+     * Tableaux structurés d'un article, tels que posés par l'ingestion.
+     *
+     * Le pipeline linéarise chaque tableau dans `contenu_texte` (une ligne par
+     * rangée, cellules séparées par « | ») et conserve sa forme canonique ici,
+     * avec les bornes de lignes qu'il occupe dans le texte. Une surface qui
+     * ignore ce champ affiche donc un texte lisible ; une surface qui le lit
+     * remplace ces lignes par un vrai tableau. Aucun balisage ne transite par
+     * `contenu_texte` — c'est l'invariant, cf. `docs/decisions.md` (09/08/2026).
+     *
+     * Défensif par construction : le locator est du JSONB écrit par un autre
+     * service, une entrée mal formée est ignorée plutôt que servie au public.
+     *
+     * @param  array<string, mixed>  $locator
+     * @return array<int, array{caption: string|null, headers: array<int, string>, rows: array<int, array<int, string>>, line_start: int|null, line_end: int|null}>
+     */
+    private function publicTables(array $locator): array
+    {
+        $tables = $locator['tables'] ?? null;
+
+        if (! is_array($tables)) {
+            return [];
+        }
+
+        $toStringList = fn (mixed $cells): array => is_array($cells)
+            ? array_values(array_map(fn (mixed $cell): string => is_scalar($cell) ? (string) $cell : '', $cells))
+            : [];
+
+        return array_values(array_filter(array_map(function (mixed $table) use ($toStringList): ?array {
+            if (! is_array($table)) {
+                return null;
+            }
+
+            $rows = array_values(array_map($toStringList, is_array($table['rows'] ?? null) ? $table['rows'] : []));
+            $headers = $toStringList($table['headers'] ?? null);
+
+            if ($headers === [] && $rows === []) {
+                return null;
+            }
+
+            return [
+                'caption' => is_string($table['caption'] ?? null) ? $table['caption'] : null,
+                'headers' => $headers,
+                'rows' => $rows,
+                'line_start' => is_int($table['line_start'] ?? null) ? $table['line_start'] : null,
+                'line_end' => is_int($table['line_end'] ?? null) ? $table['line_end'] : null,
+            ];
+        }, $tables)));
     }
 
     /**

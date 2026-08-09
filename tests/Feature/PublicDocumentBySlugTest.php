@@ -180,3 +180,83 @@ it('ignore les textes liés non publiés (pas de lien mort)', function () {
         ->assertStatus(200)
         ->assertJsonCount(0, 'data.current_article.related');
 });
+
+/**
+ * Tableaux : le site ne peut rendre une vraie table que si l'API lui dit qu'il
+ * y en a une. Sans ces champs, le contenu ressort en texte — et un tableau
+ * ingéré avant la normalisation ressort en balises à l'écran.
+ */
+function publishedArticleWithLocator(string $title, array $locator, string $content): LegalDocument
+{
+    $document = LegalDocument::factory()->create([
+        'type_code' => 'CODE',
+        'titre_officiel' => $title,
+        'curation_status' => 'published',
+    ]);
+
+    $article = Article::factory()->create([
+        'document_id' => $document->id,
+        'numero_article' => 'TABLEAU_1',
+        'ordre_affichage' => 1,
+    ]);
+
+    ArticleVersion::factory()->create([
+        'article_id' => $article->id,
+        'contenu_texte' => $content,
+        'source_locator' => $locator,
+        'validity_period' => '[2020-01-01,)',
+    ]);
+
+    return $document->refresh();
+}
+
+it('expose le format de contenu et les tableaux structurés d\'un article', function () {
+    $document = publishedArticleWithLocator('Décret Budgétaire', [
+        'page' => 4,
+        'content_format' => 'table',
+        'tables' => [[
+            'caption' => 'Crédits ouverts',
+            'headers' => ['Chapitre', 'Montant'],
+            'rows' => [['3-2-1', '50.000.000']],
+            'line_start' => 0,
+            'line_end' => 2,
+        ]],
+    ], "Chapitre | Montant\n3-2-1 | 50.000.000");
+
+    $this->getJson("/api/v1/legal-documents/slug/{$document->slug}?article=TABLEAU_1")
+        ->assertStatus(200)
+        ->assertJsonPath('data.current_article.content_format', 'table')
+        ->assertJsonPath('data.current_article.tables.0.caption', 'Crédits ouverts')
+        ->assertJsonPath('data.current_article.tables.0.headers', ['Chapitre', 'Montant'])
+        ->assertJsonPath('data.current_article.tables.0.rows.0', ['3-2-1', '50.000.000'])
+        ->assertJsonPath('data.current_article.tables.0.line_start', 0)
+        ->assertJsonPath('data.current_article.tables.0.line_end', 2);
+});
+
+it('renvoie une liste de tableaux vide quand l\'article n\'en porte pas', function () {
+    $document = publishedCodeWithArticle('Code Simple', '1', 'Texte ordinaire.');
+
+    $this->getJson("/api/v1/legal-documents/slug/{$document->slug}?article=1")
+        ->assertStatus(200)
+        ->assertJsonPath('data.current_article.content_format', null)
+        ->assertJsonPath('data.current_article.tables', []);
+});
+
+it('ignore une entrée de tableau mal formée plutôt que de la servir', function () {
+    // Le locator est du JSONB écrit par le service Python : une entrée
+    // corrompue ne doit pas casser la page publique ni fuiter telle quelle.
+    $document = publishedArticleWithLocator('Décret Douteux', [
+        'content_format' => 'table',
+        'tables' => [
+            'pas-un-objet',
+            ['headers' => [], 'rows' => []],
+            ['headers' => ['A'], 'rows' => [['1'], 'pas-une-rangée']],
+        ],
+    ], 'A');
+
+    $this->getJson("/api/v1/legal-documents/slug/{$document->slug}?article=TABLEAU_1")
+        ->assertStatus(200)
+        ->assertJsonCount(1, 'data.current_article.tables')
+        ->assertJsonPath('data.current_article.tables.0.headers', ['A'])
+        ->assertJsonPath('data.current_article.tables.0.rows', [['1'], []]);
+});
