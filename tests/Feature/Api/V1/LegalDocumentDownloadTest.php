@@ -111,3 +111,57 @@ it('exclut les articles orphelins quand un sous-arbre précis est demandé', fun
         ->toContain($attached->id)
         ->not->toContain($orphan->id);
 });
+
+it('transporte les tableaux structurés jusqu\'au corpus hors-ligne', function () {
+    // Sans ce champ, un téléphone n'a que la forme linéarisée (« A | B | C ») :
+    // le texte reste lisible mais la colonne se perd, et l'app ne peut plus
+    // rendre de vrai tableau (mibeko-python#12).
+    $document = LegalDocument::factory()->create();
+
+    $article = Article::factory()->create([
+        'document_id' => $document->id,
+        'numero_article' => 'TABLEAU_1',
+    ]);
+
+    ArticleVersion::factory()->create([
+        'article_id' => $article->id,
+        'contenu_texte' => "Chapitre | Montant\n3-2-1 | 50.000.000",
+        'source_locator' => [
+            'content_format' => 'table',
+            'tables' => [[
+                'caption' => 'Crédits ouverts',
+                'headers' => ['Chapitre', 'Montant'],
+                'rows' => [['3-2-1', '50.000.000']],
+                'line_start' => 0,
+                'line_end' => 2,
+                // Provenance : ne doit JAMAIS partir vers un corpus hors-ligne.
+                'html_source' => '<table><tr><td>Chapitre</td></tr></table>',
+            ]],
+        ],
+    ]);
+
+    $response = $this->getJson("/api/v1/legal-documents/{$document->id}/download")
+        ->assertStatus(200)
+        ->assertJsonPath('data.articles.0.content_format', 'table')
+        ->assertJsonPath('data.articles.0.tables.0.caption', 'Crédits ouverts')
+        ->assertJsonPath('data.articles.0.tables.0.headers', ['Chapitre', 'Montant'])
+        ->assertJsonPath('data.articles.0.tables.0.rows.0', ['3-2-1', '50.000.000'])
+        ->assertJsonPath('data.articles.0.tables.0.line_start', 0);
+
+    expect($response->json('data.articles.0.tables.0'))->not->toHaveKey('html_source');
+});
+
+it('n\'ajoute pas de tableau vide à un article ordinaire', function () {
+    $document = LegalDocument::factory()->create();
+    $article = Article::factory()->create(['document_id' => $document->id]);
+    ArticleVersion::factory()->create([
+        'article_id' => $article->id,
+        'contenu_texte' => 'Le présent décret entre en vigueur.',
+        'source_locator' => ['page' => 3],
+    ]);
+
+    $this->getJson("/api/v1/legal-documents/{$document->id}/download")
+        ->assertStatus(200)
+        ->assertJsonPath('data.articles.0.content_format', null)
+        ->assertJsonPath('data.articles.0.tables', []);
+});

@@ -29,7 +29,14 @@ class ArticleBriefResource extends JsonResource
             'number' => $this->numero_article ?? '',
             'order' => $this->ordre_affichage ?? 0,
             'content' => $this->whenLoaded('activeVersion', fn () => $this->activeVersion?->contenu_texte),
-            'source_locator' => $this->whenLoaded('activeVersion', fn () => $this->activeVersion?->source_locator),
+
+            // `source_locator` sert l'ancrage PDF du viewer. Les tableaux y sont
+            // aussi, mais accompagnés de leur HTML d'origine : c'est de la
+            // provenance destinée au pipeline, qui n'a rien à faire dans un
+            // corpus mobile hors-ligne. On sert donc la forme nettoyée à part et
+            // on retire le brut du locator.
+            'source_locator' => $this->whenLoaded('activeVersion', fn () => $this->sanitizedLocator()),
+            'tables' => $this->whenLoaded('activeVersion', fn () => $this->activeVersion?->publicTables() ?? []),
             'anomaly_count' => $openFlags,
             'validation_status' => $openFlags > 0
                 ? 'error'
@@ -44,5 +51,25 @@ class ArticleBriefResource extends JsonResource
                 ]);
             }),
         ];
+    }
+
+    /**
+     * Locator d'ancrage PDF, débarrassé de la provenance des tableaux.
+     *
+     * @return array<string, mixed>|null
+     */
+    private function sanitizedLocator(): ?array
+    {
+        $locator = $this->activeVersion?->source_locator;
+
+        if (! is_array($locator)) {
+            return $locator;
+        }
+
+        if (isset($locator['tables'])) {
+            $locator['tables'] = $this->activeVersion->publicTables();
+        }
+
+        return $locator;
     }
 }

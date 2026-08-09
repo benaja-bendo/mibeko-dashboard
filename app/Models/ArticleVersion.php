@@ -59,6 +59,70 @@ class ArticleVersion extends Model implements Auditable
     }
 
     /**
+     * Tableaux structurés de cette version, prêts à être servis à un client.
+     *
+     * Le pipeline linéarise chaque tableau dans `contenu_texte` (une ligne par
+     * rangée, cellules séparées par « | ») et conserve sa forme canonique dans
+     * `source_locator`, avec les bornes de lignes qu'il occupe. Un client qui
+     * ignore ce champ affiche donc un texte lisible ; celui qui le lit remplace
+     * ces lignes par un vrai tableau. Aucun balisage ne transite par
+     * `contenu_texte` — c'est l'invariant, cf. `docs/decisions.md` (09/08/2026).
+     *
+     * `html_source` est délibérément retiré : c'est de la provenance destinée à
+     * un retraitement côté pipeline, inutile à un client et coûteuse à
+     * transporter jusqu'à un corpus mobile hors-ligne.
+     *
+     * Défensif par construction : le locator est du JSONB écrit par un autre
+     * service, une entrée mal formée est ignorée plutôt que servie.
+     *
+     * @return array<int, array{caption: string|null, headers: array<int, string>, rows: array<int, array<int, string>>, line_start: int|null, line_end: int|null}>
+     */
+    public function publicTables(): array
+    {
+        $tables = $this->source_locator['tables'] ?? null;
+
+        if (! is_array($tables)) {
+            return [];
+        }
+
+        $toStringList = fn (mixed $cells): array => is_array($cells)
+            ? array_values(array_map(fn (mixed $cell): string => is_scalar($cell) ? (string) $cell : '', $cells))
+            : [];
+
+        return array_values(array_filter(array_map(function (mixed $table) use ($toStringList): ?array {
+            if (! is_array($table)) {
+                return null;
+            }
+
+            $rows = array_values(array_map($toStringList, is_array($table['rows'] ?? null) ? $table['rows'] : []));
+            $headers = $toStringList($table['headers'] ?? null);
+
+            if ($headers === [] && $rows === []) {
+                return null;
+            }
+
+            return [
+                'caption' => is_string($table['caption'] ?? null) ? $table['caption'] : null,
+                'headers' => $headers,
+                'rows' => $rows,
+                'line_start' => is_int($table['line_start'] ?? null) ? $table['line_start'] : null,
+                'line_end' => is_int($table['line_end'] ?? null) ? $table['line_end'] : null,
+            ];
+        }, $tables)));
+    }
+
+    /**
+     * Nature de la feuille posée à l'ingestion : `preamble`, `signature`,
+     * `table`. Null pour un article ordinaire.
+     */
+    public function contentFormat(): ?string
+    {
+        $format = $this->source_locator['content_format'] ?? null;
+
+        return is_string($format) ? $format : null;
+    }
+
+    /**
      * Juriste ayant relu ce contenu (null tant qu'aucune relecture n'a eu lieu).
      */
     public function reviewedBy(): BelongsTo
