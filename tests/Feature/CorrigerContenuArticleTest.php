@@ -124,3 +124,34 @@ it('tient la cadence entre les articles, jamais après le dernier', function () 
 
     putenv('MIBEKO_API_TOKEN');
 });
+
+it('joint source_locator au même PATCH que le contenu quand le mapping en porte un', function () {
+    // Normalisation des tableaux (mibeko-python#12) : le texte linéarisé et la
+    // forme canonique doivent atterrir dans la MÊME version. Séparer les deux
+    // appels laisserait une version intermédiaire où la surface de lecture a
+    // perdu le tableau qu'elle savait rendre.
+    putenv('MIBEKO_API_TOKEN=jeton-de-test');
+    Http::fake(fn () => Http::response(['success' => true], 200));
+
+    $locator = [
+        'content_format' => 'table',
+        'tables' => [['caption' => null, 'headers' => ['Chapitre'], 'rows' => [['3-2-1']], 'line_start' => 0, 'line_end' => 2]],
+    ];
+
+    $this->artisan('mibeko:corriger-contenu-article', [
+        '--mapping' => fichierContenus([
+            ['id' => 'aaa', 'document' => 'Décret budgétaire', 'content' => "Chapitre\n3-2-1", 'source_locator' => $locator],
+            ['id' => 'bbb', 'document' => 'Loi Y', 'content' => 'Texte sans tableau.'],
+        ]),
+        '--execute' => true,
+    ])->assertSuccessful();
+
+    Http::assertSent(fn ($r) => str_contains($r->url(), '/articles/aaa')
+        && $r['source_locator'] === $locator);
+    // Un mapping sans locator n'en invente pas un : l'ancrage PDF existant
+    // serait écrasé par un tableau vide.
+    Http::assertSent(fn ($r) => str_contains($r->url(), '/articles/bbb')
+        && ! array_key_exists('source_locator', $r->data()));
+
+    putenv('MIBEKO_API_TOKEN');
+});

@@ -123,7 +123,18 @@ class CorrigerContenuArticleCommand extends Command
                 continue;
             }
 
-            $reponse = $this->patcher($jeton, "{$baseUrl}/articles/{$id}", ['content' => $content]);
+            // `source_locator` accompagne le contenu quand la correction porte
+            // aussi sur la structure — cas de la normalisation des tableaux, où
+            // le texte linéarisé n'a de sens que servi avec sa forme canonique
+            // (sinon la surface de lecture perd le tableau qu'elle savait
+            // rendre). L'API accepte les deux dans le même PATCH, donc la même
+            // version : jamais d'état intermédiaire où l'un est écrit sans l'autre.
+            $charge = ['content' => $content];
+            if (is_array($e['source_locator'] ?? null)) {
+                $charge['source_locator'] = $e['source_locator'];
+            }
+
+            $reponse = $this->patcher($jeton, "{$baseUrl}/articles/{$id}", $charge);
 
             if ($reponse === null || $reponse->failed()) {
                 $echecs[] = [Str::limit($label, 50), $this->motif($reponse)];
