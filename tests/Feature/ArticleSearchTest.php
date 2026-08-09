@@ -4,6 +4,7 @@ use App\Models\Article;
 use App\Models\ArticleVersion;
 use App\Models\DocumentType;
 use App\Models\LegalDocument;
+use App\Models\User;
 use App\Observers\ArticleVersionObserver;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
@@ -155,6 +156,85 @@ it('requires a search query of at least 2 characters', function () {
 
     $response->assertStatus(422)
         ->assertJsonValidationErrors(['q']);
+});
+
+/**
+ * mibeko-dashboard#14 — avant ce correctif, un simple nombre de mots (≥ 4) ou
+ * un point d'interrogation suffisait à déclencher un appel LLM complet sans
+ * plafond dédié, anonymement. Seul `rag=` déclenche désormais le RAG.
+ */
+it('ne déclenche plus le RAG sur un nombre de mots (ancienne heuristique)', function () {
+    // 6 mots, aucune ponctuation : sous l'ancien code, wordCount >= 4 suffisait.
+    $response = $this->getJson('/api/v1/articles/search?q=le régime applicable au licenciement collectif');
+
+    $response->assertStatus(200)
+        ->assertJsonStructure([
+            'success',
+            'message',
+            'data' => [
+                '*' => ['id', 'number', 'content'],
+            ],
+        ]);
+    expect($response->json('data.answer'))->toBeNull();
+});
+
+it('ne déclenche plus le RAG sur un point d\'interrogation seul', function () {
+    // Sous l'ancien code, $isQuestion suffisait même à 1 mot.
+    $response = $this->getJson('/api/v1/articles/search?q=licenciement ?');
+
+    $response->assertStatus(200)
+        ->assertJsonStructure([
+            'data' => [
+                '*' => ['id', 'number', 'content'],
+            ],
+        ]);
+});
+
+it('plafonne le RAG anonyme via le limiteur ai_assistant partagé, sans faire échouer la recherche', function () {
+    // Désactive le passage des middlewares de ROUTE (`throttle:api`, 2/min en
+    // environnement de test — AppServiceProvider), que 5-6 appels en boucle
+    // saturerait sans rapport avec ce que ce test vérifie. Forme SANS argument
+    // délibérée : `withoutMiddleware(ThrottleRequests::class)` remplacerait le
+    // binding du conteneur pour TOUTE la classe par un bouchon inerte — or
+    // `ragAllowedByThrottle()` résout cette même classe à la main, hors du
+    // pipeline de route, pour vérifier le plafond `ai_assistant` ; un tel
+    // remplacement l'aurait neutralisée aussi. La forme sans argument ne fait
+    // que sauter l'étape de middleware du routeur, sans toucher au conteneur.
+    $this->withoutMiddleware();
+
+    // Limiteur anonyme partagé avec les autres surfaces IA (AppServiceProvider,
+    // 'ai_assistant') : 5/minute par IP. Les 5 premières demandes explicites de
+    // RAG passent, la 6e dégrade en silence vers la recherche seule (200, pas
+    // de 429) plutôt que de faire échouer toute la requête.
+    for ($i = 0; $i < 5; $i++) {
+        $response = $this->getJson('/api/v1/articles/search?q=licenciement&rag=true');
+        $response->assertStatus(200);
+        expect($response->json('data.answer'))->not->toBeNull();
+    }
+
+    $response = $this->getJson('/api/v1/articles/search?q=licenciement&rag=true');
+
+    $response->assertStatus(200);
+    expect($response->json('data.answer'))->toBeNull();
+});
+
+it('applique le quota du rôle, pas le plafond anonyme, pour un utilisateur authentifié', function () {
+    // Cf. commentaire du test précédent : seul le plafond générique de route
+    // est désactivé, pas le plafond `ai_assistant` vérifié à la main.
+    $this->withoutMiddleware();
+
+    // Quota standard par défaut (config('ai.quotas.standard.per_minute')) très
+    // au-dessus de 5 : les 6 appels doivent tous réussir, contrairement au test
+    // anonyme ci-dessus — preuve que ragAllowedByThrottle() distingue bien les
+    // deux, sans dupliquer la politique du limiteur nommé.
+    $user = User::factory()->create();
+
+    for ($i = 0; $i < 6; $i++) {
+        $response = $this->actingAs($user)
+            ->getJson('/api/v1/articles/search?q=licenciement&rag=true');
+        $response->assertStatus(200);
+        expect($response->json('data.answer'))->not->toBeNull();
+    }
 });
 
 it('résout le contexte d\'un article isolé (document parent inclus)', function () {

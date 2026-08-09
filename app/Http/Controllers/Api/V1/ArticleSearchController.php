@@ -4,8 +4,11 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Traits\SearchesArticles;
+use Illuminate\Http\Exceptions\HttpResponseException;
+use Illuminate\Http\Exceptions\ThrottleRequestsException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Routing\Middleware\ThrottleRequests;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
@@ -284,12 +287,27 @@ class ArticleSearchController extends Controller
         $wantsRag = $request->boolean('rag', false);
         $isAutocomplete = $request->boolean('autocomplete', false);
 
-        $wordCount = str_word_count($query);
-        $isQuestion = str_ends_with(trim($query), '?') || preg_match('/^(comment|pourquoi|quel|quelle|quels|quelles|qui|que|combien|est-ce que)/i', trim($query));
+        // mibeko-dashboard#14 — le déclenchement n'est plus qu'explicite. Avant
+        // le 09/08/2026, un simple nombre de mots ou un point d'interrogation
+        // suffisait à déclencher un appel LLM complet, sans que l'appelant en
+        // ait exprimé le besoin : c'était le seul poste de coût du projet sans
+        // plafond dédié, exposé anonymement. Vérifié avant ce correctif :
+        // aucun appelant du monorepo (mobile, front, site) n'envoie jamais
+        // `rag=` — l'app mobile capture même la réponse (`aiAnswer` dans
+        // `LocalLegalRepository`) sans jamais l'afficher. Rendre le flag
+        // exclusif ne retire donc aucune fonctionnalité visible aujourd'hui.
+        $shouldRunRag = ! $isAutocomplete && $wantsRag;
 
-        $shouldRunRag = ! $isAutocomplete && ($wantsRag || $isQuestion || $wordCount >= 4);
-
-        if (! empty($query) && $shouldRunRag) {
+        // Le RAG explicitement demandé passe par le même plafond que les
+        // autres surfaces IA (`throttle:ai_assistant` — anonyme 5/min par IP,
+        // authentifié par quota de rôle). Appliqué en middleware de route ça
+        // freinerait aussi la recherche lexicale, qui n'a jamais besoin d'un
+        // LLM ; appliqué ici, seul l'appel effectivement coûteux est compté.
+        // Un dépassement dégrade en silence vers les résultats de recherche
+        // seuls (200, comme si `rag` n'avait pas été demandé) plutôt que de
+        // faire échouer toute la recherche : le RAG est un bonus sur cette
+        // route, jamais son seul objet.
+        if (! empty($query) && $shouldRunRag && $this->ragAllowedByThrottle($request)) {
             $topArticles = $paginator->items();
             $sources = array_slice($topArticles, 0, 5); // Take top 5 for context
 
@@ -297,6 +315,7 @@ class ArticleSearchController extends Controller
                 'query' => $query,
                 'source_count' => count($sources),
                 'top_score' => count($sources) > 0 ? $sources[0]['score'] : null,
+                'authenticated' => $request->user() !== null,
             ]);
 
             if (empty($sources)) {
@@ -320,6 +339,46 @@ class ArticleSearchController extends Controller
         }
 
         return $this->paginatedSuccess($paginator, null, 'Résultats de recherche récupérés avec succès');
+    }
+
+    /**
+     * Vérifie et consomme le plafond du limiteur nommé `ai_assistant`
+     * (`AppServiceProvider`) pour la requête courante, sans dupliquer sa
+     * politique de quota ici — anonyme et authentifié restent définis à un
+     * seul endroit. Passe par la vraie classe `ThrottleRequests` plutôt que
+     * de ré-implémenter la résolution du limiteur nommé : celle-ci hache la
+     * clé de cache avec le nom du limiteur (`md5($limiterName.$limit->key)`),
+     * un détail qu'une réimplémentation manuelle risquerait de rater et qui
+     * ferait retomber cette route sur un compteur différent des autres
+     * surfaces IA au lieu de partager le même quota par utilisateur/IP.
+     *
+     * Ne renvoie jamais de réponse 429 : au dépassement, l'appelant doit
+     * dégrader en silence vers la recherche seule (cf. `search()`), jamais
+     * faire échouer toute la requête pour un bonus qu'elle n'a même pas
+     * demandé de façon systématique.
+     */
+    private function ragAllowedByThrottle(Request $request): bool
+    {
+        try {
+            app(ThrottleRequests::class)->handle(
+                $request,
+                fn () => response()->noContent(),
+                'ai_assistant'
+            );
+
+            return true;
+        } catch (ThrottleRequestsException) {
+            // Limite atteinte sans `response()` propre sur le Limit — ne se
+            // produit pas avec le limiteur `ai_assistant` actuel (chaque
+            // branche en définit un), gardé pour ne pas dépendre de ce détail
+            // si le limiteur évolue.
+            return false;
+        } catch (HttpResponseException) {
+            // Cas réel avec `ai_assistant` : chaque branche (anonyme, admin,
+            // standard/premium) définit `->response(...)`, donc `buildException`
+            // lève systématiquement celle-ci plutôt que `ThrottleRequestsException`.
+            return false;
+        }
     }
 
     /**
