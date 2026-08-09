@@ -89,3 +89,56 @@ it('laisse le texte sans LaTeX rigoureusement inchangé', function () {
 
     expect($this->nettoyeur->nettoyer($texte))->toBe($texte);
 });
+
+/**
+ * mibeko-dashboard#24 — régression trouvée le 09/08/2026 en vérifiant, avant
+ * exécution, le mapping produit par `mibeko:proposer-nettoyage-latex` sur la
+ * production : quand MinerU laisse le chiffre EN DEHORS du `$` et n'ouvre le
+ * mode mathématique que pour l'exposant seul, le nettoyeur reproduisait le
+ * blanc de séparation au lieu de coller le chiffre à l'exposant. Les 7 formes
+ * ci-dessous sont les 7 occurrences réelles trouvées sur les 128 candidats du
+ * lot de correction (`article_versions.contenu_texte`, versions publiées),
+ * pas des cas inventés.
+ */
+dataset('base collée à un exposant nu (régression #24)', [
+    'ordinal « er » simple' => [
+        'paragraphe 1  $^{er}$  de la présente loi.',
+        'paragraphe 1er de la présente loi.',
+    ],
+    'ordinal « er » en milieu de phrase' => [
+        'les alinéas 1  $^{er}$  et 2 sont applicables',
+        'les alinéas 1er et 2 sont applicables',
+    ],
+    'ordinal « er » suivi d’un point isolé' => [
+        'du livre 1  $^{er}$  .',
+        'du livre 1er .',
+    ],
+    'ordinal « ème »' => [
+        'au-delà du 8  $^{ème}$  degré',
+        'au-delà du 8ème degré',
+    ],
+    'ordinal « ème », variante espacement' => [
+        'né avant le 180  $^{ème}$  jour',
+        'né avant le 180ème jour',
+    ],
+]);
+
+it('colle le chiffre externe au $ à l’exposant nu qu’il précède', function (string $avant, string $apres) {
+    expect($this->nettoyeur->nettoyer($avant))->toBe($apres);
+})->with('base collée à un exposant nu (régression #24)');
+
+it('ne colle PAS quand la base est déjà à l’intérieur du $ (non-régression #24)', function () {
+    // Cas déjà correct avant le correctif : la base ET l'exposant sont tous
+    // deux dans le `$` — rien ne doit changer dans ce cas, seul le cas où la
+    // base est HORS du `$` (dataset ci-dessus) était fautif.
+    expect($this->nettoyeur->nettoyer('le  $1^{\text{er}}$  juin 1927'))
+        ->toBe('le 1er juin 1927');
+});
+
+it('ne colle pas un chiffre externe à autre chose qu’un exposant nu', function () {
+    // Le chiffre "5" précède ici une portion qui n'est PAS un exposant nu
+    // (elle contient \mathfrak{n}) : la règle de collage ne doit pas
+    // s'appliquer, seul le comportement espacement habituel doit jouer.
+    expect($this->nettoyeur->nettoyer('acte 5  $\mathfrak{n}^{\circ}$  du registre'))
+        ->toBe('acte 5 n° du registre');
+});

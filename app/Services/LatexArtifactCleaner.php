@@ -80,7 +80,8 @@ class LatexArtifactCleaner
         $resultat = preg_replace_callback(
             $this->motifPortion(),
             function (array $m) use (&$convertis, &$refuses): string {
-                $brut = $m['avant'].'$'.$m['inner'].'$'.$m['apres'];
+                $base = $m['base'] ?? '';
+                $brut = $base.$m['avant'].'$'.$m['inner'].'$'.$m['apres'];
                 $clair = $this->decoder($m['inner']);
 
                 if ($clair === null) {
@@ -91,10 +92,20 @@ class LatexArtifactCleaner
 
                 // L'espace autour de la portion est celui que MinerU a inséré
                 // en ouvrant le mode mathématique : on en garde un seul, sans
-                // jamais coller deux mots qui étaient séparés.
-                $avant = ($m['avant'] !== '' || preg_match('/^\s/u', $clair)) ? ' ' : '';
+                // jamais coller deux mots qui étaient séparés. EXCEPTION : un
+                // chiffre collé juste avant un exposant nu (rien d'autre dans
+                // le `$`, cf. `$base` ci-dessus et `motifPortion()`) — MinerU
+                // rend parfois « 1er » en laissant le « 1 » en texte normal et
+                // en n'ouvrant le mode mathématique que pour l'exposant seul
+                // (`1 $^{er}$`), contrairement au cas normal où toute la
+                // portion, base comprise, est à l'intérieur du `$`
+                // (`$1^{\text{er}}$`). Sans cette exception, le blanc que
+                // MinerU insère à l'ouverture du mode mathématique était
+                // reproduit tel quel, donnant « 1 er » au lieu de « 1er ».
+                $baseCollee = $base !== '' && str_starts_with(ltrim($m['inner']), '^{');
+                $avant = $baseCollee ? '' : (($m['avant'] !== '' || preg_match('/^\s/u', $clair)) ? ' ' : '');
                 $apres = ($m['apres'] !== '' || preg_match('/\s$/u', $clair)) ? ' ' : '';
-                $remplacement = $avant.trim($clair).$apres;
+                $remplacement = $base.$avant.trim($clair).$apres;
 
                 $convertis[] = ['avant' => trim($brut), 'apres' => trim($remplacement)];
 
@@ -114,10 +125,18 @@ class LatexArtifactCleaner
      * Une portion en mode mathématique, avec l'espace horizontal qui l'entoure.
      * `[^$\r\n]` interdit d'enjamber une fin de ligne : c'est ce qui protège
      * les `$` dépareillés des tableaux de chiffres.
+     *
+     * `(?P<base>\d)?` capture, quand il est présent, le chiffre collé
+     * immédiatement avant la portion — nécessaire pour distinguer, dans le
+     * callback, un exposant nu recollé à son chiffre (`1 $^{er}$`) du cas
+     * général (`1$^{er}$` sans le groupe serait déjà correctement géré, mais
+     * `1 $^{er}$` avec un blanc entre les deux ne l'était pas). Le chiffre
+     * capturé est réémis tel quel par le callback : rien n'est perdu, il ne
+     * fait que changer de groupe de capture.
      */
     private function motifPortion(): string
     {
-        return '/(?P<avant>[^\S\r\n]*)\$(?P<inner>[^$\r\n]*)\$(?P<apres>[^\S\r\n]*)/u';
+        return '/(?P<base>\d)?(?P<avant>[^\S\r\n]*)\$(?P<inner>[^$\r\n]*)\$(?P<apres>[^\S\r\n]*)/u';
     }
 
     /**
