@@ -271,7 +271,7 @@ class FusionnerFragmentsCommand extends Command
             $teteEnAttente = null;
 
             foreach ($ordonnes as $document) {
-                if (! $this->estUnFragment($db, $document->id)) {
+                if (! $this->estUnFragment($db, $document->id, (string) $document->titre_officiel)) {
                     $teteEnAttente = $this->estUneTeteTronquee($db, $document->id) ? $document : null;
 
                     continue;
@@ -314,13 +314,38 @@ class FusionnerFragmentsCommand extends Command
      * commence en minuscule : la suite d'une phrase coupée, jamais un début
      * d'acte (un acte commence par un visa ou un « Article premier »).
      */
-    private function estUnFragment(Connection $db, string $documentId): bool
+    private function estUnFragment(Connection $db, string $documentId, ?string $titre = null): bool
     {
+        // Le titre d'un fragment est, par construction, le morceau de phrase sur
+        // lequel le découpage a coupé : jamais un intitulé d'acte. Sans ce
+        // contrôle, la commande prend pour des fragments les actes RÉELS dont le
+        // seul titre est tronqué — leur préambule commence lui aussi en
+        // minuscule, puisqu'il porte la suite de l'intitulé. Mesuré le
+        // 10/08/2026 en diagnostic global : 125 des 186 paires écartées étaient
+        // de tels actes, qui noyaient les 61 fragments véritables.
+        if ($titre !== null && $this->ressembleAUnIntituleDActe($titre)) {
+            return false;
+        }
+
         $premier = $this->premierMorceau($db, $documentId);
 
         return $premier !== null
             && preg_match('/^\d+$/', (string) $premier->numero_article) !== 1
             && preg_match('/^\p{Ll}/u', ltrim((string) $premier->contenu_texte)) === 1;
+    }
+
+    /**
+     * Un intitulé d'acte ouvre sur son genre PUIS porte son identité : un
+     * numéro, une date, ou une qualification (« organique », « constitutionnelle »).
+     * Une clause coupée en milieu de phrase enchaîne sur autre chose
+     * (« arrêté ainsi que l'ensemble de la réglementation »).
+     */
+    private function ressembleAUnIntituleDActe(string $titre): bool
+    {
+        return preg_match(
+            '/^(?:loi|d[ée]cret|arr[êe]t[ée]|ordonnance|d[ée]cision|d[ée]lib[ée]ration|circulaire|avis|acte|constitution|rectificatif|additif|communiqu[ée])\b[\s,]*(?:n|organique|constitutionnelle|interminist[ée]riel|du\b|\d)/iu',
+            trim($titre),
+        ) === 1;
     }
 
     private function estUneTeteTronquee(Connection $db, string $documentId): bool
