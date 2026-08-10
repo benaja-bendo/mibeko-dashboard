@@ -41,6 +41,15 @@ class LegalDocumentResource extends JsonResource
             // Statuts
             'statut' => $this->statut,
             'status' => $this->statut,
+            // `statut` a « vigueur » pour valeur par défaut en base : sur les
+            // documents que personne n'a contrôlés, il n'affirme rien, il
+            // répète le défaut. Ce booléen distingue les deux, pour que le
+            // client puisse écrire « statut non vérifié » plutôt que « en
+            // vigueur ». Même intention que `date_entree_vigueur_inconnue`
+            // ci-dessous (étape 0 du protocole, mesurée le 10/08/2026 :
+            // 795 documents publiés sur 795 étaient dans ce cas).
+            'statut_verifie' => $this->statut_verifie_le !== null,
+            'statut_verifie_le' => $this->statut_verifie_le?->toDateString(),
             'curation_status' => $this->curation_status,
             'extraction_status' => $this->extraction_status,
 

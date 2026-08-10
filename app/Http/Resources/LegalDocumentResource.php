@@ -35,6 +35,7 @@ class LegalDocumentResource extends JsonResource
             ],
             'source_url' => $this->source_url,
             'statut' => $this->statut,
+            'statut_verifie' => $this->statut_verifie_le !== null,
             'structure_nodes' => $this->whenLoaded('structureNodes', function () {
                 return $this->structureNodes->map(function ($node) {
                     return [

@@ -578,6 +578,14 @@ class LegalDocumentController extends Controller
         // doit être posé AVANT update() pour être visible du hook `saving`.
         $document->transitionMotif = $validated['motif'] ?? null;
 
+        // Voir bulkUpdate : poser le statut juridique à la main vaut
+        // vérification, et se trace. Sans horodatage, « vigueur » resterait
+        // indiscernable de la valeur par défaut de la colonne.
+        if (array_key_exists('statut', $validated)) {
+            $validated['statut_verifie_le'] = now();
+            $validated['statut_verifie_par'] = $request->user()?->id;
+        }
+
         $document->update(Arr::except($validated, ['themes', 'force', 'motif']));
 
         if (array_key_exists('themes', $validated)) {
@@ -821,6 +829,16 @@ class LegalDocumentController extends Controller
         ) {
             foreach ($documents as $document) {
                 $donnees = [$column => $request->value];
+
+                // Poser le statut juridique à la main, c'est l'avoir vérifié :
+                // on horodate et on nomme qui l'a fait. Sans cette trace,
+                // « vigueur » reste indiscernable de la valeur par défaut de la
+                // colonne — ce qui était le cas des 795 documents publiés
+                // mesurés le 10/08/2026 (étape 0 du protocole).
+                if ($column === 'statut') {
+                    $donnees['statut_verifie_le'] = now();
+                    $donnees['statut_verifie_par'] = $request->user()?->id;
+                }
 
                 if ($isPublishing) {
                     // Mêmes gardes que la curation unitaire, plus strictes sur un

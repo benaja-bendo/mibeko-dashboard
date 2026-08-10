@@ -6,6 +6,8 @@ use App\Models\LegalDocument;
 use App\Models\User;
 use App\Observers\ArticleVersionObserver;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Laravel\Ai\Embeddings;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
@@ -169,4 +171,79 @@ it('refuse la mise à jour à un utilisateur sans rôle éditeur', function () {
             'titre_officiel' => 'Tentative',
         ])
         ->assertForbidden();
+});
+
+// --- Vérification du statut juridique (étape 0 du protocole, 10/08/2026) -----
+// `statut` a « vigueur » pour valeur par défaut en base : sur un document que
+// personne n'a contrôlé, il répète le défaut au lieu d'affirmer quoi que ce
+// soit. C'est ainsi que les 795 documents publiés se sont retrouvés à
+// présenter comme applicables, en même temps, trois Constitutions successives.
+
+it('ne prétend pas qu\'un statut jamais posé a été vérifié', function () {
+    $document = LegalDocument::factory()->create(['statut' => 'vigueur']);
+
+    expect($document->statut_verifie_le)->toBeNull();
+
+    $this->actingAs($this->editor)
+        ->getJson("/api/v1/legal-documents/{$document->id}")
+        ->assertOk()
+        ->assertJsonPath('data.statut', 'vigueur')
+        ->assertJsonPath('data.statut_verifie', false)
+        ->assertJsonPath('data.statut_verifie_le', null);
+});
+
+it('reçoit « vigueur » par défaut de la base, sans que personne ne l\'ait décidé', function () {
+    // La racine du défaut : un document inséré sans statut est déclaré en
+    // vigueur par la valeur par défaut de la colonne. Ce test garde le fait,
+    // pour que la trace de vérification garde un sens — si un jour le défaut
+    // devient « non vérifié », c'est ici qu'on le verra.
+    $id = (string) Str::uuid();
+    DB::table('legal_documents')->insert([
+        'id' => $id,
+        'titre_officiel' => 'Texte inséré sans statut',
+        'slug' => 'texte-insere-sans-statut',
+        'created_at' => now(),
+        'updated_at' => now(),
+    ]);
+
+    $ligne = DB::table('legal_documents')->where('id', $id)->first();
+    expect($ligne->statut)->toBe('vigueur')
+        ->and($ligne->statut_verifie_le)->toBeNull();
+});
+
+it('horodate et attribue la vérification quand un éditeur pose le statut', function () {
+    $document = LegalDocument::factory()->create(['statut' => 'vigueur']);
+
+    $this->actingAs($this->editor)
+        ->patchJson("/api/v1/legal-documents/{$document->id}", ['statut' => 'abroge'])
+        ->assertOk()
+        ->assertJsonPath('data.statut_verifie', true);
+
+    $document->refresh();
+    expect($document->statut)->toBe('abroge')
+        ->and($document->statut_verifie_le)->not->toBeNull()
+        ->and($document->statut_verifie_par)->toBe($this->editor->id);
+});
+
+it('vaut vérification même quand l\'éditeur confirme « vigueur » sans le changer', function () {
+    // Le cas qui compte : confirmer que le texte EST en vigueur est une
+    // décision éditoriale, pas un non-événement. Sans cette trace, un document
+    // relu resterait indiscernable d'un document jamais ouvert.
+    $document = LegalDocument::factory()->create(['statut' => 'vigueur']);
+
+    $this->actingAs($this->editor)
+        ->patchJson("/api/v1/legal-documents/{$document->id}", ['statut' => 'vigueur'])
+        ->assertOk();
+
+    expect($document->fresh()->statut_verifie_le)->not->toBeNull();
+});
+
+it('ne touche pas à la vérification quand la modification ne porte pas sur le statut', function () {
+    $document = LegalDocument::factory()->create(['titre_officiel' => 'Ancien titre']);
+
+    $this->actingAs($this->editor)
+        ->patchJson("/api/v1/legal-documents/{$document->id}", ['titre_officiel' => 'Nouveau titre'])
+        ->assertOk();
+
+    expect($document->fresh()->statut_verifie_le)->toBeNull();
 });
