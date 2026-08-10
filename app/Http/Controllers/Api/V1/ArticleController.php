@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Resources\V1\ArticleResource;
 use App\Models\Article;
 use App\Models\ArticleVersion;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -13,6 +14,23 @@ use Illuminate\Support\Facades\Log;
 
 class ArticleController extends Controller
 {
+    /**
+     * Les articles de même rang qu'un article donné : ceux de la même division,
+     * ou — pour un acte court sans structure — ceux rattachés directement au
+     * document. `where('parent_node_id', null)` compilerait en `= NULL`, qui
+     * n'est jamais vrai en SQL : la fratrie orpheline doit passer par whereNull.
+     */
+    private static function fratrieDe(string $documentId, ?string $parentNodeId): Builder
+    {
+        return Article::query()
+            ->where('document_id', $documentId)
+            ->when(
+                $parentNodeId === null,
+                fn ($q) => $q->whereNull('parent_node_id'),
+                fn ($q) => $q->where('parent_node_id', $parentNodeId),
+            );
+    }
+
     /**
      * Display the specified resource.
      */
@@ -35,7 +53,10 @@ class ArticleController extends Controller
     {
         $validated = $request->validate([
             'document_id' => 'required|exists:legal_documents,id',
-            'parent_node_id' => 'required|exists:structure_nodes,id',
+            // Nullable : les actes courts (arrêtés, décrets détachés d'un JO) n'ont
+            // aucune division, leurs articles sont rattachés directement au document
+            // (parent_node_id NULL) — cf. les « articles orphelins » de l'arbre.
+            'parent_node_id' => 'nullable|exists:structure_nodes,id',
             'numero_article' => 'required|string',
             'content' => 'required|string',
             'ordre_affichage' => 'nullable|integer',
@@ -56,9 +77,21 @@ class ArticleController extends Controller
                     );
                 }
 
+                // Insertion à un rang précis : décaler les frères pour libérer la
+                // place, sinon deux articles partagent le même ordre d'affichage et
+                // leur ordre relatif redevient indéterminé.
+                if (isset($validated['ordre_affichage'])) {
+                    self::fratrieDe(
+                        $validated['document_id'],
+                        $validated['parent_node_id'] ?? null
+                    )
+                        ->where('ordre_affichage', '>=', $validated['ordre_affichage'])
+                        ->increment('ordre_affichage');
+                }
+
                 $article = Article::create([
                     'document_id' => $validated['document_id'],
-                    'parent_node_id' => $validated['parent_node_id'],
+                    'parent_node_id' => $validated['parent_node_id'] ?? null,
                     'numero_article' => $validated['numero_article'],
                     'ordre_affichage' => $validated['ordre_affichage'] ?? 0,
                     'validation_status' => 'pending',
@@ -172,7 +205,7 @@ class ArticleController extends Controller
                     $newParentId = $validated['parent_node_id'] ?? $article->parent_node_id;
                     $newOrder = $validated['ordre_affichage'] ?? $article->ordre_affichage;
 
-                    Article::where('parent_node_id', $newParentId)
+                    self::fratrieDe($article->document_id, $newParentId)
                         ->where('id', '!=', $article->id)
                         ->where('ordre_affichage', '>=', $newOrder)
                         ->increment('ordre_affichage');
