@@ -269,11 +269,19 @@ return [
     'monitor_backups' => [
         [
             'name' => env('APP_NAME', 'laravel-backup'),
-            'disks' => array_values(array_filter([
-                'local',
-                filter_var(env('BACKUP_ENABLE_S3', true), FILTER_VALIDATE_BOOL) ? 's3' : null,
-                filter_var(env('BACKUP_ENABLE_GDRIVE', false), FILTER_VALIDATE_BOOL) ? 'gdrive' : null,
-            ])),
+            /*
+             * Le planificateur (routes/console.php) force `--disk=gdrive
+             * --only-db` sur la sauvegarde quotidienne : cette option
+             * (`--only-to-disk` côté Spatie) ignore le tableau
+             * `destination.disks` ci-dessus, donc 'local' n'est *jamais*
+             * réellement écrit. Le laisser ici faisait échouer ce contrôle de
+             * santé tous les jours ("aucune sauvegarde pour cette
+             * application"), un faux positif permanent qui noie la vraie
+             * alerte le jour où gdrive tombe en panne. Si le disque de
+             * destination du planificateur change, mettre à jour cette liste
+             * dans le même mouvement.
+             */
+            'disks' => ['gdrive'],
             'health_checks' => [
                 MaximumAgeInDays::class => 1,
                 MaximumStorageInMegabytes::class => 5000,
