@@ -59,6 +59,22 @@ class BackupMinioCommand extends Command
             return self::FAILURE;
         }
 
+        /*
+         * NE PAS "corriger" par ini_set('memory_limit', ...) : le VPS de
+         * production n'a que 1,9 Go de RAM au total (mesuré 10/08/2026,
+         * `free -h`), sans swap, déjà occupés à 1,5 Go par les 15 autres
+         * conteneurs. Le contenu du bucket dépasse 2 Go et continue de
+         * grossir — aucun plafond mémoire ne peut à la fois tenir dans la RAM
+         * disponible et être assez grand pour cette archive. ZipArchive::
+         * addFromString garde chaque entrée en mémoire jusqu'à close(), donc
+         * cette commande a échoué chaque nuit depuis sa mise en service
+         * (storage/logs/backup-minio.log, "Allowed memory size of 268435456
+         * bytes exhausted"). La correction n'est pas une limite plus haute :
+         * c'est de ne plus jamais charger tout le bucket dans un seul
+         * process — un miroir objet par objet (`mc mirror`) vers un stockage
+         * externe, hors PHP.
+         */
+
         $sourceDisk = Storage::disk($source);
         $fichiers = $sourceDisk->allFiles($prefix);
 
