@@ -41,9 +41,15 @@ class StructureNodeController extends Controller
         $nodes = StructureNode::query()
             ->where('document_id', $document->id)
             ->withCount($openFlags)
+            // `orderBy('ordre_affichage')` est indispensable : sans tri explicite,
+            // Postgres renvoie les articles dans l'ordre physique du heap, que le
+            // moindre INSERT ou UPDATE déplace — un article corrigé depuis l'éditeur
+            // se retrouvait alors affiché en fin de division au lieu de son rang.
             ->with(['articles' => function ($q) use ($openFlags) {
                 $q->withCount($openFlags)
-                    ->with(['activeVersion', 'versions' => fn ($v) => $v->orderByDesc('created_at')]);
+                    ->with(['activeVersion', 'versions' => fn ($v) => $v->orderByDesc('created_at')])
+                    ->orderBy('ordre_affichage')
+                    ->orderBy('created_at');
             }])
             ->orderBy('sort_order')
             ->get();
