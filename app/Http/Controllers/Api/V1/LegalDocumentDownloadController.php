@@ -60,7 +60,7 @@ class LegalDocumentDownloadController extends Controller
         $nodesQuery = $document->structureNodes()->orderBy('sort_order');
 
         if ($nodeId) {
-            $nodesQuery->whereRaw('tree_path <@ (SELECT tree_path FROM structure_nodes WHERE id = ?)', [$nodeId]);
+            $nodesQuery->whereRaw('tree_path <@ (SELECT tree_path FROM structure_nodes WHERE id = ? AND deleted_at IS NULL)', [$nodeId]);
         }
 
         $nodes = $nodesQuery->get()->map(function ($node) {

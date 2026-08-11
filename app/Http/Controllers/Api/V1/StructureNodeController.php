@@ -14,6 +14,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 
 /**
  * @group Document Structure
@@ -114,7 +115,10 @@ class StructureNodeController extends Controller
             'type_unite' => 'required|string',
             'numero' => 'nullable|string',
             'titre' => 'nullable|string',
-            'parent_id' => 'nullable|exists:structure_nodes,id',
+            'parent_id' => [
+                'nullable',
+                Rule::exists('structure_nodes', 'id')->whereNull('deleted_at'),
+            ],
             'sort_order' => 'nullable|integer',
             'validation_status' => 'sometimes|string|in:draft,review,published,validated,error',
         ]);
@@ -193,7 +197,10 @@ class StructureNodeController extends Controller
         $node = StructureNode::findOrFail($id);
 
         $validated = $request->validate([
-            'parent_id' => 'nullable|exists:structure_nodes,id',
+            'parent_id' => [
+                'nullable',
+                Rule::exists('structure_nodes', 'id')->whereNull('deleted_at'),
+            ],
             'sort_order' => 'required|integer',
         ]);
 
@@ -230,7 +237,9 @@ class StructureNodeController extends Controller
                             WHEN nlevel(tree_path) > ? THEN subpath(tree_path, ?)
                             ELSE ''::ltree
                          END
-                         WHERE tree_path <@ ?::ltree AND document_id = ?",
+                         WHERE tree_path <@ ?::ltree
+                           AND document_id = ?
+                           AND deleted_at IS NULL",
                         [$newPath, $oldPathCount, $oldPathCount, $oldPath, $node->document_id]
                     );
                 }
@@ -284,23 +293,16 @@ class StructureNodeController extends Controller
         try {
             DB::transaction(function () use ($node) {
                 $path = $node->tree_path;
+                $nodeIds = StructureNode::query()
+                    ->where('document_id', $node->document_id)
+                    ->whereRaw('tree_path <@ ?::ltree', [$path])
+                    ->pluck('id');
 
-                // 1. Delete all articles belonging to this node or its descendants
-                DB::statement(
-                    'DELETE FROM articles
-                     WHERE parent_node_id IN (
-                         SELECT id FROM structure_nodes
-                         WHERE tree_path <@ ?::ltree AND document_id = ?
-                     )',
-                    [$path, $node->document_id]
-                );
+                // Conserver les identités, versions, audits et références : une
+                // suppression éditoriale reste réversible, y compris en prod.
+                Article::query()->whereIn('parent_node_id', $nodeIds)->delete();
 
-                // 2. Delete all structure nodes that are descendants (including self)
-                DB::statement(
-                    'DELETE FROM structure_nodes
-                     WHERE tree_path <@ ?::ltree AND document_id = ?',
-                    [$path, $node->document_id]
-                );
+                StructureNode::query()->whereIn('id', $nodeIds)->delete();
             });
 
             return $this->success(null, 'Nœud et ses descendants supprimés avec succès');

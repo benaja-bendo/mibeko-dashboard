@@ -58,7 +58,10 @@ class CorrigerExtractionVideCommand extends Command
             ->where('d.extraction_status', 'completed')
             ->whereNull('d.deleted_at')
             ->whereNotExists(function ($q) {
-                $q->selectRaw('1')->from('structure_nodes as n')->whereColumn('n.document_id', 'd.id');
+                $q->selectRaw('1')
+                    ->from('structure_nodes as n')
+                    ->whereColumn('n.document_id', 'd.id')
+                    ->whereNull('n.deleted_at');
             })
             ->whereNotExists(function ($q) {
                 $q->selectRaw('1')->from('articles as a')->whereColumn('a.document_id', 'd.id')->whereNull('a.deleted_at');

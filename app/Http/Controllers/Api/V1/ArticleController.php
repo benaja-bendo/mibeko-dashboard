@@ -11,6 +11,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\Rule;
 
 class ArticleController extends Controller
 {
@@ -56,7 +57,10 @@ class ArticleController extends Controller
             // Nullable : les actes courts (arrêtés, décrets détachés d'un JO) n'ont
             // aucune division, leurs articles sont rattachés directement au document
             // (parent_node_id NULL) — cf. les « articles orphelins » de l'arbre.
-            'parent_node_id' => 'nullable|exists:structure_nodes,id',
+            'parent_node_id' => [
+                'nullable',
+                Rule::exists('structure_nodes', 'id')->whereNull('deleted_at'),
+            ],
             'numero_article' => 'required|string',
             'content' => 'required|string',
             'source_locator' => 'sometimes|array',
@@ -129,7 +133,10 @@ class ArticleController extends Controller
 
         $validated = $request->validate([
             'numero_article' => 'sometimes|string',
-            'parent_node_id' => 'sometimes|exists:structure_nodes,id',
+            'parent_node_id' => [
+                'sometimes',
+                Rule::exists('structure_nodes', 'id')->whereNull('deleted_at'),
+            ],
             'ordre_affichage' => 'sometimes|integer',
             'validation_status' => 'sometimes|string|in:pending,validated,error,draft',
             'content' => 'sometimes|string', // If provided, updates active version or creates new

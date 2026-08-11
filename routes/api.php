@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\V1\Admin\DocumentTypeController as AdminDocumentTyp
 use App\Http\Controllers\Api\V1\Admin\ImpersonationController as AdminImpersonationController;
 use App\Http\Controllers\Api\V1\Admin\InstitutionController as AdminInstitutionController;
 use App\Http\Controllers\Api\V1\Admin\OverviewController as AdminOverviewController;
+use App\Http\Controllers\Api\V1\Admin\PublishedDocumentExtractionRepairController;
 use App\Http\Controllers\Api\V1\Admin\TagController as AdminTagController;
 use App\Http\Controllers\Api\V1\Admin\UserController as AdminUserController;
 use App\Http\Controllers\Api\V1\Admin\UserInvitationController as AdminUserInvitationController;
@@ -326,6 +327,11 @@ Route::prefix('v1')->middleware('throttle:api')->group(function () {
         ->name('admin.')
         ->group(function () {
             Route::get('overview', [AdminOverviewController::class, 'index']);
+
+            Route::get('legal-documents/{document}/extraction-snapshot', [PublishedDocumentExtractionRepairController::class, 'snapshot'])
+                ->name('legal-documents.extraction-snapshot');
+            Route::post('legal-documents/{document}/replace-extraction', [PublishedDocumentExtractionRepairController::class, 'replace'])
+                ->name('legal-documents.replace-extraction');
 
             Route::apiResource('document-types', AdminDocumentTypeController::class)
                 ->only(['index', 'store', 'update', 'destroy']);

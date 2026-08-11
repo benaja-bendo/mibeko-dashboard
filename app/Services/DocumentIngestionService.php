@@ -39,7 +39,10 @@ class DocumentIngestionService
 
                 $parentPath = '';
                 if ($parentId) {
-                    $parentNode = DB::table('structure_nodes')->where('id', $parentId)->first();
+                    $parentNode = DB::table('structure_nodes')
+                        ->where('id', $parentId)
+                        ->whereNull('deleted_at')
+                        ->first();
                     if ($parentNode) {
                         $parentPath = $parentNode->tree_path.'.';
                     }

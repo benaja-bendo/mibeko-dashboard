@@ -193,6 +193,7 @@ class ProposerNettoyageLatexCommand extends Command
     {
         $noeuds = $db->table('structure_nodes as n')
             ->join('legal_documents as d', fn ($j) => $j->on('d.id', '=', 'n.document_id')->whereNull('d.deleted_at'))
+            ->whereNull('n.deleted_at')
             ->whereRaw('n.titre ~ ?', [LatexArtifactCleaner::MOTIF_SQL])
             ->select(['n.id', 'n.titre', 'd.titre_officiel', 'd.curation_status'])
             ->get();

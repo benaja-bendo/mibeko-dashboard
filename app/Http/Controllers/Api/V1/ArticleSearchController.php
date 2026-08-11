@@ -120,6 +120,7 @@ class ArticleSearchController extends Controller
             ->whereRaw('upper_inf(av.validity_period)')
             ->whereNull('a.deleted_at')
             ->whereNull('ld.deleted_at')
+            ->whereNull('sn.deleted_at')
             ->where('ld.curation_status', 'published')
             ->select([
                 'a.id as article_id',

@@ -131,7 +131,7 @@ class RemplacerArticlesDocumentCommand extends Command
         $erreurs = $this->verifierSurete($dbCible, $docId, 'la cible');
 
         $nArticlesSource = $dbSource->table('articles')->where('document_id', $docId)->whereNull('deleted_at')->count();
-        $nNodesSource = $dbSource->table('structure_nodes')->where('document_id', $docId)->count();
+        $nNodesSource = $dbSource->table('structure_nodes')->where('document_id', $docId)->whereNull('deleted_at')->count();
         $nFlagsSource = $dbSource->table('curation_flags')->where('document_id', $docId)->count();
         $nFlagsSourceOuverts = $dbSource->table('curation_flags')->where('document_id', $docId)->where('resolved', false)->count();
 
@@ -234,12 +234,12 @@ class RemplacerArticlesDocumentCommand extends Command
             $dbCible->table('structure_nodes')->where('document_id', $docId)->delete();
 
             // Ordre d'insertion inverse (structure_nodes → articles → article_versions → curation_flags).
-            $nodes = $dbSource->table('structure_nodes')->where('document_id', $docId)->get();
+            $nodes = $dbSource->table('structure_nodes')->where('document_id', $docId)->whereNull('deleted_at')->get();
             foreach ($nodes->chunk(500) as $chunk) {
                 $dbCible->table('structure_nodes')->insert($chunk->map(fn ($n) => (array) $n)->all());
             }
 
-            $articles = $dbSource->table('articles')->where('document_id', $docId)->get();
+            $articles = $dbSource->table('articles')->where('document_id', $docId)->whereNull('deleted_at')->get();
             foreach ($articles->chunk(500) as $chunk) {
                 $dbCible->table('articles')->insert($chunk->map(fn ($a) => (array) $a)->all());
             }
