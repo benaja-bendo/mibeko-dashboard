@@ -118,6 +118,40 @@ it('crée un article sur un acte court, sans division', function () {
         ->parent_node_id->toBeNull();
 });
 
+it('crée une feuille avec son ancrage source dans la même version', function () {
+    $document = LegalDocument::factory()->create();
+    $locator = [
+        'content_format' => 'disposition',
+        'page' => 41,
+        'page_end' => 42,
+        'journal_page' => 601,
+        'journal_page_end' => 602,
+    ];
+
+    $reponse = $this->actingAs($this->editor)
+        ->postJson('/api/v1/articles', [
+            'document_id' => $document->id,
+            'numero_article' => 'DISPOSITION_1',
+            'content' => 'La couverture de change peut être constituée.',
+            'source_locator' => $locator,
+            'ordre_affichage' => 1,
+            'validation_status' => 'validated',
+        ])
+        ->assertCreated()
+        ->assertJsonPath('data.source_locator.content_format', 'disposition')
+        ->assertJsonPath('data.source_locator.page', 41)
+        ->assertJsonPath('data.source_locator.page_end', 42)
+        ->assertJsonPath('data.source_locator.journal_page', 601)
+        ->assertJsonPath('data.source_locator.journal_page_end', 602);
+
+    $article = Article::findOrFail($reponse->json('data.id'));
+
+    expect($article->validation_status)->toBe('validated')
+        ->and($article->activeVersion()->firstOrFail()->source_locator)->toEqual($locator)
+        ->and($article->activeVersion()->firstOrFail()->validation_status)->toBe('validated')
+        ->and($article->activeVersion()->firstOrFail()->is_verified)->toBeTrue();
+});
+
 it('décale la fratrie orpheline pour insérer un article à son rang', function () {
     $document = LegalDocument::factory()->create();
     articleRange($document->id, null, 'premier', 1);

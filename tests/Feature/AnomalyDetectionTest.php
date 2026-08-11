@@ -94,7 +94,7 @@ it('flags untitled and empty divisions as warnings', function () {
         ->and(CurationFlag::where('node_id', $untitled->id)->where('type_probleme', 'division_vide')->exists())->toBeFalse();
 });
 
-it('flags a floating article but spares special leaves (preamble)', function () {
+it('flags a floating article but spares special root leaves', function () {
     $document = LegalDocument::factory()->create();
     $node = StructureNode::factory()->create([
         'document_id' => $document->id, 'numero' => 'I', 'titre' => 'Titre', 'tree_path' => 'n1',
@@ -110,10 +110,14 @@ it('flags a floating article but spares special leaves (preamble)', function () 
     $preamble = $document->articles()->create(['numero_article' => 'PREAMBULE', 'ordre_affichage' => 0]);
     makeVersion($preamble, 'La ministre... Vu la Constitution', ['content_format' => 'preamble']);
 
+    $note = $document->articles()->create(['numero_article' => 'NOTE_1', 'ordre_affichage' => 3]);
+    makeVersion($note, 'La justification résulte des titres de transport.', ['content_format' => 'note']);
+
     app(StructuralAnomalyDetector::class)->detect($document);
 
     expect(CurationFlag::where('article_id', $orphan->id)->where('type_probleme', 'article_hors_structure')->exists())->toBeTrue()
-        ->and(CurationFlag::where('article_id', $preamble->id)->exists())->toBeFalse();
+        ->and(CurationFlag::where('article_id', $preamble->id)->exists())->toBeFalse()
+        ->and(CurationFlag::where('article_id', $note->id)->exists())->toBeFalse();
 });
 
 it('is idempotent and preserves resolved flags', function () {

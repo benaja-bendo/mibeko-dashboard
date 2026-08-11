@@ -116,6 +116,7 @@ class StructureNodeController extends Controller
             'titre' => 'nullable|string',
             'parent_id' => 'nullable|exists:structure_nodes,id',
             'sort_order' => 'nullable|integer',
+            'validation_status' => 'sometimes|string|in:draft,review,published,validated,error',
         ]);
 
         try {
@@ -138,7 +139,7 @@ class StructureNodeController extends Controller
                     'titre' => $validated['titre'],
                     'tree_path' => $treePath,
                     'sort_order' => $validated['sort_order'] ?? 0,
-                    'validation_status' => 'draft',
+                    'validation_status' => $validated['validation_status'] ?? 'draft',
                 ]);
 
                 return $this->success(

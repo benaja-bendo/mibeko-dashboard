@@ -59,7 +59,9 @@ class ArticleController extends Controller
             'parent_node_id' => 'nullable|exists:structure_nodes,id',
             'numero_article' => 'required|string',
             'content' => 'required|string',
+            'source_locator' => 'sometimes|array',
             'ordre_affichage' => 'nullable|integer',
+            'validation_status' => 'sometimes|string|in:pending,validated,error,draft',
         ]);
 
         try {
@@ -94,14 +96,15 @@ class ArticleController extends Controller
                     'parent_node_id' => $validated['parent_node_id'] ?? null,
                     'numero_article' => $validated['numero_article'],
                     'ordre_affichage' => $validated['ordre_affichage'] ?? 0,
-                    'validation_status' => 'pending',
+                    'validation_status' => $validated['validation_status'] ?? 'pending',
                 ]);
 
                 $article->versions()->create([
                     'contenu_texte' => $validated['content'],
+                    'source_locator' => $validated['source_locator'] ?? [],
                     'validity_period' => ArticleVersion::makeValidityPeriod(now()->toDateString()),
-                    'validation_status' => 'pending',
-                    'is_verified' => false,
+                    'validation_status' => $validated['validation_status'] ?? 'pending',
+                    'is_verified' => ($validated['validation_status'] ?? null) === 'validated',
                 ]);
 
                 return $this->success(

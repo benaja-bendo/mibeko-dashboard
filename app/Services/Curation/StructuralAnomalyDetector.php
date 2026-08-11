@@ -24,7 +24,7 @@ use Illuminate\Support\Str;
 class StructuralAnomalyDetector
 {
     /** Feuilles spéciales hors-contrôle « article orphelin » (légitimement à la racine). */
-    private const SPECIAL_LEAF_FORMATS = ['preamble', 'signature', 'table'];
+    private const SPECIAL_LEAF_FORMATS = ['preamble', 'signature', 'table', 'note'];
 
     /**
      * Analyse un document et (re)crée ses signalements structurels.
@@ -191,7 +191,7 @@ class StructuralAnomalyDetector
 
     /**
      * Articles « flottants » (parent_node_id NULL) alors que le document EST
-     * structuré — hors feuilles spéciales (préambule/signature/tableau) qui sont
+     * structuré — hors feuilles spéciales (préambule/signature/tableau/note) qui sont
      * légitimement à la racine.
      *
      * @param  Collection<int, Article>  $articles
@@ -223,7 +223,7 @@ class StructuralAnomalyDetector
     }
 
     /**
-     * Vrai pour une feuille spéciale (préambule, signature, tableau), repérée par
+     * Vrai pour une feuille spéciale (préambule, signature, tableau, note), repérée par
      * le `content_format` du locator (posé à l'ingestion) ou, à défaut, le numéro.
      */
     private function isSpecialLeaf(Article $article): bool
@@ -233,7 +233,7 @@ class StructuralAnomalyDetector
             return true;
         }
 
-        return Str::startsWith($article->numero_article, ['PREAMBULE', 'SIGNATURE', 'TABLEAU']);
+        return Str::startsWith($article->numero_article, ['PREAMBULE', 'SIGNATURE', 'TABLEAU', 'NOTE']);
     }
 
     /**
