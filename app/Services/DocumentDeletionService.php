@@ -8,6 +8,7 @@ use App\Models\CurationFlag;
 use App\Models\DocumentRelation;
 use App\Models\LegalDocument;
 use App\Models\MediaFile;
+use App\Models\OfficialJournal;
 use App\Models\StructureNode;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
@@ -29,22 +30,7 @@ use Illuminate\Support\Facades\Storage;
  */
 class DocumentDeletionService
 {
-    /**
-     * Correspondance `media_files.storage_provider` → disque `config/filesystems`.
-     *
-     * Le service Python écrit systématiquement `MINIO`, qui n'est pas un disque
-     * Laravel : MinIO est exposé par le driver S3 (même bucket, `AWS_ENDPOINT`
-     * pointant sur MinIO). Sans ce mapping, `Storage::disk('MINIO')` lève une
-     * `InvalidArgumentException` avalée par le best-effort → objets orphelins.
-     *
-     * @var array<string, string>
-     */
-    private const PROVIDER_DISKS = [
-        'MINIO' => 's3',
-        'S3' => 's3',
-        'LOCAL' => 'local',
-        'PUBLIC' => 'public',
-    ];
+    public function __construct(private readonly MediaStorageLocator $storageLocator) {}
 
     /**
      * Récapitule ce qu'une suppression définitive emporterait, et signale les
@@ -87,7 +73,7 @@ class DocumentDeletionService
     {
         $articleIds = $this->articleIds($document)->all();
         $mediaFiles = MediaFile::where('document_id', $document->id)
-            ->get(['storage_provider', 'object_key', 'file_path']);
+            ->get(['storage_provider', 'bucket_name', 'object_key', 'file_path']);
 
         DB::transaction(function () use ($document, $articleIds): void {
             // Thèmes du document (pivot polymorphe).
@@ -167,15 +153,24 @@ class DocumentDeletionService
     private function purgePhysicalMedia(Collection $mediaFiles): void
     {
         foreach ($mediaFiles as $media) {
-            $key = $this->objectKey($media);
+            $key = $this->storageLocator->objectKey($media->object_key, $media->file_path);
             if ($key === null) {
                 continue;
             }
 
-            $disk = $this->diskFor($media->storage_provider);
+            $disk = $this->storageLocator->diskName($media->storage_provider, $media->file_path);
             if ($disk === null) {
                 Log::warning('Purge média physique ignorée : aucun disque configuré pour ce fournisseur', [
                     'storage_provider' => $media->storage_provider,
+                    'object_key' => $key,
+                ]);
+
+                continue;
+            }
+
+            if ($this->isStillReferenced($media, $key, $disk)) {
+                Log::info('Purge média physique ignorée : objet encore référencé par un autre document', [
+                    'disk' => $disk,
                     'object_key' => $key,
                 ]);
 
@@ -194,34 +189,50 @@ class DocumentDeletionService
     }
 
     /**
-     * Clé de l'objet, telle que l'attend le disque : `file_path` sert de repli
-     * quand `object_key` est vide, mais il porte le préfixe `s3://<bucket>/`
-     * écrit par le service Python, alors que le disque est déjà borné au bucket.
+     * Un objet physique peut être partagé par tous les actes découpés depuis un
+     * même Journal officiel. La ligne du document supprimé a déjà disparu à ce
+     * stade : toute correspondance restante appartient donc à un autre document.
      */
-    private function objectKey(MediaFile $media): ?string
+    private function isStillReferenced(MediaFile $deletedMedia, string $objectKey, string $diskName): bool
     {
-        $key = (string) ($media->object_key ?: $media->file_path);
+        $bucketName = $this->storageLocator->bucketName(
+            $deletedMedia->bucket_name,
+            $deletedMedia->file_path,
+            $diskName,
+        );
 
-        if (str_starts_with($key, 's3://')) {
-            // s3://bucket/chemin/fichier.pdf → ['s3:', '', 'bucket', 'chemin/fichier.pdf']
-            $key = explode('/', $key, 4)[3] ?? '';
+        $candidatePaths = [$objectKey];
+        if ($bucketName !== null) {
+            $candidatePaths[] = "s3://{$bucketName}/{$objectKey}";
         }
 
-        return $key !== '' ? $key : null;
-    }
+        $referencedByMedia = MediaFile::query()
+            ->where(function (Builder $query) use ($objectKey, $candidatePaths): void {
+                $query->where('object_key', $objectKey)
+                    ->orWhereIn('file_path', $candidatePaths);
+            })
+            ->get(['storage_provider', 'bucket_name', 'object_key', 'file_path'])
+            ->contains(function (MediaFile $media) use ($bucketName, $diskName, $objectKey): bool {
+                $otherDiskName = $this->storageLocator->diskName($media->storage_provider, $media->file_path);
+                $otherBucketName = $otherDiskName === null
+                    ? null
+                    : $this->storageLocator->bucketName($media->bucket_name, $media->file_path, $otherDiskName);
 
-    /**
-     * Disque à utiliser pour un `storage_provider` donné, ou `null` si aucun
-     * disque correspondant n'est configuré (on préfère un avertissement explicite
-     * à une exception avalée qui laisserait croire à une purge réussie).
-     */
-    private function diskFor(?string $provider): ?string
-    {
-        $provider = trim((string) $provider);
-        $disk = $provider === ''
-            ? (string) config('filesystems.default')
-            : (self::PROVIDER_DISKS[strtoupper($provider)] ?? $provider);
+                return $otherDiskName === $diskName
+                    && $otherBucketName === $bucketName
+                    && in_array(
+                        $objectKey,
+                        $this->storageLocator->objectKeys($media->object_key, $media->file_path),
+                        true,
+                    );
+            });
 
-        return config("filesystems.disks.{$disk}") !== null ? $disk : null;
+        if ($referencedByMedia) {
+            return true;
+        }
+
+        return OfficialJournal::query()
+            ->whereIn('file_path', $candidatePaths)
+            ->exists();
     }
 }

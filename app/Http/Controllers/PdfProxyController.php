@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\LegalDocument;
 use App\Models\OfficialJournal;
+use App\Services\SourcePdfResolver;
 use App\Traits\GuardsUnpublishedDocuments;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -31,12 +32,9 @@ class PdfProxyController extends Controller
      *
      * @response 200 {"content": "Binary PDF Data"}
      */
-    public function show(Request $request, string $id): StreamedResponse
+    public function show(Request $request, string $id, SourcePdfResolver $pdfResolver): StreamedResponse
     {
         $type = $request->query('type', 'document'); // 'document' or 'journal'
-
-        $path = null;
-        $mediaFile = null; // null pour un journal : la résolution du disque s'appuie sur le chemin.
 
         if ($type === 'journal') {
             $journal = OfficialJournal::findOrFail($id);
@@ -47,7 +45,7 @@ class PdfProxyController extends Controller
             // ne pas révéler l'existence de la ressource).
             abort_unless($journal->is_published, 404);
 
-            $path = $journal->file_path;
+            $sourcePdf = $pdfResolver->forOfficialJournal($journal);
         } else {
             $document = LegalDocument::with(['mediaFiles', 'officialJournal'])->findOrFail($id);
 
@@ -56,49 +54,17 @@ class PdfProxyController extends Controller
             // (`type=journal`) suivent la même logique via leur `is_published`.
             $this->ensureDocumentIsVisible($request, $document);
 
-            $mediaFile = $document->mediaFiles->firstWhere('mime_type', 'application/pdf')
-                ?? $document->mediaFiles->first(fn ($file) => str_ends_with(strtolower((string) $file->file_path), '.pdf'));
-
-            $path = $mediaFile?->file_path;
-
-            // Fallback to the Official Journal's PDF if the document doesn't have its own PDF
-            // This is common for FLUX documents extracted from a Journal
-            if (! $path && $document->officialJournal) {
-                $path = $document->officialJournal->file_path;
-            }
+            $sourcePdf = $pdfResolver->forDocument($document);
         }
 
         $download = filter_var($request->query('download'), FILTER_VALIDATE_BOOLEAN);
 
-        if (! $path) {
+        if ($sourcePdf === null) {
             abort(404, 'No source PDF available for this document');
         }
 
-        // Remove the s3:// bucket prefix if it exists because the s3 disk is already configured for this bucket
-        $cleanPath = $path;
-        if (str_starts_with($cleanPath, 's3://')) {
-            // Extracts everything after s3://bucket-name/
-            $parts = explode('/', $cleanPath);
-            if (count($parts) >= 4) { // s3:, "", bucket-name, path...
-                $cleanPath = implode('/', array_slice($parts, 3));
-            }
-        }
-
-        $diskName = $mediaFile?->storage_provider === 'MINIO' || str_starts_with($path, 's3://') || str_starts_with($path, 'documents/')
-            ? 's3'
-            : config('filesystems.default', 'local');
-
-        $disk = Storage::disk($diskName);
-
-        try {
-            if (! $disk->exists($cleanPath)) {
-                abort(404, 'File not found in storage');
-            }
-        } catch (\Throwable $e) {
-            // Ne pas refléter l'erreur du disque au client (internals S3/MinIO).
-            report($e);
-            abort(404, 'File not accessible');
-        }
+        $cleanPath = $sourcePdf->objectKey;
+        $disk = Storage::disk($sourcePdf->diskName);
 
         $isPdf = str_ends_with(strtolower($cleanPath), '.pdf');
         $contentType = $isPdf ? 'application/pdf' : 'application/octet-stream';

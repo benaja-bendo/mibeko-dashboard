@@ -2,6 +2,7 @@
 
 use App\Models\LegalDocument;
 use App\Models\MediaFile;
+use App\Models\OfficialJournal;
 use App\Services\DocumentDeletionService;
 use Illuminate\Support\Facades\Storage;
 
@@ -51,6 +52,45 @@ it('retombe sur file_path en retirant le préfixe s3://bucket quand object_key e
     app(DocumentDeletionService::class)->forceDelete($document);
 
     Storage::disk('s3')->assertMissing($key);
+});
+
+it('conserve un objet MinIO encore référencé par un autre document', function () {
+    Storage::fake('s3');
+    $key = 'documents/flux/source/pdf/jo-1980-21.pdf';
+    Storage::disk('s3')->put($key, 'PDF partagé');
+
+    $firstDocument = LegalDocument::factory()->create();
+    $secondDocument = LegalDocument::factory()->create();
+    pythonMediaFile($firstDocument, $key);
+    pythonMediaFile($secondDocument, $key);
+
+    app(DocumentDeletionService::class)->forceDelete($firstDocument);
+
+    Storage::disk('s3')->assertExists($key);
+    expect(MediaFile::where('document_id', $secondDocument->id)->count())->toBe(1);
+
+    app(DocumentDeletionService::class)->forceDelete($secondDocument);
+
+    Storage::disk('s3')->assertMissing($key);
+});
+
+it('conserve un objet MinIO encore référencé par son Journal officiel', function () {
+    Storage::fake('s3');
+    $key = 'documents/flux/source/pdf/jo-2025-33.pdf';
+    Storage::disk('s3')->put($key, 'PDF du journal');
+
+    $journal = OfficialJournal::factory()->create([
+        'file_path' => 's3://mibeko-documents/'.$key,
+    ]);
+    $document = LegalDocument::factory()->create([
+        'official_journal_id' => $journal->id,
+    ]);
+    pythonMediaFile($document, $key);
+
+    app(DocumentDeletionService::class)->forceDelete($document);
+
+    Storage::disk('s3')->assertExists($key);
+    expect(OfficialJournal::find($journal->id))->not->toBeNull();
 });
 
 it('laisse la suppression en base aboutir quand le fournisseur de stockage est inconnu', function () {

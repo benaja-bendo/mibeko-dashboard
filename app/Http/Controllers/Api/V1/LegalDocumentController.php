@@ -13,6 +13,7 @@ use App\Models\StructureNode;
 use App\Models\Tag;
 use App\Services\DocumentDeletionService;
 use App\Services\LegalWatchNotifier;
+use App\Services\SourcePdfResolver;
 use App\Traits\GuardsUnpublishedDocuments;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -243,7 +244,7 @@ class LegalDocumentController extends Controller
      * only, for navigation and sitemaps) and, when requested, the full text of
      * a single article — keeping the page payload small even on large codes.
      */
-    public function showBySlug(Request $request, string $slug): JsonResponse
+    public function showBySlug(Request $request, string $slug, SourcePdfResolver $pdfResolver): JsonResponse
     {
         $document = LegalDocument::query()
             ->published()
@@ -285,13 +286,7 @@ class LegalDocumentController extends Controller
             }
         }
 
-        // PDF d'origine disponible ? (média PDF du document, ou à défaut le PDF
-        // du Journal Officiel dont l'acte FLUX a été extrait — cf. PdfProxyController).
-        $document->loadMissing('mediaFiles');
-        $hasPdf = $document->mediaFiles->contains(
-            fn ($file) => $file->mime_type === 'application/pdf'
-                || str_ends_with(strtolower((string) $file->file_path), '.pdf')
-        ) || (bool) $document->officialJournal?->file_path;
+        $hasPdf = $pdfResolver->forDocument($document) !== null;
 
         return $this->success([
             'document' => new LegalDocumentResource($document),

@@ -81,6 +81,30 @@ it('returns 404 if pdf does not exist in storage', function () {
     $response->assertStatus(404);
 });
 
+it('retombe sur le pdf du journal quand la référence directe est cassée', function () {
+    Storage::fake('s3');
+    $journalObjectKey = 'domino/legal-documents/flux/journal/source.pdf';
+    Storage::disk('s3')->put($journalObjectKey, 'journal disponible');
+
+    $journal = OfficialJournal::factory()->create([
+        'file_path' => 's3://mibeko-documents/'.$journalObjectKey,
+    ]);
+    $document = LegalDocument::factory()->hasArticles(1)->create([
+        'official_journal_id' => $journal->id,
+    ]);
+    $document->mediaFiles()->create([
+        'file_path' => 'document-direct-manquant.pdf',
+        'object_key' => 'document-direct-manquant.pdf',
+        'file_category' => 'SOURCE_PDF',
+        'original_filename' => 'document-direct-manquant.pdf',
+        'mime_type' => 'application/pdf',
+    ]);
+
+    $this->get("/api/v1/legal-documents/{$document->id}/pdf")
+        ->assertSuccessful()
+        ->assertHeader('Content-Type', 'application/pdf');
+});
+
 it('returns 404 if document has no pdf', function () {
     $document = LegalDocument::factory()->hasArticles(1)->create();
 

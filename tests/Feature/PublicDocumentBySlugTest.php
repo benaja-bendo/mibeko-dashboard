@@ -5,8 +5,10 @@ use App\Models\ArticleVersion;
 use App\Models\DocumentRelation;
 use App\Models\DocumentType;
 use App\Models\LegalDocument;
+use App\Models\OfficialJournal;
 use App\Models\StructureNode;
 use App\Observers\ArticleVersionObserver;
+use Illuminate\Support\Facades\Storage;
 use Laravel\Ai\Embeddings;
 
 /**
@@ -86,6 +88,37 @@ it('expose le sommaire hiérarchique et l\'indicateur PDF', function () {
         ->assertJsonPath('data.has_pdf', false)
         ->assertJsonPath('data.structure.nodes.0.parent_id', null)
         ->assertJsonPath('data.structure.nodes.0.articles.0.number', '12');
+});
+
+it('n\'annonce un PDF que si un objet source ou un journal est réellement accessible', function () {
+    Storage::fake('s3');
+    $defaultDisk = config('filesystems.default');
+    Storage::fake($defaultDisk);
+
+    $journal = OfficialJournal::factory()->create([
+        'file_path' => 'official_journals/jo-accessible.pdf',
+    ]);
+    Storage::disk($defaultDisk)->put($journal->file_path, 'PDF du journal');
+
+    $document = publishedCodeWithArticle('Code avec source cassée', '1', 'Texte.');
+    $document->update(['official_journal_id' => $journal->id]);
+    $document->mediaFiles()->create([
+        'file_path' => 'source-directe-manquante.pdf',
+        'object_key' => 'source-directe-manquante.pdf',
+        'file_category' => 'SOURCE_PDF',
+        'original_filename' => 'source-directe-manquante.pdf',
+        'mime_type' => 'application/pdf',
+    ]);
+
+    $this->getJson("/api/v1/legal-documents/slug/{$document->slug}")
+        ->assertSuccessful()
+        ->assertJsonPath('data.has_pdf', true);
+
+    Storage::disk($defaultDisk)->delete($journal->file_path);
+
+    $this->getJson("/api/v1/legal-documents/slug/{$document->slug}")
+        ->assertSuccessful()
+        ->assertJsonPath('data.has_pdf', false);
 });
 
 it('reconstruit la hiérarchie parent-enfant du sommaire depuis le tree_path', function () {
