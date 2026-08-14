@@ -5,6 +5,7 @@ use App\Models\OfficialJournal;
 use App\Models\User;
 use App\Observers\ArticleVersionObserver;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Storage;
 use Laravel\Ai\Embeddings;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
@@ -83,8 +84,81 @@ it('expose les documents non publiés du journal à l\'éditeur en vue manager',
 });
 
 // ---------------------------------------------------------------------------
-// Administration (PATCH / DELETE)
+// Administration (POST / PATCH / DELETE)
 // ---------------------------------------------------------------------------
+
+it('enregistre sans ré-upload un journal dont le PDF S3 existe déjà', function () {
+    Storage::fake('s3');
+    $objectKey = 'domino/legal-documents/flux/source/source/pdf/congo-jo-1959-23.pdf';
+    Storage::disk('s3')->put($objectKey, '%PDF-1.7 source officielle');
+
+    $response = $this->actingAs($this->editor)
+        ->postJson('/api/v1/official-journals', [
+            'title' => 'Journal officiel n° 23-1959',
+            'number' => '23',
+            'publication_date' => '1959-09-15',
+            'file_path' => "s3://mibeko-documents/{$objectKey}",
+            'transcription_status' => OfficialJournal::STATUS_COMPLETED,
+            'is_published' => true,
+        ])
+        ->assertCreated()
+        ->assertJsonPath('data.title', 'Journal officiel n° 23-1959')
+        ->assertJsonPath('data.is_published', true);
+
+    $journal = OfficialJournal::find($response->json('data.id'));
+    expect($journal)->not->toBeNull()
+        ->and($journal->file_path)->toBe("s3://mibeko-documents/{$objectKey}")
+        ->and($journal->transcription_status)->toBe(OfficialJournal::STATUS_COMPLETED);
+});
+
+it('refuse d\'enregistrer un journal dont le PDF S3 est absent', function () {
+    Storage::fake('s3');
+
+    $this->actingAs($this->editor)
+        ->postJson('/api/v1/official-journals', [
+            'title' => 'Journal officiel n° 23-1959',
+            'number' => '23',
+            'publication_date' => '1959-09-15',
+            'file_path' => 's3://mibeko-documents/pdf-introuvable.pdf',
+        ])
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors('file_path');
+
+    expect(OfficialJournal::count())->toBe(0);
+});
+
+it('refuse un doublon vivant de numéro et date de publication', function () {
+    Storage::fake('s3');
+    $objectKey = 'journaux/congo-jo-1959-23.pdf';
+    Storage::disk('s3')->put($objectKey, '%PDF-1.7');
+    OfficialJournal::factory()->create([
+        'number' => '23',
+        'publication_date' => '1959-09-15',
+    ]);
+
+    $this->actingAs($this->editor)
+        ->postJson('/api/v1/official-journals', [
+            'title' => 'Journal officiel n° 23-1959',
+            'number' => '23',
+            'publication_date' => '1959-09-15',
+            'file_path' => "s3://mibeko-documents/{$objectKey}",
+        ])
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors('number');
+});
+
+it('refuse la création de journal à un utilisateur sans rôle', function () {
+    $intruder = User::factory()->create();
+
+    $this->actingAs($intruder)
+        ->postJson('/api/v1/official-journals', [
+            'title' => 'Journal officiel n° 23-1959',
+            'number' => '23',
+            'publication_date' => '1959-09-15',
+            'file_path' => 's3://mibeko-documents/journaux/congo-jo-1959-23.pdf',
+        ])
+        ->assertForbidden();
+});
 
 it('permet à un éditeur de modifier les métadonnées et la visibilité', function () {
     $journal = OfficialJournal::factory()->create([

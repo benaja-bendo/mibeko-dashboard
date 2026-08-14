@@ -3,12 +3,15 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Api\V1\StoreOfficialJournalRequest;
 use App\Http\Resources\V1\OfficialJournalResource;
 use App\Models\OfficialJournal;
+use App\Services\SourcePdfResolver;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use Illuminate\Validation\ValidationException;
 use Spatie\QueryBuilder\AllowedFilter;
 use Spatie\QueryBuilder\QueryBuilder;
 
@@ -132,6 +135,38 @@ class OfficialJournalController extends Controller
         }
 
         return new OfficialJournalResource($journal);
+    }
+
+    /**
+     * Register an official journal whose PDF already exists in object storage.
+     *
+     * This endpoint never uploads or copies the source PDF. It only creates the
+     * audited catalog entry after proving that the supplied object is readable.
+     */
+    public function store(
+        StoreOfficialJournalRequest $request,
+        SourcePdfResolver $pdfResolver,
+    ): JsonResponse {
+        $validated = $request->validated();
+        $journal = new OfficialJournal([
+            ...$validated,
+            'transcription_status' => $validated['transcription_status'] ?? OfficialJournal::STATUS_PENDING,
+            'is_published' => $validated['is_published'] ?? false,
+        ]);
+
+        if ($pdfResolver->forOfficialJournal($journal) === null) {
+            throw ValidationException::withMessages([
+                'file_path' => ['Le PDF indiqué est introuvable ou illisible dans le stockage configuré.'],
+            ]);
+        }
+
+        $journal->save();
+
+        return $this->success(
+            new OfficialJournalResource($journal->loadCount('legalDocuments')),
+            'Journal officiel enregistré avec succès',
+            201
+        );
     }
 
     /**

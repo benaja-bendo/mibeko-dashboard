@@ -248,6 +248,7 @@ Route::prefix('v1')->middleware('throttle:api')->group(function () {
 
         // Administration des journaux officiels (la lecture publique reste
         // sur l'apiResource official-journals plus haut)
+        Route::post('official-journals', [OfficialJournalController::class, 'store']);
         Route::patch('official-journals/{id}', [OfficialJournalController::class, 'update']);
         Route::delete('official-journals/{id}', [OfficialJournalController::class, 'destroy']);
         Route::post('legal-documents/{document}/embed', [EmbeddingController::class, 'trigger']);
