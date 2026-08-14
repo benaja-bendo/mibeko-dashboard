@@ -1,5 +1,13 @@
 <?php
 
+$prodRwMinioEndpoint = env('PROD_RW_MINIO_ENDPOINT');
+
+if (is_string($prodRwMinioEndpoint)
+    && $prodRwMinioEndpoint !== ''
+    && ! str_contains($prodRwMinioEndpoint, '://')) {
+    $prodRwMinioEndpoint = 'http://'.$prodRwMinioEndpoint;
+}
+
 return [
 
     /*
@@ -75,6 +83,25 @@ return [
             'region' => env('PROD_RO_AWS_DEFAULT_REGION', 'us-east-1'),
             'bucket' => env('PROD_RO_AWS_BUCKET', 'mibeko-documents'),
             'endpoint' => env('PROD_RO_AWS_ENDPOINT', 'http://127.0.0.1:9100'),
+            'use_path_style_endpoint' => true,
+            'throw' => true,
+            'report' => false,
+        ],
+
+        /*
+         * Escalade MinIO de PRODUCTION, exclusivement pour une opération autorisée.
+         *
+         * Aucune valeur sensible n'a de défaut : les PROD_RW_MINIO_* doivent être
+         * exportées par l'humain pour une seule opération, puis retirées du shell.
+         * Le port 9000 reste celui du développement.
+         */
+        's3_prod_rw' => [
+            'driver' => 's3',
+            'key' => env('PROD_RW_MINIO_ACCESS_KEY'),
+            'secret' => env('PROD_RW_MINIO_SECRET_KEY'),
+            'region' => env('PROD_RW_MINIO_REGION', 'us-east-1'),
+            'bucket' => env('PROD_RW_MINIO_BUCKET', 'mibeko-documents'),
+            'endpoint' => $prodRwMinioEndpoint,
             'use_path_style_endpoint' => true,
             'throw' => true,
             'report' => false,
