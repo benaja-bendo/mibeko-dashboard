@@ -25,6 +25,7 @@ use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
+use OwenIt\Auditing\Models\Audit;
 use Spatie\QueryBuilder\AllowedFilter;
 use Spatie\QueryBuilder\QueryBuilder;
 
@@ -817,10 +818,39 @@ class LegalDocumentController extends Controller
         $skipped = 0;
         $motifsDeSkip = [];
         $inconnueAssumeePourLeLot = $request->boolean('date_entree_vigueur_inconnue');
+        $documentsDejaDepublies = collect();
+
+        if ($isPublishing) {
+            // Une dépublication est une décision éditoriale explicite, motivée
+            // et réservée aux admins. Elle ne doit jamais être annulée par un
+            // futur lot générique : c'est ainsi que deux compilations privées
+            // dépubliées le 08/08/2026 ont été republiées par erreur le 11/08.
+            // La republication reste possible par le PATCH unitaire, où le
+            // document est choisi et contrôlé individuellement.
+            $documentsDejaDepublies = Audit::query()
+                ->where('auditable_type', LegalDocument::class)
+                ->whereIn('auditable_id', $documents->pluck('id'))
+                ->where('event', 'updated')
+                ->get(['auditable_id', 'old_values', 'new_values'])
+                ->filter(function (Audit $audit) {
+                    $oldValues = is_array($audit->old_values)
+                        ? $audit->old_values
+                        : json_decode((string) $audit->old_values, true);
+                    $newValues = is_array($audit->new_values)
+                        ? $audit->new_values
+                        : json_decode((string) $audit->new_values, true);
+
+                    return ($oldValues['curation_status'] ?? null) === LegalDocument::STATUS_PUBLISHED
+                        && ($newValues['curation_status'] ?? null) !== LegalDocument::STATUS_PUBLISHED;
+                })
+                ->pluck('auditable_id')
+                ->flip();
+        }
 
         DB::transaction(function () use (
             $documents, $column, $request, $isPublishing, $motif,
-            $inconnueAssumeePourLeLot, &$publishedIds, &$skipped, &$motifsDeSkip
+            $inconnueAssumeePourLeLot, $documentsDejaDepublies,
+            &$publishedIds, &$skipped, &$motifsDeSkip
         ) {
             foreach ($documents as $document) {
                 $donnees = [$column => $request->value];
@@ -840,18 +870,20 @@ class LegalDocumentController extends Controller
                     // point assumé (audit initial) : bulkUpdate bloque sur TOUTE
                     // anomalie non résolue, pas seulement `blocking` — pas de
                     // `force` en masse.
+                    $dejaDepublie = $documentsDejaDepublies->has($document->id);
                     $sansArticle = ! $document->articles()->exists();
                     $anomalieNonResolue = $document->curationFlags()->where('resolved', false)->exists();
                     $dateInconnueNonAssumee = is_null($document->date_entree_vigueur)
                         && ! $document->date_entree_vigueur_inconnue
                         && ! $inconnueAssumeePourLeLot;
 
-                    if ($sansArticle || $anomalieNonResolue || $dateInconnueNonAssumee) {
+                    if ($dejaDepublie || $sansArticle || $anomalieNonResolue || $dateInconnueNonAssumee) {
                         $skipped++;
                         $motifsDeSkip[] = [
                             'id' => $document->id,
                             'titre' => $document->titre_officiel,
                             'motif' => match (true) {
+                                $dejaDepublie => 'document déjà dépublié : republication unitaire obligatoire',
                                 $sansArticle => 'aucun article',
                                 $anomalieNonResolue => 'anomalies de curation non résolues',
                                 default => "date d'entrée en vigueur non renseignée et absence non assumée",

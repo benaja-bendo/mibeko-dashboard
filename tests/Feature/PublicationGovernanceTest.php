@@ -208,6 +208,50 @@ it('autorise la dépublication par un admin avec motif, et la journalise', funct
     expect($document->fresh()->curation_status)->toBe(LegalDocument::STATUS_DRAFT);
 });
 
+it('ne republie jamais en masse un document déjà dépublié', function () {
+    $document = gouvernanceDocument(['curation_status' => LegalDocument::STATUS_PUBLISHED]);
+
+    $this->actingAs($this->admin)
+        ->patchJson("/api/v1/legal-documents/{$document->id}", [
+            'curation_status' => LegalDocument::STATUS_DRAFT,
+            'motif' => 'Source non officielle, à remplacer avant republication',
+        ])
+        ->assertOk();
+
+    $this->actingAs($this->editor)
+        ->patchJson('/api/v1/legal-documents/bulk', [
+            'ids' => [$document->id],
+            'action' => 'set_curation_status',
+            'value' => LegalDocument::STATUS_REVIEW,
+        ])
+        ->assertOk()
+        ->assertJsonPath('data.updated_count', 1);
+
+    $response = $this->actingAs($this->editor)
+        ->patchJson('/api/v1/legal-documents/bulk', [
+            'ids' => [$document->id],
+            'action' => 'set_curation_status',
+            'value' => LegalDocument::STATUS_PUBLISHED,
+        ])
+        ->assertOk()
+        ->assertJsonPath('data.updated_count', 0)
+        ->assertJsonPath('data.skipped_count', 1);
+
+    expect($document->fresh()->curation_status)->toBe(LegalDocument::STATUS_REVIEW)
+        ->and($response->json('data.skipped.0.motif'))
+        ->toBe('document déjà dépublié : republication unitaire obligatoire');
+
+    // Le verrou vise les lots accidentels, pas une republication consciente :
+    // le chemin unitaire conserve tous ses garde-fous et reste disponible.
+    $this->actingAs($this->editor)
+        ->patchJson("/api/v1/legal-documents/{$document->id}", [
+            'curation_status' => LegalDocument::STATUS_PUBLISHED,
+        ])
+        ->assertOk();
+
+    expect($document->fresh()->curation_status)->toBe(LegalDocument::STATUS_PUBLISHED);
+});
+
 it('applique la garde de transition dans bulkUpdate aussi (skip, pas de 500)', function () {
     $document = gouvernanceDocument(['curation_status' => LegalDocument::STATUS_DRAFT]);
 
