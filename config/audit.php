@@ -28,13 +28,22 @@ return [
     |
     | Define the morph prefix and authentication guards for the User resolver.
     |
+    | Ces guards doivent EXISTER dans config/auth.php (ou être enregistrés à
+    | l'exécution, comme « sanctum » que le service provider de Sanctum injecte
+    | dans `auth.guards`). `UserResolver` avale l'exception d'un guard inconnu
+    | et passe au suivant : une entrée morte ne lève rien, elle laisse
+    | simplement `user_id` à NULL. C'est ce qu'a fait le guard « api », jamais
+    | défini nulle part, pendant que toutes les routes d'écriture de
+    | routes/api.php s'authentifiaient par `auth:sanctum` — soit, mesuré en
+    | production le 16/08/2026, 100 % des audits récents sans auteur.
+    |
     */
 
     'user' => [
         'morph_prefix' => 'user',
         'guards' => [
             'web',
-            'api',
+            'sanctum',
         ],
         'resolver' => UserResolver::class,
     ],
