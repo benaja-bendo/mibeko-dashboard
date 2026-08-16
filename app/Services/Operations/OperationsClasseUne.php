@@ -35,6 +35,7 @@ class OperationsClasseUne
         'rouvrir_signalements',
         'changer_statut_documents',
         'modifier_metadonnees_documents',
+        'retirer_documents_staging',
     ];
 
     /** @var list<string> Statuts de staging : un document Classe 1 en vient ET y reste. */
@@ -96,6 +97,7 @@ class OperationsClasseUne
             'rouvrir_signalements' => $this->violationsSurSignalementsExistants($params, $utilisateur),
             'changer_statut_documents' => $this->violationsChangerStatut($params, $utilisateur),
             'modifier_metadonnees_documents' => $this->violationsModifierMetadonnees($params, $utilisateur),
+            'retirer_documents_staging' => $this->violationsRetirerStaging($params, $utilisateur),
         };
     }
 
@@ -135,6 +137,10 @@ class OperationsClasseUne
                     array_merge(...array_map(fn (array $m): array => array_keys($m['champs']), $params['modifications'])),
                 )),
             ],
+            'retirer_documents_staging' => [
+                'cible' => count($params['document_ids']).' document(s) : '.$this->apercu($params['document_ids']),
+                'effet' => 'suppression DOUCE (deleted_at) — réversible par restore(), aucun octet perdu',
+            ],
         };
     }
 
@@ -164,6 +170,7 @@ class OperationsClasseUne
             'rouvrir_signalements' => $this->executerRouvrirSignalements($params),
             'changer_statut_documents' => $this->executerChangerStatut($params),
             'modifier_metadonnees_documents' => $this->executerModifierMetadonnees($params),
+            'retirer_documents_staging' => $this->executerRetirerStaging($params),
         };
     }
 
@@ -469,6 +476,69 @@ class OperationsClasseUne
             $document = LegalDocument::query()->findOrFail($id);
             $document->curation_status = $params['vers'];
             $document->save();
+            $touches++;
+        }
+
+        return $touches;
+    }
+
+    /**
+     * Retire de la file de curation des documents de staging structurellement
+     * faux — sans les détruire.
+     *
+     * Ajoutée le 16/08/2026 : la campagne de mesure des intitulés a trouvé
+     * 127 documents en brouillon qui ne sont pas des actes (fragments de
+     * phrase promus en documents par le découpage de JO, coquilles sans aucun
+     * article, blocs de signature isolés). Aucune opération existante ne
+     * pouvait les traiter : `changer_statut_documents` les aurait poussés vers
+     * `review`, c'est-à-dire dans la file de curation au lieu de l'en sortir —
+     * il n'existe pas de statut « rejeté » dans la machine à états.
+     *
+     * Reste bien en Classe 1, et pour les trois raisons qui la définissent :
+     * la suppression est DOUCE (`deleted_at`, réversible par `restore()`, pas
+     * un octet perdu), elle ne peut viser qu'un document de staging jamais
+     * publié (garde de `documentClasseUne`), et elle est invisible du public
+     * puisque seul `published` est servi. Le `forceDelete` de
+     * `DocumentDeletionService`, lui, reste hors de toute liste blanche.
+     *
+     * @param  array<string, mixed>  $params
+     * @return list<string>
+     */
+    private function violationsRetirerStaging(array $params, User $utilisateur): array
+    {
+        $ids = $params['document_ids'] ?? null;
+
+        if (! is_array($ids) || $ids === [] || ! array_is_list($ids)) {
+            return ['`params.document_ids` doit être une liste non vide d\'identifiants de documents.'];
+        }
+
+        if (! is_string($params['motif'] ?? null) || trim((string) $params['motif']) === '') {
+            return ['`params.motif` est obligatoire : un retrait sans motif écrit est irrelisible six mois plus tard.'];
+        }
+
+        $violations = [];
+
+        foreach ($ids as $id) {
+            [$document, $violationsDocument] = $this->documentClasseUne($id, $utilisateur);
+            $violations = [...$violations, ...$violationsDocument];
+
+            if ($document !== null && $document->trashed()) {
+                $violations[] = "Document {$id} : déjà retiré — l'effectif annoncé ne peut pas être tenu.";
+            }
+        }
+
+        return $violations;
+    }
+
+    /**
+     * @param  array<string, mixed>  $params
+     */
+    private function executerRetirerStaging(array $params): int
+    {
+        $touches = 0;
+
+        foreach ($params['document_ids'] as $id) {
+            LegalDocument::query()->findOrFail($id)->delete();
             $touches++;
         }
 

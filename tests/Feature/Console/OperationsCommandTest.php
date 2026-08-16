@@ -262,3 +262,55 @@ it('refuse un jeton dont le compte a été supprimé', function () {
 
     $this->artisan('mibeko:operations')->assertFailed();
 });
+
+// ── Retrait de staging (16/08/2026) ──────────────────────────────────────────
+
+it('retire un document de staging par suppression douce, réversible', function () {
+    $document = LegalDocument::factory()->create(['curation_status' => 'draft']);
+
+    deposerLotOperations(lotClasseUne('retirer_documents_staging', [
+        'document_ids' => [$document->id],
+        'motif' => 'Faux acte : fragment de phrase promu en document par le découpage du JO.',
+    ], 1));
+
+    $this->artisan('mibeko:operations')
+        ->expectsConfirmation('Exécuter ce lot ?', 'yes')
+        ->assertSuccessful();
+
+    expect(LegalDocument::query()->find($document->id))->toBeNull()
+        ->and(LegalDocument::withTrashed()->find($document->id)->trashed())->toBeTrue();
+
+    // Réversibilité : c'est ce qui maintient l'opération en Classe 1.
+    LegalDocument::withTrashed()->find($document->id)->restore();
+    expect(LegalDocument::query()->find($document->id))->not->toBeNull();
+});
+
+it('refuse de retirer un document sans motif écrit', function () {
+    $document = LegalDocument::factory()->create(['curation_status' => 'draft']);
+
+    deposerLotOperations(lotClasseUne('retirer_documents_staging', [
+        'document_ids' => [$document->id],
+    ], 1));
+
+    $this->artisan('mibeko:operations')
+        ->expectsOutputToContain('motif')
+        ->assertSuccessful();
+
+    expect(LegalDocument::query()->find($document->id))->not->toBeNull()
+        ->and(File::glob(cheminFileOperations('rejected').'/*.json'))->toHaveCount(1);
+});
+
+it('refuse de retirer un document publié, ou qui l\'a été', function () {
+    $publie = LegalDocument::factory()->create(['curation_status' => 'published']);
+
+    deposerLotOperations(lotClasseUne('retirer_documents_staging', [
+        'document_ids' => [$publie->id],
+        'motif' => 'Tentative hors périmètre.',
+    ], 1), 'lot-publie.json');
+
+    $this->artisan('mibeko:operations')
+        ->expectsOutputToContain('Classe 2')
+        ->assertSuccessful();
+
+    expect(LegalDocument::query()->find($publie->id))->not->toBeNull();
+});
