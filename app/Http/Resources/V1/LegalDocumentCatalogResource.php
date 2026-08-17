@@ -25,6 +25,11 @@ class LegalDocumentCatalogResource extends JsonResource
         return [
             'id' => $this->id,
             'title' => $this->titre_officiel, // Use correct column name
+            // Objet dérivé du corps de l'acte, pour les « actes en abrégé »
+            // dont le titre se réduit au type, au numéro et à la date. Champ
+            // ADDITIF et nullable : les clients déjà installés l'ignorent.
+            // À afficher à côté du titre, jamais à sa place.
+            'descriptive_label' => $this->libelle_descriptif,
             'type' => $this->type?->code ?? 'UNKNOWN',
             'version_hash' => $this->versionHash(),
             'last_updated' => $this->updated_at->toIso8601String(),

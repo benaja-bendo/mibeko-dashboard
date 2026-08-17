@@ -11,6 +11,7 @@ use App\Models\DocumentRelation;
 use App\Models\LegalDocument;
 use App\Models\StructureNode;
 use App\Models\Tag;
+use App\Services\Curation\LibelleDescriptifExtractor;
 use App\Services\DocumentDeletionService;
 use App\Services\LegalWatchNotifier;
 use App\Services\SourcePdfResolver;
@@ -55,6 +56,7 @@ class LegalDocumentController extends Controller
     {
         return array_values(array_filter([
             AllowedFilter::partial('titre_officiel'),
+            AllowedFilter::partial('libelle_descriptif'),
             'type_code',
             'institution_id',
             'official_journal_id',
@@ -164,6 +166,11 @@ class LegalDocumentController extends Controller
             ->when(! empty($query), function ($q) use ($query) {
                 $q->where(function ($sub) use ($query) {
                     $sub->where('titre_officiel', 'ilike', "%{$query}%")
+                        // Sur un acte en abrégé, le titre ne contient que le
+                        // type, le numéro et la date : « nomination » n'apparaît
+                        // QUE dans le libellé descriptif. Sans cette clause, ces
+                        // documents restent introuvables par leur objet.
+                        ->orWhere('libelle_descriptif', 'ilike', "%{$query}%")
                         ->orWhere('reference_nor', 'ilike', "%{$query}%")
                         ->orWhere('stock_code', 'ilike', "%{$query}%");
                 });
@@ -467,6 +474,20 @@ class LegalDocumentController extends Controller
 
         $validated = $request->validate([
             'titre_officiel' => ['sometimes', 'string', 'max:500'],
+            // Objet de l'acte DÉRIVÉ de son corps, pour les intitulés qui se
+            // réduisent au type, au numéro et à la date (« actes en abrégé » du
+            // JO). S'affiche À CÔTÉ du titre officiel, jamais à sa place — et
+            // ne le modifie donc jamais. Sa provenance est obligatoire dès
+            // qu'il a une valeur : la contrainte CHECK en base l'exige, et
+            // sans elle on ne distinguerait plus un libellé écrit par un
+            // juriste d'un libellé tiré automatiquement du premier article.
+            'libelle_descriptif' => ['sometimes', 'nullable', 'string', 'max:'.LibelleDescriptifExtractor::LONGUEUR_MAX],
+            'libelle_descriptif_source' => [
+                'exclude_if:libelle_descriptif,null',
+                'required_with:libelle_descriptif',
+                'string',
+                Rule::in(LegalDocument::LIBELLE_SOURCES),
+            ],
             'reference_nor' => ['sometimes', 'nullable', 'string', 'max:100'],
             'date_signature' => ['sometimes', 'nullable', 'date'],
             'date_publication' => ['sometimes', 'nullable', 'date'],
@@ -580,6 +601,13 @@ class LegalDocumentController extends Controller
         if (array_key_exists('statut', $validated)) {
             $validated['statut_verifie_le'] = now();
             $validated['statut_verifie_par'] = $request->user()?->id;
+        }
+
+        // Retirer le libellé retire sa provenance : la contrainte CHECK
+        // `legal_documents_libelle_descriptif_source_check` refuse une
+        // provenance orpheline, et la garder n'aurait plus de sens.
+        if (array_key_exists('libelle_descriptif', $validated) && $validated['libelle_descriptif'] === null) {
+            $validated['libelle_descriptif_source'] = null;
         }
 
         $document->update(Arr::except($validated, ['themes', 'force', 'motif']));

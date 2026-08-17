@@ -123,7 +123,14 @@ class LibrarySearchController extends Controller
             ->where('ld.curation_status', 'published');
 
         foreach ($words as $word) {
-            $query->where('ld.titre_officiel', 'ILIKE', "%{$word}%");
+            // Le mot peut être dans le titre OU dans le libellé descriptif :
+            // sur un acte en abrégé (« Décret n° 2025-240 du 20 juin 2025. »),
+            // l'objet n'existe QUE dans le libellé, et taper « nomination » ne
+            // ramenait donc rien.
+            $query->where(function ($sub) use ($word) {
+                $sub->where('ld.titre_officiel', 'ILIKE', "%{$word}%")
+                    ->orWhere('ld.libelle_descriptif', 'ILIKE', "%{$word}%");
+            });
         }
 
         return $query->orderBy('dt.niveau_hierarchique')
@@ -132,6 +139,7 @@ class LibrarySearchController extends Controller
             ->get([
                 'ld.id',
                 'ld.titre_officiel as title',
+                'ld.libelle_descriptif as descriptive_label',
                 'dt.code as type_code',
                 'dt.nom as type_name',
             ])
@@ -163,7 +171,10 @@ class LibrarySearchController extends Controller
 
         $query = $this->baseArticleQuery()->where('a.numero_article', $number);
         foreach ($this->suggestWords($rest) as $word) {
-            $query->where('ld.titre_officiel', 'ILIKE', "%{$word}%");
+            $query->where(function ($sub) use ($word) {
+                $sub->where('ld.titre_officiel', 'ILIKE', "%{$word}%")
+                    ->orWhere('ld.libelle_descriptif', 'ILIKE', "%{$word}%");
+            });
         }
 
         return $query->orderBy('ld.titre_officiel')
@@ -174,6 +185,7 @@ class LibrarySearchController extends Controller
                 'number' => $item->numero_article,
                 'document_id' => $item->document_id,
                 'document_title' => $item->document_title,
+                'document_descriptive_label' => $item->document_descriptive_label,
                 'type_code' => $item->document_type_code,
             ])
             ->all();
@@ -220,6 +232,7 @@ class LibrarySearchController extends Controller
                 'number' => $item->numero_article,
                 'document_id' => $item->document_id,
                 'document_title' => $item->document_title,
+                'document_descriptive_label' => $item->document_descriptive_label,
                 'snippet' => $headline->snippet ?? Str::limit($item->contenu_texte, 120),
             ];
         })->all();

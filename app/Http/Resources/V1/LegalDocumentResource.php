@@ -27,6 +27,20 @@ class LegalDocumentResource extends JsonResource
             'titre_officiel' => $this->titre_officiel,
             'title' => $this->titre_officiel,
 
+            // Objet de l'acte DÉRIVÉ de son corps, pour les intitulés que le
+            // Journal officiel réduit au type, au numéro et à la date (« actes
+            // en abrégé » : « Décret n° 2025-240 du 20 juin 2025. »). Ces
+            // titres-là sont fidèles à la source, il n'y a rien à y corriger —
+            // c'est le JO lui-même qui n'imprime aucun objet.
+            //
+            // À AFFICHER À CÔTÉ DU TITRE OFFICIEL, JAMAIS À SA PLACE : un
+            // client qui substituerait l'un à l'autre présenterait comme
+            // intitulé officiel une paraphrase qui n'en est pas un.
+            // `libelle_descriptif_source` dit qui l'a produit — `article` (tiré
+            // du premier article, puis relu) ou `manuel` (rédigé par un juriste).
+            'libelle_descriptif' => $this->libelle_descriptif,
+            'libelle_descriptif_source' => $this->libelle_descriptif_source,
+
             // Référence & Classification
             'reference_nor' => $this->reference_nor,
             'reference' => $this->reference_nor,

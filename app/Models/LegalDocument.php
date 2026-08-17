@@ -44,6 +44,8 @@ class LegalDocument extends Model implements Auditable
         'consolidation_as_of',
         'stock_code',
         'titre_officiel',
+        'libelle_descriptif',
+        'libelle_descriptif_source',
         'slug',
         'reference_nor',
         'date_signature',
@@ -58,6 +60,23 @@ class LegalDocument extends Model implements Auditable
         'metadata',
         'legal_scope',
     ];
+
+    /**
+     * Objet de l'acte DÉRIVÉ de son corps par `mibeko:proposer-libelles`, puis
+     * relu par un humain. N'a pas l'autorité d'un titre officiel.
+     */
+    const LIBELLE_SOURCE_ARTICLE = 'article';
+
+    /** Objet de l'acte rédigé à la main par un éditeur. */
+    const LIBELLE_SOURCE_MANUEL = 'manuel';
+
+    /**
+     * Provenances autorisées de `libelle_descriptif` (contrainte CHECK en base,
+     * migration du 16/08/2026).
+     *
+     * @var array<int, string>
+     */
+    const LIBELLE_SOURCES = [self::LIBELLE_SOURCE_ARTICLE, self::LIBELLE_SOURCE_MANUEL];
 
     const SCOPE_NATIONAL = 'national';
 

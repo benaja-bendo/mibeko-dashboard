@@ -91,6 +91,10 @@ trait SearchesArticles
                 'ld.id as document_id',
                 'ld.slug as document_slug',
                 'ld.titre_officiel as document_title',
+                // Objet dérivé du corps de l'acte : sur un acte en abrégé, le
+                // titre ne dit que « Décret n° 2025-240 du 20 juin 2025. » et
+                // le fil d'Ariane du résultat de recherche n'apprend rien.
+                'ld.libelle_descriptif as document_descriptive_label',
                 'ld.legal_scope',
                 'ld.date_publication',
                 'ld.institution_id',
@@ -345,9 +349,15 @@ trait SearchesArticles
      */
     protected function mapArticleRow(object $item): array
     {
+        // Le libellé descriptif s'AJOUTE au titre officiel dans le fil
+        // d'Ariane, il ne s'y substitue pas : « Décret > Décret n° 2025-240 du
+        // 20 juin 2025. > Nomination : … ». Sans lui, le maillon du milieu
+        // n'apprend rien sur un acte en abrégé ; sans le titre, on présenterait
+        // une paraphrase comme l'intitulé officiel du texte.
         $breadcrumb = implode(' > ', array_filter([
             $item->type_name ?? null,
             $item->document_title ?? null,
+            $item->document_descriptive_label ?? null,
             $item->node_title ?? null,
         ]));
 
@@ -359,6 +369,7 @@ trait SearchesArticles
             'document_id' => $item->document_id,
             'document_slug' => $item->document_slug ?? null,
             'document_title' => $item->document_title ?? '',
+            'document_descriptive_label' => $item->document_descriptive_label ?? null,
             'document_type' => $item->document_type_code ?? '',
             'node_title' => $item->node_title ?? '',
             'breadcrumb' => $breadcrumb,
