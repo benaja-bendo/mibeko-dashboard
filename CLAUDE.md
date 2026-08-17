@@ -180,3 +180,76 @@ Use Wayfinder to generate TypeScript functions for Laravel routes. Import from `
 - IMPORTANT: Activate `inertia-react-development` when working with Inertia React client-side patterns.
 
 </laravel-boost-guidelines>
+
+# Invariants Mibeko
+
+> Écrit à la main, **hors du bloc `<laravel-boost-guidelines>`** : Boost ne réécrit
+> que l'intérieur de ses balises, cette section survit donc à un `boost:install`.
+> Ne jamais la déplacer à l'intérieur du bloc.
+
+## `titre_officiel` ≠ `libelle_descriptif` (16/08/2026)
+
+Sur les « actes en abrégé » du Journal officiel — nominations, décorations,
+naturalisations — l'intitulé publié se réduit au type, au numéro et à la date :
+
+    Décret n° 2025-240 du 20 juin 2025.
+
+**C'est fidèle à la source, il n'y a rien à corriger.** Le JO n'imprime aucun
+objet pour ces décisions, son sommaire n'annonce que « Nomination. » ; vérifié
+le 16/08/2026 contre les markdowns MinerU (tirage de 10, 9 fidèles). Réécrire
+`titre_officiel` fabriquerait un titre officiel qui n'existe nulle part —
+interdit par `docs/pipeline/correction-depuis-la-source.md`, contrainte n° 1. Le
+détecteur `mibeko:detecter-defauts-titres` classe d'ailleurs la famille
+`I1_acte_en_abrege` en **OBSERVATION**, pas en défaut : l'enjeu est produit, pas
+données.
+
+La compensation est un champ **séparé** :
+
+- `libelle_descriptif` — l'objet de l'acte, **dérivé de son CORPS**, jamais de
+  son intitulé.
+- `libelle_descriptif_source` — `article` (tiré du premier article puis relu) ou
+  `manuel` (rédigé par un juriste). **Obligatoire** dès que le libellé a une
+  valeur : contrainte CHECK `legal_documents_libelle_descriptif_source_check`.
+  Sans elle, un libellé écrit par un humain serait indiscernable six mois plus
+  tard d'un libellé produit par heuristique.
+
+### Ce qui ne se défait pas
+
+1. **Le libellé s'affiche À CÔTÉ du titre officiel, jamais à sa place.** Un
+   client qui substituerait l'un à l'autre présenterait comme intitulé officiel
+   une paraphrase qui n'en est pas une. Sur une ligne : titre puis libellé
+   (`documentLineLabel()`, jumeaux en TS et Kotlin). Sur deux lignes : le titre
+   reste seul en tête (H1 de la page publique, titre du viewer).
+2. **Aucune écriture de libellé ne touche `titre_officiel`.** C'est pourquoi
+   `mibeko:appliquer-libelles` **refuse** tout fichier portant un champ
+   `titre` : un lot de `mibeko:proposer-titres` ne doit pas pouvoir transiter
+   par ce canal.
+3. **La sélection de la population appartient au code testé, pas au SQL.** La
+   condition du détecteur (« l'intitulé finit par une date ») ramène en dev
+   1 472 documents, dont ~1 100 sont en réalité des actes dont le corps a été
+   avalé dans l'intitulé (famille `P1_corps_dans_titre`) et qui finissent par
+   hasard sur « … pour compter du 2 avril 2007. ».
+   `LibelleDescriptifExtractor::estActeEnAbrege()` exige que le motif consomme
+   **tout** l'intitulé et une initiale majuscule (une initiale minuscule signe
+   un faux acte né d'une ligne de sommaire coupée). Ne pas court-circuiter ce
+   filtre par une requête directe.
+
+### Chaîne outillée
+
+```bash
+# Temps 1 — lecture seule, produit des PROPOSITIONS, n'écrit jamais
+php artisan mibeko:proposer-libelles --connection=pgsql_prod_ro --statut=published --out=/tmp/libelles.json
+
+# … relecture humaine du fichier (chaque entrée porte extrait source, nature, confiance) …
+
+# Écriture Classe 2 : documents publiés → autorisation par opération, terminal de l'humain
+php artisan mibeko:appliquer-libelles --liste=/tmp/libelles.json --execute
+```
+
+Mesuré en production le 17/08/2026 (lecture seule) : 175 propositions sur les
+178 documents de la famille. Les documents dont le corps commence par
+« portant… »/« fixant… » sont marqués `titre_probablement_tronque` — leur objet
+avait bien été imprimé par le JO, c'est le découpage qui l'a détaché du titre :
+**chantier distinct**, ne pas le traiter par ce canal.
+
+Décision complète et datée : `docs/decisions.md` (2026-08-16).
