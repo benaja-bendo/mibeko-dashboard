@@ -327,11 +327,37 @@ class FusionnerFragmentsCommand extends Command
             return false;
         }
 
+        if ($this->estUnFragmentSignatureSeule($db, $documentId)) {
+            return true;
+        }
+
         $premier = $this->premierMorceau($db, $documentId);
 
         return $premier !== null
             && preg_match('/^\d+$/', (string) $premier->numero_article) !== 1
             && preg_match('/^\p{Ll}/u', ltrim((string) $premier->contenu_texte)) === 1;
+    }
+
+    /**
+     * Un fragment « signature seule » : son unique article vivant est la
+     * SIGNATURE, sans aucune suite numérotée. Famille distincte, découverte le
+     * 18/08/2026 sur le cluster « communiqué partout où besoin sera. » : le
+     * texte manquant à la tête (la fin de la clause de publication) n'est pas
+     * dans le contenu du fragment mais dans son PROPRE TITRE — le détecteur de
+     * frontières a pris ce bout de phrase pour un intitulé de document plutôt
+     * que pour la continuation d'un article. `estUnFragment()` ne le voyait
+     * pas : son contenu commence par « Fait », en majuscule, comme toute
+     * signature — le test « commence en minuscule » l'écartait à tort.
+     */
+    private function estUnFragmentSignatureSeule(Connection $db, string $documentId): bool
+    {
+        $articles = $db->table('articles')
+            ->where('document_id', $documentId)
+            ->whereNull('deleted_at')
+            ->select(['numero_article'])
+            ->get();
+
+        return $articles->count() === 1 && $articles->first()->numero_article === 'SIGNATURE';
     }
 
     /**
@@ -465,6 +491,10 @@ class FusionnerFragmentsCommand extends Command
             return $this->resultat($tete, $fragment, $dernier, 'ecarte', 'le fragment n\'a aucun article');
         }
 
+        if ($articlesFragment->count() === 1 && $articlesFragment->first()->numero_article === 'SIGNATURE') {
+            return $this->verifierPaireSignatureSeule($db, $tete, $fragment, $dernier);
+        }
+
         $premier = $articlesFragment->first();
 
         if (preg_match('/^\d+$/', (string) $premier->numero_article) === 1) {
@@ -507,6 +537,37 @@ class FusionnerFragmentsCommand extends Command
             : 'brouillon';
 
         return $this->resultat($tete, $fragment, $dernier, 'fiable', "tous les contrôles structurels passent ({$signal})");
+    }
+
+    /**
+     * Vérifie une paire tête/fragment-signature. Le texte de continuation vit
+     * dans le TITRE du fragment (pas dans le contenu de sa SIGNATURE, qui ne
+     * doit jamais être fondu dans l'article tronqué) : `titre_officiel` ne peut
+     * pas être vide (contrainte du modèle) ni ressembler à un intitulé d'acte
+     * (déjà écarté en amont par `estUnFragment()`), donc aucune garde
+     * supplémentaire n'est nécessaire ici sur son contenu. Seule collision
+     * possible : la tête porte déjà sa propre SIGNATURE.
+     *
+     * @param  array<string, mixed>  $dernier
+     * @return array<string, mixed>
+     */
+    private function verifierPaireSignatureSeule(Connection $db, object $tete, object $fragment, array $dernier): array
+    {
+        $collision = $db->table('articles')
+            ->where('document_id', $tete->id)
+            ->whereNull('deleted_at')
+            ->where('numero_article', 'SIGNATURE')
+            ->exists();
+
+        if ($collision) {
+            return $this->resultat($tete, $fragment, $dernier, 'ecarte', 'la tête porte déjà un article SIGNATURE — le rapatriement entrerait en collision avec un article existant');
+        }
+
+        $signal = $tete->curation_status === 'published'
+            ? 'PUBLIÉ — article tronqué visible du public dès maintenant'
+            : 'brouillon';
+
+        return $this->resultat($tete, $fragment, $dernier, 'fiable', "signature détachée, texte de continuation dans le titre du fragment ({$signal})");
     }
 
     /**
@@ -670,7 +731,7 @@ class FusionnerFragmentsCommand extends Command
                 continue;
             }
 
-            $paires[] = ['tete_id' => $teteId, 'fragment_id' => $fragmentId, 'dernier' => $dernier, 'articles_fragment' => $articlesFragment];
+            $paires[] = ['tete_id' => $teteId, 'fragment_id' => $fragmentId, 'dernier' => $dernier, 'articles_fragment' => $articlesFragment, 'fragment_titre' => (string) ($fragment->titre_officiel ?? '')];
             $retourArriere[] = [
                 'tete_id' => $teteId,
                 'article_complete_id' => $dernier['id'],
@@ -738,27 +799,38 @@ class FusionnerFragmentsCommand extends Command
      * (version → article → document) sont le seul moyen de laisser le corpus
      * cohérent pour la recherche sémantique, l'assistant et la synchro mobile.
      *
-     * @param  array{tete_id: string, fragment_id: string, dernier: array<string, mixed>, articles_fragment: Collection<int, object>}  $paire
+     * @param  array{tete_id: string, fragment_id: string, dernier: array<string, mixed>, articles_fragment: Collection<int, object>, fragment_titre: string}  $paire
      */
     private function fusionner(string $connexion, array $paire): void
     {
         $articleTronque = Article::on($connexion)->findOrFail($paire['dernier']['id']);
         $articlesFragment = $paire['articles_fragment'];
 
+        // Fragment « signature seule » : le texte manquant vit dans le TITRE du
+        // fragment, jamais dans le contenu de sa SIGNATURE — la fondre dans
+        // l'article tronqué mélangerait la clause de publication et le nom du
+        // signataire. Toute la SIGNATURE (un seul article) est rapatriée telle
+        // quelle, rien n'est sauté.
+        $signatureSeule = $articlesFragment->count() === 1 && $articlesFragment->first()->numero_article === 'SIGNATURE';
+
         // 1. Complète l'article tronqué de la tête, versionné comme le ferait
         //    PATCH /api/v1/articles/{id} — jamais un UPDATE en place.
-        $suite = $this->versionEloquentQuiFaitFoi($connexion, (string) $articlesFragment->first()->id);
+        $texteSuite = $signatureSeule
+            ? $paire['fragment_titre']
+            : (string) ($this->versionEloquentQuiFaitFoi($connexion, (string) $articlesFragment->first()->id)?->contenu_texte ?? '');
+
         $this->reecrireLeContenu(
             $articleTronque,
-            rtrim((string) $paire['dernier']['contenu'])."\n".ltrim((string) ($suite?->contenu_texte ?? '')),
+            rtrim((string) $paire['dernier']['contenu']).($signatureSeule ? ' ' : "\n").ltrim($texteSuite),
         );
 
         // 2. Rapatrie les articles suivants du fragment sous la tête, avec leur
         //    `source_locator` : c'est lui qui porte la page source, donc la
         //    citabilité — la perdre reviendrait à rapatrier du texte non sourcé.
         $ordre = (int) $articleTronque->ordre_affichage;
+        $aRapatrier = $signatureSeule ? $articlesFragment : $articlesFragment->skip(1);
 
-        foreach ($articlesFragment->skip(1) as $a) {
+        foreach ($aRapatrier as $a) {
             $ordre++;
             $version = $this->versionEloquentQuiFaitFoi($connexion, (string) $a->id);
 

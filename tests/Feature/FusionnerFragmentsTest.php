@@ -70,6 +70,27 @@ function articleNumero(LegalDocument $document, string $numero): Article
     return Article::where('document_id', $document->id)->where('numero_article', $numero)->firstOrFail();
 }
 
+/**
+ * Fragment « signature seule » — cas réel du cluster « communiqué partout où
+ * besoin sera. » découvert le 18/08/2026 : un seul article vivant, la
+ * SIGNATURE, dont le contenu commence en majuscule (« Fait à … ») et dont le
+ * TITRE porte le texte de continuation, jamais son contenu.
+ */
+function fragmentSignatureSeule(string $jo, string $documentKey, string $titreTexteDeContinuation, string $signataire = 'F. Youlou.'): LegalDocument
+{
+    $document = LegalDocument::factory()->create([
+        'titre_officiel' => $titreTexteDeContinuation,
+        'official_journal_id' => $jo,
+        'curation_status' => 'draft',
+        'document_key' => $documentKey,
+    ]);
+
+    $signature = Article::factory()->create(['document_id' => $document->id, 'numero_article' => 'SIGNATURE', 'ordre_affichage' => 0]);
+    ArticleVersion::factory()->create(['article_id' => $signature->id, 'contenu_texte' => "Fait à Brazzaville, le 18 juin 2025\n{$signataire}"]);
+
+    return $document;
+}
+
 /** Diagnostic + exécution en une passe, sur la connexion de test. */
 function fusionner(array $optionsDiagnostic = [], array $optionsExecution = []): string
 {
@@ -599,4 +620,60 @@ it('fusionne en mode adjacence exactement comme en mode intitulé partagé', fun
     expect(articleNumero($tete, '7')->activeVersion()->firstOrFail()->contenu_texte)
         ->toBe("Conformément aux articles 91 et 92 de la\nretrait en cas de non-exécution.")
         ->and(LegalDocument::withTrashed()->find($fragment->id)->trashed())->toBeTrue();
+});
+
+it('reconnaît un fragment signature seule en mode adjacence malgré son contenu en majuscule', function () {
+    // Cas réel : `estUnFragment()` exigeait jusqu'ici un contenu commençant en
+    // minuscule — une SIGNATURE commence par « Fait », en majuscule, et était
+    // donc invisible du diagnostic malgré 19 exemplaires trouvés en prod le
+    // 18/08/2026.
+    $jo = OfficialJournal::factory()->create()->id;
+    $tete = arreteTete($jo, 1550, 'sera enregistré, publié au Journal officiel et', 'flux:jo-28_acte_1');
+    $fragment = fragmentSignatureSeule($jo, 'flux:jo-28_acte_2', 'communiqué partout où besoin sera.');
+
+    $plan = tempnam(sys_get_temp_dir(), 'plan_').'.json';
+
+    test()->artisan('mibeko:fusionner-fragments', ['--connection' => 'pgsql', '--plan' => $plan])->assertSuccessful();
+
+    $resultat = json_decode((string) file_get_contents($plan), true);
+
+    expect($resultat)->toHaveCount(1)
+        ->and($resultat[0]['tete_id'])->toBe($tete->id)
+        ->and($resultat[0]['fragment_id'])->toBe($fragment->id);
+});
+
+it('fusionne un fragment signature seule : le titre du fragment complète l\'article, la signature est rapatriée telle quelle', function () {
+    $jo = OfficialJournal::factory()->create()->id;
+    $tete = arreteTete($jo, 1550, 'sera enregistré, publié au Journal officiel et', 'flux:jo-28_acte_1');
+    $fragment = fragmentSignatureSeule($jo, 'flux:jo-28_acte_2', 'communiqué partout où besoin sera.', 'Arlette SOUDAN-NONAULT');
+
+    fusionner();
+
+    // Le texte de continuation vient du TITRE du fragment, joint par une
+    // espace (c'est la même phrase qui reprend), jamais du contenu de sa
+    // SIGNATURE — sinon le nom du signataire se retrouverait dans la clause.
+    expect(articleNumero($tete, '7')->activeVersion()->firstOrFail()->contenu_texte)
+        ->toBe('sera enregistré, publié au Journal officiel et communiqué partout où besoin sera.');
+
+    $signature = articleNumero($tete, 'SIGNATURE');
+    expect($signature->activeVersion()->firstOrFail()->contenu_texte)
+        ->toContain('Arlette SOUDAN-NONAULT')
+        ->and(LegalDocument::withTrashed()->find($fragment->id)->trashed())->toBeTrue();
+});
+
+it('écarte un fragment signature seule si la tête porte déjà sa propre signature', function () {
+    $jo = OfficialJournal::factory()->create()->id;
+    $tete = arreteTete($jo, 1550, 'sera enregistré, publié au Journal officiel et', 'flux:jo-28_acte_1');
+
+    $signatureExistante = Article::factory()->create(['document_id' => $tete->id, 'numero_article' => 'SIGNATURE', 'ordre_affichage' => 20]);
+    ArticleVersion::factory()->create(['article_id' => $signatureExistante->id, 'contenu_texte' => 'Fait à Brazzaville, le 18 juin 2025.']);
+
+    fragmentSignatureSeule($jo, 'flux:jo-28_acte_2', 'communiqué partout où besoin sera.');
+
+    $rapport = tempnam(sys_get_temp_dir(), 'rapport_').'.json';
+    test()->artisan('mibeko:fusionner-fragments', ['--connection' => 'pgsql', '--rapport' => $rapport])->assertSuccessful();
+
+    $resultat = json_decode((string) file_get_contents($rapport), true)[0];
+    expect($resultat['classe'])->toBe('ecarte')
+        ->and($resultat['raison'])->toContain('SIGNATURE');
 });
