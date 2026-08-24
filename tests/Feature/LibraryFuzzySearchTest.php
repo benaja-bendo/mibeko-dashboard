@@ -120,7 +120,7 @@ it('remonte un article conceptuellement proche via le filet sémantique', functi
         ['['.implode(',', $vector).']', $version->id],
     );
 
-    $response = $this->getJson('/api/v1/library/search?q=héritage');
+    $response = $this->getJson('/api/v1/library/search?q=héritage&semantic=1');
 
     $response->assertStatus(200);
 
@@ -160,7 +160,7 @@ it('borne le filet sémantique à un top-K et ne renvoie pas tout le corpus embe
 
     // Même chaîne de charabia que celle utilisée pour prouver le bug en prod
     // (aucun recoupement lexical ni trigram avec les articles ci-dessus).
-    $response = $this->getJson('/api/v1/library/search?q='.urlencode('zzzqxwv'));
+    $response = $this->getJson('/api/v1/library/search?q='.urlencode('zzzqxwv').'&semantic=1');
 
     $response->assertStatus(200);
 

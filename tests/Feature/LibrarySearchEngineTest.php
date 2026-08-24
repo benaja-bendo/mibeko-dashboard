@@ -81,6 +81,75 @@ it('retourne une liste paginée avec score et jamais de réponse IA', function (
         ->assertJsonMissingPath('data.sources');
 
     expect($response->json('data.0.score'))->toBeNumeric();
+    Embeddings::assertNothingGenerated();
+});
+
+it('privilégie le titre du fonds quand la requête nomme le texte recherché', function () {
+    $codeTravail = LegalDocument::factory()->create([
+        'type_code' => 'LOI',
+        'titre_officiel' => 'Code du travail',
+        'legal_scope' => 'national',
+    ]);
+    $articleTravail = Article::factory()->create([
+        'document_id' => $codeTravail->id,
+        'numero_article' => '47',
+    ]);
+    ArticleVersion::factory()->create([
+        'article_id' => $articleTravail->id,
+        'contenu_texte' => 'Le licenciement ouvre droit à une indemnité calculée selon la durée du travail.',
+        'validity_period' => '[2020-01-01,)',
+    ]);
+
+    $texteConcurrent = LegalDocument::factory()->create([
+        'type_code' => 'LOI',
+        'titre_officiel' => 'Code de la marine marchande',
+        'legal_scope' => 'national',
+    ]);
+    $articleConcurrent = Article::factory()->create([
+        'document_id' => $texteConcurrent->id,
+        'numero_article' => '12',
+    ]);
+    ArticleVersion::factory()->create([
+        'article_id' => $articleConcurrent->id,
+        'contenu_texte' => 'Le licenciement ouvre droit à une indemnité calculée selon le contrat de travail.',
+        'validity_period' => '[2020-01-01,)',
+    ]);
+
+    $response = $this->getJson('/api/v1/library/search?q='.urlencode('code du travail licenciement indemnité'));
+
+    $response->assertStatus(200)
+        ->assertJsonPath('data.0.document_id', $codeTravail->id);
+});
+
+it('signale un numéro suffixé sans le dédupliquer', function () {
+    $document = LegalDocument::factory()->create([
+        'type_code' => 'LOI',
+        'titre_officiel' => 'Loi sur le recouvrement',
+        'legal_scope' => 'national',
+    ]);
+    $article = Article::factory()->create([
+        'document_id' => $document->id,
+        'numero_article' => '5_doublon_1',
+    ]);
+    ArticleVersion::factory()->create([
+        'article_id' => $article->id,
+        'contenu_texte' => 'La créance exigible peut faire l’objet d’un recouvrement amiable.',
+        'validity_period' => '[2020-01-01,)',
+    ]);
+
+    $response = $this->getJson('/api/v1/library/search?q=recouvrement');
+
+    $item = collect($response->json('data'))->firstWhere('id', $article->id);
+    expect($item)->not->toBeNull()
+        ->and($item['number'])->toBe('5_doublon_1')
+        ->and($item['canonical_number'])->toBe('5')
+        ->and($item['has_duplicate_suffix'])->toBeTrue();
+});
+
+it('rejette une option sémantique invalide', function () {
+    $this->getJson('/api/v1/library/search?q=contrat&semantic=parfois')
+        ->assertStatus(422)
+        ->assertJsonValidationErrors(['semantic']);
 });
 
 it('filtre par périmètre OHADA', function () {

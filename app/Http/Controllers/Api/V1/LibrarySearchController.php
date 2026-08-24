@@ -39,6 +39,7 @@ class LibrarySearchController extends Controller
      * @queryParam date_to date Borne haute de publication (YYYY-MM-DD).
      * @queryParam document_id string Restreindre la recherche à un document.
      * @queryParam sort string Tri : relevance (défaut), date_desc ou date_asc.
+     * @queryParam semantic boolean Activer le rappel sémantique distant. Désactivé par défaut pour garantir une réponse interactive.
      * @queryParam per_page integer Résultats par page (1 à 50). Default: 12.
      */
     public function search(Request $request): JsonResponse
@@ -54,6 +55,7 @@ class LibrarySearchController extends Controller
             'official_journal_id' => ['nullable', 'string', 'exists:official_journals,id'],
             'tag' => ['nullable', 'string'],
             'sort' => ['nullable', 'string', 'in:relevance,date_desc,date_asc'],
+            'semantic' => ['nullable', 'boolean'],
             'per_page' => ['nullable', 'integer', 'min:1', 'max:50'],
         ]);
 
@@ -71,6 +73,7 @@ class LibrarySearchController extends Controller
             ],
             sort: $validated['sort'] ?? 'relevance',
             perPage: (int) ($validated['per_page'] ?? 12),
+            withSemantic: $request->boolean('semantic'),
         );
 
         return $this->paginatedSuccess($paginator, null, 'Résultats de recherche récupérés avec succès');

@@ -105,7 +105,12 @@ trait SearchesArticles
                 'i.nom as institution_name',
                 'oj.title as official_journal_title',
                 'oj.publication_date as official_journal_date',
-            ]);
+            ])
+            // Le suffixe est conservé dans `number` pour l'adressage exact,
+            // mais signalé explicitement aux clients au lieu d'être masqué par
+            // un DISTINCT qui ferait disparaître une occurrence du corpus.
+            ->selectRaw("regexp_replace(a.numero_article, '_doublon(_[0-9]+)?$', '', 'i') as canonical_article_number")
+            ->selectRaw("(a.numero_article ~* '_doublon(_[0-9]+)?$') as has_duplicate_suffix");
     }
 
     /**
@@ -185,7 +190,7 @@ trait SearchesArticles
      * distance ; ce terme ne fait plus qu'affiner le classement des candidats
      * déjà retenus par ailleurs.
      */
-    protected function applyLexicalScoring(Builder $query, string $search): void
+    protected function applyLexicalScoring(Builder $query, string $search, bool $withSemantic = true): void
     {
         // Sépare une éventuelle référence « article N » du reste thématique.
         // Le mot « article » est structurel (présent dans presque tous les
@@ -202,7 +207,7 @@ trait SearchesArticles
         // Embedding de la requête pour le filet sémantique (mis en cache : une
         // même requête ne le régénère pas). Dégradation gracieuse en cas d'échec.
         $embeddingString = null;
-        if ($useApprox) {
+        if ($useApprox && $withSemantic) {
             try {
                 $embedding = Str::of($topical)->toEmbeddings(cache: true);
                 if (! empty($embedding)) {
@@ -235,12 +240,17 @@ trait SearchesArticles
         $scoreExpression = "
             (CASE WHEN ?::text IS NOT NULL AND a.numero_article = ?::text THEN 2.0 ELSE 0.0 END) +
             (CASE WHEN ? != '' AND ld.titre_officiel ILIKE ? THEN 0.5 ELSE 0.0 END) +
+            (CASE WHEN ? != '' THEN ts_rank(
+                to_tsvector('french', COALESCE(ld.titre_officiel, '') || ' ' || COALESCE(ld.libelle_descriptif, '')),
+                to_tsquery('french', ?)
+            ) * 1.5 ELSE 0.0 END) +
             (CASE WHEN ? != '' THEN ts_rank(av.search_tsv, websearch_to_tsquery('french', ?)) * 0.4 ELSE 0.0 END) +
             (CASE WHEN ? != '' THEN ts_rank(av.search_tsv, to_tsquery('french', ?)) * 0.2 ELSE 0.0 END)
         ";
         $scoreBindings = [
             $articleNum, $articleNum,
             $topical, "%$topical%",
+            $orTsQuery, $orTsQuery,
             $topical, $topical,
             $orTsQuery, $orTsQuery,
         ];
@@ -262,6 +272,10 @@ trait SearchesArticles
                     $q->whereRaw("av.search_tsv @@ websearch_to_tsquery('french', ?)", [$topical]);
                     if ($orTsQuery !== '') {
                         $q->orWhereRaw("av.search_tsv @@ to_tsquery('french', ?)", [$orTsQuery]);
+                        $q->orWhereRaw(
+                            "to_tsvector('french', COALESCE(ld.titre_officiel, '') || ' ' || COALESCE(ld.libelle_descriptif, '')) @@ to_tsquery('french', ?)",
+                            [$orTsQuery],
+                        );
                     }
                     $q->orWhere('ld.titre_officiel', 'ILIKE', "%$topical%");
                     // Filet trigram via l'opérateur indexable `%>>` (index GIN
@@ -364,6 +378,8 @@ trait SearchesArticles
         return [
             'id' => $item->article_id,
             'number' => $item->numero_article ?? '',
+            'canonical_number' => $item->canonical_article_number ?? $item->numero_article ?? '',
+            'has_duplicate_suffix' => (bool) ($item->has_duplicate_suffix ?? false),
             'order' => $item->ordre_affichage ?? 0,
             'content' => $item->contenu_texte,
             'document_id' => $item->document_id,
@@ -395,11 +411,16 @@ trait SearchesArticles
      *
      * @param  array<string, mixed>  $filters
      */
-    protected function lexicalArticleSearch(string $search, array $filters = [], string $sort = 'relevance', int $perPage = 12): LengthAwarePaginator
-    {
+    protected function lexicalArticleSearch(
+        string $search,
+        array $filters = [],
+        string $sort = 'relevance',
+        int $perPage = 12,
+        bool $withSemantic = false,
+    ): LengthAwarePaginator {
         $query = $this->baseArticleQuery();
         $this->applyArticleFilters($query, $filters);
-        $this->applyLexicalScoring($query, $search);
+        $this->applyLexicalScoring($query, $search, $withSemantic);
 
         if ($sort === 'date_desc') {
             $query->orderByDesc('ld.date_publication');
@@ -425,7 +446,7 @@ trait SearchesArticles
     {
         $query = $this->baseArticleQuery();
         $this->applyArticleFilters($query, $filters);
-        $this->applyLexicalScoring($query, $search);
+        $this->applyLexicalScoring($query, $search, withSemantic: true);
 
         return $query->orderByDesc('total_score')
             ->limit($limit)
