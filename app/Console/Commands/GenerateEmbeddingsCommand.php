@@ -18,7 +18,8 @@ class GenerateEmbeddingsCommand extends Command
     protected $signature = 'mibeko:process-rag
                             {--limit=100 : Nombre d\'articles à traiter}
                             {--batch=20 : Taille du batch pour l\'IA}
-                            {--delay=500 : Délai en millisecondes entre les batches pour éviter le rate limit}';
+                            {--delay=500 : Délai en millisecondes entre les batches pour éviter le rate limit}
+                            {--connection= : Connexion cible des versions d\'article (défaut : celle de l\'appli ; pgsql_prod_rw pour la production)}';
 
     /**
      * The console command description.
@@ -32,12 +33,21 @@ class GenerateEmbeddingsCommand extends Command
      */
     public function handle()
     {
+        $connexion = (string) ($this->option('connection') ?: config('database.default'));
+
+        if ($connexion === 'pgsql_prod_ro') {
+            $this->error('pgsql_prod_ro est un profil de LECTURE : cette commande écrit des embeddings, elle exige pgsql_prod_rw (ou la connexion par défaut en développement).');
+
+            return self::FAILURE;
+        }
+
         $limit = $this->option('limit');
         $batchSize = $this->option('batch');
         $delay = $this->option('delay') * 1000; // convert to microseconds
         $hadErrors = false;
 
-        $versions = ArticleVersion::whereNull('embedding')
+        $versions = ArticleVersion::on($connexion)
+            ->whereNull('embedding')
             ->whereNotNull('contenu_texte')
             // La formule finale (« Fait à … » + signataire) est du bruit pour la
             // recherche sémantique : on ne la vectorise pas. Le préambule (visas)

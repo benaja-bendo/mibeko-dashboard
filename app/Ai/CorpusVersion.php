@@ -28,10 +28,25 @@ class CorpusVersion
 
     /**
      * Invalide le corpus : tout cache indexé sur l'ancien jeton est abandonné.
+     *
+     * @param  string|null  $connexion  Connexion DB à cibler pour le store
+     *                                  `database` (ex. `pgsql_prod_rw`) — sans
+     *                                  elle, la connexion par défaut de l'appli
+     *                                  (jamais la prod depuis une session dev,
+     *                                  d'où l'intérêt de ce paramètre pour
+     *                                  `mibeko:invalider-cache-corpus`).
      */
-    public static function bump(): void
+    public static function bump(?string $connexion = null): void
     {
-        Cache::forever(self::KEY, self::token());
+        if ($connexion === null) {
+            Cache::forever(self::KEY, self::token());
+
+            return;
+        }
+
+        config(['cache.stores.database.connection' => $connexion]);
+        Cache::forgetDriver('database');
+        Cache::store('database')->forever(self::KEY, self::token());
     }
 
     /**
