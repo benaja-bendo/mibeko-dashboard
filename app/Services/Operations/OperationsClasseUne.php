@@ -636,7 +636,7 @@ class OperationsClasseUne
             ]];
         }
 
-        if ($this->aDejaEtePublie($document)) {
+        if ($document->hasEverBeenPublished()) {
             return [null, [
                 "Document {$id} : a déjà été publié (trace d'audit) — toute intervention relève de la Classe 2.",
             ]];
@@ -647,27 +647,6 @@ class OperationsClasseUne
         }
 
         return [$document, []];
-    }
-
-    /**
-     * Un document qui a déjà été publié ne relève plus de la Classe 1, même
-     * revenu en staging par dépublication. La trace vit dans le journal
-     * d'audit (publication et dépublication passent toujours par
-     * Eloquent/API, donc par owen-it) ; la colonne `new_values`/`old_values`
-     * étant `text`, la détection se fait par motif sur la sérialisation JSON
-     * compacte de json_encode. Filet borné par la rétention des audits
-     * (mibeko:prune-audits, 365 j par défaut) : il s'ajoute au contrôle du
-     * statut courant, il ne remplace pas la relecture du lot par l'humain.
-     */
-    private function aDejaEtePublie(LegalDocument $document): bool
-    {
-        $motif = '%"curation_status":"published"%';
-
-        return $document->audits()
-            ->where(fn ($query) => $query
-                ->where('new_values', 'like', $motif)
-                ->orWhere('old_values', 'like', $motif))
-            ->exists();
     }
 
     /**

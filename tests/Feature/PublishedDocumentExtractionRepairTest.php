@@ -9,8 +9,10 @@ use App\Models\StructureNode;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Routing\Middleware\ThrottleRequests;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Str;
+use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 
 uses(RefreshDatabase::class);
@@ -24,6 +26,8 @@ beforeEach(function () {
 
     $this->admin = User::factory()->create();
     $this->admin->assignRole('admin');
+    Permission::findOrCreate('documents.update');
+    $this->admin->givePermissionTo('documents.update');
     $this->editor = User::factory()->create();
     $this->editor->assignRole('editor');
     $this->pro = User::factory()->create();
@@ -217,6 +221,69 @@ it('remplace atomiquement l extraction publiée et conserve les identités et la
 
     expect($response->json('data.after_fingerprint'))->toMatch('/^[a-f0-9]{64}$/');
     Queue::assertPushed(GenerateDocumentExportPdfJob::class);
+});
+
+it('répare un document temporairement retiré sans le republier implicitement', function () {
+    $snapshot = snapshotPublishedExtraction($this);
+
+    $this->actingAs($this->admin)
+        ->patchJson("/api/v1/legal-documents/{$this->document->id}", [
+            'curation_status' => LegalDocument::STATUS_REVIEW,
+            'motif' => 'Retrait public provisoire avant reconstruction de l’extraction.',
+        ])
+        ->assertOk()
+        ->assertJsonPath('data.curation_status', LegalDocument::STATUS_REVIEW);
+
+    $this->actingAs($this->admin)
+        ->postJson(
+            "/api/v1/admin/legal-documents/{$this->document->id}/replace-extraction",
+            repairPayload($this, $snapshot['expected_fingerprint'], true),
+        )
+        ->assertOk()
+        ->assertJsonPath('data.executed', true)
+        ->assertJsonPath('data.curation_status', LegalDocument::STATUS_REVIEW);
+
+    expect($this->document->fresh()->curation_status)->toBe(LegalDocument::STATUS_REVIEW)
+        ->and($this->document->hasEverBeenPublished())->toBeTrue();
+    Queue::assertNotPushed(GenerateDocumentExportPdfJob::class);
+});
+
+it('refuse ce canal à un brouillon qui n a jamais été publié', function () {
+    $snapshot = snapshotPublishedExtraction($this);
+    $this->document->audits()->delete();
+    DB::table('legal_documents')
+        ->where('id', $this->document->id)
+        ->update(['curation_status' => LegalDocument::STATUS_DRAFT]);
+    $this->document->refresh();
+
+    $this->actingAs($this->admin)
+        ->postJson(
+            "/api/v1/admin/legal-documents/{$this->document->id}/replace-extraction",
+            repairPayload($this, $snapshot['expected_fingerprint'], false),
+        )
+        ->assertConflict();
+
+    expect($this->document->hasEverBeenPublished())->toBeFalse();
+});
+
+it('valide la cible figée de reconstruction de l arrêté 3277', function () {
+    $planPath = storage_path('app/corrections/2026-08-18-reconstruire-arrete-3277.json');
+    $plan = json_decode(file_get_contents($planPath), true, flags: JSON_THROW_ON_ERROR);
+    $target = $plan['target'];
+    $target['document_id'] = $this->document->id;
+    $target['source_pdf']['sha256'] = $this->sha256;
+    $snapshot = snapshotPublishedExtraction($this);
+
+    $this->actingAs($this->admin)
+        ->postJson(
+            "/api/v1/admin/legal-documents/{$this->document->id}/replace-extraction",
+            repairPayload($this, $snapshot['expected_fingerprint'], false, $target),
+        )
+        ->assertOk()
+        ->assertJsonPath('data.dry_run', true)
+        ->assertJsonPath('data.plan.nodes_target', 19)
+        ->assertJsonPath('data.plan.target_articles', 72)
+        ->assertJsonPath('data.plan.articles_added_or_restored', 71);
 });
 
 it('réutilise le snapshot comme retour arrière complet', function () {

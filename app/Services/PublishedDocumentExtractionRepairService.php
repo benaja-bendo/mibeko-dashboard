@@ -16,7 +16,8 @@ use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
 
 /**
- * Remplace atomiquement une extraction publiée sans effacer son historique.
+ * Remplace atomiquement l'extraction d'un document déjà publié sans effacer
+ * son historique, y compris pendant un retrait public provisoire.
  *
  * Les articles conservés gardent leur UUID et leur version active : une erreur
  * d'extraction n'est pas une nouvelle version du droit. Une trace compacte de
@@ -59,7 +60,7 @@ class PublishedDocumentExtractionRepairService
         array $target,
         string $expectedFingerprint,
     ): array {
-        $this->assertPublished($document);
+        $this->assertAlreadyPublished($document);
         $normalizedTarget = $this->normalizeAndValidateTarget($document, $target);
         $this->assertSourcePdf($document, $normalizedTarget['source_pdf']['sha256']);
 
@@ -103,7 +104,7 @@ class PublishedDocumentExtractionRepairService
             $userId,
         ): array {
             $lockedDocument = LegalDocument::query()->lockForUpdate()->findOrFail($document->id);
-            $this->assertPublished($lockedDocument);
+            $this->assertAlreadyPublished($lockedDocument);
             $this->assertSourcePdf($lockedDocument, $normalizedTarget['source_pdf']['sha256']);
 
             $current = $this->snapshot($lockedDocument);
@@ -112,6 +113,7 @@ class PublishedDocumentExtractionRepairService
                 return [
                     'executed' => false,
                     'already_applied' => true,
+                    'curation_status' => $lockedDocument->curation_status,
                     'before_fingerprint' => $current['expected_fingerprint'],
                     'after_fingerprint' => $current['expected_fingerprint'],
                     'semantic_fingerprint' => $current['semantic_fingerprint'],
@@ -178,6 +180,7 @@ class PublishedDocumentExtractionRepairService
                 'executed' => true,
                 'already_applied' => false,
                 'operation_id' => $operationId,
+                'curation_status' => $lockedDocument->curation_status,
                 'before_fingerprint' => $current['expected_fingerprint'],
                 'after_fingerprint' => $after['expected_fingerprint'],
                 'semantic_fingerprint' => $after['semantic_fingerprint'],
@@ -186,7 +189,7 @@ class PublishedDocumentExtractionRepairService
             ];
         }, 3);
 
-        if ($result['executed']) {
+        if ($result['executed'] && $result['curation_status'] === LegalDocument::STATUS_PUBLISHED) {
             CorpusVersion::bump();
             GenerateDocumentExportPdfJob::dispatch($document->id);
         }
@@ -286,10 +289,12 @@ class PublishedDocumentExtractionRepairService
         ];
     }
 
-    private function assertPublished(LegalDocument $document): void
+    private function assertAlreadyPublished(LegalDocument $document): void
     {
-        if ($document->curation_status !== LegalDocument::STATUS_PUBLISHED) {
-            throw new ConflictHttpException('Ce canal est réservé à la réparation d’un document publié.');
+        if (! $document->hasEverBeenPublished()) {
+            throw new ConflictHttpException(
+                'Ce canal est réservé à la réparation d’un document publié ou temporairement retiré du public.'
+            );
         }
     }
 

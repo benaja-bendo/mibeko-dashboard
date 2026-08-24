@@ -96,6 +96,29 @@ class LegalDocument extends Model implements Auditable
     const STATUS_PUBLISHED = 'published';
 
     /**
+     * Indique si le document appartient au périmètre Classe 2 du corpus.
+     *
+     * Un retrait provisoire ne doit jamais faire redevenir Classe 1 un texte
+     * déjà exposé au public. Les transitions passent par Eloquent et sont
+     * conservées dans le journal d'audit ; le test sur le statut courant
+     * couvre aussi un document publié avant sa première trace exploitable.
+     */
+    public function hasEverBeenPublished(): bool
+    {
+        if ($this->curation_status === self::STATUS_PUBLISHED) {
+            return true;
+        }
+
+        $motif = '%"curation_status":"published"%';
+
+        return $this->audits()
+            ->where(fn ($query) => $query
+                ->where('new_values', 'like', $motif)
+                ->orWhere('old_values', 'like', $motif))
+            ->exists();
+    }
+
+    /**
      * Machine à états maison de `curation_status` (audit
      * docs/audit-ingestion-2026-08-02.md, phase 3b — implémentation maison,
      * aucun package de state machine). Deux listes de transitions autorisées

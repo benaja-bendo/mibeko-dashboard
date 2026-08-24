@@ -9,7 +9,8 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 /**
- * Réparation exceptionnelle d'une extraction déjà publiée.
+ * Réparation exceptionnelle d'une extraction déjà publiée, y compris
+ * pendant un retrait public provisoire.
  *
  * @group Admin / Corpus publié
  */
@@ -75,7 +76,7 @@ class PublishedDocumentExtractionRepairController extends Controller
         return $this->success(
             $result,
             $validated['execute']
-                ? 'Extraction publiée réparée et vérifiée avec succès.'
+                ? 'Extraction d’un document déjà publié réparée et vérifiée avec succès.'
                 : 'Dry-run validé, aucune écriture effectuée.'
         );
     }
