@@ -39,6 +39,36 @@ it('can search legal documents by title', function () {
         ->assertJsonPath('data.0.title', 'Unique Title');
 });
 
+it('sorts legal documents by publication date with unknown dates last', function () {
+    LegalDocument::factory()->hasArticles(1)->create([
+        'titre_officiel' => 'Date inconnue',
+        'date_publication' => null,
+    ]);
+    LegalDocument::factory()->hasArticles(1)->create([
+        'titre_officiel' => 'Texte ancien',
+        'date_publication' => '2020-01-01',
+    ]);
+    LegalDocument::factory()->hasArticles(1)->create([
+        'titre_officiel' => 'B — même date',
+        'date_publication' => '2025-01-01',
+    ]);
+    LegalDocument::factory()->hasArticles(1)->create([
+        'titre_officiel' => 'A — même date',
+        'date_publication' => '2025-01-01',
+    ]);
+
+    $response = $this->getJson('/api/v1/legal-documents?sort=-date_publication');
+
+    $response->assertSuccessful();
+
+    expect(collect($response->json('data'))->pluck('title')->all())->toBe([
+        'A — même date',
+        'B — même date',
+        'Texte ancien',
+        'Date inconnue',
+    ]);
+});
+
 it('can list institutions', function () {
     Institution::factory()->count(3)->create();
 

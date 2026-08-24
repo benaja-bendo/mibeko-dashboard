@@ -16,6 +16,7 @@ use App\Services\DocumentDeletionService;
 use App\Services\LegalWatchNotifier;
 use App\Services\SourcePdfResolver;
 use App\Traits\GuardsUnpublishedDocuments;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -28,6 +29,7 @@ use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use OwenIt\Auditing\Models\Audit;
 use Spatie\QueryBuilder\AllowedFilter;
+use Spatie\QueryBuilder\AllowedSort;
 use Spatie\QueryBuilder\QueryBuilder;
 
 /**
@@ -88,7 +90,21 @@ class LegalDocumentController extends Controller
     /** Shared sort definitions. */
     private function allowedSorts(): array
     {
-        return ['titre_officiel', 'date_signature', 'date_publication', 'created_at', 'updated_at', 'curation_status', 'statut'];
+        return [
+            'titre_officiel',
+            'date_signature',
+            AllowedSort::callback('date_publication', function (Builder $query, bool $descending): void {
+                $query
+                    ->orderByRaw('date_publication IS NULL ASC')
+                    ->orderBy('date_publication', $descending ? 'desc' : 'asc')
+                    ->orderBy('titre_officiel')
+                    ->orderBy('id');
+            }),
+            'created_at',
+            'updated_at',
+            'curation_status',
+            'statut',
+        ];
     }
 
     /**
