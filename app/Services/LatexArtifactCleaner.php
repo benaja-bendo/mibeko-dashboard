@@ -29,6 +29,16 @@ namespace App\Services;
  *     le convertir l'effacerait ;
  *  3. le résultat ne doit contenir ni reste de syntaxe LaTeX, ni opérateur,
  *     ni parenthèse — ce qui ressemble encore à une formule est refusé.
+ *
+ * Volontairement HORS PÉRIMÈTRE (décidé le 25/08/2026, mibeko-dashboard#25) :
+ * le numéro de loi écrit sans son préfixe, `$15 - 62$` pour « 15-62 ». Le
+ * garde-fou n° 2 le refuse déjà faute de marqueur LaTeX, et c'est bien ainsi :
+ * le convertir imposerait de relâcher ce garde-fou pour toute portion sans
+ * marqueur, c'est-à-dire de rendre convertibles les montants monétaires
+ * (« 60 $ ») et les vraies soustractions. La lecture correcte n'est ici
+ * accessible qu'au contexte — une occurrence sœur en clair dans le même
+ * article — donc à un humain ou à une passe de curation, pas à un nettoyage
+ * mécanique qui ne voit qu'une portion à la fois.
  */
 class LatexArtifactCleaner
 {
@@ -81,8 +91,9 @@ class LatexArtifactCleaner
             $this->motifPortion(),
             function (array $m) use (&$convertis, &$refuses): string {
                 $base = $m['base'] ?? '';
-                $brut = $base.$m['avant'].'$'.$m['inner'].'$'.$m['apres'];
-                $clair = $this->decoder($m['inner']);
+                $baseMot = $m['base_mot'] ?? '';
+                $brut = $base.$baseMot.$m['avant'].'$'.$m['inner'].'$'.$m['apres'];
+                $clair = $this->decoder($m['inner'], $baseMot === '' ? null : mb_substr($baseMot, -1));
 
                 if ($clair === null) {
                     $refuses[] = trim($brut);
@@ -103,9 +114,13 @@ class LatexArtifactCleaner
                 // MinerU insère à l'ouverture du mode mathématique était
                 // reproduit tel quel, donnant « 1 er » au lieu de « 1er ».
                 $baseCollee = $base !== '' && str_starts_with(ltrim($m['inner']), '^{');
-                $avant = $baseCollee ? '' : (($m['avant'] !== '' || preg_match('/^\s/u', $clair)) ? ' ' : '');
+                // Symétrique côté indice : le mot resté hors du `$` se recolle
+                // à la lettre que MinerU en avait détachée (`Le $_{S}$` → « Les »).
+                $indiceColle = $baseMot !== '' && str_starts_with(ltrim($m['inner']), '_{');
+                $colle = $baseCollee || $indiceColle;
+                $avant = $colle ? '' : (($m['avant'] !== '' || preg_match('/^\s/u', $clair)) ? ' ' : '');
                 $apres = ($m['apres'] !== '' || preg_match('/\s$/u', $clair)) ? ' ' : '';
-                $remplacement = $base.$avant.trim($clair).$apres;
+                $remplacement = $base.$baseMot.$avant.trim($clair).$apres;
 
                 $convertis[] = ['avant' => trim($brut), 'apres' => trim($remplacement)];
 
@@ -136,14 +151,18 @@ class LatexArtifactCleaner
      */
     private function motifPortion(): string
     {
-        return '/(?P<base>\d)?(?P<avant>[^\S\r\n]*)\$(?P<inner>[^$\r\n]*)\$(?P<apres>[^\S\r\n]*)/u';
+        // `(?P<base_mot>…)` capture le mot collé devant un indice NU
+        // (`Le $_{S}$`) : même accident que le chiffre devant un exposant nu,
+        // côté indice. Le lookahead exige que la portion commence par `_{`,
+        // sinon un mot quelconque serait aspiré dans ce groupe.
+        return '/(?P<base>\d)?(?:(?P<base_mot>[^\W\d_]{2,})(?=[^\S\r\n]*\$[^\S\r\n]*_\{))?(?P<avant>[^\S\r\n]*)\$(?P<inner>[^$\r\n]*)\$(?P<apres>[^\S\r\n]*)/u';
     }
 
     /**
      * Réduit l'intérieur d'une portion à du texte brut, ou rend `null` si la
      * moindre chose y résiste.
      */
-    private function decoder(string $inner): ?string
+    private function decoder(string $inner, ?string $precedente = null): ?string
     {
         // Sans marqueur LaTeX, ce n'est pas un artefact d'extraction : le `$`
         // est un symbole monétaire (« le US $ », « moins de 60 $ »).
@@ -171,14 +190,37 @@ class LatexArtifactCleaner
         // « n^{o} » et « n^{os} » : l'exposant o du français « n° » et de son
         // pluriel « nos ». Traités avant l'exposant générique, qui rendrait
         // « no » — un mot, pas une abréviation de numéro.
-        $texte = preg_replace('/([nN])\^\{o\}/u', '${1}°', $texte) ?? $texte;
-        $texte = preg_replace('/([nN])\^\{os\}/u', '${1}os', $texte) ?? $texte;
+        // `[o0]` : l'OCR confond régulièrement la lettre o et le chiffre zéro
+        // dans l'exposant de « n° ». Les deux graphies désignent la même
+        // abréviation, et un même article publié porte parfois les deux.
+        $texte = preg_replace('/([nN])\^\{[o0]\}/u', '${1}°', $texte) ?? $texte;
+        $texte = preg_replace('/([nN])\^\{[o0]s\}/u', '${1}os', $texte) ?? $texte;
         $texte = preg_replace('/\^\{°\}/u', '°', $texte) ?? $texte;
 
         // Exposant textuel court : ordinal (« 1^{er} », « 3^{e} », « 4^{th} »).
         // Jamais après une lettre : `x^{n}` est une puissance, pas un ordinal,
         // et l'aplatir en « xn » détruirait la formule.
         $texte = preg_replace('/(?<!\pL)\^\{(\pL{1,4})\}/u', '${1}', $texte) ?? $texte;
+
+        // Indices `_{…}`, symétriques des exposants : MinerU rend en indice la
+        // lettre finale d'un mot (« Les » → `Le $_{S}$`, « ses » → `$se_{S}$`).
+        // Deux formes seulement sont admises, l'une et l'autre choisies pour ne
+        // JAMAIS attraper une notation mathématique :
+        //   - l'indice NU (la portion ne contient que `_{X}`) : la base est le
+        //     mot resté hors du `$`, cas impossible pour une variable indicée ;
+        //   - l'indice porté par une base d'AU MOINS DEUX lettres (`Se_{S}`),
+        //     donc un début de mot — une variable s'écrit sur une seule lettre,
+        //     et `u_{n}` reste ainsi refusé comme avant.
+        $texte = preg_replace_callback(
+            '/^_\{(\pL{1,4})\}$/u',
+            fn (array $m): string => $this->accorderCasse($m[1], $precedente),
+            $texte
+        ) ?? $texte;
+        $texte = preg_replace_callback(
+            '/(\pL{2,})_\{(\pL{1,4})\}/u',
+            fn (array $m): string => $m[1].$this->accorderCasse($m[2], mb_substr($m[1], -1)),
+            $texte
+        ) ?? $texte;
 
         // Une commande non reconnue (\frac, \mathbb, \rightarrow, \prime…) a
         // laissé sa barre oblique, un exposant complexe ses accolades : refus.
@@ -198,6 +240,25 @@ class LatexArtifactCleaner
         }
 
         return $texte;
+    }
+
+    /**
+     * Abaisse la casse d'une lettre mise en indice au milieu d'un mot.
+     *
+     * MinerU rend l'indice en capitale quelle que soit la casse d'origine :
+     * « Les » ressort en `Le $_{S}$`. Une majuscule qui suit une minuscule À
+     * L'INTÉRIEUR d'un mot n'existe pas en français — c'est un artefact de
+     * rendu, pas une information. On ne change donc jamais la lettre
+     * elle-même, seulement sa casse, et seulement dans cette position-là.
+     */
+    private function accorderCasse(string $lettre, ?string $precedente): string
+    {
+        if ($precedente !== null && $precedente !== '' && mb_strtolower($precedente) === $precedente
+            && mb_strtoupper($lettre) === $lettre && mb_strtolower($lettre) !== $lettre) {
+            return mb_strtolower($lettre);
+        }
+
+        return $lettre;
     }
 
     /**
