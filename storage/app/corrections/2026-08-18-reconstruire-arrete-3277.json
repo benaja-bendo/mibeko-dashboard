@@ -1,0 +1,963 @@
+{
+  "operation": "retrait_et_reconstruction_arrete_3277",
+  "classe": 2,
+  "issue": "https://github.com/benaja-bendo/mibeko-dashboard/issues/56",
+  "document_id": "d78c6677-d5ac-461a-b98c-a0161d28c69c",
+  "document_slug": "arrete-n-3277-du-28-aout-2025-portant",
+  "document_title": "Arrêté n° 3277 du 28 août 2025 portant attribution d'une licence d'établissement et d'exploitation d'un réseau mobile de 2e génération ouvert au public à la société Congo Télécom S.A.",
+  "decision": "Retirer provisoirement le document du catalogue en le plaçant en review, remplacer atomiquement son extraction depuis le PDF officiel, puis laisser la republication à une validation humaine distincte.",
+  "before_measured_at": "2026-08-18",
+  "before": {
+    "curation_status": "published",
+    "live_nodes": 15,
+    "live_articles": 62,
+    "authority": "Président de la République",
+    "unresolved_flags": {
+      "info": 1
+    }
+  },
+  "source": {
+    "url": "https://www.sgg.cg/JO/2025/congo-jo-2025-38.pdf",
+    "filename": "congo-jo-2025-38.pdf",
+    "size": 648213,
+    "sha256": "b6904b2283724d450ce495bfb73276cb454f8c8d0943fd706876b482f3fdb305",
+    "markdown_path": "data/pipeline/md/sgg-jo/congo-jo-2025-38.md",
+    "markdown_sha256": "44395b70a2849fa695757a415b92654a37438605056963c1461c67d30cbd0950",
+    "pdf_pages": [
+      34,
+      46
+    ],
+    "journal_pages": [
+      1298,
+      1310
+    ],
+    "method": "Rendu Poppler et lecture visuelle, extraction structurée depuis le Markdown MinerU canonique."
+  },
+  "metadata_patch": {
+    "expected_authority": "Président de la République",
+    "authority": "Ministre des postes, des télécommunications et de l’économie numérique",
+    "marker": "reconstruction_controlee_2026_08_18"
+  },
+  "expected_after_repair": {
+    "curation_status": "review",
+    "live_nodes": 19,
+    "live_articles": 72,
+    "numbered_main_articles": 12,
+    "numbered_annex_articles": 57,
+    "main_signatures": 1,
+    "annex_signatures": 1,
+    "missing_source_locators": 0,
+    "physical_deletes": 0,
+    "minio_writes": 0
+  },
+  "remaining_reservations": {
+    "legal_status": "Le statut juridique 'vigueur' n'est pas certifié par cette opération.",
+    "legal_review": "Le document reste en review jusqu'à la relecture humaine et ne doit pas être republié automatiquement.",
+    "source_typography": "Les irrégularités imprimées dans l'original sont transcrites sans réécriture juridique."
+  },
+  "target": {
+    "schema_version": 1,
+    "document_id": "d78c6677-d5ac-461a-b98c-a0161d28c69c",
+    "source_pdf": {
+      "filename": "congo-jo-2025-38.pdf",
+      "sha256": "b6904b2283724d450ce495bfb73276cb454f8c8d0943fd706876b482f3fdb305",
+      "size": 648213
+    },
+    "nodes": [
+      {
+        "key": "annexe_cahier_des_charges_2g",
+        "parent": null,
+        "type": "ANNEXE",
+        "number": null,
+        "title": "CAHIER DES CHARGES RELATIF A LA LICENCE D’ETABLISSEMENT ET D’EXPLOITATION D’UN RESEAU MOBILE DE DEUXIEME GENERATION (2G) ACCORDEE A LA SOCIETE CONGO TELECOM",
+        "order": 14
+      },
+      {
+        "key": "annexe_chapitre_i",
+        "parent": "annexe_cahier_des_charges_2g",
+        "type": "CHAPITRE",
+        "number": "I",
+        "title": "OBJET ET DEFINITIONS",
+        "order": 15
+      },
+      {
+        "key": "annexe_chapitre_ii",
+        "parent": "annexe_cahier_des_charges_2g",
+        "type": "CHAPITRE",
+        "number": "II",
+        "title": "NATURE ET ZONE DE COUVERTURE DU RESEAU",
+        "order": 18
+      },
+      {
+        "key": "annexe_chapitre_iii",
+        "parent": "annexe_cahier_des_charges_2g",
+        "type": "CHAPITRE",
+        "number": "III",
+        "title": "CARACTERISTIQUES DU RESEAU, DES EQUIPEMENTS ET DES SERVICES",
+        "order": 21
+      },
+      {
+        "key": "annexe_chapitre_iv",
+        "parent": "annexe_cahier_des_charges_2g",
+        "type": "CHAPITRE",
+        "number": "IV",
+        "title": "MODE D’ACCES AU RESEAU, CONDITIONS DE PERMANENCE, DE DISPONIBILITE ET DE QUALITE - UTILISATION DES DOMAINES PUBLIC ET PRIVE",
+        "order": 25
+      },
+      {
+        "key": "annexe_chapitre_v",
+        "parent": "annexe_cahier_des_charges_2g",
+        "type": "CHAPITRE",
+        "number": "V",
+        "title": "HOMOLOGATION DES EQUIPEMENTS",
+        "order": 31
+      },
+      {
+        "key": "annexe_chapitre_vi",
+        "parent": "annexe_cahier_des_charges_2g",
+        "type": "CHAPITRE",
+        "number": "VI",
+        "title": "INTERCONNEXION DES RESEAUX ET PARTAGE DES INFRASTRUCTURES",
+        "order": 34
+      },
+      {
+        "key": "annexe_chapitre_vii",
+        "parent": "annexe_cahier_des_charges_2g",
+        "type": "CHAPITRE",
+        "number": "VII",
+        "title": "CONCURRENCE",
+        "order": 41
+      },
+      {
+        "key": "annexe_chapitre_viii",
+        "parent": "annexe_cahier_des_charges_2g",
+        "type": "CHAPITRE",
+        "number": "VIII",
+        "title": "INTERVENTION, VISITE ET CONTROLE DES INSTALLATIONS",
+        "order": 43
+      },
+      {
+        "key": "annexe_chapitre_ix",
+        "parent": "annexe_cahier_des_charges_2g",
+        "type": "CHAPITRE",
+        "number": "IX",
+        "title": "RESSOURCES RARES",
+        "order": 45
+      },
+      {
+        "key": "annexe_chapitre_x",
+        "parent": "annexe_cahier_des_charges_2g",
+        "type": "CHAPITRE",
+        "number": "X",
+        "title": "DROITS, TAXES ET REDEVANCES",
+        "order": 48
+      },
+      {
+        "key": "annexe_chapitre_xi",
+        "parent": "annexe_cahier_des_charges_2g",
+        "type": "CHAPITRE",
+        "number": "XI",
+        "title": "CONDITIONS D’EXPLOITATION COMMERCIALE",
+        "order": 52
+      },
+      {
+        "key": "annexe_chapitre_xii",
+        "parent": "annexe_cahier_des_charges_2g",
+        "type": "CHAPITRE",
+        "number": "XII",
+        "title": "RELATIONS AVEC LES CONSOMMATEURS",
+        "order": 54
+      },
+      {
+        "key": "annexe_chapitre_xiii",
+        "parent": "annexe_cahier_des_charges_2g",
+        "type": "CHAPITRE",
+        "number": "XIII",
+        "title": "MESURES A PRENDRE PAR L’AUTORITE DE REGULATION",
+        "order": 64
+      },
+      {
+        "key": "annexe_chapitre_xiv",
+        "parent": "annexe_cahier_des_charges_2g",
+        "type": "CHAPITRE",
+        "number": "XIV",
+        "title": "OBLIGATIONS DE L’OPERATEUR",
+        "order": 66
+      },
+      {
+        "key": "annexe_chapitre_xv",
+        "parent": "annexe_cahier_des_charges_2g",
+        "type": "CHAPITRE",
+        "number": "XV",
+        "title": "DUREE, CONDITIONS DE RENOUVELLEMENT ET DE CESSATION DES ACTIVITES",
+        "order": 75
+      },
+      {
+        "key": "annexe_chapitre_xvi",
+        "parent": "annexe_cahier_des_charges_2g",
+        "type": "CHAPITRE",
+        "number": "XVI",
+        "title": "SANCTIONS",
+        "order": 79
+      },
+      {
+        "key": "annexe_chapitre_xvii",
+        "parent": "annexe_cahier_des_charges_2g",
+        "type": "CHAPITRE",
+        "number": "XVII",
+        "title": "DISPOSITIONS PARTICULIERES",
+        "order": 81
+      },
+      {
+        "key": "annexe_chapitre_xviii",
+        "parent": "annexe_cahier_des_charges_2g",
+        "type": "CHAPITRE",
+        "number": "XVIII",
+        "title": "DISPOSITIONS FINALES",
+        "order": 85
+      }
+    ],
+    "articles": [
+      {
+        "number": "PREAMBULE",
+        "parent": null,
+        "order": 0,
+        "content": "Le ministre des postes, des télécommunications\net de l’économie numérique,\nVu la Constitution ;\nVu la loi n° 9-2009 du 25 novembre 2009 portant\nréglementation du secteur des communications\nélectroniques ;\nVu la loi n° 11-2009 du 25 novembre 2009 portant\ncréation de l’agence de régulation des postes et des\ncommunications électroniques ;\nVu la loi n° 47-2024 du 30 décembre 2024 portant loi\nde finances pour l’année 2025 ;\nVu le décret n° 2015-255 du 19 février 2015 fixant\nles conditions d’établissement et d’exploitation des\nréseaux et services de communications électroniques\net de distribution des équipements de communications\nélectroniques ;\nVu le décret n° 2017-411 du 10 octobre 2017\nrelatif aux attributions du ministre des postes, des\ntélécommunications et de l’économie numérique ;\nVu le décret n° 2018-111 du 21 mars 2018\nportant organisation du ministère des postes, des\ntélécommunications et de l’économie numérique ;\nVu le décret n° 2021-300 du 12 mai 2021 portant\nnomination du Premier ministre, chef du Gouvernement ;\nVu le décret n° 2025-1 du 10 janvier 2025 portant\nnomination des membres du Gouvernement ;\nVu la demande de la société Congo Télécom S.a., en\ndate du 18 février 2025.\nArrête :",
+        "source_locator": {
+          "page": 34,
+          "journal_page": 1298
+        }
+      },
+      {
+        "number": "premier",
+        "parent": null,
+        "order": 1,
+        "content": "Il est attribué à la société Congo\nTélécom S.a., sise 67 Boulevard Denis SASSOU\nN’GUESSO, centre-ville, Brazzaville, République du\nCongo, une licence pour établir et exploiter un réseau\nde communications électroniques, ouvert au public\nde 2e génération, dénommé 2G.",
+        "source_locator": {
+          "page": 34,
+          "journal_page": 1298
+        }
+      },
+      {
+        "number": "2",
+        "parent": null,
+        "order": 2,
+        "content": "La licence attribuée à la Société Congo\nTélécom S.a. a une durée de quinze (15) ans,\nrenouvelable à la demande du titulaire.\nCette durée prend effet à compter de la date de\nsignature du présent arrêté.",
+        "source_locator": {
+          "page": 34,
+          "journal_page": 1298
+        }
+      },
+      {
+        "number": "3",
+        "parent": null,
+        "order": 3,
+        "content": "La présente licence est strictement\npersonnelle et ne peut être ni cédée, ni louée, ni\ntransmise à un tiers.\nTout changement afférent notamment à la personne\ndu déclarant ou dans la structure du capital social\net entraînant un changement de contrôle de la\nsociété, devra être notifié à l’autorité de régulation,\nconformément aux prescriptions du cahier des\ncharges.",
+        "source_locator": {
+          "page": 34,
+          "journal_page": 1298
+        }
+      },
+      {
+        "number": "4",
+        "parent": null,
+        "order": 4,
+        "content": "La présente licence ne donne pas droit à\nl’occupation des domaines publics et des propriétés\ntierces, notamment l’utilisation des points hauts,\nsans disposer des titres ou accords nécessaires.",
+        "source_locator": {
+          "page": 34,
+          "journal_page": 1298
+        }
+      },
+      {
+        "number": "5",
+        "parent": null,
+        "order": 5,
+        "content": "Le début des travaux d’implantation du\nréseau est fixé à six (6) mois au plus tard, à compter\nde la date de signature du présent arrêté.",
+        "source_locator": {
+          "page": 34,
+          "journal_page": 1298
+        }
+      },
+      {
+        "number": "6",
+        "parent": null,
+        "order": 6,
+        "content": "À l’expiration du délai indiqué à l’article\n5 du présent arrêté, si aucune mise en valeur n’est\nfaite, sauf cas de force majeure, la présente licence\ndeviendra caduque.",
+        "source_locator": {
+          "page": 34,
+          "journal_page": 1298
+        }
+      },
+      {
+        "number": "7",
+        "parent": null,
+        "order": 7,
+        "content": "Le titulaire s’acquitte des droits, taxes et\nredevances conformément à la réglementation en\nvigueur. Les frais dus au titre de la présente licence\nsont intégralement payés avant la mise en service du\nréseau, objet de la présente licence.",
+        "source_locator": {
+          "page": 34,
+          "journal_page": 1298
+        }
+      },
+      {
+        "number": "8",
+        "parent": null,
+        "order": 8,
+        "content": "Sans préjudice de tous autres droits et\nrecours applicables en vertu de la loi, le ministre chargé\ndes communications électroniques, sur rapport du\ndirecteur général de l’agence de régulation des postes\net des communications électroniques, peut, si le\ntitulaire ne se conforme pas aux dispositions énoncées\ndans la présente licence et dans le cahier des charges\ny afférent, prononcer la suspension, le retrait ou la\nréduction de la durée de celle-ci, conformément à la\nréglementation en vigueur.",
+        "source_locator": {
+          "page": 34,
+          "journal_page": 1298
+        }
+      },
+      {
+        "number": "9",
+        "parent": null,
+        "order": 9,
+        "content": "Le titulaire s’engage à assurer l’interconnexion de son réseau à ceux des autres opérateurs,\nconformément aux dispositions réglementaires en\nvigueur.",
+        "source_locator": {
+          "page": 34,
+          "journal_page": 1298
+        }
+      },
+      {
+        "number": "10",
+        "parent": null,
+        "order": 10,
+        "content": "Un cahier des charges qui fixe les droits,\nles obligations ainsi que les conditions d’exécution de\nla licence, établi par l’agence de régulation des postes\net des communications électroniques, est annexé au\nprésent arrêté et fait partie intégrante de la licence.",
+        "source_locator": {
+          "page": 35,
+          "journal_page": 1299
+        }
+      },
+      {
+        "number": "11",
+        "parent": null,
+        "order": 11,
+        "content": "Le directeur général de l’agence de régulation\ndes postes et des communications électroniques est\nchargé de l’exécution du présent arrêté.",
+        "source_locator": {
+          "page": 35,
+          "journal_page": 1299
+        }
+      },
+      {
+        "number": "12",
+        "parent": null,
+        "order": 12,
+        "content": "Le présent arrêté, qui prend effet à compter\nde sa date de signature, sera enregistré et publié au\nJournal officiel de la République du Congo.",
+        "source_locator": {
+          "page": 35,
+          "journal_page": 1299
+        }
+      },
+      {
+        "number": "SIGNATURE",
+        "parent": null,
+        "order": 13,
+        "content": "Fait à Brazzaville, le 28 août 2025\nLéon Juste IBOMBO",
+        "source_locator": {
+          "page": 35,
+          "journal_page": 1299
+        }
+      },
+      {
+        "number": "premier_doublon_1",
+        "parent": "annexe_chapitre_i",
+        "order": 16,
+        "content": "Objet\nLe présent cahier des charges a pour objet de fixer les\ndroits, les obligations et les conditions d’exploitation\npar la société Congo Télécom SAU de la licence n°\npar arrêté n° du\ndont il constitue l’annexe.",
+        "source_locator": {
+          "page": 35,
+          "journal_page": 1299
+        }
+      },
+      {
+        "number": "2_doublon_1",
+        "parent": "annexe_chapitre_i",
+        "order": 17,
+        "content": "Définitions\nAux termes du présent cahier des charges, les termes\nci-après sont ainsi définis :\n2.1.\nLicence : autorisation d’installer et d’exploiter\nun réseau de services de télécommunications ouvertes\nau public ;\n2.2. Opérateur : exploitant des services des télécommunications disposant d’un réseau ouvert au public ;\n2.3. Titulaire : personne morale jouissant d’un droit\nd’usage d’une licence ou d’une autorisation ;\n2.4. Réseau : ensemble des infrastructures (meubles\nou immeubles) qui permettent à un opérateur des\ntélécommunications d’exercer ses activités ;\n2.5. Zone de couverture : ensemble des zones dans\nlesquelles le titulaire s’engage à proposer le service\nGSM conformément aux termes de la licence ;\n2.6. Secteur spatial : ensemble des équipements\ndes télécommunications installés dans l’espace qui\npermettent, aux opérateurs, d’acheminer leurs trafics ;\n2.7. Station terrienne (Gateway international) :\ninfrastructure des télécommunications installée au\nsol et destinée à assurer un lien radioélectrique avec\nle(s) satellite (s) ;\n2.8. Service : ensemble des prestations fournies par\nun opérateur dans le cadre de l’exploitation de son\nréseau ;\n2.9. Autorité de régulation : organe qui assure la\nrégulation des activités du secteur des télécommunications ;\n2.10. Téléphonie mobile : un service de télécommunications utilisant les réseaux sans fil pour fournir des\ncommunications téléphoniques au public ;\n2.11. Trafic entrant : ensemble des appels reçus dans\nle réseau d’un opérateur donné (cellulaire ou non)\nen provenance des autres réseaux auxquels il est\ninterconnecté (au niveau national ou international) ;\n2.12. Trafic sortant  : ensemble des appels nés du\nréseau d’un opérateur (cellulaire ou non) à destination\ndes autres réseaux auxquels cet opérateur est\ninterconnecté (au niveau national ou international) ;\n2.13. Usagers itinérants : Les clients autres que les\nusagers visiteurs et les abonnés du Titulaire, abonnés\naux réseaux de télécommunications mobiles terrestres\nouverts au public exploités par les opérateurs ayant\nconclu des accords d’itinérance avec le Titulaire.\n2.14. Opérateur public : c’est la Société Congo Télécom ;\n2.15. RTPC : Réseau Téléphonique Public Commuté ;\n2.16. UIT : Union Internationale des Télécommunications (organisme spécialisé des Nations unies en\nmatière des TIC) ;\n2.17. GSM : sigle désignant un système de transmission des communications utilisant les bandes de\nfréquences de 900 et 1800 MHZ (Système Global des\nCommunications Mobiles) ;\n2.18. Cellulaire: système des télécommunications\nconçues pour utiliser un spectre de fréquences\nradio entre les équipements terminaux et le réseau\ndes récepteurs pour la fourniture des services\ntéléphoniques ;\n2.19. Station de base (Base Transceiver Station, BTS) :\nstation qui assure la couverture radioélectrique d’une\ncellule (unité de base pour la couverture radio d’un\nterritoire) du réseau. Elle fournit un point d’entrée\ndans le réseau aux abonnés présents dans sa cellule\npour recevoir ou transmettre des appels ;\n2.20. Station mobile (Mobile Station, MS) : équipement\nmobile de l’abonné qui permet l’accès par voie\nradioélectrique au réseau GSM. Le numéro d’abonné\nest contenu dans une carte à puce appelée module\nd’identité de l’abonné (SIM : Subscriber Identifier\nMobile) ,",
+        "source_locator": {
+          "page": 35,
+          "journal_page": 1299
+        }
+      },
+      {
+        "number": "3_doublon_1",
+        "parent": "annexe_chapitre_ii",
+        "order": 19,
+        "content": "Nature\nLe titulaire de la présente licence est autorisé à établir et\nà exploiter un réseau de communications électroniques\nde deuxième (2G) génération ouverte au public.",
+        "source_locator": {
+          "page": 36,
+          "journal_page": 1300
+        }
+      },
+      {
+        "number": "4_doublon_1",
+        "parent": "annexe_chapitre_ii",
+        "order": 20,
+        "content": "Zone de couverture du réseau\nAprès la couverture des localités de Brazzaville,\nPointe-Noire, Dolisie, Nkayi, Ouesso, Impfondo, Oyo,\nSibiti, Mossendjo, Boko, Djambala, Gamboma, Hinda,\nInga, Kinkala, Lékana, Magingou, Makabana, Makoua,\nMadingo-Kayes, Mbanda, Mfouati, Mossendjo, Mvuti,\nNgo, Ngoma Tsé Tsé, Nzassi, Owando et Igné (P.K.\nRouge), Odziba, Abala, Bombama, Boundji, Divénié,\nDongou, Epéna, Ewo, Kakamouéka, Kayes, Kéllé,\nKibangou, Kindamba, Kimongo, Loudima, Louvakou,\nMayama, Mayoko, Mindouli, Moutamba, Mouyondzi,\nNgabé, Sémbé, Zanaga , dans le cadre de cette licence,\nle titulaire est astreint, au plus tard quatre(4) ans\naprès, la date de l’entrée en vigueur de la présente\nlicence et ce, pendant toute la durée de celle-ci, à\nassurer, une disponibilité générale continue dans\nl’ensemble des localités non couvertes, ainsi que\nles localités des départements du Congo ayant une\npopulation de 4.000 habitants ou plus.\nLe titulaire est tenu également d’assurer une\ncouverture générale continue sur tous les axes\nroutiers, toutes les gares et les aéroports.\nLors des contrôles de couverture, une zone donnée\nsera considérée comme étant couverte lorsqu’au\nmoins 95 % des mesures effectuées indiqueront un\nniveau de puissance reçue à - 92 dBm (décibel par\nrapport à un milliwatt) et une qualité de transmission\nsatisfaisante.\nCes\nobjectifs\nde\ncouverture\ncorrespondent\nà\nl’utilisation, par un piéton situé à l’extérieur d’un\nbâtiment, d’une station portative de 2 watts.\nLes méthodes et procédures exactes de mesures de\nces paramètres de couverture seront déterminées\npar l’Autorité de régulation en concertation avec le\ntitulaire.",
+        "source_locator": {
+          "page": 36,
+          "journal_page": 1300
+        }
+      },
+      {
+        "number": "5_doublon_1",
+        "parent": "annexe_chapitre_iii",
+        "order": 22,
+        "content": "Caractéristiques du réseau\nLe\nréseau\nde\nl’opérateur\nest\nconstitué\ndes\ninfrastructures terrestres et satellitaires.\n5.1 : Infrastructures terrestres\nLes liaisons fixes nécessaires à l’établissement et à\nl’exploitation du réseau de l’opérateur sont établies\npar l’opérateur dans tous les départements du Congo.\nLes infrastructures terrestres doivent être constituées\nd’équipements de commutation, de transmission et\nde réception qui peuvent être connectés entre eux au\nmoyen des liaisons :\n-\nradioélectriques ;\n-\nfilaires ;\n-\npar câble coaxial ;\n-\npar fibre optique ;\nCes infrastructures doivent obligatoirement comporter :\n•\ndes stations de bases fixes ;\n•\ndes contrôleurs de station ;\n•\ndes commutateurs cellulaires ;\n•\ndes équipements d’alimentation électrique\nde secours garantissant le fonctionnement\nininterrompu des réseaux;\n•\nun système adéquat d’alimentation du\nréseau (matériel et logiciel) ;\n•\nun système de facturation et de recouvrement\ncomplet (matériel et logiciel) ;\n•\nun terminal donnant accès à temps réel à\ntoutes les informations gérées par le système.\n5.2 : Infrastructures satellitaires\nLe titulaire est tenu de procéder au renouvellement\nde l’autorisation d’installation et d’exploitation d’une\npasserelle internationale délivrée au titre de la licence\ninitiale, au terme de la durée de ladite autorisation.\nDans ce cas, l’exploitation, par satellite, sur des\nfréquences attribuées doit faire l’objet d’un accord\nd’exploitation avec l’opérateur du secteur spatial.\nCet accord doit être notifié, à l’Autorité de Régulation,\nun mois après sa signature.\nLa description détaillée des infrastructures du réseau\ndoit être communiquée, également, à l’Autorité de\nrégulation (la localisation de la station terrienne ou du\nGateway international d’émission et/ou de réception,\nles caractéristiques techniques de la station et celles\ndu secteur spatial ainsi que les modalités de leur\nexploitation).",
+        "source_locator": {
+          "page": 36,
+          "journal_page": 1300
+        }
+      },
+      {
+        "number": "6_doublon_1",
+        "parent": "annexe_chapitre_iii",
+        "order": 23,
+        "content": "Caractéristiques des équipements\nLes équipements du réseau doivent être conformes\naux normes GSM édictées par l’ETSI. Les lieux\nd’installation des équipements doivent être notifiés à\nl’Autorité de régulation.",
+        "source_locator": {
+          "page": 36,
+          "journal_page": 1300
+        }
+      },
+      {
+        "number": "7_doublon_1",
+        "parent": "annexe_chapitre_iii",
+        "order": 24,
+        "content": "Caractéristiques de services\nLe titulaire est autorisé à fournir le service de\ntélécommunications cellulaire GSM (téléphonie) au\npublic dans les limites de la République du Congo.\nLes services de l’opérateur doivent permettre aux\nclients raccordés directement au réseau du titulaire,\nd’établir des communications avec l’ensemble des\nclients des autres réseaux ouverts au public (sous\nréserve des restrictions éventuelles prévues par les\ncontrats entre les opérateurs et leurs clients).\nDe la même façon, un client du service de l’opérateur\nraccordé directement au réseau du titulaire doit\npouvoir être joint par l’ensemble des clients des\nautres réseaux ouverts au public (sous réserve des\nrestrictions éventuelles, prévues par les contrats\nentre les opérateurs et leurs clients).",
+        "source_locator": {
+          "page": 36,
+          "journal_page": 1300,
+          "page_end": 37,
+          "journal_page_end": 1301
+        }
+      },
+      {
+        "number": "8_doublon_1",
+        "parent": "annexe_chapitre_iv",
+        "order": 26,
+        "content": "Mode d’accès au réseau\nL’accès du client au réseau de l’opérateur se fait par\nconnexion directe de ses équipements terminaux au\nréseau de l’opérateur ou via un autre opérateur de\nboucle locale.\nL’opérateur ne peut pas s’opposer à la connexion,\nà son réseau, d’un équipement terminal homologué\nconformément aux dispositions de l’article 15 du\nprésent cahier des charges.\nLorsqu’un terminal homologué, installé sur le réseau\nd’un opérateur, perturbe le bon fonctionnement\ndudit réseau, il doit être interdit d’utilisation sur le\nréseau par l’Autorité de régulation, après enquête de\nconfirmation.\nTout équipement homologué mis à la disposition\ndes abonnés doit être accompagné d’une notice\nd’utilisation en français.\nLorsque des équipements non homologués sont\nconnectés au réseau de l’opérateur, l’Autorité\nde régulation peut, sans préjudice d’éventuelles\npoursuites judiciaires, demander à l’opérateur de\nsuspendre la fourniture du service à l’utilisateur\ndesdits équipements.",
+        "source_locator": {
+          "page": 37,
+          "journal_page": 1301
+        }
+      },
+      {
+        "number": "9_doublon_1",
+        "parent": "annexe_chapitre_iv",
+        "order": 27,
+        "content": "Conditions de permanence du réseau et des\nservices\nLe titulaire doit prendre des dispositions nécessaires\npour assurer, de manière permanente et continue,\nl’exploitation du réseau et des services.\nLa continuité du service doit être assurée à tous les\nabonnés sans coûts supplémentaires autres que ceux\ncontenus dans les tarifs publiés.",
+        "source_locator": {
+          "page": 37,
+          "journal_page": 1301
+        }
+      },
+      {
+        "number": "10_doublon_1",
+        "parent": "annexe_chapitre_iv",
+        "order": 28,
+        "content": "Disponibilité, qualité du réseau et des\nservices\nLe titulaire s’engage à mettre en œuvre tous les\nmoyens nécessaires pour atteindre des niveaux de\nservice conformes aux standards internationaux\net, en particulier, aux normes de l’UIT pour ce qui\nconcerne les taux de disponibilité et les taux d’erreur\nde bout en bout.\nEn particulier, les niveaux de qualité devront permettre\nd’atteindre les niveaux maxima suivants, dans les\nagglomérations et sur les axes routiers desservis :\n-\ntaux de perte maximum (GoS) de 5 %, y compris\nlors d’événements générateurs d’une forte\ndensité d’utilisateurs (congrès, conférences,\nfoires, etc.) ;\n-\nprobabilité de couverture supérieure à 70 %\npour un terminal de 2W à l’intérieur des\nimmeubles jusqu’au premier mur ;\n-\nprobabilité de couverture supérieure à 80 % pour\nun terminal de 2W à l’intérieur des véhicules ;\n-\nprobabilité de couverture supérieure à 90 %\npour un terminal de 2W à l’extérieur.\nDe même, dans sa zone de couverture, le titulaire est\ntenu de mettre en place des équipements nécessaires\nqui permettent de maintenir et de satisfaire aux\nindicateurs suivants :\n-\ntaux de disponibilité au moins à 95 % du\ntemps;\n-\ntaux de blocage des appels sur canaux radio,\ninférieur à 0,4 % ;\n-\ntaux de blocage des appels sur la liaison\nd’interconnexion, inférieur ou égal à 0,2 % ;\n-\ntaux de blocage des appels (entrants et\nsortants) au niveau du commutateur (MSC) :\nau maximum 0,5 % ;\n-\ntaux de blocage des appels (entrants et\nsortants) au niveau de la transmission radio :\nau maximum 2 % ;\n-\ntaux de coupure des appels, inférieur ou égal\nà 2,5 % ;\n-\ntaux d’efficacité des appels nationaux et\ninternationaux ;\n au départ : supérieur ou égal à 75 % ;\n à l’arrivée : supérieur ou égal à 75 % ;\n-\npourcentage des réclamations satisfaites dans\ntrois jours, supérieur ou égal à 98% ;\n-\nnombre de jours d’attente entre une demande\nde service et la fourniture de ce service (période\nd’attente) : au maximum trois jours ouvrables ;\n-\ntransfert automatique des appels (hand over)\nentre toutes les cellules voisines dans le réseau\nsupérieur ou égal à 98 % ;\nIl doit également remédier, dans de brefs délais,\naux effets de défaillance du système susceptibles\nde dégrader la qualité de service pour l’ensemble ou\npartie des clients.\nLe titulaire doit mettre en œuvre des protections et\nredondances nécessaires pour garantir une meilleure\nqualité de service et une disponibilité de service\nsatisfaisante.\nLes méthodes pratiques et les procédures exactes\nde mesure de ces paramètres de qualité seront\ndéterminées\npar\nl’Autorité\nde\nrégulation\nen\nconcertation avec le titulaire.",
+        "source_locator": {
+          "page": 37,
+          "journal_page": 1301
+        }
+      },
+      {
+        "number": "11_doublon_1",
+        "parent": "annexe_chapitre_iv",
+        "order": 29,
+        "content": "Fourniture des services\nSauf en cas de fraude, de non-paiement par un\nabonné ou du défaut d’un abonné de respecter les\ndispositions du contrat le liant au titulaire, ce dernier\ndoit, dans tous les départements qui doivent être\ndesservis, fournir le service à tout abonné qui en fait\nla demande et qui est prêt à payer le prix publié par le\ntitulaire et à respecter toutes les autres dispositions\napplicables en la matière.",
+        "source_locator": {
+          "page": 37,
+          "journal_page": 1301,
+          "page_end": 38,
+          "journal_page_end": 1302
+        }
+      },
+      {
+        "number": "12_doublon_1",
+        "parent": "annexe_chapitre_iv",
+        "order": 30,
+        "content": "Utilisation des domaines public et privé\nLe titulaire a le droit de réaliser les travaux nécessaires\nà l’exploitation et à l’extension de son réseau. Il\ns’engage à respecter les dispositions législatives et\nréglementaires en vigueur, notamment en matière\nd’aménagement du territoire et de protection de\nl’environnement, à l’occasion de l’installation des\néquipements ou la réalisation d’ouvrages particuliers.\nLe titulaire bénéficie du droit d’accéder à tous les\npoints hauts utilisés par les opérateurs existants, sous\nréserve du respect des servitudes radioélectriques, de\nla disponibilité de l’espace nécessaire et de la prise en\ncharge d’une part raisonnable des frais d’occupation\ndes lieux.\nLes accords de co-implantation ou de partage des\ninstallations en point haut font l’objet d’accords\ncommerciaux\net\ntechniques\nentre\nles\nparties\nconcernées.",
+        "source_locator": {
+          "page": 38,
+          "journal_page": 1302
+        }
+      },
+      {
+        "number": "13",
+        "parent": "annexe_chapitre_v",
+        "order": 32,
+        "content": "Dispositions générales\nL’Autorité de régulation est le seul organe habilité\nà homologuer les types et marques de terminaux\nutilisables sur tous les réseaux des télécommunications\ninstallés en République du Congo. Cependant, les\ncaractéristiques de modulation et de puissance\nadmissibles\nsont\ndéfinies\nconformément\nau\nmémorandum des normes internationales GSM MoU.\nLe titulaire de la licence est seul responsable du\nchoix des équipements devant faire partie des\ninfrastructures de son réseau sous réserve des\ndispositions du présent cahier des charges ainsi que\ndes droits des usagers.",
+        "source_locator": {
+          "page": 38,
+          "journal_page": 1302
+        }
+      },
+      {
+        "number": "14",
+        "parent": "annexe_chapitre_v",
+        "order": 33,
+        "content": "Conditions d’homologation\nPour chaque type de terminal techniquement différent\nsur le plan radioélectrique (en particulier tout modèle\nd’un constructeur dérivé par déclinaison de la décoration d’un autre modèle agrée de plein droit) un agrément est octroyé indépendamment de l’importateur du\nterminal.\nChaque type et marque de terminal doit faire\nl’objet d’une homologation spécifique. La demande\nd’homologation est adressée à l’Autorité de régulation\npar l’importateur, le distributeur agréé et/ou le\ntitulaire.\nL’homologation est réputée acquise de plein droit en\ncas de non-réponse de l’Autorité de régulation sous\nsoixante jours après le dépôt de la demande.\nCompte tenu du caractère international de la norme\nGSM, ces types de terminaux sont homologués de\nplein droit, s’ils ont été déjà homologués par d’autres\ninstitutions agréées.\nDans ce cas, le titulaire est tenu de fournir, à\nl’Autorité de régulation, une copie des décisions\nd’homologation de l’une des institutions susvisées. La\nliste des terminaux susvisés doit comporter les types\net marques des terminaux homologués.\nLa liste des terminaux homologués sera mise à jour à\nl’occasion de toute nouvelle homologation, publiée au\njournal légal et communiquée, sans délai, au titulaire\net aux autorités douanières et frontalières.\nTout détenteur d’un terminal homologué est autorisé\nà accéder au réseau du titulaire dans les conditions\ncontractuelles et tarifaires publiées.",
+        "source_locator": {
+          "page": 38,
+          "journal_page": 1302
+        }
+      },
+      {
+        "number": "15",
+        "parent": "annexe_chapitre_vi",
+        "order": 35,
+        "content": "Dispositions générales\nLe titulaire peut interconnecter son réseau avec tous\nles fournisseurs de services de télécommunications\nouverts au public, aux fins de fournir des services\nlicites.\nLes modalités techniques, financières et autres y\nrelatives seront déterminées par voie de négociation\nentre les opérateurs.\nLes conventions ou accords d’interconnexion conclues\npar les opérateurs sont communiquées à l’Autorité de\nrégulation dans les délais de dix jours suivant leur\nconclusion. Avant la mise en œuvre effective de l’interconnexion, les interfaces font l’objet d’essais définis\net réalisés conjointement par les deux opérateurs concernés. Ces essais sont effectués sur le site si l’une des\nparties le demande.",
+        "source_locator": {
+          "page": 38,
+          "journal_page": 1302
+        }
+      },
+      {
+        "number": "16",
+        "parent": "annexe_chapitre_vi",
+        "order": 36,
+        "content": "Interconnexion avec le réseau de base\nDans le cadre des négociations sur l’interconnexion\net d’autres conventions avec d’autres fournisseurs de\nservices publics autorisés de télécommunications et\nsous réserve des dispositions de l’article 16 ci-dessus,\nle titulaire s’engage à :\n•\nfournir l’interconnexion à tout point techniquement possible sur le réseau ;\n•\nfournir l’interconnexion aux termes de modalités\n(y compris des normes et spécifications\ntechniques) à des tarifs non discriminatoires\net d’une qualité pas moins avantageuse\nque celle fournie pour ses propres services\nsemblables ou pour des services semblables\nd’un fournisseur de services non affilié pour\nles membres de son groupe ;\n•\nfournir l’interconnexion en temps opportun\nselon des dispositions (y compris des normes\net spécifications techniques) à des tarifs\nfondés sur des coûts qui sont transparents,\nraisonnables et économiquement justifiables,\nde même que suffisamment dégroupés afin\nque l’autre partie à l’interconnexion n’ait pas\nà payer pour les composantes du réseau ou\nles installations dont elle n’a pas besoin pour\nfournir ses services. Aux fins des présentes,\non entend par «tarifs fondés sur les coûts», les\ntarifs comprenant les coûts à long terme et les\ncoûts additionnels de l’interconnexion, ainsi\nqu’une part raisonnable des coûts communs\nde l’exploitation du titulaire, à l’exception de\ntoute contribution à l’égard des obligations de\nservice universel du titulaire ;\n•\nfournir l’interconnexion sur demande, à des\npoints supplémentaires aux points de terminaison offerts à la majorité des usagers, sous\nréserve des frais tenant compte du coût de\nconstruction des installations supplémentaires nécessaires ;\n•\nlouer à d’autres fournisseurs de services,\nsans discrimination, des installations dont le\ntitulaire a le contrôle et dont l’utilisation par\nces autres fournisseurs est raisonnablement\nnécessaire ;\n•\npermettre l’accès raisonnable à ses installations\nà d’autres opérateurs, sur demande, à des fins\nd’installation, d’entretien et de réparation ;\n•\nfournir un avis raisonnable aux autres opérateurs au sujet de tout plan ou modification de\nconception, de mise en œuvre ou de modernisation du réseau qui pourrait raisonnablement\ntoucher les conventions intervenues entre les\nparties ;\n•\nprendre\nles\nmesures\nraisonnables\npour\nprotéger les systèmes des autres opérateurs\ncontre l’interférence ou d’autres nuisances\ncausées par les installations et les équipements\nutilisés par le titulaire ;\n•\nne pas conclure d’autres conventions concernant l’accès à tout service ou installation qui\nempêcheraient l’opérateur de ce service ou\nde cette installation ou tout autre opérateur\nde conclure des conventions semblables avec\nl’opérateur de ce service ou de cette installation ;\n•\nLes procédures applicables d’interconnexion\nau réseau du titulaire doivent être mises à la\ndisposition des autres opérateurs.",
+        "source_locator": {
+          "page": 38,
+          "journal_page": 1302,
+          "page_end": 39,
+          "journal_page_end": 1303
+        }
+      },
+      {
+        "number": "17",
+        "parent": "annexe_chapitre_vi",
+        "order": 37,
+        "content": "Interconnexion avec d’autres services\nLe titulaire s’engage à offrir un traitement équitable\net\nn’exercer\naucune\ndiscrimination\ninjustifiée\nconformément au droit applicable, aux dispositions\nréglementaires en la matière et dans le cadre de\ntoutes les transactions avec d’autres fournisseurs de\nservices de télécommunications ouverts au public,\nainsi qu’à collaborer avec ces derniers afin de faciliter\nl’offre de services de télécommunications à tous les\nusagers dans l’ensemble du territoire national en vue\nd’optimiser l’utilisation des installations communes à\nl’emplacement des installations du réseau.\nL’Autorité de régulation doit veiller à ce que les autres\nfournisseurs de service de télécommunications ouverts\nau public offrent un traitement équitable et n’exercent\naucune discrimination injustifiée, conformément aux\nlois et règlements en vigueur et aux dispositions\napplicables dans le cadre de toutes les transactions\navec le titulaire, y compris l’interconnexion.",
+        "source_locator": {
+          "page": 39,
+          "journal_page": 1303
+        }
+      },
+      {
+        "number": "18",
+        "parent": "annexe_chapitre_vi",
+        "order": 38,
+        "content": "Accès aux liaisons spécialisées\nPour établir un lien entre deux équipements lui\nappartenant, le titulaire de la licence peut avoir accès,\nen cas de besoin et dans la mesure du possible, aux\nliaisons spécialisées fournies par l’opérateur public,\ndans les conditions prévues par les textes en vigueur.\nCes interconnexions ne permettent exclusivement\nque l’accès au service autorisé par la licence.",
+        "source_locator": {
+          "page": 39,
+          "journal_page": 1303
+        }
+      },
+      {
+        "number": "19",
+        "parent": "annexe_chapitre_vi",
+        "order": 39,
+        "content": "Défaut d’entente\nSi le titulaire ne parvient pas à conclure un accord\nd’interconnexion avec un autre opérateur de réseau\nou un fournisseur des services de télécommunications\nouverts au public, ce dernier peut demander à\nl’Autorité de régulation de trancher, dans un délai de\n30 jours.\nDans le cas où les essais d’interconnexion ne\ns’effectuent pas dans des conditions techniques et de\ndélai normal, l’une ou l’autre des parties peut saisir\nl’Autorité de régulation.",
+        "source_locator": {
+          "page": 39,
+          "journal_page": 1303
+        }
+      },
+      {
+        "number": "20",
+        "parent": "annexe_chapitre_vi",
+        "order": 40,
+        "content": "Partage des infrastructures et sécurité\nL’opérateur titulaire de la licence est tenu, conformément\naux dispositions des textes en vigueur, de partager\nses sites radioélectriques et servitudes avec les autres\nopérateurs. Il doit en informer l’Autorité de régulation.\nL’opérateur doit prendre des dispositions qui conviennent pour assurer la sécurité de ses infrastructures\nafin d’éviter les actes de vandalisme ou de sabotage.",
+        "source_locator": {
+          "page": 39,
+          "journal_page": 1303
+        }
+      },
+      {
+        "number": "21",
+        "parent": "annexe_chapitre_vii",
+        "order": 42,
+        "content": "Pratiques anti-concurrentielles\nSans préjudice aux dispositions de la loi, le titulaire\ndoit s’interdire d’adopter ni d’accepter, seul ou avec\nles autres, des pratiques anti-concurrentielles et, en\nparticulier, il ne doit pas :\n• Participer à tout inter-financement anticoncurrentiel ;\n• Abuser de sa position dominante ;\n• Conclure des conventions exclusives avec des\ntiers pour l’emplacement de ses installations\ntechniques afin de fournir ses services ;\n• Conclure des conventions, arrangements ou\nengagements avec toute personne, y compris\ntout fournisseur de service concurrent, qui ont\npour objectif de fixer des prix ou toute autre\ncontrainte indue sur Ia concurrence ;\n• Participer à toute pratique de vente anticoncurrentielle ;\n• Utiliser des renseignements obtenus des\nconcurrents à des fins anti­concurrentielles ;\n• Empêcher d’autres fournisseurs de services\ndes télécommunications ouverts au public\nd’obtenir\ndes\nrenseignements\ntechniques\npertinents qui leur sont nécessaires pour\nexercer leurs activités.",
+        "source_locator": {
+          "page": 39,
+          "journal_page": 1303,
+          "page_end": 40,
+          "journal_page_end": 1304
+        }
+      },
+      {
+        "number": "22",
+        "parent": "annexe_chapitre_viii",
+        "order": 44,
+        "content": "Intervention, visite et contrôle des\ninstallations\nLe titulaire doit permettre un accès, sans obstacle, à\nses installations, équipements et documentations aux\ncadres dûment mandatés par l’Autorité de régulation.\nCependant, une notification dans un délai d’au moins\n48 heures est nécessaire.\nLe titulaire doit fournir à l’Autorité de régulation\ntoutes les informations nécessaires dont elle a besoin\npour assurer correctement sa mission de régulation.\nToutefois, il convient de noter que les visites, les\ncontrôles et les interventions effectués par l’Autorité\nde régulation sont subordonnés au paiement, par\nl’opérateur, d’une taxe prévue par la réglementation\nen vigueur.",
+        "source_locator": {
+          "page": 40,
+          "journal_page": 1304
+        }
+      },
+      {
+        "number": "23",
+        "parent": "annexe_chapitre_ix",
+        "order": 46,
+        "content": "Ressources en fréquences\n23.1- Canaux GSM\nLe titulaire se verra attribué par l’Autorité de régulation des canaux de fréquences GSM, conformément à\nla décision d’assignation des fréquences, annexée au\nprésent cahier des charges.\n23.2- Fréquences pour les liaisons fixes\nA la demande du titulaire, l’Autorité de régulation\nassigne au titulaire les fréquences nécessaires\npour l’établissement des liaisons fixes entre les\ndifférentes infrastructures du réseau, sous réserve\ndes autres dispositions du cahier des charges et de la\nréglementation en vigueur.\nLe titulaire se verra attribué par l’Autorité de\nrégulation, des canaux de fréquences pour lesdites\nliaisons, conformément à la décision d’assignation des\nfréquences, annexée au présent cahier des charges.\n23.3- Conditions d’utilisation des fréquences\nL’Autorité de régulation procède à des assignations des\nfréquences dans les différentes bandes conformément\nà la réglementation en vigueur et en fonction de\nIa disponibilité du spectre. Le titulaire s’engage à\noptimiser l’utilisation des fréquences qui lui sont\nattribuées.\nL’Autorité de régulation peut réduire la bande de\nfréquences allouées au titulaire en application des\ndispositions de l’article 23.1 ci-dessus si elle constate\nqu’elles sont excessives par rapport aux besoins\nimmédiats et prévisibles du titulaire dans le cadre\nd’une gestion efficiente des ressources.\nA cet effet, l’Autorité de régulation déclenche, au moins\nune fois tous les trois ans, une enquête publique\ndestinée à recueillir des informations sur l’utilisation\nactuelle et prévisible du spectre radioélectrique par\nles opérateurs de service GSM. Les opérateurs sont\nappelés à fournir les informations pertinentes et\nleurs suggestions au cours de cette enquête. Les\nconclusions provisoires de l’Autorité de régulation\nleur sont soumises, pour avis, avant que l’Autorité ne\nprononce sa décision finale.\nLe titulaire peut demander à l’Autorité de régulation le\ndroit d’utiliser des canaux supplémentaires relatifs au\nservice visé. L’Autorité de régulation peut autoriser le\ntitulaire à utiliser d’autres canaux radio sous réserve\nde la disponibilité et en fonction de la demande\nprouvée des abonnés et de l’évaluation de l’utilisation\nefficace des fréquences. En tout temps, le titulaire doit\nmettre en œuvre toutes les mesures commercialement\nraisonnables pour optimiser l’efficience et l’efficacité\nde son utilisation des fréquences.\nL’autorité de régulation peut réassigner les canaux\nradio utilisés par le titulaire ou exiger que le titulaire\nabandonne ses droits pour l’exploitation du service\nvisé afin de respecter les exigences internationales\nde coordination du spectre et/ou les dispositions\npertinentes des tableaux national et international\nd’attribution des fréquences.\nDans ce cas, l’Autorité de régulation et le titulaire\ndoivent se consulter avant que toute mesure soit prise\net l’Autorité de régulation doit accorder au titulaire\nun délai suffisant et, s’il y a lieu, assigner d’autres\ncanaux radio appropriés pour permettre au titulaire\nde poursuivre ses affaires sans coût ou interruption\ndéraisonnable.\n23.4- Interférences\nSous réserve du respect de la réglementation en\nvigueur, des impératifs de la coordination nationale\net internationale et à la condition de ne pas provoquer\ndes interférences ou brouillages nuisibles constatés,\nles conditions d’établissement et d’exploitation et les\npuissances de rayonnement sont libres.\nEn cas d’interférence entre canaux de deux opérateurs,\nces derniers doivent, au plus tard dans les cinq\n(5) jours suivant le constat, informer l’Autorité de\nrégulation de la date et du lieu des interférences et\ndes conditions d’exploitation en vigueur des canaux\nobjet des interférences. Les opérateurs soumettent à\nl’Autorité de régulation, pour approbation, dans un\ndélai maximum d’un (1) mois, les mesures communes\nafin de remédier aux-dites interférences.\nLe titulaire reconnaît que d’autres pays peuvent\nautoriser ou permettre, dans le cadre des règlements\ninternationaux, l’utilisation de leurs fréquences radio\nd’une façon qui brouille l’utilisation des canaux radio\ndu titulaire et qu’il est responsable de saisir l’Autorité\nde régulation de ce fait dès que possible, afin que\ncelle-ci puisse prendre des mesures pour empêcher\ncette interférence.\nLe titulaire doit utiliser les canaux radio conformément\naux conventions intergouvernementales régionales\nen vigueur visant à réduire l’interférence radio entre\nfournisseurs des services. L’Autorité de régulation\ndéfend les droits du titulaire à l’égard des canaux\nradio qui lui ont été attribués, conformément à la loi.",
+        "source_locator": {
+          "page": 40,
+          "journal_page": 1304,
+          "page_end": 41,
+          "journal_page_end": 1305
+        }
+      },
+      {
+        "number": "24",
+        "parent": "annexe_chapitre_ix",
+        "order": 47,
+        "content": "Ressources en numérotation\nA la demande du titulaire, l’Autorité de régulation\ndétermine les blocs de numérotation nécessaires\npour l’exploitation du réseau de télécommunications\nouvert au public.\nL’Autorité de régulation attribue un préfixe, au titulaire,\nconformément aux dispositions du plan national de\nnumérotage adopté en concertation avec l’ensemble\ndes opérateurs de réseaux de télécommunications\nouverts au public.\nEn cas de besoins supplémentaires justifiés, l’Autorité\nde régulation puisera dans les réserves affectées au\nservice mobile ou dans ses réserves générales.\nLe titulaire est tenu de se conformer au plan national\nde numérotage établi et publié par l’Autorité de\nrégulation.",
+        "source_locator": {
+          "page": 41,
+          "journal_page": 1305
+        }
+      },
+      {
+        "number": "25",
+        "parent": "annexe_chapitre_x",
+        "order": 49,
+        "content": "Droits et taxes\nL’octroi de la licence est subordonné au paiement, à\nl’Autorité de régulation et au trésor public des taxes,\ndroits et des frais d’élaboration du cahier des charges\nprévus par les textes en vigueur.\nLe titulaire est tenu de s’acquitter des droits\nd’autorisation, en cas de disposition d’un Gateway\ninternational ou d’une liaison transfrontalière par\nfaisceaux hertziens",
+        "source_locator": {
+          "page": 41,
+          "journal_page": 1305
+        }
+      },
+      {
+        "number": "26",
+        "parent": "annexe_chapitre_x",
+        "order": 50,
+        "content": "Redevances\nLe titulaire doit s’acquitter, en outre, après réception\nde factures, notamment des :\n•\nredevances liées à l’exploitation du réseau\n(redevance sur le trafic local et redevance sur\nle trafic international) ;\n•\nredevances liées à l’utilisation des numéros ;\n•\nredevances liées à l’utilisation du spectre des\nfréquences radioélectriques et des liaisons\nmicro-ondes ;\n•\nredevance de gestion des fréquences ;",
+        "source_locator": {
+          "page": 41,
+          "journal_page": 1305
+        }
+      },
+      {
+        "number": "27",
+        "parent": "annexe_chapitre_x",
+        "order": 51,
+        "content": "Modalités de paiement\nLes droits, taxes, frais et redevances sont payés\nconformément aux dispositions des textes en vigueur.",
+        "source_locator": {
+          "page": 41,
+          "journal_page": 1305
+        }
+      },
+      {
+        "number": "28",
+        "parent": "annexe_chapitre_xi",
+        "order": 53,
+        "content": "Liberté des prix et commercialisation\nConformément à la réglementation en vigueur, le\ntitulaire bénéficie de la liberté :\n•\nde fixation des prix des services qu’il offre\nà ses abonnés et aux abonnés visiteurs ou\nitinérants ;\n•\ndu système global de tarification qui peut\ncomprendre des réductions en fonction du\nvolume ;\n•\nde la politique de commercialisation.\nToutefois, il a l’obligation de communiquer ses tarifs,\npour approbation, à l’Autorité de régulation avant\nleur mise en application. Ces tarifs sont mis à la\ndisposition de la clientèle en indiquant clairement la\ndate d’entrée en vigueur de ceux-ci.\nEn outre, l’Autorité de régulation se réserve le droit\nd’établir un régime de réglementation des prix en\nfonction d’une formule de plafonnement des prix\n(price cap) compatible avec les critères de rentabilité\ndes services de téléphonie cellulaire dans le contexte\nde l’économie congolaise.\nDans le cadre de ses relations avec d’éventuels soustraitants, le titulaire conserve la responsabilité de ses\nobligations vis-à-vis de l’autorité de régulation et de la\nfourniture du service à ses clients.\n28.1 - Principe de facturation\nSur l’ensemble du territoire congolais, le coût de\nl’appel d’un abonné téléphonique d’un réseau fixe ou\nmobile à destination d’un poste radioélectrique dont\nle tarif est fixé par le titulaire est totalement imputable\nau poste demandeur.\nEn dehors du territoire congolais, les principes de\ntarification prévus dans les accords d’itinérance\ns’appliquent.\nLe titulaire est tenu de facturer ses abonnés en\nmonnaie locale.\nToutes les factures des clients établies par le titulaire\ndoivent être claires, brèves, faciles à comprendre et\nrédigées en français. Elles doivent comprendre des\nrenseignements exacts sur tous les frais pour la\npériode de facturation concernée ainsi que la date\nbutoir de paiement. Les factures impayées, les intérêts\nou frais d’administration connexes, s’il y a lieu, doivent\ncomprendre des détails exacts des montants à payer\nainsi que la date d’échéance de paiement.\n28.2- Publication des tarifs\nLe titulaire est tenu de publier les tarifs de fourniture\nde chaque catégorie de service qu’il offre à ses abonnés.\nCes tarifs doivent être précis, suffisamment détaillés\net orientés vers les coûts. Ils sont affichés au siège du\ntitulaire ainsi que dans les locaux ouverts au public.",
+        "source_locator": {
+          "page": 41,
+          "journal_page": 1305,
+          "page_end": 42,
+          "journal_page_end": 1306
+        }
+      },
+      {
+        "number": "29",
+        "parent": "annexe_chapitre_xii",
+        "order": 55,
+        "content": "Le titulaire s’engage à disposer du personnel dûment\nformé et qualifié pour recevoir les réclamations des\nabonnés et leur répondre rapidement et à prendre\ntoutes les mesures commerciales raisonnables pour\nremédier rapidement à la situation, ainsi qu’à éviter\nque la source du problème concernant la qualité,\nla disponibilité ou la prestation du service ne se\nreproduise.",
+        "source_locator": {
+          "page": 42,
+          "journal_page": 1306
+        }
+      },
+      {
+        "number": "30",
+        "parent": "annexe_chapitre_xii",
+        "order": 56,
+        "content": "Contrat avec les abonnés\nSauf dispense exemptant le titulaire des exigences\ndu présent article, les relations entre le titulaire et\nles clients doivent être régies par un contrat qui\ncomprend des normes et des dispositions approuvées\npar l’Autorité de régulation.\nCe contrat doit comprendre des dispositions abordant\ndes questions suivantes :\n•\ndépôt ou cautionnement visant à garantir le\npaiement, pourvu que celui-ci ne dépasse pas\nles coûts devant être raisonnablement engagés\npar le client dans un délai de trois (3) mois ;\n•\nremboursement ou rabais pour des services\nfacturés en trop ;\n•\nmodalités de raccordement ;\n•\nmodalités de paiement, y compris tout intérêt\nou frais d’administration applicables ;\n•\npériode contractuelle minimale ;\n•\ndroit de résiliation de l’abonné ;\n•\nméthodes de règlement des réclamations\ndes abonnés ou d’autres conflits y compris\nla possibilité d’appel devant l’Autorité de\nrégulation au cas où les parties n’arrivent pas\nà s’entendre.",
+        "source_locator": {
+          "page": 42,
+          "journal_page": 1306
+        }
+      },
+      {
+        "number": "31",
+        "parent": "annexe_chapitre_xii",
+        "order": 57,
+        "content": "Approbation des dispositions\nLe titulaire doit présenter à l’Autorité de régulation,\npour approbation, un projet de contrat tel qu’indiqué\nà l’article 30 ci-dessus. Dans un délai de trente (30)\njours suivant la date de réception du projet, l’Autorité\nde régulation, par écrit, approuve ou rejette ledit\nprojet. Si dans ce délai le titulaire n’est pas informé\ndu sort réservé à son projet, ce dernier est alors réputé\navoir été approuvé tel que présenté.\nSi le projet n’est pas approuvé, l’Autorité de régulation\ndoit fournir une explication suffisamment précise\net détaillée des motifs de son refus pour permettre\nau titulaire de modifier le projet qui sera à nouveau\nsoumis à l’approbation de l’agence de régulation.\nLorsque les dispositions sont approuvées, le titulaire\nles intègre dans tous les contrats avec ses abonnés.\nDans toute convention entre le titulaire et l’abonné,\nrien ne doit contredire ou modifier les dispositions\napplicables.",
+        "source_locator": {
+          "page": 42,
+          "journal_page": 1306
+        }
+      },
+      {
+        "number": "32",
+        "parent": "annexe_chapitre_xii",
+        "order": 58,
+        "content": "Information du client\nUn exemplaire des dispositions approuvées doit être\ndisponible sur demande pour toute partie concernée\net à tout nouveau client avant le début du service à ce\nclient ou à la réception ou au dépôt de tout paiement.\nToute disposition de tout contrat entre le titulaire\net l’abonné doit être en caractères d’imprimerie et\nrédigée en français.",
+        "source_locator": {
+          "page": 42,
+          "journal_page": 1306
+        }
+      },
+      {
+        "number": "33",
+        "parent": "annexe_chapitre_xii",
+        "order": 59,
+        "content": "Modification de contrat avec le client\nLes dispositions approuvées peuvent être modifiées, à\nla demande du titulaire, après approbation de l’Autorité\nde régulation. Pour demander des modifications, le\ntitulaire doit présenter un projet modifié à l’Autorité\nde régulation.\nToute modification du contrat avec le client doit\nentrer en vigueur trente (30) jours au moins après\nnotification de ces modifications au client concerné,\nà moins que le client n’informe le titulaire, par écrit\navant l’expiration du délai de trente (30) jours, qu’il\nconteste le projet de notification et souhaite résilier\nson contrat.",
+        "source_locator": {
+          "page": 42,
+          "journal_page": 1306
+        }
+      },
+      {
+        "number": "34",
+        "parent": "annexe_chapitre_xii",
+        "order": 60,
+        "content": "Egalité de traitement des clients\nLes clients (abonnés, visiteurs, itinérants ou détenteurs\nde cartes prépayées) sont traités de manière égale et\nleur accès au réseau est assuré dans des conditions\nobjectives, transparentes et non discriminatoires.",
+        "source_locator": {
+          "page": 42,
+          "journal_page": 1306
+        }
+      },
+      {
+        "number": "35",
+        "parent": "annexe_chapitre_xii",
+        "order": 61,
+        "content": "Offre de services secondaires\nLe titulaire doit mettre en œuvre des numéros\nd’appel sans frais pour le service de gendarmerie, de\npolice, des pompiers ou d’autres services d’urgence,\nconformément aux dispositions des textes en vigueur.\nLe titulaire doit collaborer avec les services d’urgence\npour prendre, de façon efficace et rapide, les appels de\ndétresse y afférents.\nCes numéros sont actuellement les suivants :\n•\nGendarmerie : 112,\n•\nPolice : 117,\n•\nPompiers : 118 ;\n•\nAide aux enfants : 116.\nLes abonnés du titulaire de la licence auront accès à\nl’international en composant le préfixe 00.",
+        "source_locator": {
+          "page": 42,
+          "journal_page": 1306,
+          "page_end": 43,
+          "journal_page_end": 1307
+        }
+      },
+      {
+        "number": "36",
+        "parent": "annexe_chapitre_xii",
+        "order": 62,
+        "content": "Accessibilité\nLe service du titulaire doit être ouvert à tous ceux qui\nen font la demande. A cette fin, le titulaire organise\nson réseau de manière à pouvoir satisfaire, dans un\ndélai convenable, toute demande située dans la zone\nde couverture.",
+        "source_locator": {
+          "page": 43,
+          "journal_page": 1307
+        }
+      },
+      {
+        "number": "37",
+        "parent": "annexe_chapitre_xii",
+        "order": 63,
+        "content": "Assistance aux clients\nConformément à la réglementation en vigueur, le\ntitulaire de la licence est tenu d’apporter son assistance\naux clients en cas de vol, perte ou détérioration de\nsa carte SIM. Lorsqu’une telle situation est portée à\nIa connaissance du titulaire, ce dernier doit procéder\nau blocage de ladite carte SIM tout en préservant les\navantages acquis par le client.",
+        "source_locator": {
+          "page": 43,
+          "journal_page": 1307
+        }
+      },
+      {
+        "number": "38",
+        "parent": "annexe_chapitre_xiii",
+        "order": 65,
+        "content": "Dans le cadre du présent cahier des charges, l’Autorité\nde régulation prend toutes mesures pour :\n(i)\naccorder\nau\ntitulaire\ntoutes\nles\nfacilités administratives et techniques\nqui relèvent de sa compétence pour\nl’exploitation de son réseau cellulaire à\ntravers les différentes villes du pays ;\n(ii)\nassigner, au titulaire au plus tard deux\nmois après réception de la demande\nécrite y afférente du titulaire:\n-\nles bandes de fréquences 900 et 1800 MHZ\nnécessaires à l’exploitation de son réseau\nGSM puis les fréquences nécessaires pour\nl’établissement des liaisons micro-ondes ;\n-\nles ressources nécessaires en numérotation et\nce, exceptionnellement, dans un minimum de\n3 mois après réception de la demande écrite y\nafférente au titulaire ;\n(iii)\nfournir, au titulaire, toutes les informations techniques nécessaires à l’interconnexion de son réseau aux autres\nréseaux autorisés ;\n(iv)\nfournir, au titulaire ;\n•\nle code mobile du Congo dans le\nplan GSM (MCC) ;\n•\nle code du réseau mobile de\nl’opérateur (MNC) ;\n•\nle code de couleur de réseau (NCC).\n(iv)\ngarantir, au titulaire, le jeu d’une\nconcurrence loyale sur le marché Des\ntélécommunications. Lutter contre les\npratiques anticoncurrentielles.\nVi mettre en application le mécanisme de paiement\ndes taxes et frais\nliés\nau\ntrafic\ninternational\nentrant, prévu au chapitre IV de l’arrêté\nn° 1278/\nMPT-NTC/MEFB, du 12 mars 2009, instituant\nun système de contrôle et de tarification du trafic\ntéléphonique international entrant en République du\nCongo.\n(vii lutter contre la fraude et le dumping des prix\ninternationaux au Congo.",
+        "source_locator": {
+          "page": 43,
+          "journal_page": 1307
+        }
+      },
+      {
+        "number": "39",
+        "parent": "annexe_chapitre_xiv",
+        "order": 67,
+        "content": "Contrôle du cahier des charges\nLe titulaire doit fournir à l’Autorité de régulation des\ninformations relatives à l’exploitation de son réseau\ndans les domaines financier, commercial et technique.\nA ce titre, il doit notamment lui communiquer, sans\ndélai, les informations suivantes :\n-\ntoute modification du capital social ;\n-\ntoute modification de la configuration du\nréseau ;\n-\nla description de l’ensemble des services offerts\navant leur mise en œuvre ;\n-\nla source de financement de ses activités ;\n-\nles tarifs et les conditions générales de l’offre\nselon une périodicité définie par les textes en\nvigueur ;\n-\nles données trimestrielles du trafic, du chiffre\nd’affaires et de la qualité de service ;\n-\nles\ndonnées\ntrimestrielles\nrelatives\nà\nl’utilisation qualitative et quantitative des\nfréquences et des numéros ;\n-\nl’ensemble des conventions d’interconnexion\nconclues ;\n-\nles contrats avec les distributeurs, revendeurs\nou sociétés de commercialisation ;\n-\nl’ensemble des conventions d’occupation du\ndomaine public ;\n-\nles conventions de partage d’infrastructures ;\nl’exemplaire de contrat-type avec les clients ;\n-\ntoute information nécessaire à l’instruction,\npar l’Autorité de régulation, des demandes de\nconciliation en vue de régler les litiges avec\nd’autres opérateurs ;\n-\nles contrats de partenariat avec d’autres\nopérateurs des pays tiers ;\n-\ntoute information nécessaire pour vérifier le\nrespect des conventions ou contrats conclus.\nLe titulaire doit remettre, à l’Autorité de régulation, un\nexemplaire de la documentation technique complète\nconcernant ses installations (documentation remise\npar les fournisseurs, description fonctionnelle des\nlogiciels, modes opératoires...). Il doit lui communiquer\nles mises à jour de cette documentation dès qu’elles\nsont disponibles.\nDe même, le titulaire doit faire exécuter les travaux\nd’implantation de ses installations et la construction\nde ses ouvrages techniques par un installateur agréé\npar l’Autorité de régulation. L’information concernant\nl’exécution de ces travaux doit être notifiée, à l’Autorité\nde régulation, avant le début de ceux-ci.\nLe titulaire doit tenir une comptabilité analytique\nappropriée dans une forme qui soit suffisamment\ntransparente\npour\nmontrer\net\nexpliquer\nses\ntransactions. A cet effet, les documents comptables\ntenus doivent indiquer clairement les frais, les revenus\net la position financière de ses affaires.",
+        "source_locator": {
+          "page": 43,
+          "journal_page": 1307,
+          "page_end": 44,
+          "journal_page_end": 1308
+        }
+      },
+      {
+        "number": "40",
+        "parent": "annexe_chapitre_xiv",
+        "order": 68,
+        "content": "Obligations liées au trafic téléphonique\nLe titulaire s’engage à respecter la réglementation en\nvigueur sur le trafic national et international.",
+        "source_locator": {
+          "page": 44,
+          "journal_page": 1308
+        }
+      },
+      {
+        "number": "41",
+        "parent": "annexe_chapitre_xiv",
+        "order": 69,
+        "content": "Rapport annuel\nLe titulaire doit faire parvenir à l’Autorité de régulation,\nau plus tard le 30 juin de l’année n+1 (n étant l’année\nde l’exercice considéré), deux exemplaires du rapport\nannuel et des états financiers certifiés. Ce rapport\ndoit comprendre des informations détaillées sur les\npoints ci-après :\n-\nla mise en œuvre ou la modernisation des\nservices au cours de la dernière année ;\n-\nune explication des causes de tout défaut\ndans la mise en œuvre ou la modernisation\nexigée ou prévue, ainsi qu’une estimation du\nmoment où ce défaut sera corrigé ;\n-\nle plan de mise en œuvre ou de la modernisation\nprévue pour l’année suivante ;\n-\ntous les cas où le titulaire n’a pu s’acquitter de\nses obligations aux termes de toute disposition\nde la licence, ainsi qu’une explication de ce\nmanquement.",
+        "source_locator": {
+          "page": 44,
+          "journal_page": 1308
+        }
+      },
+      {
+        "number": "42",
+        "parent": "annexe_chapitre_xiv",
+        "order": 70,
+        "content": "Obligations de défense, de sécurité\npublique et de protection de l’environnement\nConformément à la réglementation en vigueur, le\ntitulaire de la licence est tenu d’apporter son assistance\naux clients en cas de vol, perte ou détérioration de\nson téléphone mobile. Lorsqu’une telle situation est\nportée à la connaissance du titulaire, ce dernier doit\nprocéder au blocage dudit appareil.\nLe titulaire doit prendre des mesures utiles et\nappropriées pour protéger ses installations contre les\nagressions de toute nature.\nLe titulaire doit se conformer aux décisions ou\ninstructions des autorités judiciaires, militaires ou de\nla police nationale ainsi qu’à celles des ministres en\ncharge des télécommunications et de la défense.\nEn cas de situation exceptionnelle, le Gouvernement\npeut ordonner la réquisition totale ou partielle du\nréseau du titulaire ou des fréquences qui lui sont\nassignées.\nEn cas de réquisition du réseau, le titulaire doit\nrecevoir\ndu\nGouvernement,\nune\ncompensation\ncorrespondant au montant du chiffre d’affaires non\nréalisé pendant la période de réquisition. Toutefois,\ncette compensation peut faire l’objet de négociation\nentre les deux parties.\nLe titulaire est tenu de participer, à la demande de\nl’Autorité de régulation, aux travaux de préparation\net de mise en œuvre des plans destinés de répondre\nà de telles situations exceptionnelles.\nLe titulaire est également tenu de se conformer aux\nprescriptions des forces de l’ordre et des services\nchargés de la sécurité publique ou de la défense\nnationale sous réserve, pour ceux-ci, du respect\ndes\ndispositions\nconstitutionnelles,\nlégales\net\nréglementaires, notamment celles relatives aux droits\nde l’homme et à la bonne administration de la justice.\nDans le cadre de l’exploitation de son réseau, le\ntitulaire doit se préoccuper de la protection de\nl’environnement, notamment en ce qui concerne\nl’installation de certaines infrastructures.",
+        "source_locator": {
+          "page": 44,
+          "journal_page": 1308
+        }
+      },
+      {
+        "number": "43",
+        "parent": "annexe_chapitre_xiv",
+        "order": 71,
+        "content": "Obligations de neutralité et de confidentialité\nLe titulaire doit garantir la neutralité de son service\nvis-à-vis du contenu des informations transmises sur\nson réseau.\nIl s’oblige à prendre toutes les mesures nécessaires\npour garantir la neutralité de son personnel vis-à-vis\ndu contenu des messages transmis sur son réseau. A\ncet effet, il offre le service sans discrimination quelle\nque soit la nature des messages transmis et il prend\nles dispositions utiles pour en assurer l’intégrité.\nLe titulaire doit prendre des mesures nécessaires\npour garantir la confidentialité du contenu des\ncommunications transmises sur son réseau et\nassurer le secret des informations qu’il détient sur la\nlocalisation des abonnés. Il doit, également, respecter\nle principe d’égalité de traitement des abonnés.\nLe titulaire est tenu de porter à la connaissance de ses\nagents les obligations auxquelles ils sont assujettis et\nles sanctions qu’ils encourent en cas de non-respect\ndu secret des communications.\nLorsque son réseau ne réunit pas les conditions de\nconfidentialité requises, le titulaire est tenu d’en\ninformer ses abonnés. Il informe, également, ses\nclients des services existants permettant, le cas\néchéant, de renforcer la sécurité des communications.\nLe titulaire prend les mesures propres à assurer\nla protection et la confidentialité des informations\nnominatives qu’il détient, qu’il traite ou qu’il inscrit\nsur le module d’identification des abonnés ou de ses\nclients détenteurs de carte prépayée, dans le respect\ndes dispositions légales et réglementaires en vigueur.\nLe titulaire doit s’interdire de divulguer la teneur des\nconversations téléphoniques ou même seulement les\nnoms des correspondants.\nToutefois, la loi autorise de porter atteinte au secret\ndes communications téléphoniques dans les cas\nsuivants :\n nécessité de veiller à la sûreté de l’Etat et à\nl’ordre public ;\n nécessité d’assurer l’application des lois\npénales.\nTous les renseignements fournis par le titulaire\nà l’Autorité de régulation et portant la mention\n«confidentiel» doivent être gardés confidentiels par\ncelle-ci. Ces renseignements peuvent être divulgués\npar l’Autorité de régulation, dans la mesure où ils\ndeviennent publiquement disponibles sans qu’il y ait\nfaute de l’Autorité de régulation ou dans la mesure\noù cette divulgation est nécessaire en vertu du droit\napplicable. Cette exigence de confidentialité demeure\nen vigueur à l’expiration ou à la révocation de la\nlicence.",
+        "source_locator": {
+          "page": 44,
+          "journal_page": 1308,
+          "page_end": 45,
+          "journal_page_end": 1309
+        }
+      },
+      {
+        "number": "44",
+        "parent": "annexe_chapitre_xiv",
+        "order": 72,
+        "content": "Obligations de service universel\nPour garantir l’obligation du service universel, le\ntitulaire est tenu d’installer des publiphones dans les\ngrandes agglomérations ;\nprendre les mesures nécessaires pour acheminer\ngratuitement les appels d’urgence à partir des points\nd’accès publics, des points d’abonnement et des\npoints d’interconnexion, à destination des services\npublics installés dans les zones d’exploitation du\nservice chargés de :\n•\nla sauvegarde des vies humaines ;\n•\nl’intervention de police nationale ;\n•\nla lutte contre l’incendie ;\n•\nl’urgence sociale ;\n•\nla participation à la constitution du fond du\nservice universel.",
+        "source_locator": {
+          "page": 45,
+          "journal_page": 1309
+        }
+      },
+      {
+        "number": "45",
+        "parent": "annexe_chapitre_xiv",
+        "order": 73,
+        "content": "Obligations de contribuer à la formation, à\nla recherche et au développement\nLe titulaire doit participer à la formation du personnel\nde l’Autorité de régulation, à la recherche et au\ndéveloppement des télécommunications au Congo.\nA ce titre :\n•\nil verse une contribution financière dont le\nmontant est fixé à 0,3% du chiffre d’affaire\nhors taxes diminué ou augmenté des charges\nou produits nets encourus au titre de\nl’interconnexion avec d’autres délégataires de\nservice public et titulaires de licence ;\n•\nil participe au financement du fonds de service\nuniversel, de la recherche et au développement\ndes télécommunications.",
+        "source_locator": {
+          "page": 45,
+          "journal_page": 1309
+        }
+      },
+      {
+        "number": "46",
+        "parent": "annexe_chapitre_xiv",
+        "order": 74,
+        "content": "Police d’assurance\nLe titulaire doit souscrire et reconduire, pendant\ntoute la durée de la licence, des polices d’assurance\ncouvrant les installations de télécommunications\nselon des normes généralement acceptées en ce qui\nconcerne les biens de même nature.\nLe titulaire doit notifier à l’Autorité de régulation toute\nnouvelle police d’assurance et tout changement de\npolice d’assurance ou d’assureurs, au moins trente\n(30) jours au préalable.",
+        "source_locator": {
+          "page": 45,
+          "journal_page": 1309
+        }
+      },
+      {
+        "number": "47",
+        "parent": "annexe_chapitre_xv",
+        "order": 76,
+        "content": "Durée\nLa durée de validité de la licence, objet du présent\ncahier des charges, est de quinze (15) ans renouvelable.\nCette durée commence à courir à compter du 6 mars\n2025.",
+        "source_locator": {
+          "page": 45,
+          "journal_page": 1309
+        }
+      },
+      {
+        "number": "48",
+        "parent": "annexe_chapitre_xv",
+        "order": 77,
+        "content": "Conditions de renouvellement de la licence\nLe renouvellement de la licence doit faire l’objet d’une\ndemande adressée à l’Autorité de régulation, douze\n(12) mois avant la date d’expiration de celle-ci.\nPour cela, le titulaire est tenu de payer une taxe de\nrenouvellement dont le montant est fixé par les textes\nréglementaires.\nToutefois, dans l’hypothèse où l’opérateur aurait\nfait l’objet d’une sanction pour manquement grave à\nses obligations au cours des cinq années précédant\nle terme de sa licence, il peut être opposé un refus\nmotivé à la demande de renouvellement. Ce refus\nn’ouvre droit à aucun dédommagement.",
+        "source_locator": {
+          "page": 45,
+          "journal_page": 1309
+        }
+      },
+      {
+        "number": "49",
+        "parent": "annexe_chapitre_xv",
+        "order": 78,
+        "content": "Conditions de cessation des activités\nLa cessation des activités du titulaire peut intervenir à la :\n•\ndemande du titulaire ;\n•\nsuite d’une incapacité du titulaire dûment\nconstatée\n(faillite,\nliquidation\njudiciaire,\nbanqueroute ...) ;\n•\nsuite d’une décision du ministre en charge des\ntélécommunications, après\navis motivé de l’Autorité de régulation.",
+        "source_locator": {
+          "page": 45,
+          "journal_page": 1309
+        }
+      },
+      {
+        "number": "50",
+        "parent": "annexe_chapitre_xvi",
+        "order": 80,
+        "content": "Le titulaire de la licence est tenu de respecter la\nlégislation et la réglementation en vigueur en République\ndu Congo en matière des télécommunications. Les\nnormes et recommandations de l’Union Internationale\ndes télécommunications (UIT) lui sont également\napplicables.\nEn cas de violation, par le titulaire, d’une des\ndispositions contenues dans le présent cahier des\ncharges, et s’il ne se conforme pas à la mise en demeure\nqui lui est notifiée, dans les délais réglementaires,\nl’Autorité de régulation peut prononcer, à son endroit,\ndes sanctions prévues par la loi.",
+        "source_locator": {
+          "page": 45,
+          "journal_page": 1309
+        }
+      },
+      {
+        "number": "51",
+        "parent": "annexe_chapitre_xvii",
+        "order": 82,
+        "content": "Annuaire général des abonnés\nDans le cadre de la réalisation de l’annuaire général des\nabonnés, le titulaire doit communiquer, gratuitement,\nà l’Autorité de régulation, la liste de ses abonnés,\nleurs adresses, numéros d’appel et éventuellement\nleurs fonctions, pour permettre la constitution d’un\nannuaire et d’un service de renseignements mis à la\ndisposition du public.\nLes abonnés du titulaire refusant de figurer dans\nl’annuaire général doivent le signifier par écrit et\npeuvent être soumis à une redevance supplémentaire.\nLes informations concernant ces abonnés ne sont\nalors pas transmises à l’Autorité de régulation.",
+        "source_locator": {
+          "page": 45,
+          "journal_page": 1309,
+          "page_end": 46,
+          "journal_page_end": 1310
+        }
+      },
+      {
+        "number": "52",
+        "parent": "annexe_chapitre_xvii",
+        "order": 83,
+        "content": "Changement de contrôle\nToute modification affectant plus de 10 % de la\nrépartition de l’actionnariat du titulaire doit faire\nl’objet d’une notification préalable à l’Autorité de\nrégulation, au moins deux mois avant la date de sa\nréalisation.\nEn cas de modification substantielle entraînant le\nchangement de contrôle de la société, le titulaire est\ntenu de verser à l’Autorité de régulation une taxe dont\nle montant est fixé à 1 % du montant de la transaction.\nToutefois, l’Autorité de régulation n’a pas l’intention\nd’autoriser quelque changement de contrôle du\ntitulaire au cours des cinq (5) premières années\nsuivant la date d’entrée en vigueur de la licence.",
+        "source_locator": {
+          "page": 46,
+          "journal_page": 1310
+        }
+      },
+      {
+        "number": "53",
+        "parent": "annexe_chapitre_xvii",
+        "order": 84,
+        "content": "Cas de force majeure\nLes dispositions contenues dans le présent cahier des\ncharges doivent strictement être respectées, sauf cas\nde force majeure.\nSont considérés comme cas de force majeure, tous les\névénements imprévisibles, irrésistibles et extérieurs\nindépendants de la volonté du titulaire et susceptibles\nd’arrêter l’exécution des services.\nLorsque le titulaire est victime d’un cas de force\nmajeure, il est tenu d’en informer les clients et\nles partenaires, sans délai, par tous moyens à sa\ndisposition. Il doit, également, leur faire part des\ndispositions envisagées pour remédier à la situation\ndans les délais raisonnables.\nSi le cas de force majeure entraîne un arrêt des\nactivités du titulaire pendant une période excédant\ntrois mois au moins. cette période peut être prise en\ncompte pour proroger la durée initiale de la licence.",
+        "source_locator": {
+          "page": 46,
+          "journal_page": 1310
+        }
+      },
+      {
+        "number": "54",
+        "parent": "annexe_chapitre_xviii",
+        "order": 86,
+        "content": "Révision du cahier des charges\nL’Agence de Régulation des Postes et des Communications\nElectroniques (ARPCE) est la seule autorité habilitée\nà faire appliquer les conditions fixées dans le présent\ncahier des charges, d’en sanctionner les manquements\net, conformément à la réglementation en vigueur, d’en\nmodifier éventuellement les dispositions.\nToutefois, le titulaire conserve le droit de recours\ndevant les juridictions contre les décisions de l’Agence\nde Régulation.",
+        "source_locator": {
+          "page": 46,
+          "journal_page": 1310
+        }
+      },
+      {
+        "number": "55",
+        "parent": "annexe_chapitre_xviii",
+        "order": 87,
+        "content": "Notification et loi applicable\nToute notification à l’une des parties doit lui être\nadressée par lettre recommandée avec accusé de\nréception, au siège social ou à toute autre adresse\nindiquée par celle-ci. Elle peut, également, en recevoir\npar porteur spécial contre son émargement ou celui\nde son représentant, sur un registre approprié.\nLe présent cahier des charges est soumis à la loi\ncongolaise.",
+        "source_locator": {
+          "page": 46,
+          "journal_page": 1310
+        }
+      },
+      {
+        "number": "56",
+        "parent": "annexe_chapitre_xviii",
+        "order": 88,
+        "content": "Règlement de différend\nTout litige ou différend résultant de l’interprétation\nou l’exécution du présent cahier des charges, qui\nne trouverait pas une solution à l’amiable entre les\nparties, sera soumis à la juridiction compétente du\nCongo.",
+        "source_locator": {
+          "page": 46,
+          "journal_page": 1310
+        }
+      },
+      {
+        "number": "57",
+        "parent": "annexe_chapitre_xviii",
+        "order": 89,
+        "content": "L’ Autorité de régulation est la seule institution\nchargée du suivi de l’application des dispositions de\nla loi, ainsi que de celles contenues dans le présent\ncahier des charges.\nLes documents ci-après font partie intégrante de la\nlicence :\n•\nle présent cahier des charges ;\n•\nla décision d’assignation des fréquences.\nLe présent cahier des charges est établi et signé en\ndeux (2) exemplaires originaux par le directeur général\nde l’autorité de régulation. L’un des exemplaires sera\nremis au titulaire après que ce dernier ait apposé son\ncontreseing sur les deux exemplaires.",
+        "source_locator": {
+          "page": 46,
+          "journal_page": 1310
+        }
+      },
+      {
+        "number": "SIGNATURE_doublon_1",
+        "parent": "annexe_cahier_des_charges_2g",
+        "order": 90,
+        "content": "Fait à Brazzaville, le\nPour la société CONGO TELECOM\nLe Directeur général\nYves CASTANOU\nPour l’Agence de Régulation des Postes et\ndes Communications Electroniques\nLe Directeur général\nLouis Marc SAKALA",
+        "source_locator": {
+          "page": 46,
+          "journal_page": 1310
+        }
+      }
+    ]
+  }
+}

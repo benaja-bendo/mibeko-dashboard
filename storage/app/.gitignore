@@ -1,4 +1,8 @@
 *
 !private/
 !public/
+!corrections/
+corrections/*
+!corrections/2026-08-18-reconstruire-arrete-3277.py
+!corrections/2026-08-18-reconstruire-arrete-3277.json
 !.gitignore
