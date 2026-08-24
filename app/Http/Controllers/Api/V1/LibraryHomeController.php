@@ -108,6 +108,7 @@ class LibraryHomeController extends Controller
         $themes = Cache::remember('library:themes', now()->addMinutes(10), function (): array {
             return Tag::query()
                 ->withCount(['legalDocuments as documents_count' => fn ($q) => $q->published()])
+                ->whereHas('legalDocuments', fn ($q) => $q->published())
                 ->orderBy('display_order')
                 ->orderBy('name')
                 ->get()

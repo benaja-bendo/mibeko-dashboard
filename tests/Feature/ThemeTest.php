@@ -116,9 +116,9 @@ it('liste les thèmes avec le nombre de textes publiés', function () {
     $this->actingAs($this->proUser)
         ->getJson('/api/v1/library/themes')
         ->assertOk()
+        ->assertJsonCount(1, 'data')
         ->assertJsonPath('data.0.slug', 'travail')
-        ->assertJsonPath('data.0.documents_count', 1)
-        ->assertJsonPath('data.1.documents_count', 0);
+        ->assertJsonPath('data.0.documents_count', 1);
 });
 
 it('liste les textes publiés d\'un thème (parcours)', function () {
