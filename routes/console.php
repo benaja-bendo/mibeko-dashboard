@@ -67,6 +67,18 @@ Schedule::command('mibeko:retry-legal-watch --older-than=15')
     ->runInBackground()
     ->appendOutputTo(storage_path('logs/retry-legal-watch.log'));
 
+// Le store de cache `database` n'oublie une entrée expirée que s'il la relit :
+// une clé jamais redemandée reste en table indéfiniment. Mesuré en production
+// le 25/08/2026, 88 % des lignes de `cache` étaient expirées (2 036 sur 2 302)
+// — volume encore modeste, mais sans borne dans le temps. Hebdomadaire : ces
+// lignes ne gênent personne tant qu'elles sont peu nombreuses, c'est leur
+// accumulation sans fin qu'il s'agit d'arrêter.
+Schedule::command('mibeko:purger-cache-expire')
+    ->weeklyOn(1, '04:30')
+    ->withoutOverlapping()
+    ->runInBackground()
+    ->appendOutputTo(storage_path('logs/purge-cache.log'));
+
 Schedule::command('mibeko:prune-audits --days=365')
     ->monthlyOn(1, '02:00')
     ->withoutOverlapping()
