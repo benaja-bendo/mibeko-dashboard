@@ -190,8 +190,12 @@ trait SearchesArticles
      * distance ; ce terme ne fait plus qu'affiner le classement des candidats
      * déjà retenus par ailleurs.
      */
-    protected function applyLexicalScoring(Builder $query, string $search, bool $withSemantic = true): void
-    {
+    protected function applyLexicalScoring(
+        Builder $query,
+        string $search,
+        bool $withSemantic = true,
+        bool $withTrigram = true,
+    ): void {
         // Sépare une éventuelle référence « article N » du reste thématique.
         // Le mot « article » est structurel (présent dans presque tous les
         // textes) : le garder dans la recherche full-text noierait les vrais
@@ -203,6 +207,13 @@ trait SearchesArticles
         // Les filets approximatifs n'ont de sens que sur un texte d'au moins 3
         // caractères : en deçà, similarité et embedding deviennent du bruit.
         $useApprox = $hasText && mb_strlen($topical) >= 3;
+        // Le filet trigram lit le contenu INTÉGRAL de chaque version, deux fois :
+        // dans le WHERE (`%>>`) et dans le score (`strict_word_similarity`). Le
+        // recheck que cela impose coûtait à lui seul ~4 s des ~5 s mesurées sur
+        // la recherche publique le 25/08/2026, sur un corpus pourtant modeste
+        // (21 638 articles). Il n'est donc plus systématique : voir
+        // `lexicalArticleSearch`, qui ne le rallume que si le lexical a échoué.
+        $useTrigram = $useApprox && $withTrigram;
 
         // Embedding de la requête pour le filet sémantique (mis en cache : une
         // même requête ne le régénère pas). Dégradation gracieuse en cas d'échec.
@@ -230,7 +241,7 @@ trait SearchesArticles
         // L'opérateur indexable `%>>` lit `pg_trgm.strict_word_similarity_threshold` :
         // on le fixe sur la connexion pour que l'index GIN trigram soit utilisable
         // avec NOTRE seuil (et non le défaut 0.5 qui écarterait « dotal »).
-        if ($useApprox) {
+        if ($useTrigram) {
             DB::statement("SELECT set_config('pg_trgm.strict_word_similarity_threshold', ?, false)", [(string) $this->fuzzyThreshold]);
         }
 
@@ -255,7 +266,7 @@ trait SearchesArticles
             $orTsQuery, $orTsQuery,
         ];
 
-        if ($useApprox) {
+        if ($useTrigram) {
             $scoreExpression .= ' + (strict_word_similarity(f_unaccent(?), f_unaccent(av.contenu_texte)) * 0.3)';
             $scoreBindings[] = $topical;
         }
@@ -267,7 +278,7 @@ trait SearchesArticles
         }
 
         $query->selectRaw("({$scoreExpression}) as total_score", $scoreBindings)
-            ->where(function ($q) use ($articleNum, $topical, $orTsQuery, $hasText, $useApprox, $semanticIds) {
+            ->where(function ($q) use ($articleNum, $topical, $orTsQuery, $hasText, $useTrigram, $semanticIds) {
                 if ($hasText) {
                     $q->whereRaw("av.search_tsv @@ websearch_to_tsquery('french', ?)", [$topical]);
                     if ($orTsQuery !== '') {
@@ -280,7 +291,7 @@ trait SearchesArticles
                     $q->orWhere('ld.titre_officiel', 'ILIKE', "%$topical%");
                     // Filet trigram via l'opérateur indexable `%>>` (index GIN
                     // `f_unaccent(contenu_texte)`), seuil = GUC fixé plus haut.
-                    if ($useApprox) {
+                    if ($useTrigram) {
                         $q->orWhereRaw('f_unaccent(av.contenu_texte) %>> f_unaccent(?)', [$topical]);
                     }
                     // Filet sémantique : borné aux `semanticTopK` plus proches
@@ -418,9 +429,39 @@ trait SearchesArticles
         int $perPage = 12,
         bool $withSemantic = false,
     ): LengthAwarePaginator {
+        // Premier passage : lexical seul, sans les filets de rappel. C'est le
+        // chemin de l'écrasante majorité des recherches, et le seul qui tienne
+        // dans un délai interactif — mesuré à 77 ms contre ~4 s pour le trigram.
+        $paginator = $this->paginerRechercheLexicale($search, $filters, $sort, $perPage, false, false);
+
+        if ($paginator->total() >= $this->rappelSuffisant) {
+            return $this->mapperPage($paginator);
+        }
+
+        // Le lexical n'a pas trouvé : c'est précisément le cas pour lequel les
+        // filets existent (variantes que le stemmer n'unifie pas, fautes de
+        // frappe, rappel conceptuel). On paie leur coût là, et là seulement.
+        return $this->mapperPage(
+            $this->paginerRechercheLexicale($search, $filters, $sort, $perPage, $withSemantic, true)
+        );
+    }
+
+    /**
+     * Un passage de recherche, filets de rappel activés ou non.
+     *
+     * @param  array<string, mixed>  $filters
+     */
+    private function paginerRechercheLexicale(
+        string $search,
+        array $filters,
+        string $sort,
+        int $perPage,
+        bool $withSemantic,
+        bool $withTrigram,
+    ): LengthAwarePaginator {
         $query = $this->baseArticleQuery();
         $this->applyArticleFilters($query, $filters);
-        $this->applyLexicalScoring($query, $search, $withSemantic);
+        $this->applyLexicalScoring($query, $search, $withSemantic, $withTrigram);
 
         if ($sort === 'date_desc') {
             $query->orderByDesc('ld.date_publication');
@@ -430,7 +471,12 @@ trait SearchesArticles
             $query->orderByDesc('total_score');
         }
 
-        $paginator = $query->paginate($perPage);
+        return $query->paginate($perPage);
+    }
+
+    /** Applique la mise en forme des lignes à une page de résultats. */
+    private function mapperPage(LengthAwarePaginator $paginator): LengthAwarePaginator
+    {
         $paginator->getCollection()->transform(fn ($item) => $this->mapArticleRow($item));
 
         return $paginator;
@@ -492,6 +538,24 @@ trait SearchesArticles
      * être plafonné.
      */
     protected int $semanticTopK = 40;
+
+    /**
+     * Nombre de résultats lexicaux au-delà duquel les filets de rappel ne sont
+     * pas rallumés.
+     *
+     * Le filet trigram lit le contenu intégral de chaque version — dans le
+     * WHERE puis dans le score — et le recheck que cela impose coûtait ~4 s des
+     * ~5 s mesurées sur `api.mibeko.fr` le 25/08/2026, contre 77 ms pour le
+     * lexical seul. Durcir son seuil ne règle rien (à 0.7 il rend encore 1,9 s
+     * en ne rapportant plus que 14 lignes au lieu de 1 646) : ce qui coûte,
+     * c'est de le faire courir sur tout le corpus, pas sa sélectivité.
+     *
+     * Une page en rend 12 : à partir de 10 résultats lexicaux, l'utilisateur a
+     * déjà de quoi lire, et le filet n'ajouterait que du bruit moins bien
+     * classé. En deçà, la recherche a de fait échoué — c'est le cas pour lequel
+     * les filets existent, et là leur coût est justifié.
+     */
+    protected int $rappelSuffisant = 10;
 
     /**
      * Format query for Postgres to_tsquery

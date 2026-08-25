@@ -166,3 +166,72 @@ it('borne le filet sémantique à un top-K et ne renvoie pas tout le corpus embe
 
     expect($response->json('pagination.total'))->toBeLessThanOrEqual(40);
 });
+
+it('n’allume pas le filet trigram quand le lexical suffit déjà', function () {
+    // Le filet trigram lit le contenu intégral de chaque version, dans le WHERE
+    // puis dans le score : il coûtait ~4 s des ~5 s de la recherche publique
+    // (mesuré sur api.mibeko.fr le 25/08/2026, mibeko-dashboard#50). Il ne doit
+    // donc plus courir quand la recherche lexicale a déjà de quoi remplir une
+    // page. La sonde est la requête SQL elle-même, seul témoin fiable : compter
+    // les résultats ne dirait pas si le filet a tourné.
+    $doc = LegalDocument::factory()->create([
+        'type_code' => 'LOI',
+        'titre_officiel' => 'Loi sur le bail commercial',
+        'legal_scope' => 'national',
+        'curation_status' => 'published',
+    ]);
+
+    // Au-delà de `rappelSuffisant` (10) : le lexical se suffit à lui-même.
+    for ($i = 1; $i <= 12; $i++) {
+        $article = Article::factory()->create(['document_id' => $doc->id, 'numero_article' => (string) $i]);
+        ArticleVersion::factory()->create([
+            'article_id' => $article->id,
+            'contenu_texte' => "Le preneur du bail commercial jouit du local loué, disposition numéro {$i}.",
+            'validity_period' => '[2020-01-01,)',
+        ]);
+    }
+
+    $requetes = [];
+    DB::listen(function ($requete) use (&$requetes) {
+        $requetes[] = $requete->sql;
+    });
+
+    $this->getJson('/api/v1/library/search?q='.urlencode('bail commercial'))
+        ->assertStatus(200)
+        ->assertJsonPath('pagination.total', 12);
+
+    $avecTrigram = collect($requetes)->filter(
+        fn (string $sql) => str_contains($sql, '%>>') || str_contains($sql, 'strict_word_similarity')
+    );
+
+    expect($avecTrigram)->toBeEmpty();
+});
+
+it('rallume le filet trigram quand le lexical ne trouve presque rien', function () {
+    // Cas inverse : « dotte » ne matche aucun lexème, le filet doit courir.
+    $doc = LegalDocument::factory()->create([
+        'type_code' => 'LOI',
+        'titre_officiel' => 'Code de la famille',
+        'legal_scope' => 'national',
+        'curation_status' => 'published',
+    ]);
+    $article = Article::factory()->create(['document_id' => $doc->id, 'numero_article' => '1']);
+    ArticleVersion::factory()->create([
+        'article_id' => $article->id,
+        'contenu_texte' => 'La dot est constituée au profit de la famille de l’épouse.',
+        'validity_period' => '[2020-01-01,)',
+    ]);
+
+    $requetes = [];
+    DB::listen(function ($requete) use (&$requetes) {
+        $requetes[] = $requete->sql;
+    });
+
+    $this->getJson('/api/v1/library/search?q='.urlencode('dotte'))->assertStatus(200);
+
+    $avecTrigram = collect($requetes)->filter(
+        fn (string $sql) => str_contains($sql, '%>>') || str_contains($sql, 'strict_word_similarity')
+    );
+
+    expect($avecTrigram)->not->toBeEmpty();
+});
