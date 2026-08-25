@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Traits\SearchesArticles;
+use Illuminate\Database\Query\Builder;
 use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Http\Exceptions\ThrottleRequestsException;
 use Illuminate\Http\JsonResponse;
@@ -77,6 +78,87 @@ class ArticleSearchController extends Controller
      *  }
      * }
      */
+    /**
+     * Applique le score de pertinence et la clause de sélection à une requête.
+     *
+     * Extraite de `search()` le 25/08/2026 (mibeko-dashboard#50) pour que la
+     * recherche puisse s'exécuter en deux passages : une première fois sans
+     * rappel sémantique, une seconde avec s'il a fallu le rallumer. Les deux
+     * jeux de poids sont ceux d'avant, inchangés — seul leur moment d'emploi
+     * change.
+     *
+     * @param  Builder  $results
+     */
+    private function appliquerPertinence($results, string $query, ?string $embeddingString, string $sort): void
+    {
+        $orTsQuery = $this->formatTsQuery($query);
+        $articleNum = $query;
+        if (preg_match('/article\s+(\d+)/i', $query, $matches)) {
+            $articleNum = $matches[1];
+        }
+
+        $results->selectRaw("ts_rank(av.search_tsv, websearch_to_tsquery('french', ?)) as rank_score", [$query])
+            ->selectRaw('CASE WHEN ld.titre_officiel ILIKE ? THEN 1.0 ELSE 0.0 END as title_exact_match', ["%$query%"])
+            ->selectRaw('CASE WHEN a.numero_article = ? THEN 1.0 ELSE 0.0 END as article_num_match', [$articleNum]);
+
+        if ($embeddingString !== null) {
+            // Filet sémantique borné aux `semanticTopK` plus proches voisins
+            // (SearchesArticles::semanticCandidateIds), jamais un seuil de
+            // distance non borné : le seuil fixe précédent (< 0.5, alors que la
+            // distance maximale mesurée sur tout le corpus est ~0.30) faisait
+            // remonter la quasi-totalité des articles embeddés pour n'importe
+            // quelle requête. Cloné avant les selectRaw ci-dessous : ceux-ci ne
+            // comptent pas, semanticCandidateIds réinitialise le SELECT du clone.
+            $semanticIds = $this->semanticCandidateIds($results, $embeddingString);
+
+            $results->selectRaw('COALESCE(1 - (av.embedding <=> ?::vector), 0) as similarity_score', [$embeddingString])
+                ->selectRaw("
+                        (CASE WHEN ld.titre_officiel ILIKE ? THEN 0.4 ELSE 0.0 END) +
+                        (ts_rank(av.search_tsv, websearch_to_tsquery('french', ?)) * 0.3) +
+                        (CASE WHEN ? != '' THEN ts_rank(av.search_tsv, to_tsquery('french', ?)) * 0.1 ELSE 0.0 END) +
+                        (COALESCE(1 - (av.embedding <=> ?::vector), 0) * 0.2) +
+                        (CASE WHEN a.numero_article = ? THEN 0.2 ELSE 0.0 END)
+                        as total_score
+                    ", ["%$query%", $query, $orTsQuery, $orTsQuery, $embeddingString, $articleNum])
+                ->where(function ($q) use ($query, $orTsQuery, $articleNum, $semanticIds) {
+                    $q->whereRaw("av.search_tsv @@ websearch_to_tsquery('french', ?)", [$query]);
+                    if ($orTsQuery !== '') {
+                        $q->orWhereRaw("av.search_tsv @@ to_tsquery('french', ?)", [$orTsQuery]);
+                    }
+                    if (! empty($semanticIds)) {
+                        $q->orWhereIn('a.id', $semanticIds);
+                    }
+                    $q->orWhere('ld.titre_officiel', 'ILIKE', "%$query%")
+                        ->orWhere('a.numero_article', '=', $articleNum);
+                });
+        } else {
+            $results->selectRaw('0 as similarity_score')
+                ->selectRaw("
+                        (CASE WHEN ld.titre_officiel ILIKE ? THEN 0.5 ELSE 0.0 END) +
+                        (ts_rank(av.search_tsv, websearch_to_tsquery('french', ?)) * 0.4) +
+                        (CASE WHEN ? != '' THEN ts_rank(av.search_tsv, to_tsquery('french', ?)) * 0.2 ELSE 0.0 END) +
+                        (CASE WHEN a.numero_article = ? THEN 0.2 ELSE 0.0 END)
+                        as total_score
+                    ", ["%$query%", $query, $orTsQuery, $orTsQuery, $articleNum])
+                ->where(function ($q) use ($query, $orTsQuery, $articleNum) {
+                    $q->whereRaw("av.search_tsv @@ websearch_to_tsquery('french', ?)", [$query]);
+                    if ($orTsQuery !== '') {
+                        $q->orWhereRaw("av.search_tsv @@ to_tsquery('french', ?)", [$orTsQuery]);
+                    }
+                    $q->orWhere('ld.titre_officiel', 'ILIKE', "%$query%")
+                        ->orWhere('a.numero_article', '=', $articleNum);
+                });
+        }
+
+        if ($sort === 'date_desc') {
+            $results->orderByDesc('ld.date_publication');
+        } elseif ($sort === 'date_asc') {
+            $results->orderBy('ld.date_publication');
+        } else {
+            $results->orderByDesc('total_score');
+        }
+    }
+
     public function search(Request $request): JsonResponse
     {
         $request->validate([
@@ -170,92 +252,45 @@ class ArticleSearchController extends Controller
             $results->where('ld.type_code', $type);
         }
 
+        $perPage = $request->integer('per_page', 20);
+
         if (! empty($query)) {
-            $embeddingString = null;
-            try {
-                if (strlen($query) > 2) {
-                    $embedding = Str::of($query)->toEmbeddings();
+            // Les filtres sont posés, le scoring ne l'est pas encore : ce clone
+            // sert de point de reprise si le second passage devient nécessaire.
+            $sansScoring = clone $results;
+
+            // Premier passage : lexical seul. Générer l'embedding coûte un appel
+            // réseau que payait jusqu'ici CHAQUE recherche, y compris celles que
+            // le plein-texte satisfait déjà — mesuré sur api.mibeko.fr le
+            // 25/08/2026, c'est ce qui faisait osciller cette route entre 0,6 s
+            // (embedding en cache) et 3,7 s (requête neuve).
+            $this->appliquerPertinence($results, $query, null, $sort);
+            $paginator = $results->paginate($perPage);
+
+            // Le lexical a échoué : c'est le cas pour lequel le rappel
+            // conceptuel existe (« héritage » ↔ « succession »). On paie
+            // l'embedding là, et là seulement.
+            if ($paginator->total() < $this->rappelSuffisant && strlen($query) > 2) {
+                $embeddingString = null;
+                try {
+                    $embedding = Str::of($query)->toEmbeddings(cache: true);
                     if (! empty($embedding)) {
                         $embeddingString = '['.implode(',', $embedding).']';
                     }
+                } catch (\Exception $e) {
+                    Log::warning('Erreur lors de la génération de l\'embedding (fallback sur la recherche textuelle): '.$e->getMessage());
                 }
-            } catch (\Exception $e) {
-                Log::warning('Erreur lors de la génération de l\'embedding (fallback sur la recherche textuelle): '.$e->getMessage());
-            }
 
-            $orTsQuery = $this->formatTsQuery($query);
-            $articleNum = $query;
-            if (preg_match('/article\s+(\d+)/i', $query, $matches)) {
-                $articleNum = $matches[1];
-            }
-
-            $results->selectRaw("ts_rank(av.search_tsv, websearch_to_tsquery('french', ?)) as rank_score", [$query])
-                ->selectRaw('CASE WHEN ld.titre_officiel ILIKE ? THEN 1.0 ELSE 0.0 END as title_exact_match', ["%$query%"])
-                ->selectRaw('CASE WHEN a.numero_article = ? THEN 1.0 ELSE 0.0 END as article_num_match', [$articleNum]);
-
-            if ($embeddingString) {
-                // Filet sémantique borné aux `semanticTopK` plus proches voisins
-                // (SearchesArticles::semanticCandidateIds), jamais un seuil de
-                // distance non borné : le seuil fixe précédent (< 0.5, alors que
-                // la distance maximale mesurée sur tout le corpus est ~0.30)
-                // faisait remonter la quasi-totalité des articles embeddés pour
-                // n'importe quelle requête. Cloné avant les selectRaw ci-dessous :
-                // ceux-ci ne comptent pas, semanticCandidateIds réinitialise le
-                // SELECT du clone (voir sa docblock).
-                $semanticIds = $this->semanticCandidateIds($results, $embeddingString);
-
-                $results->selectRaw('COALESCE(1 - (av.embedding <=> ?::vector), 0) as similarity_score', [$embeddingString])
-                    ->selectRaw("
-                        (CASE WHEN ld.titre_officiel ILIKE ? THEN 0.4 ELSE 0.0 END) +
-                        (ts_rank(av.search_tsv, websearch_to_tsquery('french', ?)) * 0.3) +
-                        (CASE WHEN ? != '' THEN ts_rank(av.search_tsv, to_tsquery('french', ?)) * 0.1 ELSE 0.0 END) +
-                        (COALESCE(1 - (av.embedding <=> ?::vector), 0) * 0.2) +
-                        (CASE WHEN a.numero_article = ? THEN 0.2 ELSE 0.0 END)
-                        as total_score
-                    ", ["%$query%", $query, $orTsQuery, $orTsQuery, $embeddingString, $articleNum])
-                    ->where(function ($q) use ($query, $orTsQuery, $articleNum, $semanticIds) {
-                        $q->whereRaw("av.search_tsv @@ websearch_to_tsquery('french', ?)", [$query]);
-                        if ($orTsQuery !== '') {
-                            $q->orWhereRaw("av.search_tsv @@ to_tsquery('french', ?)", [$orTsQuery]);
-                        }
-                        if (! empty($semanticIds)) {
-                            $q->orWhereIn('a.id', $semanticIds);
-                        }
-                        $q->orWhere('ld.titre_officiel', 'ILIKE', "%$query%")
-                            ->orWhere('a.numero_article', '=', $articleNum);
-                    });
-            } else {
-                $results->selectRaw('0 as similarity_score')
-                    ->selectRaw("
-                        (CASE WHEN ld.titre_officiel ILIKE ? THEN 0.5 ELSE 0.0 END) +
-                        (ts_rank(av.search_tsv, websearch_to_tsquery('french', ?)) * 0.4) +
-                        (CASE WHEN ? != '' THEN ts_rank(av.search_tsv, to_tsquery('french', ?)) * 0.2 ELSE 0.0 END) +
-                        (CASE WHEN a.numero_article = ? THEN 0.2 ELSE 0.0 END)
-                        as total_score
-                    ", ["%$query%", $query, $orTsQuery, $orTsQuery, $articleNum])
-                    ->where(function ($q) use ($query, $orTsQuery, $articleNum) {
-                        $q->whereRaw("av.search_tsv @@ websearch_to_tsquery('french', ?)", [$query]);
-                        if ($orTsQuery !== '') {
-                            $q->orWhereRaw("av.search_tsv @@ to_tsquery('french', ?)", [$orTsQuery]);
-                        }
-                        $q->orWhere('ld.titre_officiel', 'ILIKE', "%$query%")
-                            ->orWhere('a.numero_article', '=', $articleNum);
-                    });
-            }
-
-            // Tri : pertinence (défaut) ou par date de publication.
-            if ($sort === 'date_desc') {
-                $results->orderByDesc('ld.date_publication');
-            } elseif ($sort === 'date_asc') {
-                $results->orderBy('ld.date_publication');
-            } else {
-                $results->orderByDesc('total_score');
+                if ($embeddingString !== null) {
+                    $avecSemantique = $sansScoring;
+                    $this->appliquerPertinence($avecSemantique, $query, $embeddingString, $sort);
+                    $paginator = $avecSemantique->paginate($perPage);
+                }
             }
         } else {
             $results->orderBy('a.ordre_affichage');
+            $paginator = $results->paginate($perPage);
         }
-
-        $paginator = $results->paginate($request->integer('per_page', 20));
 
         $paginator->getCollection()->transform(function ($item) {
             // Build breadcrumb: DocumentType > DocumentTitle > NodeTitle

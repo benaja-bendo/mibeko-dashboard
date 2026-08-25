@@ -250,3 +250,52 @@ it('renvoie 404 pour un contexte d\'article inconnu', function () {
     $this->getJson('/api/v1/articles/'.Str::uuid().'/context')
         ->assertStatus(404);
 });
+
+it('ne génère pas d’embedding quand le lexical suffit déjà', function () {
+    // Générer l'embedding de la requête est un appel réseau que cette route
+    // payait à CHAQUE recherche, y compris celles que le plein-texte satisfait
+    // déjà : c'est ce qui la faisait osciller entre 0,6 s et 3,7 s en
+    // production (mesuré le 25/08/2026, mibeko-dashboard#50).
+    $doc = LegalDocument::factory()->create([
+        'type_code' => 'LOI',
+        'titre_officiel' => 'Loi sur le bail commercial',
+        'curation_status' => 'published',
+    ]);
+
+    // Au-delà de `rappelSuffisant` (10) : le lexical se suffit à lui-même.
+    for ($i = 1; $i <= 12; $i++) {
+        $article = Article::factory()->create(['document_id' => $doc->id, 'numero_article' => (string) $i]);
+        ArticleVersion::factory()->create([
+            'article_id' => $article->id,
+            'contenu_texte' => "Le preneur du bail commercial jouit du local loué, disposition numéro {$i}.",
+            'validity_period' => '[2020-01-01,)',
+        ]);
+    }
+
+    $appels = 0;
+    Embeddings::fake(function () use (&$appels) {
+        $appels++;
+
+        return [array_fill(0, 1024, 0.1)];
+    });
+
+    $this->getJson('/api/v1/search?q='.urlencode('bail commercial'))
+        ->assertStatus(200)
+        ->assertJsonPath('pagination.total', 12);
+
+    expect($appels)->toBe(0);
+});
+
+it('génère l’embedding quand le lexical ne trouve presque rien', function () {
+    // Cas inverse : aucun recoupement lexical, le rappel conceptuel doit jouer.
+    $appels = 0;
+    Embeddings::fake(function () use (&$appels) {
+        $appels++;
+
+        return [array_fill(0, 1024, 0.1)];
+    });
+
+    $this->getJson('/api/v1/search?q='.urlencode('zzzqxwv introuvable'))->assertStatus(200);
+
+    expect($appels)->toBeGreaterThan(0);
+});
