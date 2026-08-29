@@ -7,6 +7,7 @@ use App\Models\LegalDocument;
 use App\Models\MediaFile;
 use App\Models\StructureNode;
 use App\Models\User;
+use App\Services\PublishedDocumentExtractionRepairService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Routing\Middleware\ThrottleRequests;
 use Illuminate\Support\Facades\DB;
@@ -138,14 +139,20 @@ beforeEach(function () {
 function snapshotPublishedExtraction(object $test): array
 {
     return $test->actingAs($test->admin)
-        ->getJson("/api/v1/admin/legal-documents/{$test->document->id}/extraction-snapshot")
+        ->getJson("/api/v1/legal-documents/{$test->document->id}/extraction-snapshot")
         ->assertOk()
         ->json('data');
 }
 
-function repairPayload(object $test, string $fingerprint, bool $execute, ?array $target = null): array
-{
+function repairPayload(
+    object $test,
+    string $fingerprint,
+    bool $execute,
+    ?array $target = null,
+    ?int $confirmDeletions = null,
+): array {
     return [
+        ...($confirmDeletions === null ? [] : ['confirm_deletions' => $confirmDeletions]),
         'execute' => $execute,
         'expected_fingerprint' => $fingerprint,
         'motif' => 'Reconstruction contrôlée contre le PDF source officiel.',
@@ -153,8 +160,8 @@ function repairPayload(object $test, string $fingerprint, bool $execute, ?array 
     ];
 }
 
-it('réserve le snapshot et la réparation aux administrateurs', function () {
-    $url = "/api/v1/admin/legal-documents/{$this->document->id}/extraction-snapshot";
+it('réserve à l administrateur un document déjà publié, et ferme le canal aux non éditeurs', function () {
+    $url = "/api/v1/legal-documents/{$this->document->id}/extraction-snapshot";
 
     $this->getJson($url)->assertUnauthorized();
     $this->actingAs($this->pro)->getJson($url)->assertForbidden();
@@ -167,7 +174,7 @@ it('produit un dry-run exact sans aucune écriture', function () {
 
     $this->actingAs($this->admin)
         ->postJson(
-            "/api/v1/admin/legal-documents/{$this->document->id}/replace-extraction",
+            "/api/v1/legal-documents/{$this->document->id}/replace-extraction",
             repairPayload($this, $snapshot['expected_fingerprint'], false),
         )
         ->assertOk()
@@ -191,8 +198,8 @@ it('remplace atomiquement l extraction publiée et conserve les identités et la
 
     $response = $this->actingAs($this->admin)
         ->postJson(
-            "/api/v1/admin/legal-documents/{$this->document->id}/replace-extraction",
-            repairPayload($this, $snapshot['expected_fingerprint'], true),
+            "/api/v1/legal-documents/{$this->document->id}/replace-extraction",
+            repairPayload($this, $snapshot['expected_fingerprint'], true, null, 1),
         )
         ->assertOk()
         ->assertJsonPath('data.executed', true)
@@ -236,8 +243,8 @@ it('répare un document temporairement retiré sans le republier implicitement',
 
     $this->actingAs($this->admin)
         ->postJson(
-            "/api/v1/admin/legal-documents/{$this->document->id}/replace-extraction",
-            repairPayload($this, $snapshot['expected_fingerprint'], true),
+            "/api/v1/legal-documents/{$this->document->id}/replace-extraction",
+            repairPayload($this, $snapshot['expected_fingerprint'], true, null, 1),
         )
         ->assertOk()
         ->assertJsonPath('data.executed', true)
@@ -248,22 +255,79 @@ it('répare un document temporairement retiré sans le republier implicitement',
     Queue::assertNotPushed(GenerateDocumentExportPdfJob::class);
 });
 
-it('refuse ce canal à un brouillon qui n a jamais été publié', function () {
-    $snapshot = snapshotPublishedExtraction($this);
-    $this->document->audits()->delete();
+function demoteToNeverPublished(object $test, string $status): void
+{
+    $test->document->audits()->delete();
     DB::table('legal_documents')
-        ->where('id', $this->document->id)
-        ->update(['curation_status' => LegalDocument::STATUS_DRAFT]);
-    $this->document->refresh();
+        ->where('id', $test->document->id)
+        ->update(['curation_status' => $status]);
+    $test->document->refresh();
+
+    expect($test->document->hasEverBeenPublished())->toBeFalse();
+}
+
+it('ouvre le canal à un éditeur sur un document jamais publié', function () {
+    $snapshot = snapshotPublishedExtraction($this);
+    demoteToNeverPublished($this, LegalDocument::STATUS_DRAFT);
+
+    $url = "/api/v1/legal-documents/{$this->document->id}";
+
+    $this->actingAs($this->editor)->getJson("{$url}/extraction-snapshot")->assertOk();
+
+    $this->actingAs($this->editor)
+        ->postJson(
+            "{$url}/replace-extraction",
+            repairPayload($this, $snapshot['expected_fingerprint'], true, null, 1),
+        )
+        ->assertOk()
+        ->assertJsonPath('data.executed', true);
+
+    // Un brouillon ne se fait pas promouvoir en revue par un import.
+    expect($this->document->fresh()->curation_status)->toBe(LegalDocument::STATUS_DRAFT);
+});
+
+it('ramène en revue un document validé et remet en attente les articles corrigés', function () {
+    $snapshot = snapshotPublishedExtraction($this);
+    demoteToNeverPublished($this, LegalDocument::STATUS_VALIDATED);
+
+    DB::table('articles')->where('document_id', $this->document->id)->update(['validation_status' => 'validated']);
+    DB::table('article_versions')
+        ->whereIn('article_id', [$this->article1->id, $this->article2->id])
+        ->update(['validation_status' => 'validated']);
+
+    $this->actingAs($this->editor)
+        ->postJson(
+            "/api/v1/legal-documents/{$this->document->id}/replace-extraction",
+            repairPayload($this, $snapshot['expected_fingerprint'], true, null, 1),
+        )
+        ->assertOk();
+
+    $article1 = Article::findOrFail($this->article1->id);
+    $article2 = Article::findOrFail($this->article2->id);
+
+    expect($this->document->fresh()->curation_status)->toBe(LegalDocument::STATUS_REVIEW)
+        // L'article 1 change de texte : il repart en attente de relecture.
+        ->and($article1->validation_status)->toBe('pending')
+        ->and($article1->activeVersion()->firstOrFail()->validation_status)->toBe('pending')
+        // L'article 2 est identique dans la cible : rien ne justifie de le déclasser.
+        ->and($article2->validation_status)->toBe('validated');
+});
+
+it('laisse intact le statut de validation des articles d un document publié', function () {
+    $snapshot = snapshotPublishedExtraction($this);
+    DB::table('articles')->where('document_id', $this->document->id)->update(['validation_status' => 'validated']);
 
     $this->actingAs($this->admin)
         ->postJson(
-            "/api/v1/admin/legal-documents/{$this->document->id}/replace-extraction",
-            repairPayload($this, $snapshot['expected_fingerprint'], false),
+            "/api/v1/legal-documents/{$this->document->id}/replace-extraction",
+            repairPayload($this, $snapshot['expected_fingerprint'], true, null, 1),
         )
-        ->assertConflict();
+        ->assertOk();
 
-    expect($this->document->hasEverBeenPublished())->toBeFalse();
+    // `validation_status` conditionne la visibilité publique : un remplacement
+    // d'extraction ne doit pas faire disparaître un article du corpus publié.
+    expect(Article::findOrFail($this->article1->id)->validation_status)->toBe('validated')
+        ->and($this->document->fresh()->curation_status)->toBe(LegalDocument::STATUS_PUBLISHED);
 });
 
 it('valide la cible figée de reconstruction de l arrêté 3277', function () {
@@ -276,7 +340,7 @@ it('valide la cible figée de reconstruction de l arrêté 3277', function () {
 
     $this->actingAs($this->admin)
         ->postJson(
-            "/api/v1/admin/legal-documents/{$this->document->id}/replace-extraction",
+            "/api/v1/legal-documents/{$this->document->id}/replace-extraction",
             repairPayload($this, $snapshot['expected_fingerprint'], false, $target),
         )
         ->assertOk()
@@ -289,14 +353,14 @@ it('valide la cible figée de reconstruction de l arrêté 3277', function () {
 it('réutilise le snapshot comme retour arrière complet', function () {
     $originalSnapshot = snapshotPublishedExtraction($this);
     $execute = $this->actingAs($this->admin)->postJson(
-        "/api/v1/admin/legal-documents/{$this->document->id}/replace-extraction",
-        repairPayload($this, $originalSnapshot['expected_fingerprint'], true),
+        "/api/v1/legal-documents/{$this->document->id}/replace-extraction",
+        repairPayload($this, $originalSnapshot['expected_fingerprint'], true, null, 1),
     )->assertOk();
     $newNodeId = StructureNode::where('document_id', $this->document->id)->sole()->id;
 
     $this->actingAs($this->admin)
         ->postJson(
-            "/api/v1/admin/legal-documents/{$this->document->id}/replace-extraction",
+            "/api/v1/legal-documents/{$this->document->id}/replace-extraction",
             repairPayload(
                 $this,
                 $execute->json('data.after_fingerprint'),
@@ -323,8 +387,8 @@ it('annule avant écriture si l empreinte préparatoire ne correspond plus', fun
 
     $this->actingAs($this->admin)
         ->postJson(
-            "/api/v1/admin/legal-documents/{$this->document->id}/replace-extraction",
-            repairPayload($this, $snapshot['expected_fingerprint'], true),
+            "/api/v1/legal-documents/{$this->document->id}/replace-extraction",
+            repairPayload($this, $snapshot['expected_fingerprint'], true, null, 1),
         )
         ->assertConflict();
 
@@ -343,4 +407,161 @@ it('soft-delete désormais une branche de structure et ses articles', function (
         ->and(Article::where('document_id', $this->document->id)->count())->toBe(0)
         ->and(Article::onlyTrashed()->where('document_id', $this->document->id)->count())->toBe(3)
         ->and(ArticleVersion::whereIn('article_id', [$this->article1->id, $this->article2->id, $this->fakeArticle->id])->count())->toBe(3);
+});
+
+it('annonce une renumérotation à identifiant conservé comme une correction, jamais comme une suppression', function () {
+    $snapshot = snapshotPublishedExtraction($this);
+    $target = $snapshot['target'];
+
+    // Cas réel : un numéro mal océrisé est corrigé et une division retitrée,
+    // les deux en conservant leur identifiant. Rien n'est retiré du document.
+    $target['articles'] = array_map(function (array $article): array {
+        if ($article['number'] === '1') {
+            $article['number'] = '1 bis';
+        }
+
+        return $article;
+    }, $target['articles']);
+    $target['nodes'][0]['title'] = 'Livre fidèle au PDF';
+
+    $this->actingAs($this->admin)
+        ->postJson(
+            "/api/v1/legal-documents/{$this->document->id}/replace-extraction",
+            repairPayload($this, $snapshot['expected_fingerprint'], false, $target),
+        )
+        ->assertOk()
+        ->assertJsonPath('data.plan.nodes_soft_deleted', 0)
+        ->assertJsonPath('data.plan.articles_soft_deleted', 0)
+        ->assertJsonPath('data.plan.articles_added_or_restored', 0)
+        ->assertJsonPath('data.plan.article_contents_updated', 0)
+        ->assertJsonPath('data.plan.article_locators_updated', 0);
+});
+
+it('annonce dans le plan exactement ce que l exécution réalise', function () {
+    $snapshot = snapshotPublishedExtraction($this);
+
+    $response = $this->actingAs($this->admin)
+        ->postJson(
+            "/api/v1/legal-documents/{$this->document->id}/replace-extraction",
+            repairPayload($this, $snapshot['expected_fingerprint'], true, null, 1),
+        )
+        ->assertOk();
+
+    $plan = $response->json('data.plan');
+    $actual = $response->json('data.actual');
+
+    expect($actual['nodes_soft_deleted'])->toBe($plan['nodes_soft_deleted'])
+        ->and($actual['articles_soft_deleted'])->toBe($plan['articles_soft_deleted'])
+        ->and($actual['article_contents_updated'])->toBe($plan['article_contents_updated'])
+        ->and($actual['article_locators_updated'])->toBe($plan['article_locators_updated'])
+        ->and($actual['articles_created'] + $actual['articles_restored'])
+        ->toBe($plan['articles_added_or_restored']);
+});
+
+it('refuse aujourd hui d appliquer une renumérotation à identifiant conservé, sans rien abîmer', function () {
+    // Limite connue : `applyTarget` n'écrit `numero_article` qu'à la création.
+    // Renuméroter un article existant laisse donc la base sur l'ancien numéro,
+    // la vérification sémantique le détecte et la transaction est annulée.
+    // Ce test verrouille l'innocuité de ce refus ; il tombera — et devra être
+    // réécrit en test de succès — quand la renumérotation sera implémentée.
+    $snapshot = snapshotPublishedExtraction($this);
+    $target = $snapshot['target'];
+    $target['articles'] = array_map(function (array $article): array {
+        if ($article['number'] === '1') {
+            $article['number'] = '1 bis';
+        }
+
+        return $article;
+    }, $target['articles']);
+
+    $service = app(PublishedDocumentExtractionRepairService::class);
+
+    expect(fn () => $service->execute(
+        $this->document,
+        $target,
+        $snapshot['expected_fingerprint'],
+        'Reconstruction contrôlée contre le PDF source officiel.',
+        (string) $this->admin->id,
+    ))->toThrow(LogicException::class);
+
+    $article1 = Article::findOrFail($this->article1->id);
+
+    expect($article1->numero_article)->toBe('1')
+        ->and($article1->deleted_at)->toBeNull()
+        ->and(Article::onlyTrashed()->where('document_id', $this->document->id)->count())->toBe(0)
+        ->and($this->document->fresh()->metadata['extraction_repairs'] ?? [])->toBe([]);
+});
+
+it('bloque une cible qui retire des articles tant que le nombre n est pas confirmé', function () {
+    $snapshot = snapshotPublishedExtraction($this);
+    $url = "/api/v1/legal-documents/{$this->document->id}/replace-extraction";
+
+    // La cible par défaut abandonne le faux article : c'est un retrait.
+    $this->actingAs($this->admin)
+        ->postJson($url, repairPayload($this, $snapshot['expected_fingerprint'], false))
+        ->assertOk()
+        ->assertJsonPath('data.plan.articles_soft_deleted', 1);
+
+    $this->actingAs($this->admin)
+        ->postJson($url, repairPayload($this, $snapshot['expected_fingerprint'], true))
+        ->assertConflict();
+
+    // Un nombre confirmé qui ne correspond pas ne vaut pas confirmation.
+    $this->actingAs($this->admin)
+        ->postJson($url, [...repairPayload($this, $snapshot['expected_fingerprint'], true, null, 1), 'confirm_deletions' => 3])
+        ->assertConflict();
+
+    expect(Article::onlyTrashed()->where('document_id', $this->document->id)->count())->toBe(0);
+
+    $this->actingAs($this->admin)
+        ->postJson($url, [...repairPayload($this, $snapshot['expected_fingerprint'], true, null, 1), 'confirm_deletions' => 1])
+        ->assertOk()
+        ->assertJsonPath('data.actual.articles_soft_deleted', 1);
+});
+
+it('applique sans confirmation une cible qui ne retire rien', function () {
+    $snapshot = snapshotPublishedExtraction($this);
+    $target = $snapshot['target'];
+    $target['articles'][0]['content'] = 'Texte juridique complet et propre, relu contre le PDF.';
+
+    $this->actingAs($this->admin)
+        ->postJson(
+            "/api/v1/legal-documents/{$this->document->id}/replace-extraction",
+            repairPayload($this, $snapshot['expected_fingerprint'], true, $target),
+        )
+        ->assertOk()
+        ->assertJsonPath('data.actual.articles_soft_deleted', 0);
+});
+
+it('signale un article vidé ou raccourci de moitié sans bloquer', function () {
+    // Un article long, pour dépasser le plancher sous lequel une proportion ne
+    // veut rien dire.
+    $long = str_repeat('Disposition juridique de référence. ', 20);
+    DB::table('article_versions')
+        ->where('article_id', $this->article2->id)
+        ->update(['contenu_texte' => $long]);
+
+    $snapshot = snapshotPublishedExtraction($this);
+    $target = $snapshot['target'];
+    $target['articles'] = array_map(function (array $article) use ($long): array {
+        if ($article['number'] === '2') {
+            $article['content'] = mb_substr($long, 0, 100);
+        }
+
+        return $article;
+    }, $target['articles']);
+
+    $response = $this->actingAs($this->admin)
+        ->postJson(
+            "/api/v1/legal-documents/{$this->document->id}/replace-extraction",
+            repairPayload($this, $snapshot['expected_fingerprint'], false, $target),
+        )
+        ->assertOk();
+
+    $warnings = collect($response->json('data.warnings'));
+
+    expect($warnings)->toHaveCount(1)
+        ->and($warnings->first()['number'])->toBe('2')
+        ->and($warnings->first()['kind'])->toBe('contenu_raccourci')
+        ->and($warnings->first()['characters_after'])->toBe(100);
 });

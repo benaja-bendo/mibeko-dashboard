@@ -30,6 +30,20 @@ use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
 class PublishedDocumentExtractionRepairService
 {
     /**
+     * Un article qui perd plus de la moitié de son texte est signalé à
+     * l'arbitrage humain. Seuil provisoire, non calibré sur le corpus réel :
+     * il alerte, il ne refuse jamais — un article réellement raccourci par la
+     * source doit rester applicable.
+     */
+    private const SHRINK_RATIO = 0.5;
+
+    /**
+     * En deçà, la proportion ne veut rien dire : un article de trois lignes qui
+     * en perd deux est du bruit, pas un signal de troncature.
+     */
+    private const SHRINK_FLOOR = 200;
+
+    /**
      * @return array<string, mixed>
      */
     public function snapshot(LegalDocument $document): array
@@ -60,7 +74,6 @@ class PublishedDocumentExtractionRepairService
         array $target,
         string $expectedFingerprint,
     ): array {
-        $this->assertAlreadyPublished($document);
         $normalizedTarget = $this->normalizeAndValidateTarget($document, $target);
         $this->assertSourcePdf($document, $normalizedTarget['source_pdf']['sha256']);
 
@@ -80,6 +93,7 @@ class PublishedDocumentExtractionRepairService
             'before_fingerprint' => $current['expected_fingerprint'],
             'target_semantic_fingerprint' => $targetSemantic,
             'plan' => $this->buildPlan($current['target'], $normalizedTarget),
+            'warnings' => $this->buildWarnings($current['target'], $normalizedTarget),
         ];
     }
 
@@ -93,6 +107,7 @@ class PublishedDocumentExtractionRepairService
         string $expectedFingerprint,
         string $motif,
         string $userId,
+        ?int $confirmedDeletions = null,
     ): array {
         $normalizedTarget = $this->normalizeAndValidateTarget($document, $target);
 
@@ -102,10 +117,16 @@ class PublishedDocumentExtractionRepairService
             $expectedFingerprint,
             $motif,
             $userId,
+            $confirmedDeletions,
         ): array {
             $lockedDocument = LegalDocument::query()->lockForUpdate()->findOrFail($document->id);
-            $this->assertAlreadyPublished($lockedDocument);
             $this->assertSourcePdf($lockedDocument, $normalizedTarget['source_pdf']['sha256']);
+
+            // Un document jamais publié est en cours de curation : une proposition
+            // qu'on y applique n'a été relue par personne, elle repart donc en
+            // attente. Sur un document publié, au contraire, `validation_status`
+            // conditionne la visibilité publique — on n'y touche pas.
+            $neverPublished = ! $lockedDocument->hasEverBeenPublished();
 
             $current = $this->snapshot($lockedDocument);
             $targetSemantic = $this->semanticFingerprint($normalizedTarget);
@@ -118,6 +139,7 @@ class PublishedDocumentExtractionRepairService
                     'after_fingerprint' => $current['expected_fingerprint'],
                     'semantic_fingerprint' => $current['semantic_fingerprint'],
                     'plan' => $this->buildPlan($current['target'], $normalizedTarget),
+                    'warnings' => [],
                 ];
             }
 
@@ -128,6 +150,8 @@ class PublishedDocumentExtractionRepairService
             }
 
             $plan = $this->buildPlan($current['target'], $normalizedTarget);
+            $this->assertDeletionsConfirmed($plan, $confirmedDeletions);
+            $warnings = $this->buildWarnings($current['target'], $normalizedTarget);
             $operationId = (string) Str::uuid();
             $previousSkipWarmup = LegalDocumentObserver::$shouldSkipExportPdfWarmup;
 
@@ -138,7 +162,7 @@ class PublishedDocumentExtractionRepairService
                 // hydrater simultanément plusieurs milliers de modèles Eloquent,
                 // leurs versions et leurs audits dépasse la limite mémoire de
                 // production. L'unique audit métier est porté par le document.
-                $actual = $this->applyTarget($lockedDocument, $normalizedTarget);
+                $actual = $this->applyTarget($lockedDocument, $normalizedTarget, $neverPublished);
 
                 $after = $this->snapshot($lockedDocument);
                 if (! hash_equals($targetSemantic, $after['semantic_fingerprint'])) {
@@ -160,7 +184,11 @@ class PublishedDocumentExtractionRepairService
                     'counts' => $actual,
                 ];
                 $metadata['extraction_repairs'] = $history;
-                $lockedDocument->update(['metadata' => $metadata]);
+                $documentUpdates = ['metadata' => $metadata];
+                if ($neverPublished && $lockedDocument->curation_status === LegalDocument::STATUS_VALIDATED) {
+                    $documentUpdates['curation_status'] = LegalDocument::STATUS_REVIEW;
+                }
+                $lockedDocument->update($documentUpdates);
             } finally {
                 LegalDocumentObserver::$shouldSkipExportPdfWarmup = $previousSkipWarmup;
             }
@@ -185,6 +213,7 @@ class PublishedDocumentExtractionRepairService
                 'after_fingerprint' => $after['expected_fingerprint'],
                 'semantic_fingerprint' => $after['semantic_fingerprint'],
                 'plan' => $plan,
+                'warnings' => $warnings,
                 'actual' => $actual,
             ];
         }, 3);
@@ -287,15 +316,6 @@ class PublishedDocumentExtractionRepairService
             'nodes' => $nodes,
             'articles' => $articles,
         ];
-    }
-
-    private function assertAlreadyPublished(LegalDocument $document): void
-    {
-        if (! $document->hasEverBeenPublished()) {
-            throw new ConflictHttpException(
-                'Ce canal est réservé à la réparation d’un document publié ou temporairement retiré du public.'
-            );
-        }
     }
 
     private function assertSourcePdf(LegalDocument $document, string $sha256): void
@@ -493,27 +513,140 @@ class PublishedDocumentExtractionRepairService
      * @param  array<string, mixed>  $target
      * @return array<string, int>
      */
-    private function buildPlan(array $current, array $target): array
+    /**
+     * Apparie chaque article de la cible à son article courant, exactement comme
+     * `applyTarget` le résout : par `id` quand la cible en fournit un, par numéro
+     * sinon. Un `id` fourni mais inconnu ne se replie pas sur le numéro — dans ce
+     * cas l'application crée un article neuf et retire l'ancien.
+     *
+     * Le plan et les alertes lisent tous deux cet appariement, pour qu'ils ne
+     * puissent jamais raconter deux histoires différentes de la même cible.
+     *
+     * @param  array<string, mixed>  $current
+     * @param  array<string, mixed>  $target
+     * @return list<array{target: array<string, mixed>, current: array<string, mixed>|null}>
+     */
+    private function matchArticles(array $current, array $target): array
     {
+        $currentById = collect($current['articles'])->keyBy('id');
         $currentByNumber = collect($current['articles'])->keyBy('number');
-        $targetByNumber = collect($target['articles'])->keyBy('number');
-        $contentChanges = 0;
-        $locatorChanges = 0;
 
-        foreach ($targetByNumber as $number => $article) {
-            $existing = $currentByNumber->get($number);
+        return collect($target['articles'])
+            ->map(function (array $article) use ($currentById, $currentByNumber): array {
+                $requestedId = $article['id'] ?? null;
+
+                return [
+                    'target' => $article,
+                    'current' => $requestedId
+                        ? $currentById->get($requestedId)
+                        : $currentByNumber->get($article['number']),
+                ];
+            })
+            ->all();
+    }
+
+    /**
+     * Signaux destinés à l'œil humain qui arbitre : ils accompagnent le plan,
+     * ils ne bloquent rien. Seule la disparition d'articles bloque, parce
+     * qu'elle est irréversible du point de vue de l'éditeur qui valide.
+     *
+     * @param  array<string, mixed>  $current
+     * @param  array<string, mixed>  $target
+     * @return list<array{number: string, kind: string, characters_before: int, characters_after: int}>
+     */
+    private function buildWarnings(array $current, array $target): array
+    {
+        $warnings = [];
+
+        foreach ($this->matchArticles($current, $target) as $pair) {
+            ['target' => $article, 'current' => $existing] = $pair;
             if (! $existing) {
                 continue;
             }
+
+            $before = mb_strlen($existing['content']);
+            $after = mb_strlen($article['content']);
+            if ($before === $after) {
+                continue;
+            }
+
+            $kind = null;
+            if ($before > 0 && trim($article['content']) === '') {
+                $kind = 'contenu_vide';
+            } elseif ($before >= self::SHRINK_FLOOR && $after < $before * self::SHRINK_RATIO) {
+                $kind = 'contenu_raccourci';
+            }
+
+            if ($kind !== null) {
+                $warnings[] = [
+                    'number' => $article['number'],
+                    'kind' => $kind,
+                    'characters_before' => $before,
+                    'characters_after' => $after,
+                ];
+            }
+        }
+
+        return $warnings;
+    }
+
+    /**
+     * Une disparition d'articles ne s'applique jamais en silence. Une réponse
+     * d'IA tronquée se présente exactement comme une suppression délibérée :
+     * seul un humain peut les distinguer, et il doit le faire en connaissant
+     * le nombre exact — d'où la confirmation chiffrée plutôt qu'un simple
+     * booléen, qu'on coche sans lire.
+     *
+     * @param  array<string, int>  $plan
+     */
+    private function assertDeletionsConfirmed(array $plan, ?int $confirmedDeletions): void
+    {
+        $announced = $plan['articles_soft_deleted'];
+        if ($announced === 0 || $confirmedDeletions === $announced) {
+            return;
+        }
+
+        throw new ConflictHttpException(sprintf(
+            'Cette cible retire %d article(s) du document. Confirmer explicitement ce nombre pour appliquer.',
+            $announced,
+        ));
+    }
+
+    private function buildPlan(array $current, array $target): array
+    {
+        $currentArticles = collect($current['articles']);
+
+        $matchedArticleIds = [];
+        $addedOrRestored = 0;
+        $contentChanges = 0;
+        $locatorChanges = 0;
+
+        foreach ($this->matchArticles($current, $target) as $pair) {
+            ['target' => $article, 'current' => $existing] = $pair;
+
+            if (! $existing) {
+                $addedOrRestored++;
+
+                continue;
+            }
+
+            $matchedArticleIds[$existing['id']] = true;
             $contentChanges += $existing['content'] !== $article['content'] ? 1 : 0;
             $locatorChanges += $this->canonicalize($existing['source_locator']) !== $this->canonicalize($article['source_locator']) ? 1 : 0;
         }
 
+        // Une division dont la cible reprend l'`id` est réemployée, pas retirée.
+        $targetNodeIds = collect($target['nodes'])->pluck('id')->filter()->flip();
+
         return [
-            'nodes_soft_deleted' => count($current['nodes']),
+            'nodes_soft_deleted' => collect($current['nodes'])
+                ->reject(fn (array $node): bool => $targetNodeIds->has($node['id']))
+                ->count(),
             'nodes_target' => count($target['nodes']),
-            'articles_soft_deleted' => $currentByNumber->keys()->diff($targetByNumber->keys())->count(),
-            'articles_added_or_restored' => $targetByNumber->keys()->diff($currentByNumber->keys())->count(),
+            'articles_soft_deleted' => $currentArticles
+                ->reject(fn (array $article): bool => isset($matchedArticleIds[$article['id']]))
+                ->count(),
+            'articles_added_or_restored' => $addedOrRestored,
             'articles_reparented_and_reordered' => count($target['articles']),
             'article_contents_updated' => $contentChanges,
             'article_locators_updated' => $locatorChanges,
@@ -525,7 +658,7 @@ class PublishedDocumentExtractionRepairService
      * @param  array<string, mixed>  $target
      * @return array<string, int>
      */
-    private function applyTarget(LegalDocument $document, array $target): array
+    private function applyTarget(LegalDocument $document, array $target, bool $demoteToPending): array
     {
         $liveNodeIdsBefore = DB::table('structure_nodes')
             ->where('document_id', $document->id)
@@ -714,16 +847,23 @@ class PublishedDocumentExtractionRepairService
                     $updates['source_locator'] = json_encode($articleData['source_locator'], JSON_THROW_ON_ERROR);
                     $locatorsUpdated++;
                 }
+                if ($demoteToPending && $contentChanged) {
+                    $updates['validation_status'] = 'pending';
+                }
                 DB::table('article_versions')->where('id', $activeVersion['id'])->update($updates);
             }
 
-            DB::table('articles')->where('id', $articleId)->update([
+            $articleUpdates = [
                 'parent_node_id' => ($articleData['parent'] ?? null) === null
                     ? null
                     : $nodeIdByKey[$articleData['parent']],
                 'ordre_affichage' => (int) $articleData['order'],
                 'updated_at' => now(),
-            ]);
+            ];
+            if ($demoteToPending && $contentChanged) {
+                $articleUpdates['validation_status'] = 'pending';
+            }
+            DB::table('articles')->where('id', $articleId)->update($articleUpdates);
         }
 
         $articleIdsSoftDeleted = $articleRows

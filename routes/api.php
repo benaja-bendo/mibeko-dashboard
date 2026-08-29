@@ -251,6 +251,14 @@ Route::prefix('v1')->middleware('throttle:api')->group(function () {
         Route::post('official-journals', [OfficialJournalController::class, 'store']);
         Route::patch('official-journals/{id}', [OfficialJournalController::class, 'update']);
         Route::delete('official-journals/{id}', [OfficialJournalController::class, 'destroy']);
+        // Remplacement d'extraction à partir d'une cible mesurée contre le PDF
+        // source. La route est éditoriale, mais le contrôleur réserve aux
+        // administrateurs tout document ayant déjà été publié.
+        Route::get('legal-documents/{document}/extraction-snapshot', [PublishedDocumentExtractionRepairController::class, 'snapshot'])
+            ->name('legal-documents.extraction-snapshot');
+        Route::post('legal-documents/{document}/replace-extraction', [PublishedDocumentExtractionRepairController::class, 'replace'])
+            ->name('legal-documents.replace-extraction');
+
         Route::post('legal-documents/{document}/embed', [EmbeddingController::class, 'trigger']);
         Route::delete('legal-documents/{document}/embed', [EmbeddingController::class, 'cancel']);
     });
@@ -328,11 +336,6 @@ Route::prefix('v1')->middleware('throttle:api')->group(function () {
         ->name('admin.')
         ->group(function () {
             Route::get('overview', [AdminOverviewController::class, 'index']);
-
-            Route::get('legal-documents/{document}/extraction-snapshot', [PublishedDocumentExtractionRepairController::class, 'snapshot'])
-                ->name('legal-documents.extraction-snapshot');
-            Route::post('legal-documents/{document}/replace-extraction', [PublishedDocumentExtractionRepairController::class, 'replace'])
-                ->name('legal-documents.replace-extraction');
 
             Route::apiResource('document-types', AdminDocumentTypeController::class)
                 ->only(['index', 'store', 'update', 'destroy']);
