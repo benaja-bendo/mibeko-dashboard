@@ -145,6 +145,12 @@ class ArticleController extends Controller
 
         try {
             return DB::transaction(function () use ($article, $validated) {
+                // Devient vrai dès que la branche contenu/zone ci-dessous a
+                // effectivement écrit `validation_status` dans une VERSION
+                // (créée ou mise à jour en place) — pas seulement envoyée par le
+                // client. Sert de garde au bloc de repli plus bas.
+                $versionHandledStatus = false;
+
                 if (isset($validated['content']) || isset($validated['source_locator'])) {
                     $today = now()->toDateString();
                     $activeVersion = $article->activeVersion;
@@ -153,6 +159,8 @@ class ArticleController extends Controller
                     $locatorChanged = isset($validated['source_locator']) && (! $activeVersion || $activeVersion->source_locator !== $validated['source_locator']);
 
                     if ($contentChanged || $locatorChanged) {
+                        $versionHandledStatus = isset($validated['validation_status']);
+
                         // Find any version that would overlap with a new version starting today [today, infinity)
                         $overlappingVersion = ArticleVersion::where('article_id', $article->id)
                             ->whereRaw('validity_period && daterange(?::date, null)', [$today])
@@ -207,6 +215,26 @@ class ArticleController extends Controller
                                 'is_verified' => false,
                             ]);
                         }
+                    }
+                }
+
+                // Statut envoyé sans que la branche ci-dessus n'ait touché de
+                // version — contenu/zone absents, ou envoyés mais inchangés
+                // (l'éditeur complet renvoie toujours le contenu, même non
+                // modifié). Sans ce bloc, seule la colonne `articles.validation_status`
+                // change (ligne plus bas) : rien que ne relit l'arbre, les exports
+                // ou le MCP, qui lisent tous la version active — les boutons de
+                // statut semblent alors sans effet.
+                if (isset($validated['validation_status']) && ! $versionHandledStatus) {
+                    // Requête fraîche, pas la relation mise en cache sur $article :
+                    // la branche ci-dessus a pu fermer l'ancienne version active et
+                    // en créer une nouvelle, que le cache ne verrait pas.
+                    $currentActiveVersion = $article->activeVersion()->first();
+                    if ($currentActiveVersion) {
+                        $currentActiveVersion->update([
+                            'validation_status' => $validated['validation_status'],
+                            'is_verified' => $validated['validation_status'] === 'validated',
+                        ]);
                     }
                 }
 
