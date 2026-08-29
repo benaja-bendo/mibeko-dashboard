@@ -85,6 +85,7 @@ class PublishedDocumentExtractionRepairService
     ): array {
         $normalizedTarget = $this->normalizeAndValidateTarget($document, $target);
         $this->assertSourcePdf($document, $normalizedTarget['source_pdf']['sha256']);
+        $this->assertPagesWithinSource($document, $normalizedTarget);
 
         $current = $this->snapshot($document);
         $targetSemantic = $this->semanticFingerprint($normalizedTarget);
@@ -130,6 +131,7 @@ class PublishedDocumentExtractionRepairService
         ): array {
             $lockedDocument = LegalDocument::query()->lockForUpdate()->findOrFail($document->id);
             $this->assertSourcePdf($lockedDocument, $normalizedTarget['source_pdf']['sha256']);
+            $this->assertPagesWithinSource($lockedDocument, $normalizedTarget);
 
             // Un document jamais publié est en cours de curation : une proposition
             // qu'on y applique n'a été relue par personne, elle repart donc en
@@ -325,6 +327,53 @@ class PublishedDocumentExtractionRepairService
             'nodes' => $nodes,
             'articles' => $articles,
         ];
+    }
+
+    /**
+     * Refuse un repère de page qui tombe hors du PDF source.
+     *
+     * C'est l'erreur la plus banale d'une correction faite par une IA, et la
+     * plus silencieuse : le texte reste plausible, seul le repère ment. Elle ne
+     * se voit qu'en ouvrant le PDF à la page annoncée.
+     *
+     * Le contrôle se tait quand `page_count` est inconnu. Le rattrapage des
+     * anciens PDF est progressif, et un média non encore mesuré ne doit pas
+     * bloquer la réparation de son document — mieux vaut un contrôle qui couvre
+     * une partie du corpus qu'un contrôle qui empêche de travailler.
+     *
+     * @param  array<string, mixed>  $target
+     */
+    private function assertPagesWithinSource(LegalDocument $document, array $target): void
+    {
+        $pageCount = MediaFile::query()
+            ->where('document_id', $document->id)
+            ->where('file_category', 'SOURCE_PDF')
+            ->whereRaw('lower(checksum_sha256) = ?', [$target['source_pdf']['sha256']])
+            ->value('page_count');
+
+        if ($pageCount === null) {
+            return;
+        }
+
+        foreach ($target['articles'] as $index => $article) {
+            foreach (['page', 'page_end'] as $champ) {
+                $page = $article['source_locator'][$champ] ?? null;
+                if ($page === null) {
+                    continue;
+                }
+
+                if (! is_int($page) || $page < 1 || $page > $pageCount) {
+                    throw ValidationException::withMessages([
+                        "target.articles.{$index}.source_locator.{$champ}" => [sprintf(
+                            'L’article %s renvoie à la page %s, hors du PDF source qui en compte %d.',
+                            $article['number'],
+                            is_scalar($page) ? (string) $page : gettype($page),
+                            $pageCount,
+                        )],
+                    ]);
+                }
+            }
+        }
     }
 
     private function assertSourcePdf(LegalDocument $document, string $sha256): void

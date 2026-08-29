@@ -26,6 +26,7 @@ class MediaFile extends Model
         'mime_type',
         'file_category',
         'file_size',
+        'page_count',
         'checksum_sha256',
         'description',
     ];

@@ -652,3 +652,62 @@ it('restaure un article dont l ancien numéro est déjà porté par un article v
     expect(Article::findOrFail($trashed->id)->numero_article)->toBe('3')
         ->and(Article::findOrFail($this->article2->id)->numero_article)->toBe('2');
 });
+
+it('refuse un repère de page qui tombe hors du PDF source', function () {
+    MediaFile::where('document_id', $this->document->id)->update(['page_count' => 5]);
+    $snapshot = snapshotPublishedExtraction($this);
+
+    // La cible par défaut renvoie aux pages 9 et 10 : hors d'un PDF de 5 pages.
+    $this->actingAs($this->admin)
+        ->postJson(
+            "/api/v1/legal-documents/{$this->document->id}/replace-extraction",
+            repairPayload($this, $snapshot['expected_fingerprint'], false),
+        )
+        ->assertJsonValidationErrors([
+            'target.articles.0.source_locator.page' => 'L’article 1 renvoie à la page 9, hors du PDF source qui en compte 5.',
+        ]);
+});
+
+it('refuse aussi une page de fin hors du PDF source', function () {
+    MediaFile::where('document_id', $this->document->id)->update(['page_count' => 9]);
+    $snapshot = snapshotPublishedExtraction($this);
+
+    // page = 9 passe, page_end = 10 non.
+    $this->actingAs($this->admin)
+        ->postJson(
+            "/api/v1/legal-documents/{$this->document->id}/replace-extraction",
+            repairPayload($this, $snapshot['expected_fingerprint'], false),
+        )
+        ->assertJsonValidationErrors([
+            'target.articles.0.source_locator.page_end' => 'L’article 1 renvoie à la page 10, hors du PDF source qui en compte 9.',
+        ]);
+});
+
+it('laisse passer les repères quand le nombre de pages du PDF est inconnu', function () {
+    // Rattrapage progressif : un média non encore mesuré ne doit pas empêcher
+    // de réparer son document.
+    expect(MediaFile::where('document_id', $this->document->id)->value('page_count'))->toBeNull();
+
+    $snapshot = snapshotPublishedExtraction($this);
+
+    $this->actingAs($this->admin)
+        ->postJson(
+            "/api/v1/legal-documents/{$this->document->id}/replace-extraction",
+            repairPayload($this, $snapshot['expected_fingerprint'], false),
+        )
+        ->assertOk()
+        ->assertJsonPath('data.dry_run', true);
+});
+
+it('accepte des repères compris dans un PDF mesuré', function () {
+    MediaFile::where('document_id', $this->document->id)->update(['page_count' => 24]);
+    $snapshot = snapshotPublishedExtraction($this);
+
+    $this->actingAs($this->admin)
+        ->postJson(
+            "/api/v1/legal-documents/{$this->document->id}/replace-extraction",
+            repairPayload($this, $snapshot['expected_fingerprint'], true, null, 1),
+        )
+        ->assertOk()
+        ->assertJsonPath('data.executed', true);
+});
