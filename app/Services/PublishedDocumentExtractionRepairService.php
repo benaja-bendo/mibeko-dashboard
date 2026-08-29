@@ -44,6 +44,15 @@ class PublishedDocumentExtractionRepairService
     private const SHRINK_FLOOR = 200;
 
     /**
+     * Numéro de garage temporaire. L'index unique partiel
+     * `uq_articles_document_numero` interdit tout état intermédiaire en
+     * collision : une simple permutation de deux numéros le violerait dès la
+     * première écriture. L'index n'étant pas une contrainte différable,
+     * `SET CONSTRAINTS` ne s'applique pas — il faut garer, puis attribuer.
+     */
+    private const PARKED_NUMBER_PREFIX = '~parked~';
+
+    /**
      * @return array<string, mixed>
      */
     public function snapshot(LegalDocument $document): array
@@ -744,14 +753,14 @@ class PublishedDocumentExtractionRepairService
                     'source_locator' => $sourceLocator,
                 ]];
             });
+        // Résolution préalable, sans aucune écriture : elle dit, pour chaque
+        // entrée de la cible, quel article existant elle vise. Il faut la
+        // connaître AVANT d'écrire, parce que l'ordre des écritures est
+        // contraint — un numéro ne peut être attribué que si plus aucun article
+        // vivant ne le porte.
         $usedArticleIds = [];
-        $articlesCreated = 0;
-        $articlesRestored = 0;
-        $contentsUpdated = 0;
-        $locatorsUpdated = 0;
-        $embeddingsInvalidated = 0;
-
-        foreach ($target['articles'] as $articleData) {
+        $resolved = [];
+        foreach ($target['articles'] as $index => $articleData) {
             $requestedId = $articleData['id'] ?? null;
             $articleRow = $requestedId
                 ? $articleById->get($requestedId)
@@ -770,8 +779,56 @@ class PublishedDocumentExtractionRepairService
                 ]);
             }
 
+            if ($articleRow) {
+                if (isset($usedArticleIds[$articleRow['id']])) {
+                    throw ValidationException::withMessages([
+                        'target.articles' => ['Deux entrées cibles résolvent vers le même article.'],
+                    ]);
+                }
+                $usedArticleIds[$articleRow['id']] = true;
+            }
+
+            $resolved[$index] = $articleRow;
+        }
+
+        // 1. Les articles que la cible abandonne sortent en premier : tant
+        //    qu'ils vivent, ils occupent leur numéro dans l'index.
+        $articleIdsSoftDeleted = $articleRows
+            ->whereNull('deleted_at')
+            ->reject(fn (array $article): bool => isset($usedArticleIds[$article['id']]))
+            ->pluck('id');
+        if ($articleIdsSoftDeleted->isNotEmpty()) {
+            DB::table('articles')->whereIn('id', $articleIdsSoftDeleted)->update([
+                'deleted_at' => now(),
+                'updated_at' => now(),
+            ]);
+        }
+
+        // 2. Puis les numéros qui changent sont garés, pour libérer la place
+        //    avant toute attribution définitive.
+        foreach ($resolved as $index => $articleRow) {
+            if ($articleRow === null || $articleRow['deleted_at'] !== null) {
+                continue;
+            }
+            if ($articleRow['numero_article'] === $target['articles'][$index]['number']) {
+                continue;
+            }
+            DB::table('articles')->where('id', $articleRow['id'])->update([
+                'numero_article' => self::PARKED_NUMBER_PREFIX.Str::uuid(),
+            ]);
+        }
+
+        $articlesCreated = 0;
+        $articlesRestored = 0;
+        $contentsUpdated = 0;
+        $locatorsUpdated = 0;
+        $embeddingsInvalidated = 0;
+
+        foreach ($target['articles'] as $index => $articleData) {
+            $articleRow = $resolved[$index];
+
             if (! $articleRow) {
-                $articleId = $requestedId ?: (string) Str::uuid();
+                $articleId = ($articleData['id'] ?? null) ?: (string) Str::uuid();
                 $versionId = (string) Str::uuid();
                 DB::table('articles')->insert([
                     'id' => $articleId,
@@ -809,20 +866,18 @@ class PublishedDocumentExtractionRepairService
                 ];
                 $articlesCreated++;
             } elseif ($articleRow['deleted_at'] !== null) {
+                // Le numéro est attribué au moment même de la sortie de
+                // corbeille : ressusciter l'article avec son ancien numéro
+                // heurterait l'article vivant qui le porte peut-être déjà.
                 DB::table('articles')->where('id', $articleRow['id'])->update([
                     'deleted_at' => null,
+                    'numero_article' => $articleData['number'],
                     'updated_at' => now(),
                 ]);
                 $articlesRestored++;
             }
 
             $articleId = $articleRow['id'];
-            if (isset($usedArticleIds[$articleId])) {
-                throw ValidationException::withMessages([
-                    'target.articles' => ['Deux entrées cibles résolvent vers le même article.'],
-                ]);
-            }
-            $usedArticleIds[$articleId] = true;
 
             $activeVersion = $activeVersions->get($articleId);
             if (! $activeVersion) {
@@ -854,6 +909,7 @@ class PublishedDocumentExtractionRepairService
             }
 
             $articleUpdates = [
+                'numero_article' => $articleData['number'],
                 'parent_node_id' => ($articleData['parent'] ?? null) === null
                     ? null
                     : $nodeIdByKey[$articleData['parent']],
@@ -864,17 +920,6 @@ class PublishedDocumentExtractionRepairService
                 $articleUpdates['validation_status'] = 'pending';
             }
             DB::table('articles')->where('id', $articleId)->update($articleUpdates);
-        }
-
-        $articleIdsSoftDeleted = $articleRows
-            ->whereNull('deleted_at')
-            ->reject(fn (array $article): bool => isset($usedArticleIds[$article['id']]))
-            ->pluck('id');
-        if ($articleIdsSoftDeleted->isNotEmpty()) {
-            DB::table('articles')->whereIn('id', $articleIdsSoftDeleted)->update([
-                'deleted_at' => now(),
-                'updated_at' => now(),
-            ]);
         }
 
         $nodeIdsSoftDeleted = $liveNodeIdsBefore->diff($targetNodeIds);

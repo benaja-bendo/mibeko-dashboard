@@ -7,7 +7,6 @@ use App\Models\LegalDocument;
 use App\Models\MediaFile;
 use App\Models\StructureNode;
 use App\Models\User;
-use App\Services\PublishedDocumentExtractionRepairService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Routing\Middleware\ThrottleRequests;
 use Illuminate\Support\Facades\DB;
@@ -458,38 +457,74 @@ it('annonce dans le plan exactement ce que l exécution réalise', function () {
         ->toBe($plan['articles_added_or_restored']);
 });
 
-it('refuse aujourd hui d appliquer une renumérotation à identifiant conservé, sans rien abîmer', function () {
-    // Limite connue : `applyTarget` n'écrit `numero_article` qu'à la création.
-    // Renuméroter un article existant laisse donc la base sur l'ancien numéro,
-    // la vérification sémantique le détecte et la transaction est annulée.
-    // Ce test verrouille l'innocuité de ce refus ; il tombera — et devra être
-    // réécrit en test de succès — quand la renumérotation sera implémentée.
-    $snapshot = snapshotPublishedExtraction($this);
-    $target = $snapshot['target'];
-    $target['articles'] = array_map(function (array $article): array {
-        if ($article['number'] === '1') {
-            $article['number'] = '1 bis';
-        }
+function renameArticles(array $target, array $renames): array
+{
+    $target['articles'] = array_map(function (array $article) use ($renames): array {
+        $article['number'] = $renames[$article['number']] ?? $article['number'];
 
         return $article;
     }, $target['articles']);
 
-    $service = app(PublishedDocumentExtractionRepairService::class);
+    return $target;
+}
 
-    expect(fn () => $service->execute(
-        $this->document,
-        $target,
-        $snapshot['expected_fingerprint'],
-        'Reconstruction contrôlée contre le PDF source officiel.',
-        (string) $this->admin->id,
-    ))->toThrow(LogicException::class);
+it('applique une renumérotation en conservant identité, version et validité', function () {
+    $snapshot = snapshotPublishedExtraction($this);
+    $versionBefore = $this->article1->activeVersion()->firstOrFail();
+
+    // La cible reprend le snapshot : elle ne retire rien, aucune confirmation
+    // de suppression n'est donc requise.
+    $target = renameArticles($snapshot['target'], ['1' => '1 bis']);
+
+    $this->actingAs($this->admin)
+        ->postJson(
+            "/api/v1/legal-documents/{$this->document->id}/replace-extraction",
+            repairPayload($this, $snapshot['expected_fingerprint'], true, $target),
+        )
+        ->assertOk()
+        ->assertJsonPath('data.executed', true)
+        ->assertJsonPath('data.actual.articles_soft_deleted', 0)
+        ->assertJsonPath('data.actual.articles_created', 0);
 
     $article1 = Article::findOrFail($this->article1->id);
+    $versionAfter = $article1->activeVersion()->firstOrFail();
 
-    expect($article1->numero_article)->toBe('1')
+    expect($article1->numero_article)->toBe('1 bis')
         ->and($article1->deleted_at)->toBeNull()
-        ->and(Article::onlyTrashed()->where('document_id', $this->document->id)->count())->toBe(0)
-        ->and($this->document->fresh()->metadata['extraction_repairs'] ?? [])->toBe([]);
+        ->and($versionAfter->id)->toBe($versionBefore->id)
+        ->and($versionAfter->validity_period)->toBe($versionBefore->validity_period)
+        ->and($versionAfter->contenu_texte)->toBe($versionBefore->contenu_texte)
+        ->and(Article::onlyTrashed()->where('document_id', $this->document->id)->count())->toBe(0);
+});
+
+it('applique une permutation de deux numéros sans violer l index unique', function () {
+    $snapshot = snapshotPublishedExtraction($this);
+    $version1Before = $this->article1->activeVersion()->firstOrFail();
+    $version2Before = $this->article2->activeVersion()->firstOrFail();
+
+    // Le cas que l'index unique partiel interdit en écriture naïve : chacun des
+    // deux numéros est occupé par l'autre article au moment de l'attribution.
+    $target = renameArticles($snapshot['target'], ['1' => '2', '2' => '1']);
+
+    $this->actingAs($this->admin)
+        ->postJson(
+            "/api/v1/legal-documents/{$this->document->id}/replace-extraction",
+            repairPayload($this, $snapshot['expected_fingerprint'], true, $target),
+        )
+        ->assertOk()
+        ->assertJsonPath('data.actual.articles_created', 0)
+        ->assertJsonPath('data.actual.articles_soft_deleted', 0);
+
+    $article1 = Article::findOrFail($this->article1->id);
+    $article2 = Article::findOrFail($this->article2->id);
+
+    expect($article1->numero_article)->toBe('2')
+        ->and($article2->numero_article)->toBe('1')
+        ->and($article1->activeVersion()->firstOrFail()->id)->toBe($version1Before->id)
+        ->and($article2->activeVersion()->firstOrFail()->id)->toBe($version2Before->id)
+        // Aucun numéro de garage ne doit survivre à la transaction.
+        ->and(Article::where('document_id', $this->document->id)
+            ->where('numero_article', 'like', '~parked~%')->count())->toBe(0);
 });
 
 it('bloque une cible qui retire des articles tant que le nombre n est pas confirmé', function () {
@@ -564,4 +599,56 @@ it('signale un article vidé ou raccourci de moitié sans bloquer', function () 
         ->and($warnings->first()['number'])->toBe('2')
         ->and($warnings->first()['kind'])->toBe('contenu_raccourci')
         ->and($warnings->first()['characters_after'])->toBe(100);
+});
+
+it('restaure un article dont l ancien numéro est déjà porté par un article vivant', function () {
+    // L'index unique partiel ne couvre que les lignes vivantes : un article en
+    // corbeille peut donc porter le même numéro qu'un article vivant. Le sortir
+    // de corbeille avec son ancien numéro violerait l'index — il doit recevoir
+    // son numéro cible dans la même écriture.
+    $trashed = Article::create([
+        'document_id' => $this->document->id,
+        'parent_node_id' => $this->oldChild->id,
+        'numero_article' => '2 provisoire',
+        'ordre_affichage' => 5,
+        'validation_status' => 'pending',
+    ]);
+    $trashed->versions()->create([
+        'contenu_texte' => 'Ancienne rédaction mise au rebut.',
+        'source_locator' => ['page' => 5],
+        'source_media_file_id' => MediaFile::where('document_id', $this->document->id)->value('id'),
+        'validity_period' => ArticleVersion::makeValidityPeriod('2020-01-01'),
+        'validation_status' => 'pending',
+        'is_verified' => false,
+    ]);
+    // Le numéro en conflit ne peut être posé qu'une fois l'article en corbeille :
+    // vivant, il heurterait l'article 2 — ce que ce test veut justement mettre
+    // en scène du côté de la restauration.
+    $trashed->delete();
+    DB::table('articles')->where('id', $trashed->id)->update(['numero_article' => '2']);
+
+    expect(Article::where('document_id', $this->document->id)->where('numero_article', '2')->count())->toBe(1)
+        ->and(Article::onlyTrashed()->find($trashed->id))->not->toBeNull();
+
+    $snapshot = snapshotPublishedExtraction($this);
+    $target = $snapshot['target'];
+    $target['articles'][] = [
+        'id' => $trashed->id,
+        'number' => '3',
+        'parent' => $target['articles'][0]['parent'],
+        'order' => 5,
+        'content' => 'Ancienne rédaction mise au rebut.',
+        'source_locator' => ['page' => 5],
+    ];
+
+    $this->actingAs($this->admin)
+        ->postJson(
+            "/api/v1/legal-documents/{$this->document->id}/replace-extraction",
+            repairPayload($this, $snapshot['expected_fingerprint'], true, $target),
+        )
+        ->assertOk()
+        ->assertJsonPath('data.actual.articles_restored', 1);
+
+    expect(Article::findOrFail($trashed->id)->numero_article)->toBe('3')
+        ->and(Article::findOrFail($this->article2->id)->numero_article)->toBe('2');
 });
