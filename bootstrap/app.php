@@ -23,6 +23,11 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->trustProxies(at: '*');
         $middleware->encryptCookies(except: ['appearance', 'sidebar_state']);
+        // Le contenu juridique d'un dossier de travail est une transcription
+        // source : ses blancs externes font partie de la proposition mesurée.
+        // Sans cette exception, TrimStrings modifie le JSON avant même que le
+        // contrôleur puisse calculer son empreinte ou afficher son diff.
+        $middleware->trimStrings(except: ['target.articles.*.content']);
 
         // Hôte API « machine » : en-têtes de sécurité + anti-indexation partout.
         $middleware->append(SecureApiHeaders::class);

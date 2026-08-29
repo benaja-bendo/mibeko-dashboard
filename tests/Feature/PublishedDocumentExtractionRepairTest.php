@@ -3,10 +3,12 @@
 use App\Jobs\GenerateDocumentExportPdfJob;
 use App\Models\Article;
 use App\Models\ArticleVersion;
+use App\Models\CurationFlag;
 use App\Models\LegalDocument;
 use App\Models\MediaFile;
 use App\Models\StructureNode;
 use App\Models\User;
+use App\Services\Curation\StructuralAnomalyDetector;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Routing\Middleware\ThrottleRequests;
 use Illuminate\Support\Facades\DB;
@@ -182,6 +184,7 @@ it('produit un dry-run exact sans aucune écriture', function () {
         ->assertJsonPath('data.plan.nodes_soft_deleted', 2)
         ->assertJsonPath('data.plan.nodes_target', 1)
         ->assertJsonPath('data.plan.articles_soft_deleted', 1)
+        ->assertJsonPath('data.plan.articles_reparented_and_reordered', 2)
         ->assertJsonPath('data.plan.article_contents_updated', 1)
         ->assertJsonPath('data.plan.article_locators_updated', 1);
 
@@ -285,7 +288,7 @@ it('ouvre le canal à un éditeur sur un document jamais publié', function () {
     expect($this->document->fresh()->curation_status)->toBe(LegalDocument::STATUS_DRAFT);
 });
 
-it('ramène en revue un document validé et remet en attente les articles corrigés', function () {
+it('ramène en revue un document validé et remet en attente tous les éléments touchés', function () {
     $snapshot = snapshotPublishedExtraction($this);
     demoteToNeverPublished($this, LegalDocument::STATUS_VALIDATED);
 
@@ -308,8 +311,33 @@ it('ramène en revue un document validé et remet en attente les articles corrig
         // L'article 1 change de texte : il repart en attente de relecture.
         ->and($article1->validation_status)->toBe('pending')
         ->and($article1->activeVersion()->firstOrFail()->validation_status)->toBe('pending')
-        // L'article 2 est identique dans la cible : rien ne justifie de le déclasser.
-        ->and($article2->validation_status)->toBe('validated');
+        // Son texte est identique, mais son parent et son ordre changent : la
+        // proposition structurelle doit elle aussi être relue.
+        ->and($article2->validation_status)->toBe('pending')
+        ->and($article2->activeVersion()->firstOrFail()->validation_status)->toBe('pending');
+});
+
+it('remet en attente un article dont seul le repère de source change', function () {
+    $snapshot = snapshotPublishedExtraction($this);
+    demoteToNeverPublished($this, LegalDocument::STATUS_VALIDATED);
+
+    DB::table('articles')->where('id', $this->article2->id)->update(['validation_status' => 'validated']);
+    DB::table('article_versions')->where('article_id', $this->article2->id)->update(['validation_status' => 'validated']);
+
+    $target = $snapshot['target'];
+    $index = collect($target['articles'])->search(fn (array $article): bool => $article['id'] === $this->article2->id);
+    $target['articles'][$index]['source_locator'] = ['page' => 8];
+
+    $this->actingAs($this->editor)
+        ->postJson(
+            "/api/v1/legal-documents/{$this->document->id}/replace-extraction",
+            repairPayload($this, $snapshot['expected_fingerprint'], true, $target),
+        )
+        ->assertOk();
+
+    $article = Article::findOrFail($this->article2->id);
+    expect($article->validation_status)->toBe('pending')
+        ->and($article->activeVersion()->firstOrFail()->validation_status)->toBe('pending');
 });
 
 it('laisse intact le statut de validation des articles d un document publié', function () {
@@ -378,6 +406,64 @@ it('réutilise le snapshot comme retour arrière complet', function () {
         ->and($this->article1->fresh()->activeVersion()->first()->contenu_texte)
         ->toBe('Texte erroné avec retour\nphysique.')
         ->and($this->document->fresh()->metadata['extraction_repairs'])->toHaveCount(2);
+});
+
+it('réimporte sans modification le snapshot d un acte sans division', function () {
+    DB::table('articles')->where('document_id', $this->document->id)->update(['parent_node_id' => null]);
+    StructureNode::where('document_id', $this->document->id)->delete();
+
+    $snapshot = snapshotPublishedExtraction($this);
+    expect($snapshot['target']['nodes'])->toBe([]);
+
+    $this->actingAs($this->admin)
+        ->postJson(
+            "/api/v1/legal-documents/{$this->document->id}/replace-extraction",
+            repairPayload($this, $snapshot['expected_fingerprint'], false, $snapshot['target']),
+        )
+        ->assertOk()
+        ->assertJsonPath('data.already_applied', true)
+        ->assertJsonPath('data.plan.nodes_target', 0);
+});
+
+it('préserve exactement les blancs externes du contenu exporté', function () {
+    $version = $this->article1->activeVersion()->firstOrFail();
+    DB::table('article_versions')->where('id', $version->id)->update([
+        'contenu_texte' => "  Article fidèle avec indentation.\n",
+    ]);
+
+    $snapshot = snapshotPublishedExtraction($this);
+    expect(collect($snapshot['target']['articles'])->firstWhere('id', $this->article1->id)['content'])
+        ->toBe("  Article fidèle avec indentation.\n");
+
+    $this->actingAs($this->admin)
+        ->postJson(
+            "/api/v1/legal-documents/{$this->document->id}/replace-extraction",
+            repairPayload($this, $snapshot['expected_fingerprint'], false, $snapshot['target']),
+        )
+        ->assertOk()
+        ->assertJsonPath('data.already_applied', true);
+});
+
+it('relance automatiquement la détection structurelle après application', function () {
+    $stale = CurationFlag::create([
+        'document_id' => $this->document->id,
+        'source' => CurationFlag::SOURCE_STRUCTURAL,
+        'type_probleme' => 'ancien_signalement',
+        'severity' => CurationFlag::SEVERITY_WARNING,
+        'description' => 'Signalement structurel devenu périmé.',
+        'resolved' => false,
+    ]);
+    $snapshot = snapshotPublishedExtraction($this);
+
+    $this->actingAs($this->admin)
+        ->postJson(
+            "/api/v1/legal-documents/{$this->document->id}/replace-extraction",
+            repairPayload($this, $snapshot['expected_fingerprint'], true, null, 1),
+        )
+        ->assertOk()
+        ->assertJsonPath('data.actual.structural_flags_created', 0);
+
+    expect(CurationFlag::find($stale->id))->toBeNull();
 });
 
 it('annule avant écriture si l empreinte préparatoire ne correspond plus', function () {
@@ -710,4 +796,30 @@ it('accepte des repères compris dans un PDF mesuré', function () {
         )
         ->assertOk()
         ->assertJsonPath('data.executed', true);
+});
+
+it('conserve la correction même si la détection structurelle échoue après coup', function () {
+    // La détection tourne HORS de la transaction d'écriture, précisément pour
+    // qu'une panne de sa part ne puisse pas annuler une correction juridique
+    // déjà vérifiée par empreinte sémantique. Elle reste relançable à la demande.
+    $this->mock(
+        StructuralAnomalyDetector::class,
+        fn ($mock) => $mock->shouldReceive('detect')->andThrow(new RuntimeException('détecteur en panne')),
+    );
+
+    $snapshot = snapshotPublishedExtraction($this);
+
+    $this->actingAs($this->admin)
+        ->postJson(
+            "/api/v1/legal-documents/{$this->document->id}/replace-extraction",
+            repairPayload($this, $snapshot['expected_fingerprint'], true, null, 1),
+        )
+        ->assertOk()
+        ->assertJsonPath('data.executed', true)
+        ->assertJsonPath('data.actual.structural_flags_created', null);
+
+    // La correction est bien en base : c'est tout l'enjeu.
+    expect($this->article1->fresh()->activeVersion()->firstOrFail()->contenu_texte)
+        ->toBe('Texte juridique complet et propre.')
+        ->and($this->document->fresh()->metadata['extraction_repairs'])->toHaveCount(1);
 });

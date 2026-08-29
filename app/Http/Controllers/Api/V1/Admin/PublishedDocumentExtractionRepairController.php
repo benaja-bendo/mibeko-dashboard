@@ -54,7 +54,10 @@ class PublishedDocumentExtractionRepairController extends Controller
             'target.document_id' => ['required', 'uuid'],
             'target.source_pdf' => ['required', 'array'],
             'target.source_pdf.sha256' => ['required', 'string', 'regex:/^[a-fA-F0-9]{64}$/'],
-            'target.nodes' => ['required', 'array', 'min:1', 'max:5000'],
+            // Les actes courts peuvent légitimement porter leurs articles à la
+            // racine, sans aucune division. Le snapshot produit alors `[]` et
+            // doit rester directement rejouable.
+            'target.nodes' => ['present', 'array', 'max:5000'],
             'target.nodes.*.key' => ['required', 'string', 'max:100'],
             'target.nodes.*.id' => ['sometimes', 'uuid'],
             'target.nodes.*.parent' => ['nullable', 'string', 'max:100'],

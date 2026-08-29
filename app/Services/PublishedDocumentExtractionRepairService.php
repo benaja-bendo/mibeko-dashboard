@@ -9,6 +9,7 @@ use App\Models\LegalDocument;
 use App\Models\MediaFile;
 use App\Models\StructureNode;
 use App\Observers\LegalDocumentObserver;
+use App\Services\Curation\StructuralAnomalyDetector;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
@@ -29,6 +30,10 @@ use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
  */
 class PublishedDocumentExtractionRepairService
 {
+    public function __construct(
+        private readonly StructuralAnomalyDetector $structuralAnomalyDetector,
+    ) {}
+
     /**
      * Un article qui perd plus de la moitié de son texte est signalé à
      * l'arbitrage humain. Seuil provisoire, non calibré sur le corpus réel :
@@ -228,6 +233,37 @@ class PublishedDocumentExtractionRepairService
                 'actual' => $actual,
             ];
         }, 3);
+
+        if ($result['executed']) {
+            // Une proposition peut déplacer des feuilles ou vider une division :
+            // les signalements structurels doivent suivre, sinon le garde-fou de
+            // publication lirait un état antérieur à la réparation.
+            //
+            // Volontairement HORS de la transaction d'écriture. Le détecteur
+            // hydrate tous les articles du document et leurs versions en modèles
+            // Eloquent — exactement ce que le remplacement s'interdit quelques
+            // lignes plus haut, et pour la même raison de mémoire. L'y laisser
+            // faisait aussi tenir le verrou du document pendant tout le calcul,
+            // et jusqu'à trois fois en cas de réessai sur conflit.
+            //
+            // Le prix assumé : entre le commit et cette ligne, les signalements
+            // décrivent l'état d'avant. C'est une fenêtre de quelques
+            // millisecondes, et un échec du détecteur ne doit jamais annuler une
+            // correction juridique déjà vérifiée — d'où le rattrapage silencieux
+            // plus bas, la détection restant relançable à la demande.
+            try {
+                $result['actual']['structural_flags_created'] = count(
+                    $this->structuralAnomalyDetector->detect($document->fresh())
+                );
+            } catch (\Throwable $exception) {
+                Log::warning('Détection structurelle échouée après une réparation d’extraction.', [
+                    'document_id' => $document->id,
+                    'operation_id' => $result['operation_id'] ?? null,
+                    'message' => $exception->getMessage(),
+                ]);
+                $result['actual']['structural_flags_created'] = null;
+            }
+        }
 
         if ($result['executed'] && $result['curation_status'] === LegalDocument::STATUS_PUBLISHED) {
             CorpusVersion::bump();
@@ -673,11 +709,13 @@ class PublishedDocumentExtractionRepairService
     private function buildPlan(array $current, array $target): array
     {
         $currentArticles = collect($current['articles']);
+        $targetNodesByKey = collect($target['nodes'])->keyBy('key');
 
         $matchedArticleIds = [];
         $addedOrRestored = 0;
         $contentChanges = 0;
         $locatorChanges = 0;
+        $structureChanges = 0;
 
         foreach ($this->matchArticles($current, $target) as $pair) {
             ['target' => $article, 'current' => $existing] = $pair;
@@ -691,6 +729,18 @@ class PublishedDocumentExtractionRepairService
             $matchedArticleIds[$existing['id']] = true;
             $contentChanges += $existing['content'] !== $article['content'] ? 1 : 0;
             $locatorChanges += $this->canonicalize($existing['source_locator']) !== $this->canonicalize($article['source_locator']) ? 1 : 0;
+
+            $targetParentKey = $article['parent'] ?? null;
+            $targetParentId = $targetParentKey === null
+                ? null
+                : ($targetNodesByKey->get($targetParentKey)['id'] ?? null);
+            // Un parent cible sans id est une nouvelle division : il diffère
+            // nécessairement de tout parent courant.
+            $parentChanged = $targetParentKey === null
+                ? $existing['parent'] !== null
+                : ($targetParentId === null || $existing['parent'] !== $targetParentId);
+            $orderChanged = (int) $existing['order'] !== (int) $article['order'];
+            $structureChanges += $parentChanged || $orderChanged ? 1 : 0;
         }
 
         // Une division dont la cible reprend l'`id` est réemployée, pas retirée.
@@ -705,7 +755,7 @@ class PublishedDocumentExtractionRepairService
                 ->reject(fn (array $article): bool => isset($matchedArticleIds[$article['id']]))
                 ->count(),
             'articles_added_or_restored' => $addedOrRestored,
-            'articles_reparented_and_reordered' => count($target['articles']),
+            'articles_reparented_and_reordered' => $structureChanges,
             'article_contents_updated' => $contentChanges,
             'article_locators_updated' => $locatorChanges,
             'target_articles' => count($target['articles']),
@@ -733,6 +783,8 @@ class PublishedDocumentExtractionRepairService
             $node = $requestedId
                 ? StructureNode::withTrashed()->find($requestedId)
                 : null;
+            $nodeCreated = false;
+            $nodeRestored = false;
 
             if ($node && $node->document_id !== $document->id) {
                 throw ValidationException::withMessages([
@@ -744,9 +796,11 @@ class PublishedDocumentExtractionRepairService
                 $node = new StructureNode;
                 $node->id = $requestedId ?: (string) Str::uuid();
                 $node->document_id = $document->id;
+                $nodeCreated = true;
                 $nodesCreated++;
             } elseif ($node->trashed()) {
                 $node->deleted_at = null;
+                $nodeRestored = true;
                 $nodesRestored++;
             }
 
@@ -757,6 +811,13 @@ class PublishedDocumentExtractionRepairService
             $treePath = $parentId === null
                 ? $slugId
                 : $nodeTreePathById[$parentId].'.'.$slugId;
+            $nodeTouched = $nodeCreated
+                || $nodeRestored
+                || $node->type_unite !== $nodeData['type']
+                || $node->numero !== ($nodeData['number'] ?? null)
+                || $node->titre !== ($nodeData['title'] ?? null)
+                || (string) $node->tree_path !== $treePath
+                || (int) $node->sort_order !== (int) $nodeData['order'];
 
             $node->forceFill([
                 'type_unite' => $nodeData['type'],
@@ -764,7 +825,9 @@ class PublishedDocumentExtractionRepairService
                 'titre' => $nodeData['title'] ?? null,
                 'tree_path' => $treePath,
                 'sort_order' => (int) $nodeData['order'],
-                'validation_status' => $node->validation_status ?: 'pending',
+                'validation_status' => $demoteToPending && $nodeTouched
+                    ? 'pending'
+                    : ($node->validation_status ?: 'pending'),
             ])->save(['touch' => false]);
 
             $nodeIdByKey[$nodeData['key']] = $node->id;
@@ -779,7 +842,10 @@ class PublishedDocumentExtractionRepairService
             ->value('id');
         $articleRows = DB::table('articles')
             ->where('document_id', $document->id)
-            ->select(['id', 'document_id', 'numero_article', 'deleted_at'])
+            ->select([
+                'id', 'document_id', 'parent_node_id', 'numero_article',
+                'ordre_affichage', 'validation_status', 'deleted_at',
+            ])
             ->get()
             ->map(fn (object $row): array => (array) $row);
         $articleById = $articleRows->keyBy('id');
@@ -875,6 +941,8 @@ class PublishedDocumentExtractionRepairService
 
         foreach ($target['articles'] as $index => $articleData) {
             $articleRow = $resolved[$index];
+            $articleCreated = false;
+            $articleRestored = false;
 
             if (! $articleRow) {
                 $articleId = ($articleData['id'] ?? null) ?: (string) Str::uuid();
@@ -905,7 +973,10 @@ class PublishedDocumentExtractionRepairService
                 $articleRow = [
                     'id' => $articleId,
                     'document_id' => $document->id,
+                    'parent_node_id' => null,
                     'numero_article' => $articleData['number'],
+                    'ordre_affichage' => (int) $articleData['order'],
+                    'validation_status' => 'pending',
                     'deleted_at' => null,
                 ];
                 $activeVersions[$articleId] = [
@@ -913,6 +984,7 @@ class PublishedDocumentExtractionRepairService
                     'content' => $articleData['content'],
                     'source_locator' => $articleData['source_locator'],
                 ];
+                $articleCreated = true;
                 $articlesCreated++;
             } elseif ($articleRow['deleted_at'] !== null) {
                 // Le numéro est attribué au moment même de la sortie de
@@ -923,6 +995,7 @@ class PublishedDocumentExtractionRepairService
                     'numero_article' => $articleData['number'],
                     'updated_at' => now(),
                 ]);
+                $articleRestored = true;
                 $articlesRestored++;
             }
 
@@ -938,34 +1011,47 @@ class PublishedDocumentExtractionRepairService
             $contentChanged = $activeVersion['content'] !== $articleData['content'];
             $locatorChanged = $this->canonicalize($activeVersion['source_locator'] ?? [])
                 !== $this->canonicalize($articleData['source_locator']);
-            if ($contentChanged || $locatorChanged) {
-                $updates = ['updated_at' => now()];
-                if ($contentChanged) {
-                    $updates['contenu_texte'] = $articleData['content'];
-                    $updates['embedding'] = null;
-                    $updates['embedding_context'] = null;
-                    $contentsUpdated++;
-                    $embeddingsInvalidated++;
-                }
-                if ($locatorChanged) {
-                    $updates['source_locator'] = json_encode($articleData['source_locator'], JSON_THROW_ON_ERROR);
-                    $locatorsUpdated++;
-                }
-                if ($demoteToPending && $contentChanged) {
-                    $updates['validation_status'] = 'pending';
-                }
-                DB::table('article_versions')->where('id', $activeVersion['id'])->update($updates);
+            $targetParentId = ($articleData['parent'] ?? null) === null
+                ? null
+                : $nodeIdByKey[$articleData['parent']];
+            $structureChanged = ! $articleCreated && (
+                $articleRow['numero_article'] !== $articleData['number']
+                || $articleRow['parent_node_id'] !== $targetParentId
+                || (int) $articleRow['ordre_affichage'] !== (int) $articleData['order']
+            );
+            $articleTouched = $articleCreated
+                || $articleRestored
+                || $contentChanged
+                || $locatorChanged
+                || $structureChanged;
+
+            $versionUpdates = [];
+            if ($contentChanged) {
+                $versionUpdates['contenu_texte'] = $articleData['content'];
+                $versionUpdates['embedding'] = null;
+                $versionUpdates['embedding_context'] = null;
+                $contentsUpdated++;
+                $embeddingsInvalidated++;
+            }
+            if ($locatorChanged) {
+                $versionUpdates['source_locator'] = json_encode($articleData['source_locator'], JSON_THROW_ON_ERROR);
+                $locatorsUpdated++;
+            }
+            if ($demoteToPending && $articleTouched) {
+                $versionUpdates['validation_status'] = 'pending';
+            }
+            if ($versionUpdates !== []) {
+                $versionUpdates['updated_at'] = now();
+                DB::table('article_versions')->where('id', $activeVersion['id'])->update($versionUpdates);
             }
 
             $articleUpdates = [
                 'numero_article' => $articleData['number'],
-                'parent_node_id' => ($articleData['parent'] ?? null) === null
-                    ? null
-                    : $nodeIdByKey[$articleData['parent']],
+                'parent_node_id' => $targetParentId,
                 'ordre_affichage' => (int) $articleData['order'],
                 'updated_at' => now(),
             ];
-            if ($demoteToPending && $contentChanged) {
+            if ($demoteToPending && $articleTouched) {
                 $articleUpdates['validation_status'] = 'pending';
             }
             DB::table('articles')->where('id', $articleId)->update($articleUpdates);
