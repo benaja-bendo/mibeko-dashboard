@@ -123,6 +123,26 @@ class ArticleVersion extends Model implements Auditable
     }
 
     /**
+     * Page du PDF source où cet article a été trouvé, posée par l'ingestion à
+     * partir des marqueurs `[[MIBEKO_PAGE:N]]` de la sortie MinerU.
+     *
+     * C'est la SEULE donnée de provenance dont on dispose au niveau de
+     * l'article — et elle est vraie, contrairement à `validity_period` dont la
+     * borne basse vaut la date d'ingestion (voir plus bas). Elle rend chaque
+     * article vérifiable un par un contre le document d'origine.
+     */
+    public function sourcePage(): ?int
+    {
+        if (! is_array($this->source_locator)) {
+            return null;
+        }
+
+        $page = $this->source_locator['page'] ?? null;
+
+        return is_int($page) && $page > 0 ? $page : null;
+    }
+
+    /**
      * Juriste ayant relu ce contenu (null tant qu'aucune relecture n'a eu lieu).
      */
     public function reviewedBy(): BelongsTo

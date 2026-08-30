@@ -21,6 +21,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
@@ -40,6 +41,13 @@ use Spatie\QueryBuilder\QueryBuilder;
 class LegalDocumentController extends Controller
 {
     use GuardsUnpublishedDocuments;
+
+    /**
+     * Plafond de texte servi d'un coup par `?section=` (lecture continue).
+     * Exprimé en caractères parce que c'est le poids, et non le nombre
+     * d'articles, qui menace le budget de page du site vitrine.
+     */
+    private const SECTION_TEXT_BUDGET = 40000;
 
     /**
      * Shared filter definitions used across index and search.
@@ -276,9 +284,9 @@ class LegalDocumentController extends Controller
             ->with(['institution', 'type', 'officialJournal', 'tags'])
             ->firstOrFail();
 
-        $articles = $document->articles()
-            ->orderBy('ordre_affichage')
-            ->get(['id', 'document_id', 'numero_article', 'ordre_affichage'])
+        $ordered = $this->readingOrderedArticles($document);
+
+        $articles = $ordered
             ->map(fn (Article $article) => [
                 'id' => $article->id,
                 'number' => $article->numero_article,
@@ -305,6 +313,9 @@ class LegalDocumentController extends Controller
                     // du texte, et un tableau ressort en balises à l'écran.
                     'content_format' => $article->activeVersion?->contentFormat(),
                     'tables' => $article->activeVersion?->publicTables() ?? [],
+                    // Page du PDF source : la seule provenance disponible à
+                    // l'échelle de l'article, et elle est exacte.
+                    'page' => $article->activeVersion?->sourcePage(),
                     'related' => $this->relatedTexts($article),
                 ];
             }
@@ -322,7 +333,231 @@ class LegalDocumentController extends Controller
             'structure' => $this->publicStructure($document),
             'has_pdf' => $hasPdf,
             'current_article' => $currentArticle,
+            // Lecture continue : le texte d'une division entière, plafonné.
+            // Absent (null) tant que `?section=` n'est pas demandé — le contrat
+            // existant des appelants ne change pas.
+            'section' => $this->publicSection(
+                $document,
+                $ordered,
+                trim((string) $request->query('section', '')),
+                $currentArticle['number'] ?? null,
+            ),
         ], 'Document public récupéré avec succès');
+    }
+
+    /**
+     * Articles du document DANS L'ORDRE DE LECTURE.
+     *
+     * **`ordre_affichage` n'est pas un ordre de lecture** : c'est le rang d'un
+     * article DANS SA DIVISION. Sur l'Acte uniforme portant droit commercial
+     * général, 307 articles ne portent que 22 valeurs distinctes, dont 67 à
+     * zéro — trier dessus donnait un index arbitraire (mesuré le 30/08/2026 en
+     * production : sur l'article 6, « précédent » menait à l'article 168 et
+     * « suivant » à l'article 294).
+     *
+     * L'ordre réel est un parcours en profondeur de l'arbre : divisions triées
+     * par `sort_order` (lui aussi relatif au parent), et à l'intérieur de
+     * chacune, articles triés par `ordre_affichage`. Vérifié sur ce même acte :
+     * le parcours restitue exactement 1, 2, 3 … 307.
+     *
+     * Les articles orphelins (rattachés au document, sans division) passent en
+     * tête : c'est le cas des actes courts sans structure, où `ordre_affichage`
+     * seul suffit puisqu'il n'y a qu'un groupe.
+     *
+     * @return Collection<int, Article>
+     */
+    private function readingOrderedArticles(LegalDocument $document): Collection
+    {
+        $byNode = $document->articles()
+            ->orderBy('ordre_affichage')
+            ->get(['id', 'document_id', 'numero_article', 'ordre_affichage', 'parent_node_id'])
+            ->groupBy(fn (Article $article): string => (string) $article->parent_node_id);
+
+        $nodes = StructureNode::query()
+            ->where('document_id', $document->id)
+            ->orderBy('sort_order')
+            ->get(['id', 'tree_path', 'sort_order']);
+
+        // Le `tree_path` (ltree) encode le parent : le chemin courant amputé de
+        // son dernier segment. Même reconstruction que `publicStructure`.
+        $idByPath = $nodes->pluck('id', 'tree_path');
+        $children = [];
+        foreach ($nodes as $node) {
+            $parts = explode('.', (string) $node->tree_path);
+            $parentId = '';
+            if (count($parts) > 1) {
+                array_pop($parts);
+                $parentId = (string) ($idByPath[implode('.', $parts)] ?? '');
+            }
+            $children[$parentId][] = $node;
+        }
+
+        $ordered = collect($byNode[''] ?? []);
+
+        $walk = function (string $parentId) use (&$walk, $children, $byNode, &$ordered): void {
+            foreach ($children[$parentId] ?? [] as $node) {
+                foreach ($byNode[$node->id] ?? [] as $article) {
+                    $ordered->push($article);
+                }
+                $walk((string) $node->id);
+            }
+        };
+        $walk('');
+
+        return $ordered->values();
+    }
+
+    /**
+     * Texte d'une division entière, pour la lecture continue du site vitrine.
+     *
+     * Trois valeurs acceptées pour `?section=` :
+     *  - `first` : la première division du texte qui porte des articles ;
+     *  - `auto`  : celle qui contient l'article de `?article=` ;
+     *  - un uuid de nœud de structure de ce document.
+     *
+     * Un identifiant inconnu retombe sur `first` plutôt que de renvoyer une
+     * erreur : la page publique doit continuer à afficher du texte même si
+     * l'ancre a été supprimée par une réingestion.
+     *
+     * **Le plafond est en caractères, pas en nombre d'articles** : c'est lui
+     * qui protège directement le budget de page du site (150 ko, charte §11),
+     * et il tient aussi bien sur un chapitre de quatre articles que sur une
+     * section du Code civil. Un article seul dépassant le budget est toujours
+     * servi entier — on ne tronque jamais un texte de loi.
+     *
+     * @return array<string, mixed>|null
+     */
+    private function publicSection(
+        LegalDocument $document,
+        Collection $index,
+        string $requested,
+        ?string $currentArticleNumber,
+    ): ?array {
+        if ($requested === '' || $index->isEmpty()) {
+            return null;
+        }
+
+        // `$index` arrive DÉJÀ dans l'ordre de lecture (parcours en profondeur
+        // de l'arbre, cf. `readingOrderedArticles`). Grouper en préservant cet
+        // ordre suffit donc à obtenir les divisions dans l'ordre du texte —
+        // les trier sur `ordre_affichage`, relatif au parent, donnerait un
+        // enchaînement arbitraire.
+        $groups = $index
+            ->groupBy(fn (Article $article): string => (string) $article->parent_node_id)
+            ->values();
+
+        /** @var array<int, string|null> $nodeIds */
+        $nodeIds = $groups->map(fn ($group) => $group->first()->parent_node_id)->all();
+
+        $position = 0;
+        if ($requested === 'auto') {
+            $current = $currentArticleNumber === null
+                ? null
+                : $index->firstWhere('numero_article', $currentArticleNumber);
+            $found = $current === null ? false : array_search($current->parent_node_id, $nodeIds, true);
+            $position = $found === false ? 0 : $found;
+        } elseif ($requested !== 'first') {
+            $found = array_search($requested, $nodeIds, true);
+            $position = $found === false ? 0 : $found;
+        }
+
+        /** @var Collection<int, Article> $group */
+        $group = $groups[$position];
+        $nodeId = $nodeIds[$position];
+
+        // Le texte n'est chargé que pour la division retenue : charger
+        // `activeVersion` sur l'index entier ramènerait les 2 826 articles du
+        // Code civil, exactement ce que ce plafond existe pour éviter.
+        $articles = Article::query()
+            ->whereIn('id', $group->pluck('id'))
+            ->with('activeVersion')
+            ->orderBy('ordre_affichage')
+            ->get();
+
+        $served = [];
+        $budget = self::SECTION_TEXT_BUDGET;
+        foreach ($articles as $article) {
+            $content = $article->activeVersion?->contenu_texte;
+            $served[] = [
+                'id' => $article->id,
+                'number' => $article->numero_article,
+                'order' => $article->ordre_affichage,
+                'content' => $content,
+                'content_format' => $article->activeVersion?->contentFormat(),
+                'tables' => $article->activeVersion?->publicTables() ?? [],
+                'page' => $article->activeVersion?->sourcePage(),
+            ];
+            $budget -= mb_strlen((string) $content);
+            if ($budget <= 0) {
+                break;
+            }
+        }
+
+        return [
+            'id' => $nodeId,
+            'path' => $nodeId === null ? [] : $this->sectionPath($document, $nodeId),
+            'articles' => $served,
+            'total_articles' => $articles->count(),
+            'truncated' => count($served) < $articles->count(),
+            'previous' => $this->sectionRef($document, $nodeIds[$position - 1] ?? null, $position > 0),
+            'next' => $this->sectionRef($document, $nodeIds[$position + 1] ?? null, $position + 1 < count($nodeIds)),
+        ];
+    }
+
+    /**
+     * Chaîne des divisions parentes d'un nœud, de la plus haute à elle-même
+     * (« Livre 1 › Titre 1 › Chapitre 1 »). Reconstruite depuis le `tree_path`
+     * ltree, comme {@see publicStructure}.
+     *
+     * @return array<int, array{type: string|null, number: string|null, title: string|null}>
+     */
+    private function sectionPath(LegalDocument $document, string $nodeId): array
+    {
+        $nodes = StructureNode::query()
+            ->where('document_id', $document->id)
+            ->get(['id', 'type_unite', 'numero', 'titre', 'tree_path']);
+
+        $node = $nodes->firstWhere('id', $nodeId);
+        if (! $node) {
+            return [];
+        }
+
+        $byPath = $nodes->keyBy('tree_path');
+        $path = [];
+        $walked = [];
+        foreach (explode('.', (string) $node->tree_path) as $segment) {
+            $walked[] = $segment;
+            $ancestor = $byPath[implode('.', $walked)] ?? null;
+            if ($ancestor) {
+                $path[] = [
+                    'type' => $ancestor->type_unite,
+                    'number' => $ancestor->numero,
+                    'title' => $ancestor->titre,
+                ];
+            }
+        }
+
+        return $path;
+    }
+
+    /**
+     * Référence courte d'une division voisine (navigation précédent/suivant).
+     * `$exists` distingue « pas de voisine » de « voisine sans nœud » (articles
+     * rattachés directement au document).
+     *
+     * @return array<string, mixed>|null
+     */
+    private function sectionRef(LegalDocument $document, ?string $nodeId, bool $exists): ?array
+    {
+        if (! $exists) {
+            return null;
+        }
+
+        if ($nodeId === null) {
+            return ['id' => null, 'path' => []];
+        }
+
+        return ['id' => $nodeId, 'path' => $this->sectionPath($document, $nodeId)];
     }
 
     /**
