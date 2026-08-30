@@ -1,6 +1,6 @@
 # Documentation du backend Mibeko
 
-> Statut : à jour au 2 juillet 2026 · Index de la documentation technique du dépôt `mibeko-tableau-de-bord` (API Laravel).
+> Statut : à jour au 29 août 2026 · **Fait autorité sur** : l'index de la documentation technique du dépôt `mibeko-tableau-de-bord` (API Laravel).
 
 Ce dossier regroupe la documentation d'architecture, les guides opérationnels et les archives historiques du backend Mibeko (API Laravel 13 servant le SPA React, l'application mobile et le site public).
 
@@ -23,6 +23,7 @@ Procédures opérationnelles, mises en œuvre techniques et bonnes pratiques.
 | [guides/temps-reel-reverb.md](guides/temps-reel-reverb.md) | Mise en place et exploitation du temps réel via Laravel Reverb (WebSocket, canaux de diffusion). |
 | [guides/themes-de-vie.md](guides/themes-de-vie.md) | Taxonomie éditoriale des « thèmes de vie » : modèle, assignation aux documents et exposition dans la bibliothèque. |
 | [guides/tests-api-curl.md](guides/tests-api-curl.md) | Recettes `curl` pour tester manuellement les endpoints de l'API v1 (authentification, catalogue, recherche, etc.). |
+| [guides/reparer-extraction-par-curl.md](guides/reparer-extraction-par-curl.md) | Procédure locale, mesurée et reproductible pour corriger une extraction contre son PDF source avec `extraction-snapshot` et `replace-extraction`. |
 | [guides/tests-assistant-ia.md](guides/tests-assistant-ia.md) | Procédures de test de l'assistant IA (conversations, streaming, références). |
 | [guides/base-de-donnees-test.md](guides/base-de-donnees-test.md) | Préparation et utilisation de la base PostgreSQL de test (`mibeko_testing`) pour la suite Pest. |
 | [guides/bonnes-pratiques-production.md](guides/bonnes-pratiques-production.md) | Recommandations d'exploitation en production (déploiement, cache, files d'attente, sécurité). |

@@ -94,7 +94,7 @@ class PublishedDocumentExtractionRepairController extends Controller
         return $this->success(
             $result,
             $validated['execute']
-                ? 'Extraction d’un document déjà publié réparée et vérifiée avec succès.'
+                ? 'Extraction remplacée et vérifiée avec succès.'
                 : 'Dry-run validé, aucune écriture effectuée.'
         );
     }
