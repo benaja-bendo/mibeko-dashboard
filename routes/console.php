@@ -8,16 +8,6 @@ Schedule::command('mibeko:backup --disk=gdrive --only-db')
     ->runInBackground()
     ->appendOutputTo(storage_path('logs/backup.log'));
 
-// Le dump quotidien ci-dessus ne couvre QUE la base : le bucket MinIO (PDF
-// sources du corpus, immuables) n'était couvert par aucune sauvegarde avant
-// cette commande — voir docs/_archive/audit-prod-2026-08-04.md § 8. Décalée
-// de 20 min pour ne pas concourir avec le dump de base sur les mêmes E/S.
-Schedule::command('mibeko:backup-minio')
-    ->dailyAt('03:20')
-    ->withoutOverlapping()
-    ->runInBackground()
-    ->appendOutputTo(storage_path('logs/backup-minio.log'));
-
 Schedule::command('backup:clean')
     ->dailyAt('04:00')
     ->withoutOverlapping()
