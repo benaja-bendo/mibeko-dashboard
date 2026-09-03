@@ -43,6 +43,11 @@ it('crée une relation document-à-document via /document-relations', function (
         'target_doc_id' => $target->id,
         'relation_type' => 'ABROGE',
     ]);
+
+    // effective_date validé par le contrôleur mais absent de $fillable a
+    // longtemps disparu en silence à la création (create() ignore tout champ
+    // hors $fillable, sans erreur) : régression verrouillée explicitement.
+    expect(DocumentRelation::first()->effective_date->toDateString())->toBe('2015-10-25');
 });
 
 it('refuse une relation sans source ni cible', function () {

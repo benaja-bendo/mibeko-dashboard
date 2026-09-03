@@ -18,7 +18,19 @@ class DocumentRelation extends Model
         'target_article_id',
         'relation_type',
         'commentaire',
+        'effective_date',
+        'confidence',
+        'meta',
     ];
+
+    protected function casts(): array
+    {
+        return [
+            'effective_date' => 'date',
+            'confidence' => 'float',
+            'meta' => 'array',
+        ];
+    }
 
     public function sourceDocument(): BelongsTo
     {
