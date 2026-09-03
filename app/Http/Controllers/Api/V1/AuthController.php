@@ -31,10 +31,17 @@ class AuthController extends Controller
             'device_name' => 'required|string',
         ]);
 
+        // `status` est renseigné ici et pas seulement laissé au défaut de la
+        // colonne : un compte né sans statut est invisible à tout filtre
+        // `status = 'active'` (quota, veille, statistiques), et 81 % des comptes
+        // de production l'étaient. `active` — et non `pending` — parce que rien
+        // ne restreint aujourd'hui un compte non vérifié : la vérification
+        // d'e-mail et l'état qui l'accompagne relèvent de mibeko-front#5.
         $user = User::create([
             'name' => $request->name,
             'email' => $request->email,
             'password' => Hash::make($request->password),
+            'status' => 'active',
         ]);
 
         $user->assignRole('mobile_user');

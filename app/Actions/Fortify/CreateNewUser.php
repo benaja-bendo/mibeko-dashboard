@@ -30,10 +30,13 @@ class CreateNewUser implements CreatesNewUsers
             'password' => $this->passwordRules(),
         ])->validate();
 
+        // Même raison que dans AuthController::register : un compte sans
+        // `status` est exclu de tout filtre `status = 'active'`.
         $user = User::create([
             'name' => $input['name'],
             'email' => $input['email'],
             'password' => $input['password'],
+            'status' => 'active',
         ]);
 
         // Premier utilisateur = admin, les autres = mobile_user
