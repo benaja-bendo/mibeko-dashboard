@@ -74,3 +74,12 @@ Schedule::command('mibeko:prune-audits --days=365')
     ->withoutOverlapping()
     ->runInBackground()
     ->appendOutputTo(storage_path('logs/prune-audits.log'));
+
+// Un e-mail de réinitialisation ou d'invitation qui ne part pas ne doit pas
+// rester muet (mibeko-dashboard#60) : l'API répond 200 dans tous les cas
+// (anti-énumération), et rien d'autre ne surveille cette file. Volontairement
+// SANS --without-overlapping ni runInBackground : l'alerte elle-même doit
+// rester simple à raisonner si jamais le worker de file est la panne.
+Schedule::command('mibeko:surveiller-file-mail')
+    ->everyFifteenMinutes()
+    ->appendOutputTo(storage_path('logs/surveiller-file-mail.log'));
