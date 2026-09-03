@@ -2,9 +2,14 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Ai\AiRouteName;
+use App\Ai\AiUsageLogger;
 use App\Http\Controllers\Controller;
+use App\Models\User;
 use App\Traits\SearchesArticles;
 use Illuminate\Http\Request;
+use Laravel\Ai\Streaming\Events\StreamEnd;
+use Laravel\Ai\Streaming\Events\StreamStart;
 use Laravel\Ai\Streaming\Events\TextDelta;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -26,6 +31,8 @@ use function Laravel\Ai\agent;
 class LibraryAiController extends Controller
 {
     use SearchesArticles;
+
+    public function __construct(private readonly AiUsageLogger $usageLogger) {}
 
     /**
      * Instructions système — cadre juridique strictement congolais, réponse
@@ -54,7 +61,7 @@ class LibraryAiController extends Controller
         $article = $this->fetchArticleContext($validated['article_id']);
 
         if (! $article) {
-            return $this->streamError("Cet article n'est pas disponible dans la base Mibeko.");
+            return $this->streamError("Cet article n'est pas disponible dans la base Mibeko.", $request->user(), AiRouteName::LIBRARY_EXPLAIN);
         }
 
         $userPrompt = "Voici l'article de loi à expliquer (issu de la base Mibeko) :\n\n"
@@ -64,7 +71,7 @@ class LibraryAiController extends Controller
             ."Explique cet article de façon claire et pédagogique pour un citoyen : ce qu'il signifie concrètement, à qui il s'applique et ses implications pratiques. Cite le document et le numéro d'article.\n\n"
             .'Réponse (en français) :';
 
-        return $this->streamAnswer($userPrompt, [$article]);
+        return $this->streamAnswer($userPrompt, [$article], $request->user(), AiRouteName::LIBRARY_EXPLAIN);
     }
 
     /**
@@ -97,7 +104,7 @@ class LibraryAiController extends Controller
         ], 5);
 
         if (empty($sources)) {
-            return $this->streamError("Aucun texte pertinent dans la base Mibeko pour cette recherche. La base est limitée aux textes officiels de la République du Congo intégrés à l'application.");
+            return $this->streamError("Aucun texte pertinent dans la base Mibeko pour cette recherche. La base est limitée aux textes officiels de la République du Congo intégrés à l'application.", $request->user(), AiRouteName::LIBRARY_SYNTHESIS);
         }
 
         $context = '';
@@ -114,7 +121,7 @@ class LibraryAiController extends Controller
             ."Fais une synthèse claire et structurée en t'appuyant UNIQUEMENT sur ces extraits, en citant les articles concernés.\n\n"
             .'Réponse (en français) :';
 
-        return $this->streamAnswer($userPrompt, $sources);
+        return $this->streamAnswer($userPrompt, $sources, $request->user(), AiRouteName::LIBRARY_SYNTHESIS);
     }
 
     /**
@@ -122,16 +129,24 @@ class LibraryAiController extends Controller
      *
      * @param  array<int, array<string, mixed>>  $sources
      */
-    private function streamAnswer(string $userPrompt, array $sources): StreamedResponse
+    private function streamAnswer(string $userPrompt, array $sources, ?User $user, string $route): StreamedResponse
     {
-        return response()->stream(function () use ($userPrompt, $sources) {
+        return response()->stream(function () use ($userPrompt, $sources, $user, $route) {
             // Les sources d'abord : mêmes citations cliquables que l'Assistant.
             echo "event: sources\n";
             echo 'data: '.json_encode($sources, JSON_UNESCAPED_UNICODE)."\n\n";
             $this->flushSse();
 
+            // Cette route n'a pas de wrapper AgentResponse (contrairement à
+            // l'Assistant) : les événements bruts sont collectés pour en tirer
+            // fournisseur/modèle (StreamStart) et jetons (StreamEnd) à la fin,
+            // mibeko-dashboard#61 exige la mesure même sur ce chemin.
+            $events = [];
+
             try {
                 foreach (agent(instructions: self::SYSTEM_PROMPT)->stream($userPrompt) as $event) {
+                    $events[] = $event;
+
                     if ($event instanceof TextDelta) {
                         $payload = json_encode(['type' => 'text_delta', 'delta' => $event->delta], JSON_UNESCAPED_UNICODE);
                         if ($payload) {
@@ -140,8 +155,18 @@ class LibraryAiController extends Controller
                         }
                     }
                 }
+
+                $start = collect($events)->first(fn ($e) => $e instanceof StreamStart);
+                $this->usageLogger->success(
+                    $user,
+                    $route,
+                    $start->provider ?? 'inconnu',
+                    $start->model ?? 'inconnu',
+                    StreamEnd::combineUsage($events),
+                );
             } catch (\Throwable $e) {
                 report($e);
+                $this->usageLogger->error($user, $route);
 
                 $message = config('app.debug')
                     ? $e->getMessage()
@@ -160,8 +185,10 @@ class LibraryAiController extends Controller
     /**
      * Stream a single error frame (nothing relevant to send to the model).
      */
-    private function streamError(string $message): StreamedResponse
+    private function streamError(string $message, ?User $user, string $route): StreamedResponse
     {
+        $this->usageLogger->noContent($user, $route);
+
         return response()->stream(function () use ($message) {
             echo "event: error\n";
             echo 'data: '.json_encode(['message' => $message], JSON_UNESCAPED_UNICODE)."\n\n";

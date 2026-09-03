@@ -2,6 +2,8 @@
 
 namespace App\Providers;
 
+use App\Ai\AiRouteName;
+use App\Ai\AiUsageLogger;
 use App\Ai\Storage\CompactingConversationStore;
 use App\Models\ArticleVersion;
 use App\Models\LegalDocument;
@@ -195,8 +197,14 @@ class AppServiceProvider extends ServiceProvider
         // de l'App Store. Le client s'appuie sur le champ machine `code`/`scope`
         // et le header standard Retry-After (transmis via `$headers`).
         RateLimiter::for('ai_assistant', function (Request $request) {
+            // mibeko-dashboard#61 : « un 429 est une donnée » — journalisé ici,
+            // seul endroit qui voit un refus de quota avant le contrôleur.
             $rateLimitedResponse = function (string $scope, string $message) {
                 return function (Request $request, array $headers) use ($scope, $message) {
+                    if ($route = AiRouteName::fromRequest($request)) {
+                        app(AiUsageLogger::class)->rateLimited($request->user(), $route);
+                    }
+
                     return response()->json([
                         'message' => $message,
                         'code' => 'AI_RATE_LIMITED',

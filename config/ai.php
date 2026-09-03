@@ -171,6 +171,39 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Tarification — journal d'usage IA (mibeko-dashboard#61)
+    |--------------------------------------------------------------------------
+    |
+    | FCFA pour 1 million de jetons, entrée/sortie, par fournisseur et modèle.
+    | Sert UNIQUEMENT à estimer `cost_estimated_fcfa` dans `ai_usage_logs` — le
+    | comptage de jetons lui-même vient de la réponse du fournisseur (mesuré,
+    | pas deviné), seule cette conversion en FCFA est une approximation à
+    | vérifier périodiquement contre les tarifs publics.
+    |
+    | Conversion : tarifs Mistral publiés en EUR, convertis au taux fixe
+    | FCFA/EUR de la zone CEMAC (1 EUR = 655,957 FCFA) — pas de risque de
+    | change, c'est un peg. Tarifs OpenAI publiés en USD, convertis à un taux
+    | approximatif (~610 FCFA/USD) : cette ligne-là dérive avec le marché et
+    | mérite le contrôle le plus fréquent. Repères posés le 03/09/2026 depuis
+    | les grilles publiques de chaque fournisseur — à réviser si elles changent.
+    |
+    | Un couple fournisseur/modèle absent d'ici laisse `cost_estimated_fcfa`
+    | à `null` dans le journal : les jetons restent mesurés et visibles, on
+    | n'invente jamais un prix.
+    |
+    */
+
+    'pricing' => [
+        'mistral' => [
+            'mistral-large-latest' => ['input_per_million' => 1_312, 'output_per_million' => 3_936], // 2€ / 6€
+        ],
+        'openai' => [
+            'gpt-4o' => ['input_per_million' => 1_525, 'output_per_million' => 6_100], // $2.50 / $10
+        ],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Assistant IA — chaîne de fournisseurs (failover)
     |--------------------------------------------------------------------------
     |

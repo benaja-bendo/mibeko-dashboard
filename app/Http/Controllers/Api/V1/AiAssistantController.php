@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Ai\Agents\MibekoIA;
+use App\Ai\AiRouteName;
+use App\Ai\AiUsageLogger;
 use App\Ai\AssistantChatService;
 use App\Ai\CitationStreamFilter;
 use App\Http\Controllers\Controller;
@@ -30,7 +32,10 @@ class AiAssistantController extends Controller
 {
     use SearchesArticles;
 
-    public function __construct(private readonly AssistantChatService $chatService) {}
+    public function __construct(
+        private readonly AssistantChatService $chatService,
+        private readonly AiUsageLogger $usageLogger,
+    ) {}
 
     /**
      * Liste des conversations
@@ -313,7 +318,7 @@ class AiAssistantController extends Controller
         }
 
         // 3) Réponse synchrone (JSON).
-        return $this->syncReply($agent, $id, $userMessage, $userMeta, $cacheKey);
+        return $this->syncReply($user, $agent, $id, $userMessage, $userMeta, $cacheKey);
     }
 
     /**
@@ -326,6 +331,7 @@ class AiAssistantController extends Controller
     {
         $conversation = $this->chatService->createConversation($user, $userMessage);
         $assistantMessage = $this->chatService->writeCachedTurn($conversation, $user, $userMessage, $userMeta, $cached);
+        $this->usageLogger->cached($user, AiRouteName::ASSISTANT_CHAT, $conversation->id);
 
         if ($stream) {
             return $this->streamedResponse(function () use ($cached, $assistantMessage) {
@@ -371,17 +377,25 @@ class AiAssistantController extends Controller
         $assistantMessageId = null;
 
         $agentResponse = $agent->stream($userMessage, provider: $this->assistantProviders())->then(
-            function (StreamedAgentResponse $response) use ($userMessage, $userMeta, $cacheKey, &$assistantMessageId) {
+            function (StreamedAgentResponse $response) use ($user, $userMessage, $userMeta, $cacheKey, &$assistantMessageId) {
                 $sources = $this->chatService->sourcesFromEvents($response->events);
                 // finalizeTurn nettoie déjà le texte persisté ; on met en cache la
                 // même version vérifiée pour que les requêtes identiques ultérieures
                 // ne resservent pas de marqueur [n] orphelin.
                 $assistantMessageId = $this->chatService->finalizeTurn($response->conversationId, $userMessage, $userMeta, $sources);
                 $this->chatService->cacheResponse($cacheKey, $this->chatService->verifyCitations($response->text, $sources), $sources);
+                $this->usageLogger->success(
+                    $user,
+                    AiRouteName::ASSISTANT_CHAT,
+                    (string) $response->meta->provider,
+                    (string) $response->meta->model,
+                    $response->usage,
+                    $response->conversationId,
+                );
             }
         );
 
-        return $this->streamedResponse(function () use ($agentResponse, &$assistantMessageId) {
+        return $this->streamedResponse(function () use ($agentResponse, &$assistantMessageId, $user, $id) {
             // La persistance (question + réponse) a lieu dans le callback `then()`
             // du package, déclenché à la FIN de l'itération. Sans cela, une
             // déconnexion client (onglet fermé, Stop, réseau) tuerait le script au
@@ -426,6 +440,7 @@ class AiAssistantController extends Controller
                 $emitDelta($citationFilter->flush());
             } catch (\Throwable $e) {
                 report($e);
+                $this->usageLogger->error($user, AiRouteName::ASSISTANT_CHAT, conversationId: $id);
 
                 ServerSentEvents::send([
                     'message' => config('app.debug')
@@ -448,11 +463,19 @@ class AiAssistantController extends Controller
      *
      * @param  array<string, mixed>  $userMeta
      */
-    private function syncReply(MibekoIA $agent, ?string $id, string $userMessage, array $userMeta, string $cacheKey): JsonResponse
+    private function syncReply(User $user, MibekoIA $agent, ?string $id, string $userMessage, array $userMeta, string $cacheKey): JsonResponse
     {
         $response = $agent->prompt($userMessage, provider: $this->assistantProviders());
         $sources = $this->chatService->sourcesFromResponse($response);
         $this->chatService->finalizeTurn($response->conversationId, $userMessage, $userMeta, $sources);
+        $this->usageLogger->success(
+            $user,
+            AiRouteName::ASSISTANT_CHAT,
+            (string) $response->meta->provider,
+            (string) $response->meta->model,
+            $response->usage,
+            $response->conversationId,
+        );
 
         // Marqueurs [n] sans source réelle neutralisés avant restitution : le
         // client (JSON) ne reçoit jamais de citation hallucinée.
