@@ -102,6 +102,10 @@ it('numbers and de-duplicates sources across successive tool calls', function ()
 
     expect($first)->not->toBeEmpty()
         ->and($first[0]['source_number'])->toBe(1)
-        // Même article : déjà vu au premier appel, écarté du second.
-        ->and($second)->toBeEmpty();
+        // Même article : déjà vu au premier appel, écarté du second — et le second
+        // appel le DIT (`deja_fournis`) au lieu de rendre une liste vide, qui se
+        // lirait comme un corpus muet sur la question (mibeko-dashboard#15).
+        ->and($second['status'])->toBe(SearchLegalDatabase::DEJA_FOURNIS)
+        // Aucune source fantôme n'en ressort côté interface.
+        ->and(SearchLegalDatabase::extractsFrom(json_encode($second)))->toBe([]);
 });

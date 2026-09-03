@@ -7,6 +7,7 @@ use App\Ai\AiRouteName;
 use App\Ai\AiUsageLogger;
 use App\Ai\AssistantChatService;
 use App\Ai\CitationStreamFilter;
+use App\Ai\Tools\SearchLegalDatabase;
 use App\Http\Controllers\Controller;
 use App\Models\AgentConversation;
 use App\Models\AgentConversationMessage;
@@ -324,7 +325,7 @@ class AiAssistantController extends Controller
     /**
      * Sert une réponse mémorisée en recréant un tour complet dans l'historique.
      *
-     * @param  array{reply: string, sources: array<int, mixed>}  $cached
+     * @param  array{reply: string, sources: array<int, mixed>, no_result?: bool}  $cached
      * @param  array<string, mixed>  $userMeta
      */
     private function respondFromCache(User $user, array $cached, string $userMessage, array $userMeta, bool $stream)
@@ -337,6 +338,10 @@ class AiAssistantController extends Controller
             return $this->streamedResponse(function () use ($cached, $assistantMessage) {
                 if (! empty($cached['sources'])) {
                     ServerSentEvents::send($cached['sources'], 'sources');
+                }
+
+                if ($cached['no_result'] ?? false) {
+                    ServerSentEvents::send(['reason' => SearchLegalDatabase::AUCUN_EXTRAIT], 'no_result');
                 }
 
                 // Effet « machine à écrire » léger : une réponse en cache reste
@@ -355,6 +360,7 @@ class AiAssistantController extends Controller
             'conversation_id' => $conversation->id,
             'reply' => $cached['reply'],
             'sources' => $cached['sources'],
+            'no_result' => (bool) ($cached['no_result'] ?? false),
             'cached' => true,
         ]);
     }
@@ -379,11 +385,15 @@ class AiAssistantController extends Controller
         $agentResponse = $agent->stream($userMessage, provider: $this->assistantProviders())->then(
             function (StreamedAgentResponse $response) use ($user, $userMessage, $userMeta, $cacheKey, &$assistantMessageId) {
                 $sources = $this->chatService->sourcesFromEvents($response->events);
+                // Le corpus a été interrogé et n'a rien rendu : l'état est persisté
+                // et mis en cache avec la réponse, pour que l'historique et une
+                // requête identique ultérieure disent la même chose que le flux.
+                $noResult = $this->chatService->searchRanInEvents($response->events) && $sources === [];
                 // finalizeTurn nettoie déjà le texte persisté ; on met en cache la
                 // même version vérifiée pour que les requêtes identiques ultérieures
                 // ne resservent pas de marqueur [n] orphelin.
-                $assistantMessageId = $this->chatService->finalizeTurn($response->conversationId, $userMessage, $userMeta, $sources);
-                $this->chatService->cacheResponse($cacheKey, $this->chatService->verifyCitations($response->text, $sources), $sources);
+                $assistantMessageId = $this->chatService->finalizeTurn($response->conversationId, $userMessage, $userMeta, $sources, $noResult);
+                $this->chatService->cacheResponse($cacheKey, $this->chatService->verifyCitations($response->text, $sources), $sources, $noResult);
                 $this->usageLogger->success(
                     $user,
                     AiRouteName::ASSISTANT_CHAT,
@@ -408,6 +418,12 @@ class AiAssistantController extends Controller
             // le texte cité n'arrive (le persisté est lui aussi nettoyé côté then).
             $citationFilter = new CitationStreamFilter;
 
+            // Suivi local plutôt que valeur héritée du callback `then()` : c'est
+            // cette boucle qui voit passer les résultats d'outil, et le client doit
+            // apprendre la non-réponse même si la persistance échoue ensuite.
+            $searchRan = false;
+            $sourcesEmitted = false;
+
             $emitDelta = function (string $text): void {
                 if ($text !== '') {
                     ServerSentEvents::send(['type' => 'text_delta', 'delta' => $text]);
@@ -424,8 +440,13 @@ class AiAssistantController extends Controller
                     }
 
                     if ($event instanceof ToolResult && $event->toolResult->name === AssistantChatService::SEARCH_TOOL) {
-                        $sources = json_decode($event->toolResult->result, true) ?: [];
+                        $searchRan = true;
+                        // `extractsFrom` et non `json_decode` : une charge de statut
+                        // (« aucun_extrait ») est un objet, pas une liste d'extraits —
+                        // la décoder naïvement enverrait une source fantôme au client.
+                        $sources = SearchLegalDatabase::extractsFrom($event->toolResult->result);
                         if (! empty($sources)) {
+                            $sourcesEmitted = true;
                             $citationFilter->registerSources($sources);
                             ServerSentEvents::send($sources, 'sources');
                         }
@@ -448,6 +469,12 @@ class AiAssistantController extends Controller
                         : 'Une erreur est survenue lors de la génération de la réponse.',
                 ], 'error');
             } finally {
+                // Le corpus a été interrogé sans rien rendre : le client rend un
+                // état « aucune réponse » explicite au lieu d'une réponse nue.
+                if ($searchRan && ! $sourcesEmitted) {
+                    ServerSentEvents::send(['reason' => SearchLegalDatabase::AUCUN_EXTRAIT], 'no_result');
+                }
+
                 // Id backend du message assistant : feedback immédiat possible.
                 if ($assistantMessageId) {
                     ServerSentEvents::send(['message_id' => $assistantMessageId], 'meta');
@@ -467,7 +494,10 @@ class AiAssistantController extends Controller
     {
         $response = $agent->prompt($userMessage, provider: $this->assistantProviders());
         $sources = $this->chatService->sourcesFromResponse($response);
-        $this->chatService->finalizeTurn($response->conversationId, $userMessage, $userMeta, $sources);
+        // Même règle que dans le flux : « a cherché et n'a rien trouvé » n'est pas
+        // « n'avait pas à chercher ».
+        $noResult = $this->chatService->searchRanInResponse($response) && $sources === [];
+        $this->chatService->finalizeTurn($response->conversationId, $userMessage, $userMeta, $sources, $noResult);
         $this->usageLogger->success(
             $user,
             AiRouteName::ASSISTANT_CHAT,
@@ -489,12 +519,13 @@ class AiAssistantController extends Controller
             }
         }
 
-        $this->chatService->cacheResponse($cacheKey, $reply, $sources);
+        $this->chatService->cacheResponse($cacheKey, $reply, $sources, $noResult);
 
         return response()->json([
             'conversation_id' => $response->conversationId,
             'reply' => $reply,
             'sources' => $sources,
+            'no_result' => $noResult,
         ]);
     }
 

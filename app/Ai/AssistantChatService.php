@@ -3,6 +3,7 @@
 namespace App\Ai;
 
 use App\Ai\Agents\MibekoIA;
+use App\Ai\Tools\SearchLegalDatabase;
 use App\Jobs\GenerateConversationTitle;
 use App\Models\AgentConversation;
 use App\Models\AgentConversationMessage;
@@ -109,7 +110,13 @@ class AssistantChatService
             'tool_calls' => [],
             'tool_results' => [],
             'usage' => [],
-            'meta' => ['sources' => $cached['sources'], 'cached' => true],
+            'meta' => array_filter([
+                'sources' => $cached['sources'],
+                'cached' => true,
+                // Reportée telle quelle : une non-réponse resservie du cache reste
+                // une non-réponse dans l'historique comme à l'écran.
+                'no_result' => $cached['no_result'] ?? false,
+            ], fn ($valeur) => $valeur !== false && $valeur !== null),
         ]);
     }
 
@@ -125,7 +132,7 @@ class AssistantChatService
         return collect($events)
             ->whereInstanceOf(ToolResultEvent::class)
             ->filter(fn ($event) => $event->toolResult->name === self::SEARCH_TOOL)
-            ->flatMap(fn ($event) => json_decode($event->toolResult->result, true) ?: [])
+            ->flatMap(fn ($event) => SearchLegalDatabase::extractsFrom($event->toolResult->result))
             ->values()
             ->all();
     }
@@ -139,9 +146,32 @@ class AssistantChatService
     {
         return collect($response->toolResults ?? [])
             ->filter(fn ($result) => $result instanceof ToolResultData && $result->name === self::SEARCH_TOOL)
-            ->flatMap(fn ($result) => json_decode($result->result, true) ?: [])
+            ->flatMap(fn ($result) => SearchLegalDatabase::extractsFrom($result->result))
             ->values()
             ->all();
+    }
+
+    /**
+     * Le tour a-t-il réellement interrogé le corpus ?
+     *
+     * Distingue « l'assistant a cherché et n'a rien trouvé » (non-réponse à
+     * afficher comme telle) de « l'assistant n'avait pas à chercher » (salutation,
+     * demande de reformulation) — sans quoi le second se verrait étiqueté à tort
+     * comme une absence de texte.
+     *
+     * @param  iterable<int, mixed>  $events
+     */
+    public function searchRanInEvents(iterable $events): bool
+    {
+        return collect($events)
+            ->whereInstanceOf(ToolResultEvent::class)
+            ->contains(fn ($event) => $event->toolResult->name === self::SEARCH_TOOL);
+    }
+
+    public function searchRanInResponse(AgentResponse $response): bool
+    {
+        return collect($response->toolResults ?? [])
+            ->contains(fn ($result) => $result instanceof ToolResultData && $result->name === self::SEARCH_TOOL);
     }
 
     /**
@@ -153,7 +183,7 @@ class AssistantChatService
      * @param  array<int, mixed>  $sources
      * @return string|null Id du message assistant (pour le feedback immédiat).
      */
-    public function finalizeTurn(string $conversationId, string $userMessage, array $userMeta, array $sources): ?string
+    public function finalizeTurn(string $conversationId, string $userMessage, array $userMeta, array $sources, bool $noResult = false): ?string
     {
         $lastUserMessage = AgentConversationMessage::where('conversation_id', $conversationId)
             ->where('role', 'user')
@@ -197,6 +227,16 @@ class AssistantChatService
                 $dirty = true;
             }
 
+            // Une non-réponse relue dans l'historique doit rester une non-réponse :
+            // sans cette marque, le fil rechargé afficherait une réponse ordinaire
+            // dépourvue de sources, indistinguable d'une réponse tronquée.
+            if ($noResult) {
+                $meta = is_array($lastAssistant->meta) ? $lastAssistant->meta : [];
+                $meta['no_result'] = true;
+                $lastAssistant->meta = $meta;
+                $dirty = true;
+            }
+
             if ($dirty) {
                 $lastAssistant->save();
             }
@@ -210,11 +250,12 @@ class AssistantChatService
      *
      * @param  array<int, mixed>  $sources
      */
-    public function cacheResponse(string $cacheKey, string $reply, array $sources): void
+    public function cacheResponse(string $cacheKey, string $reply, array $sources, bool $noResult = false): void
     {
         Cache::put($cacheKey, [
             'reply' => $reply,
             'sources' => $sources,
+            'no_result' => $noResult,
         ], now()->addHours(self::CACHE_TTL_HOURS));
     }
 
