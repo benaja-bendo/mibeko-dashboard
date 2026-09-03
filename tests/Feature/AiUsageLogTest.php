@@ -9,6 +9,7 @@ use App\Models\DocumentType;
 use App\Models\LegalDocument;
 use App\Models\User;
 use App\Observers\ArticleVersionObserver;
+use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\RateLimiter;
 use Laravel\Ai\AnonymousAgent;
 use Laravel\Ai\Embeddings;
@@ -50,6 +51,12 @@ it('journalise un refus de quota (429) sans jamais atteindre le contrôleur', fu
 it('journalise une réponse servie depuis le cache sans coût', function () {
     $user = User::factory()->create();
     Sanctum::actingAs($user);
+
+    // Le titre est produit par un job (ConversationTitler) : en test (file
+    // `sync`) il s'exécuterait en ligne et appellerait un vrai fournisseur IA,
+    // non couvert par MibekoIA::fake() — on neutralise la file pour rester
+    // hermétique, aucune clé API en CI (cf. AiAssistantControllerTest.php).
+    Queue::fake();
 
     MibekoIA::fake(['Réponse.']);
 
