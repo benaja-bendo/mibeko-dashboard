@@ -411,7 +411,7 @@ class ArticleSearchController extends Controller
             return false;
         } catch (HttpResponseException) {
             // Cas réel avec `ai_assistant` : chaque branche (anonyme, admin,
-            // standard/premium) définit `->response(...)`, donc `buildException`
+            // standard/user_pro) définit `->response(...)`, donc `buildException`
             // lève systématiquement celle-ci plutôt que `ThrottleRequestsException`.
             return false;
         }

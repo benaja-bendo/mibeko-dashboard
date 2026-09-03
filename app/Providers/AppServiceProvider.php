@@ -186,10 +186,14 @@ class AppServiceProvider extends ServiceProvider
         });
 
         // Rate limiter spécifique pour l'IA basé sur les rôles (Spatie) ou statuts.
-        // Deux plafonds par utilisateur : par minute (confort d'usage) et par
-        // JOUR (maîtrise du coût LLM — cf. config/ai.php `quotas`). Les admins
-        // n'ont pas de limite par minute mais gardent un plafond journalier :
-        // un jeton admin compromis ne doit pas générer une facture illimitée.
+        // Deux plafonds par utilisateur : par minute (confort d'usage) et une
+        // allocation de fond (maîtrise du coût LLM — cf. config/ai.php
+        // `quotas`) — MENSUELLE pour le palier gratuit `standard`, journalière
+        // pour `user_pro` et `admin` (mibeko-dashboard#62 : un plafond
+        // journalier gratuit se lit comme illimité et ne crée aucun moment
+        // d'achat). Les admins n'ont pas de limite par minute mais gardent un
+        // plafond journalier : un jeton admin compromis ne doit pas générer
+        // une facture illimitée.
         //
         // Les messages 429 doivent rester NEUTRES — aucune mention d'abonnement
         // ou d'achat : ils s'affichent tels quels dans le chat de l'app mobile,
@@ -199,22 +203,54 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('ai_assistant', function (Request $request) {
             // mibeko-dashboard#61 : « un 429 est une donnée » — journalisé ici,
             // seul endroit qui voit un refus de quota avant le contrôleur.
-            $rateLimitedResponse = function (string $scope, string $message) {
-                return function (Request $request, array $headers) use ($scope, $message) {
-                    if ($route = AiRouteName::fromRequest($request)) {
-                        app(AiUsageLogger::class)->rateLimited($request->user(), $route);
-                    }
-
-                    return response()->json([
-                        'message' => $message,
-                        'code' => 'AI_RATE_LIMITED',
-                        'scope' => $scope,
-                    ], 429, $headers);
-                };
+            $log = function (Request $request) {
+                if ($route = AiRouteName::fromRequest($request)) {
+                    app(AiUsageLogger::class)->rateLimited($request->user(), $route);
+                }
             };
 
-            $minuteResponse = $rateLimitedResponse('minute', 'Limite temporaire de requêtes atteinte. Réessayez dans quelques minutes.');
-            $dailyResponse = $rateLimitedResponse('day', 'Plafond journalier de requêtes IA atteint. Réessayez demain.');
+            $minuteResponse = function (Request $request, array $headers) use ($log) {
+                $log($request);
+
+                return response()->json([
+                    'message' => 'Limite temporaire de requêtes atteinte. Réessayez dans quelques minutes.',
+                    'code' => 'AI_RATE_LIMITED',
+                    'scope' => 'minute',
+                ], 429, $headers);
+            };
+
+            $dailyResponse = function (Request $request, array $headers) use ($log) {
+                $log($request);
+
+                return response()->json([
+                    'message' => 'Plafond journalier de requêtes IA atteint. Réessayez demain.',
+                    'code' => 'AI_RATE_LIMITED',
+                    'scope' => 'day',
+                ], 429, $headers);
+            };
+
+            // mibeko-dashboard#62 : le palier gratuit est désormais mensuel
+            // (fenêtre glissante de 30 jours, Limit::perDay(..., 30)) — un
+            // plafond journalier se lisait comme illimité et ne créait aucun
+            // moment d'achat. Le message dit QUAND l'allocation revient
+            // (calculé depuis Retry-After, déjà posé par ThrottleRequests),
+            // sinon un plafond mensuel se lit comme un mur définitif.
+            $monthResponse = function (Request $request, array $headers) use ($log) {
+                $log($request);
+
+                $days = isset($headers['Retry-After']) ? max(1, (int) ceil($headers['Retry-After'] / 86400)) : null;
+                $delai = match (true) {
+                    $days === null => 'dans les prochains jours',
+                    $days === 1 => 'dans 1 jour',
+                    default => "dans {$days} jours",
+                };
+
+                return response()->json([
+                    'message' => "Plafond mensuel de requêtes IA atteint. Réessayez {$delai}.",
+                    'code' => 'AI_RATE_LIMITED',
+                    'scope' => 'month',
+                ], 429, $headers);
+            };
 
             $user = $request->user();
 
@@ -230,15 +266,24 @@ class AppServiceProvider extends ServiceProvider
                 ];
             }
 
-            $quota = $user->hasRole('premium') ? 'premium' : 'standard';
+            if ($user->hasRole('user_pro')) {
+                return [
+                    Limit::perMinute(config('ai.quotas.user_pro.per_minute'))
+                        ->by('minute:'.$user->id)
+                        ->response($minuteResponse),
+                    Limit::perDay(config('ai.quotas.user_pro.per_day'))
+                        ->by('day:'.$user->id)
+                        ->response($dailyResponse),
+                ];
+            }
 
             return [
-                Limit::perMinute(config("ai.quotas.{$quota}.per_minute"))
+                Limit::perMinute(config('ai.quotas.standard.per_minute'))
                     ->by('minute:'.$user->id)
                     ->response($minuteResponse),
-                Limit::perDay(config("ai.quotas.{$quota}.per_day"))
-                    ->by('day:'.$user->id)
-                    ->response($dailyResponse),
+                Limit::perDay(config('ai.quotas.standard.per_month'), 30)
+                    ->by('month:'.$user->id)
+                    ->response($monthResponse),
             ];
         });
 

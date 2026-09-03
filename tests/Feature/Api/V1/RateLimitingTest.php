@@ -94,18 +94,34 @@ it('plafonne les signalements publics anonymes par IP (quota journalier)', funct
         ->assertJsonPath('message', 'Trop de signalements envoyés. Réessayez plus tard.');
 });
 
-it('plafonne les requêtes IA journalières d\'un utilisateur standard', function () {
+it('plafonne les requêtes IA mensuelles d\'un utilisateur standard (mibeko-dashboard#62)', function () {
     $user = User::factory()->create();
 
-    // Quota journalier consommé (la limite par minute reste vierge).
-    simulateThrottleHits('ai_assistant', 'day:'.$user->id, config('ai.quotas.standard.per_day'), 86400);
+    // Quota mensuel consommé (la limite par minute reste vierge). La fenêtre
+    // est glissante sur 30 jours (Limit::perDay(..., 30)), donc la même clé
+    // de cache que le décompte journalier — seule la durée de décroissance
+    // change, simulée ici en 30 jours pour matcher `->by('month:'.$id)`.
+    simulateThrottleHits('ai_assistant', 'month:'.$user->id, config('ai.quotas.standard.per_month'), 30 * 86400);
 
     $this->actingAs($user)
         ->postJson('/api/v1/assistant/chat', ['message' => 'Bonjour'])
         ->assertStatus(429)
         ->assertHeader('Retry-After')
-        ->assertJsonPath('message', 'Plafond journalier de requêtes IA atteint. Réessayez demain.')
         ->assertJsonPath('code', 'AI_RATE_LIMITED')
+        ->assertJsonPath('scope', 'month')
+        ->assertJsonPath('message', fn ($message) => str_contains($message, 'Plafond mensuel') && str_contains($message, 'jour'));
+});
+
+it('user_pro garde un plafond journalier distinct du palier gratuit', function () {
+    $user = User::factory()->create();
+    $user->assignRole(Role::findOrCreate('user_pro'));
+
+    simulateThrottleHits('ai_assistant', 'day:'.$user->id, config('ai.quotas.user_pro.per_day'), 86400);
+
+    $this->actingAs($user)
+        ->postJson('/api/v1/assistant/chat', ['message' => 'Bonjour'])
+        ->assertStatus(429)
+        ->assertJsonPath('message', 'Plafond journalier de requêtes IA atteint. Réessayez demain.')
         ->assertJsonPath('scope', 'day');
 });
 

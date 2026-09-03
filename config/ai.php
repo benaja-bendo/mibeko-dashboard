@@ -148,21 +148,30 @@ return [
     |--------------------------------------------------------------------------
     |
     | Plafonds appliqués par le limiteur `ai_assistant` (AppServiceProvider) :
-    | requêtes par minute (confort d'usage) ET par jour (maîtrise du coût des
-    | fournisseurs LLM). Les administrateurs ont aussi un plafond journalier —
-    | un jeton admin compromis ne doit pas pouvoir générer une facture
-    | illimitée.
+    | requêtes par minute (confort d'usage) ET une allocation de fond (maîtrise
+    | du coût des fournisseurs LLM). Les administrateurs ont aussi un plafond
+    | journalier — un jeton admin compromis ne doit pas pouvoir générer une
+    | facture illimitée.
+    |
+    | mibeko-dashboard#62 (03/09/2026) : le palier `standard` (gratuit) était
+    | journalier (200/jour, soit jusqu'à 6 000/mois) — une allocation qui se
+    | lit comme illimitée et ne crée aucun moment d'achat. Il est désormais
+    | MENSUEL (fenêtre glissante de 30 jours, cf. AppServiceProvider) ; 50/mois
+    | est un choix produit du fondateur, à réviser une fois #61 mesuré en
+    | production. `premium` renommé `user_pro` : c'est le rôle Spatie réel
+    | (`RolesAndPermissionsSeeder`), `premium` n'existait pas et tout le monde
+    | retombait sur `standard`, abonnés Pro compris.
     |
     */
 
     'quotas' => [
         'standard' => [
             'per_minute' => (int) env('AI_QUOTA_STANDARD_PER_MINUTE', 20),
-            'per_day' => (int) env('AI_QUOTA_STANDARD_PER_DAY', 200),
+            'per_month' => (int) env('AI_QUOTA_STANDARD_PER_MONTH', 50),
         ],
-        'premium' => [
-            'per_minute' => (int) env('AI_QUOTA_PREMIUM_PER_MINUTE', 60),
-            'per_day' => (int) env('AI_QUOTA_PREMIUM_PER_DAY', 1000),
+        'user_pro' => [
+            'per_minute' => (int) env('AI_QUOTA_USER_PRO_PER_MINUTE', 60),
+            'per_day' => (int) env('AI_QUOTA_USER_PRO_PER_DAY', 1000),
         ],
         'admin' => [
             'per_day' => (int) env('AI_QUOTA_ADMIN_PER_DAY', 2000),
