@@ -90,9 +90,12 @@ class DocumentRelationController extends Controller
             'meta' => 'nullable|array',
         ]);
 
-        // Validation: at least one source and one target (doc or article)
-        if (! ($validated['source_doc_id'] || $validated['source_article_id']) ||
-            ! ($validated['target_doc_id'] || $validated['target_article_id'])) {
+        // Validation: at least one source and one target (doc or article).
+        // `nullable` : un champ absent de la requête n'apparaît pas du tout
+        // dans $validated (pas de clé à `null`) — ?? évite le
+        // "Undefined array key" sur toute combinaison partielle.
+        if (! ($validated['source_doc_id'] ?? $validated['source_article_id'] ?? null) ||
+            ! ($validated['target_doc_id'] ?? $validated['target_article_id'] ?? null)) {
             return $this->error(null, 'Une source et une cible sont nécessaires.', 422);
         }
 

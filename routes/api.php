@@ -285,6 +285,12 @@ Route::prefix('v1')->middleware('throttle:api')->group(function () {
         Route::post('articles/{article}/versions', [ArticleController::class, 'addVersion']);
 
         Route::post('articles/{article}/relations', [DocumentRelationController::class, 'store']);
+        // Relation document-à-document pure (ex. une Constitution qui en
+        // abroge une autre) : `{article}` de la route ci-dessus n'a de sens
+        // que pour le cas d'usage éditeur « depuis cet article, lier ce texte
+        // cité » — store() ne le lit d'ailleurs jamais. Même contrôleur,
+        // même validation, sans exiger un article qui n'existe pas ici.
+        Route::post('document-relations', [DocumentRelationController::class, 'store']);
         Route::delete('relations/{id}', [DocumentRelationController::class, 'destroy']);
 
         // Vue Contrôle : anomalies d'un document (validation humaine).
