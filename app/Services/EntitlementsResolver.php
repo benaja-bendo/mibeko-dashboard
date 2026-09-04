@@ -12,12 +12,16 @@ use Illuminate\Support\Facades\RateLimiter;
  * Un rôle Spatie dit qui est la personne dans l'organisation (staff ou non),
  * jamais ce qu'elle a payé — confondre les deux est précisément pourquoi
  * `hasRole('premium')` était mort (#62) et pourquoi les permissions du
- * seeder ne sont vérifiées nulle part (#64). Le plan se résout donc depuis
- * l'abonnement Cashier, complété par les rôles staff (admin/editor) qui
- * héritent des mêmes droits sans abonnement. `mobile_user` n'entre dans
- * aucun calcul ici : c'est le rôle par défaut de toute auto-inscription
- * (web comprise), pas un palier — le traiter comme tel a été l'erreur
- * d'origine.
+ * seeder ne sont vérifiées nulle part (#64, retirées). Le plan se résout
+ * donc depuis l'abonnement Cashier, complété par les rôles staff
+ * (admin/editor) qui héritent des mêmes droits sans abonnement, ET par
+ * `user_pro` (mibeko-dashboard#85) : c'est aujourd'hui le seul mécanisme qui
+ * rend quelqu'un Pro dans les faits, attribué à la main tant que Stripe
+ * n'encaisse rien — l'ignorer ici renvoyait `plan: libre` à un compte que
+ * le quota IA (`AiUserQuotaTier`) traitait pourtant déjà comme Pro.
+ * `mobile_user` n'entre dans aucun calcul ici : c'est le rôle par défaut de
+ * toute auto-inscription (web comprise), pas un palier — le traiter comme
+ * tel a été l'erreur d'origine.
  *
  * Web et mobile doivent consommer cette charge utile à l'identique : aucun
  * client ne re-déduit la règle.
@@ -54,11 +58,16 @@ class EntitlementsResolver
 
     private function resolvePlan(User $user): string
     {
-        if ($user->hasAnyRole(['admin', 'editor'])) {
+        // `editor` reste vérifié à part, à dessein : il n'appartient pas à
+        // ELEVATED_QUOTA_ROLES (un éditeur n'a aujourd'hui aucun quota IA
+        // élevé, cf. AiUserQuotaTier) alors qu'il reste Pro côté fonctionnalités
+        // — les garder séparés rend cette asymétrie visible dans le code
+        // plutôt que dépendante d'une liste qui prétendrait les unifier.
+        if ($user->hasRole('editor') || $user->hasAnyRole(AiUserQuotaTier::ELEVATED_QUOTA_ROLES) || $user->subscribed('default')) {
             return 'pro';
         }
 
-        return $user->subscribed('default') ? 'pro' : 'libre';
+        return 'libre';
     }
 
     /**

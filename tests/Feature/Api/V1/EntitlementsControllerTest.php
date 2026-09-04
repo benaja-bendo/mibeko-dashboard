@@ -32,11 +32,10 @@ it('résout le palier libre pour un compte sans abonnement ni rôle staff', func
         ->assertJsonPath('data.credits', null);
 });
 
-it('résout le palier pro depuis un abonnement Cashier réel, pas depuis le rôle user_pro', function () {
+it('résout le palier pro depuis un abonnement Cashier réel, sans rôle staff ni user_pro', function () {
     $user = User::factory()->create();
     Subscription::factory()->for($user, 'user')->create();
 
-    // Aucun rôle user_pro assigné : la preuve que le plan vient de Cashier.
     $this->actingAs($user)
         ->getJson('/api/v1/me/entitlements')
         ->assertOk()
@@ -52,7 +51,11 @@ it('résout le palier pro pour le staff (admin/editor) sans abonnement', functio
         ->getJson('/api/v1/me/entitlements')
         ->assertOk()
         ->assertJsonPath('data.plan', 'pro')
-        ->assertJsonPath('data.features.export', true);
+        ->assertJsonPath('data.features.export', true)
+        // Asymétrie assumée (mibeko-dashboard#85) : editor n'appartient pas à
+        // ELEVATED_QUOTA_ROLES, son quota IA reste celui du palier standard
+        // même si son plan est pro — à ne pas unifier sans décision produit.
+        ->assertJsonPath('data.quotas.assistant.limit', config('ai.quotas.standard.per_month'));
 });
 
 it('un abonnement annulé et terminé ne compte plus comme pro', function () {
@@ -81,12 +84,19 @@ it('reflète le quota assistant réellement consommé, à la même clé que le l
         ->assertJsonPath('data.quotas.assistant.resets_at', fn ($value) => $value !== null);
 });
 
-it('le quota assistant du palier user_pro est journalier, pas mensuel', function () {
+it('résout le palier pro depuis le seul rôle user_pro, sans abonnement Cashier, avec un quota journalier', function () {
+    // mibeko-dashboard#85 : le rôle user_pro est aujourd'hui le seul
+    // mécanisme qui rend quelqu'un Pro dans les faits (attribution manuelle,
+    // Stripe n'encaisse rien) — avant ce correctif, ce même compte recevait
+    // le quota IA élevé mais `plan: libre`, deux vérités divergentes pour
+    // la même personne.
     $user = User::factory()->create();
     $user->assignRole(Role::findOrCreate('user_pro'));
 
     $this->actingAs($user)
         ->getJson('/api/v1/me/entitlements')
         ->assertOk()
+        ->assertJsonPath('data.plan', 'pro')
+        ->assertJsonPath('data.features.export', true)
         ->assertJsonPath('data.quotas.assistant.limit', config('ai.quotas.user_pro.per_day'));
 });
