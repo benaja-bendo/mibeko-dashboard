@@ -28,8 +28,10 @@ use Illuminate\Support\Facades\RateLimiter;
  */
 class EntitlementsResolver
 {
+    public function __construct(private readonly CreditLedger $creditLedger) {}
+
     /**
-     * @return array{plan: 'libre'|'pro', features: array<string, bool>, quotas: array<string, mixed>, credits: null}
+     * @return array{plan: 'libre'|'pro', features: array<string, bool>, quotas: array<string, mixed>, credits: int}
      */
     public function resolve(User $user): array
     {
@@ -48,11 +50,11 @@ class EntitlementsResolver
             'quotas' => [
                 'assistant' => $this->assistantQuota($user),
             ],
-            // Aucun système de crédits/solde n'existe encore dans le produit
-            // (cf. mibeko-dashboard#76, arbitrage freemium toujours ouvert) —
-            // le champ existe pour que le contrat de charge utile n'ait pas
-            // à changer le jour où il apparaît.
-            'credits' => null,
+            // mibeko-dashboard#83 : solde réel du grand livre (#66), plus le
+            // champ figé à null en attendant qu'un système existe — il en
+            // existe un désormais, même si aucun parcours d'achat ne l'a
+            // encore approvisionné (#65, non construit).
+            'credits' => $this->creditLedger->balance($user),
         ];
     }
 

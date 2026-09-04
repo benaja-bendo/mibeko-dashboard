@@ -60,8 +60,14 @@ class LibraryAiController extends Controller
 
         $article = $this->fetchArticleContext($validated['article_id']);
 
+        // mibeko-dashboard#83 : posé par le limiteur `ai_assistant` quand cette
+        // requête a consommé un crédit — la ligne `ai_usage_logs` qui en
+        // résulte doit porter cet id pour que l'écriture de consommation du
+        // grand livre le référence correctement.
+        $logId = $request->attributes->get('ai_usage_log_id');
+
         if (! $article) {
-            return $this->streamError("Cet article n'est pas disponible dans la base Mibeko.", $request->user(), AiRouteName::LIBRARY_EXPLAIN);
+            return $this->streamError("Cet article n'est pas disponible dans la base Mibeko.", $request->user(), AiRouteName::LIBRARY_EXPLAIN, $logId);
         }
 
         $userPrompt = "Voici l'article de loi à expliquer (issu de la base Mibeko) :\n\n"
@@ -71,7 +77,7 @@ class LibraryAiController extends Controller
             ."Explique cet article de façon claire et pédagogique pour un citoyen : ce qu'il signifie concrètement, à qui il s'applique et ses implications pratiques. Cite le document et le numéro d'article.\n\n"
             .'Réponse (en français) :';
 
-        return $this->streamAnswer($userPrompt, [$article], $request->user(), AiRouteName::LIBRARY_EXPLAIN);
+        return $this->streamAnswer($userPrompt, [$article], $request->user(), AiRouteName::LIBRARY_EXPLAIN, $logId);
     }
 
     /**
@@ -103,8 +109,10 @@ class LibraryAiController extends Controller
             'document_id' => $validated['document_id'] ?? null,
         ], 5);
 
+        $logId = $request->attributes->get('ai_usage_log_id');
+
         if (empty($sources)) {
-            return $this->streamError("Aucun texte pertinent dans la base Mibeko pour cette recherche. La base est limitée aux textes officiels de la République du Congo intégrés à l'application.", $request->user(), AiRouteName::LIBRARY_SYNTHESIS);
+            return $this->streamError("Aucun texte pertinent dans la base Mibeko pour cette recherche. La base est limitée aux textes officiels de la République du Congo intégrés à l'application.", $request->user(), AiRouteName::LIBRARY_SYNTHESIS, $logId);
         }
 
         $context = '';
@@ -121,7 +129,7 @@ class LibraryAiController extends Controller
             ."Fais une synthèse claire et structurée en t'appuyant UNIQUEMENT sur ces extraits, en citant les articles concernés.\n\n"
             .'Réponse (en français) :';
 
-        return $this->streamAnswer($userPrompt, $sources, $request->user(), AiRouteName::LIBRARY_SYNTHESIS);
+        return $this->streamAnswer($userPrompt, $sources, $request->user(), AiRouteName::LIBRARY_SYNTHESIS, $logId);
     }
 
     /**
@@ -129,9 +137,9 @@ class LibraryAiController extends Controller
      *
      * @param  array<int, array<string, mixed>>  $sources
      */
-    private function streamAnswer(string $userPrompt, array $sources, ?User $user, string $route): StreamedResponse
+    private function streamAnswer(string $userPrompt, array $sources, ?User $user, string $route, ?string $logId = null): StreamedResponse
     {
-        return response()->stream(function () use ($userPrompt, $sources, $user, $route) {
+        return response()->stream(function () use ($userPrompt, $sources, $user, $route, $logId) {
             // Les sources d'abord : mêmes citations cliquables que l'Assistant.
             echo "event: sources\n";
             echo 'data: '.json_encode($sources, JSON_UNESCAPED_UNICODE)."\n\n";
@@ -163,10 +171,11 @@ class LibraryAiController extends Controller
                     $start->provider ?? 'inconnu',
                     $start->model ?? 'inconnu',
                     StreamEnd::combineUsage($events),
+                    id: $logId,
                 );
             } catch (\Throwable $e) {
                 report($e);
-                $this->usageLogger->error($user, $route);
+                $this->usageLogger->error($user, $route, id: $logId);
 
                 $message = config('app.debug')
                     ? $e->getMessage()
@@ -185,9 +194,9 @@ class LibraryAiController extends Controller
     /**
      * Stream a single error frame (nothing relevant to send to the model).
      */
-    private function streamError(string $message, ?User $user, string $route): StreamedResponse
+    private function streamError(string $message, ?User $user, string $route, ?string $logId = null): StreamedResponse
     {
-        $this->usageLogger->noContent($user, $route);
+        $this->usageLogger->noContent($user, $route, $logId);
 
         return response()->stream(function () use ($message) {
             echo "event: error\n";
