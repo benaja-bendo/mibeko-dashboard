@@ -24,8 +24,9 @@ class AiUsageLogger
         string $model,
         Usage $usage,
         ?string $conversationId = null,
+        ?string $id = null,
     ): AiUsageLog {
-        return $this->write($user, $route, AiUsageLog::STATUS_SUCCESS, $provider, $model, $usage->promptTokens, $usage->completionTokens, $conversationId);
+        return $this->write($user, $route, AiUsageLog::STATUS_SUCCESS, $provider, $model, $usage->promptTokens, $usage->completionTokens, $conversationId, $id);
     }
 
     /**
@@ -34,23 +35,24 @@ class AiUsageLogger
      * par le RateLimiter avant d'atteindre le contrôleur), elle mérite une
      * ligne au même titre qu'un appel réel.
      */
-    public function cached(?User $user, string $route, ?string $conversationId = null): AiUsageLog
+    public function cached(?User $user, string $route, ?string $conversationId = null, ?string $id = null): AiUsageLog
     {
-        return $this->write($user, $route, AiUsageLog::STATUS_CACHED, null, null, 0, 0, $conversationId);
+        return $this->write($user, $route, AiUsageLog::STATUS_CACHED, null, null, 0, 0, $conversationId, $id);
     }
 
     /**
      * Appel à la route qui n'a jamais atteint le fournisseur (validation
      * métier en échec : article introuvable, recherche sans résultat…).
      */
-    public function noContent(?User $user, string $route): AiUsageLog
+    public function noContent(?User $user, string $route, ?string $id = null): AiUsageLog
     {
-        return $this->write($user, $route, AiUsageLog::STATUS_NO_CONTENT, null, null, 0, 0);
+        return $this->write($user, $route, AiUsageLog::STATUS_NO_CONTENT, null, null, 0, 0, id: $id);
     }
 
     /**
      * Requête refusée par le limiteur (429) — mibeko-dashboard#61 le demande
-     * explicitement : « un 429 est une donnée ».
+     * explicitement : « un 429 est une donnée ». Jamais liée à une écriture du
+     * grand livre : un refus ne consomme ni quota ni crédit.
      */
     public function rateLimited(?User $user, string $route): AiUsageLog
     {
@@ -62,9 +64,9 @@ class AiUsageLogger
      * fournisseur en panne…) — jetons connus si le fournisseur les a rendus
      * avant l'échec, sinon zéro.
      */
-    public function error(?User $user, string $route, ?string $provider = null, ?string $model = null, ?string $conversationId = null): AiUsageLog
+    public function error(?User $user, string $route, ?string $provider = null, ?string $model = null, ?string $conversationId = null, ?string $id = null): AiUsageLog
     {
-        return $this->write($user, $route, AiUsageLog::STATUS_ERROR, $provider, $model, 0, 0, $conversationId);
+        return $this->write($user, $route, AiUsageLog::STATUS_ERROR, $provider, $model, 0, 0, $conversationId, $id);
     }
 
     private function write(
@@ -76,8 +78,17 @@ class AiUsageLogger
         int $tokensInput,
         int $tokensOutput,
         ?string $conversationId = null,
+        ?string $id = null,
     ): AiUsageLog {
-        return AiUsageLog::create([
+        // mibeko-dashboard#83 : un id peut être imposé par l'appelant — posé
+        // par le limiteur `ai_assistant` quand cette requête a consommé un
+        // crédit, pour que l'écriture de consommation du grand livre
+        // (CreditLedger) et cette ligne se référencent mutuellement. `new` +
+        // affectation directe plutôt que `create()` : `id` n'a pas à devenir
+        // fillable pour ce seul appelant interne. HasUuids ne génère un id
+        // que si l'attribut est encore vide, donc l'affectation ici est
+        // respectée telle quelle.
+        $log = new AiUsageLog([
             'user_id' => $user?->id,
             'route' => $route,
             'status' => $status,
@@ -88,6 +99,14 @@ class AiUsageLogger
             'cost_estimated_fcfa' => $this->estimateCost($provider, $model, $tokensInput, $tokensOutput),
             'conversation_id' => $conversationId,
         ]);
+
+        if ($id !== null) {
+            $log->id = $id;
+        }
+
+        $log->save();
+
+        return $log;
     }
 
     /**

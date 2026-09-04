@@ -294,6 +294,12 @@ class AiAssistantController extends Controller
         $references = $this->resolveReferences($validated['references'] ?? []);
         $agent = new MibekoIA(mode: $mode, scopedDocuments: $references);
 
+        // mibeko-dashboard#83 : posé par le limiteur `ai_assistant` quand cette
+        // requête a consommé un crédit (quota gratuit dépassé) — la ligne
+        // `ai_usage_logs` qui en résulte doit porter CET id pour que l'écriture
+        // de consommation du grand livre le référence correctement.
+        $logId = $request->attributes->get('ai_usage_log_id');
+
         if ($id) {
             // Vérifier que la conversation appartient à l'utilisateur.
             $conversation = AgentConversation::where('user_id', $user->id)->findOrFail($id);
@@ -310,16 +316,16 @@ class AiAssistantController extends Controller
         // 1) Réponse déjà en cache (uniquement pour une nouvelle conversation,
         //    donc sans contexte conversationnel).
         if (! $id && Cache::has($cacheKey)) {
-            return $this->respondFromCache($user, Cache::get($cacheKey), $userMessage, $userMeta, $stream);
+            return $this->respondFromCache($user, Cache::get($cacheKey), $userMessage, $userMeta, $stream, $logId);
         }
 
         // 2) Streaming agentic (SSE) — le client streame toujours.
         if ($stream) {
-            return $this->streamReply($agent, $user, $id, $userMessage, $userMeta, $cacheKey);
+            return $this->streamReply($agent, $user, $id, $userMessage, $userMeta, $cacheKey, $logId);
         }
 
         // 3) Réponse synchrone (JSON).
-        return $this->syncReply($user, $agent, $id, $userMessage, $userMeta, $cacheKey);
+        return $this->syncReply($user, $agent, $id, $userMessage, $userMeta, $cacheKey, $logId);
     }
 
     /**
@@ -328,11 +334,11 @@ class AiAssistantController extends Controller
      * @param  array{reply: string, sources: array<int, mixed>, no_result?: bool}  $cached
      * @param  array<string, mixed>  $userMeta
      */
-    private function respondFromCache(User $user, array $cached, string $userMessage, array $userMeta, bool $stream)
+    private function respondFromCache(User $user, array $cached, string $userMessage, array $userMeta, bool $stream, ?string $logId = null)
     {
         $conversation = $this->chatService->createConversation($user, $userMessage);
         $assistantMessage = $this->chatService->writeCachedTurn($conversation, $user, $userMessage, $userMeta, $cached);
-        $this->usageLogger->cached($user, AiRouteName::ASSISTANT_CHAT, $conversation->id);
+        $this->usageLogger->cached($user, AiRouteName::ASSISTANT_CHAT, $conversation->id, $logId);
 
         if ($stream) {
             return $this->streamedResponse(function () use ($cached, $assistantMessage) {
@@ -370,7 +376,7 @@ class AiAssistantController extends Controller
      *
      * @param  array<string, mixed>  $userMeta
      */
-    private function streamReply(MibekoIA $agent, User $user, ?string $id, string $userMessage, array $userMeta, string $cacheKey)
+    private function streamReply(MibekoIA $agent, User $user, ?string $id, string $userMessage, array $userMeta, string $cacheKey, ?string $logId = null)
     {
         if (! $id) {
             $conversation = $this->chatService->createConversation($user, $userMessage);
@@ -383,7 +389,7 @@ class AiAssistantController extends Controller
         $assistantMessageId = null;
 
         $agentResponse = $agent->stream($userMessage, provider: $this->assistantProviders())->then(
-            function (StreamedAgentResponse $response) use ($user, $userMessage, $userMeta, $cacheKey, &$assistantMessageId) {
+            function (StreamedAgentResponse $response) use ($user, $userMessage, $userMeta, $cacheKey, $logId, &$assistantMessageId) {
                 $sources = $this->chatService->sourcesFromEvents($response->events);
                 // Le corpus a été interrogé et n'a rien rendu : l'état est persisté
                 // et mis en cache avec la réponse, pour que l'historique et une
@@ -401,11 +407,12 @@ class AiAssistantController extends Controller
                     (string) $response->meta->model,
                     $response->usage,
                     $response->conversationId,
+                    $logId,
                 );
             }
         );
 
-        return $this->streamedResponse(function () use ($agentResponse, &$assistantMessageId, $user, $id) {
+        return $this->streamedResponse(function () use ($agentResponse, &$assistantMessageId, $user, $id, $logId) {
             // La persistance (question + réponse) a lieu dans le callback `then()`
             // du package, déclenché à la FIN de l'itération. Sans cela, une
             // déconnexion client (onglet fermé, Stop, réseau) tuerait le script au
@@ -461,7 +468,7 @@ class AiAssistantController extends Controller
                 $emitDelta($citationFilter->flush());
             } catch (\Throwable $e) {
                 report($e);
-                $this->usageLogger->error($user, AiRouteName::ASSISTANT_CHAT, conversationId: $id);
+                $this->usageLogger->error($user, AiRouteName::ASSISTANT_CHAT, conversationId: $id, id: $logId);
 
                 ServerSentEvents::send([
                     'message' => config('app.debug')
@@ -490,7 +497,7 @@ class AiAssistantController extends Controller
      *
      * @param  array<string, mixed>  $userMeta
      */
-    private function syncReply(User $user, MibekoIA $agent, ?string $id, string $userMessage, array $userMeta, string $cacheKey): JsonResponse
+    private function syncReply(User $user, MibekoIA $agent, ?string $id, string $userMessage, array $userMeta, string $cacheKey, ?string $logId = null): JsonResponse
     {
         $response = $agent->prompt($userMessage, provider: $this->assistantProviders());
         $sources = $this->chatService->sourcesFromResponse($response);
@@ -505,6 +512,7 @@ class AiAssistantController extends Controller
             (string) $response->meta->model,
             $response->usage,
             $response->conversationId,
+            $logId,
         );
 
         // Marqueurs [n] sans source réelle neutralisés avant restitution : le

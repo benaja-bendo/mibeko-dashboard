@@ -7,10 +7,12 @@ use App\Ai\AiUsageLogger;
 use App\Ai\AiUserQuotaTier;
 use App\Ai\NormalizesContentBlockResponses;
 use App\Ai\Storage\CompactingConversationStore;
+use App\Exceptions\InsufficientCreditsException;
 use App\Models\ArticleVersion;
 use App\Models\LegalDocument;
 use App\Observers\ArticleVersionObserver;
 use App\Observers\LegalDocumentObserver;
+use App\Services\CreditLedger;
 use Dedoc\Scramble\Scramble;
 use Dedoc\Scramble\Support\Generator\OpenApi;
 use Dedoc\Scramble\Support\Generator\SecurityScheme;
@@ -227,11 +229,26 @@ class AppServiceProvider extends ServiceProvider
                 ], 429, $headers);
             };
 
-            $dailyResponse = function (Request $request, array $headers) use ($log) {
+            // Réservée à admin : jamais de secours par crédit pour un compte
+            // staff, le message ne mentionne donc jamais les crédits.
+            $adminDailyResponse = function (Request $request, array $headers) use ($log) {
                 $log($request);
 
                 return response()->json([
                     'message' => 'Plafond journalier de requêtes IA atteint. Réessayez demain.',
+                    'code' => 'AI_RATE_LIMITED',
+                    'scope' => 'day',
+                ], 429, $headers);
+            };
+
+            // mibeko-dashboard#83 : au-delà de ce point, un crédit a déjà été
+            // tenté et a échoué (solde insuffisant) — jamais atteint tant
+            // qu'un crédit couvre la requête, cf. plus bas.
+            $dailyResponse = function (Request $request, array $headers) use ($log) {
+                $log($request);
+
+                return response()->json([
+                    'message' => 'Plafond journalier de requêtes IA atteint et aucun crédit disponible. Réessayez demain, ou achetez des crédits sur app.mibeko.fr.',
                     'code' => 'AI_RATE_LIMITED',
                     'scope' => 'day',
                 ], 429, $headers);
@@ -243,6 +260,8 @@ class AppServiceProvider extends ServiceProvider
             // moment d'achat. Le message dit QUAND l'allocation revient
             // (calculé depuis Retry-After, déjà posé par ThrottleRequests),
             // sinon un plafond mensuel se lit comme un mur définitif.
+            // mibeko-dashboard#83 : comme $dailyResponse, jamais atteint tant
+            // qu'un crédit couvre la requête.
             $monthResponse = function (Request $request, array $headers) use ($log) {
                 $log($request);
 
@@ -254,7 +273,7 @@ class AppServiceProvider extends ServiceProvider
                 };
 
                 return response()->json([
-                    'message' => "Plafond mensuel de requêtes IA atteint. Réessayez {$delai}.",
+                    'message' => "Plafond mensuel de requêtes IA atteint et aucun crédit disponible. Réessayez {$delai}, ou achetez des crédits sur app.mibeko.fr.",
                     'code' => 'AI_RATE_LIMITED',
                     'scope' => 'month',
                 ], 429, $headers);
@@ -275,25 +294,64 @@ class AppServiceProvider extends ServiceProvider
                 return [
                     Limit::perDay($tier['limit'])
                         ->by('day:'.$user->id)
-                        ->response($dailyResponse),
+                        ->response($adminDailyResponse),
                 ];
             }
 
+            // mibeko-dashboard#83 : le quota de fond serait dépassé par CETTE
+            // requête — tenter un crédit avant de renvoyer le plafond qui la
+            // bloquerait. `AiUserQuotaTier::cacheKey` lit exactement la même
+            // clé que le Limit ci-dessous incrémentera si la requête passe :
+            // aucun risque de diverger sur ce qui compte comme « déjà utilisé ».
+            // Si un crédit couvre la requête, le Limit de fond est omis du
+            // retour : le compteur gratuit ne bouge pas, seul le grand livre
+            // enregistre la dépense — la prochaine requête retombera sur ce
+            // même chemin tant que des crédits restent disponibles.
+            $usedSoFar = RateLimiter::attempts(AiUserQuotaTier::cacheKey($user, $tier['scope']));
+            $creditCoversThisRequest = false;
+
+            if ($usedSoFar >= $tier['limit']) {
+                $logId = (string) Str::orderedUuid();
+
+                try {
+                    app(CreditLedger::class)->consume($user, 1, 'Question IA au-delà du quota gratuit', $logId);
+                    // Lu par les contrôleurs IA pour que la ligne ai_usage_logs
+                    // qu'ils écrivent porte ce même id (référencé par le grand
+                    // livre) plutôt qu'un id généré indépendamment.
+                    $request->attributes->set('ai_usage_log_id', $logId);
+                    $creditCoversThisRequest = true;
+                } catch (InsufficientCreditsException) {
+                    // Pas de crédit : le plafond de fond s'applique normalement.
+                }
+            }
+
             if ($user->hasRole('user_pro')) {
+                $minuteLimit = Limit::perMinute(config('ai.quotas.user_pro.per_minute'))
+                    ->by('minute:'.$user->id)
+                    ->response($minuteResponse);
+
+                if ($creditCoversThisRequest) {
+                    return [$minuteLimit];
+                }
+
                 return [
-                    Limit::perMinute(config('ai.quotas.user_pro.per_minute'))
-                        ->by('minute:'.$user->id)
-                        ->response($minuteResponse),
+                    $minuteLimit,
                     Limit::perDay($tier['limit'])
                         ->by('day:'.$user->id)
                         ->response($dailyResponse),
                 ];
             }
 
+            $minuteLimit = Limit::perMinute(config('ai.quotas.standard.per_minute'))
+                ->by('minute:'.$user->id)
+                ->response($minuteResponse);
+
+            if ($creditCoversThisRequest) {
+                return [$minuteLimit];
+            }
+
             return [
-                Limit::perMinute(config('ai.quotas.standard.per_minute'))
-                    ->by('minute:'.$user->id)
-                    ->response($minuteResponse),
+                $minuteLimit,
                 Limit::perDay($tier['limit'], 30)
                     ->by('month:'.$user->id)
                     ->response($monthResponse),

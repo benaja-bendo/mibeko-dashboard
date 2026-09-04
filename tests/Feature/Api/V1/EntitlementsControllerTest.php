@@ -29,7 +29,8 @@ it('résout le palier libre pour un compte sans abonnement ni rôle staff', func
         ->assertJsonPath('data.quotas.assistant.limit', config('ai.quotas.standard.per_month'))
         ->assertJsonPath('data.quotas.assistant.used', 0)
         ->assertJsonPath('data.quotas.assistant.resets_at', null)
-        ->assertJsonPath('data.credits', null);
+        // mibeko-dashboard#83 : solde réel du grand livre, jamais un champ figé.
+        ->assertJsonPath('data.credits', 0);
 });
 
 it('résout le palier pro depuis un abonnement Cashier réel, sans rôle staff ni user_pro', function () {
