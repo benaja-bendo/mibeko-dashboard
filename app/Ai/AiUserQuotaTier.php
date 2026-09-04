@@ -18,6 +18,17 @@ use App\Models\User;
 class AiUserQuotaTier
 {
     /**
+     * Rôles qui donnent un quota IA élevé — nommés ici une seule fois
+     * (mibeko-dashboard#85) pour qu'`EntitlementsResolver::resolvePlan()`
+     * les réutilise au lieu de les redéviner dans une seconde liste tenue
+     * à la main : c'est exactement cette duplication silencieuse qui avait
+     * laissé `user_pro` reconnu ici mais ignoré là-bas.
+     *
+     * @var list<string>
+     */
+    public const ELEVATED_QUOTA_ROLES = ['admin', 'user_pro'];
+
+    /**
      * @return array{scope: 'day'|'month', limit: int}
      */
     public static function resolve(User $user): array
