@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use App\Ai\AiRouteName;
 use App\Ai\AiUsageLogger;
+use App\Ai\AiUserQuotaTier;
 use App\Ai\NormalizesContentBlockResponses;
 use App\Ai\Storage\CompactingConversationStore;
 use App\Models\ArticleVersion;
@@ -265,9 +266,14 @@ class AppServiceProvider extends ServiceProvider
                 return Limit::perMinute(5)->by($request->ip())->response($minuteResponse);
             }
 
+            // mibeko-dashboard#63 : limite de fond partagée avec
+            // EntitlementsResolver (même palier, même valeur) — un quota
+            // annoncé au client ne doit jamais diverger de celui appliqué ici.
+            $tier = AiUserQuotaTier::resolve($user);
+
             if ($user->hasRole('admin')) {
                 return [
-                    Limit::perDay(config('ai.quotas.admin.per_day'))
+                    Limit::perDay($tier['limit'])
                         ->by('day:'.$user->id)
                         ->response($dailyResponse),
                 ];
@@ -278,7 +284,7 @@ class AppServiceProvider extends ServiceProvider
                     Limit::perMinute(config('ai.quotas.user_pro.per_minute'))
                         ->by('minute:'.$user->id)
                         ->response($minuteResponse),
-                    Limit::perDay(config('ai.quotas.user_pro.per_day'))
+                    Limit::perDay($tier['limit'])
                         ->by('day:'.$user->id)
                         ->response($dailyResponse),
                 ];
@@ -288,7 +294,7 @@ class AppServiceProvider extends ServiceProvider
                 Limit::perMinute(config('ai.quotas.standard.per_minute'))
                     ->by('minute:'.$user->id)
                     ->response($minuteResponse),
-                Limit::perDay(config('ai.quotas.standard.per_month'), 30)
+                Limit::perDay($tier['limit'], 30)
                     ->by('month:'.$user->id)
                     ->response($monthResponse),
             ];

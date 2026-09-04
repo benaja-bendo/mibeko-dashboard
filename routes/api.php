@@ -30,6 +30,7 @@ use App\Http\Controllers\Api\V1\DossierExportController;
 use App\Http\Controllers\Api\V1\DossierWebController;
 use App\Http\Controllers\Api\V1\EmailVerificationController;
 use App\Http\Controllers\Api\V1\EmbeddingController;
+use App\Http\Controllers\Api\V1\EntitlementsController;
 use App\Http\Controllers\Api\V1\HomeController;
 use App\Http\Controllers\Api\V1\InstitutionController;
 use App\Http\Controllers\Api\V1\LegalDocumentController;
@@ -81,6 +82,10 @@ Route::prefix('v1')->middleware('throttle:api')->group(function () {
 
     Route::middleware('auth:sanctum')->group(function () {
         Route::get('me', [AuthController::class, 'me']);
+        // mibeko-dashboard#63 : point unique de vérité du droit d'usage
+        // (plan, fonctionnalités, quotas, solde) — web et mobile consomment
+        // cette charge à l'identique, aucun ne re-déduit la règle localement.
+        Route::get('me/entitlements', [EntitlementsController::class, 'show']);
         Route::post('logout', [AuthController::class, 'logout']);
 
         // Renvoi du lien de vérification d'e-mail (app mobile / SPA) — quota
