@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use App\Ai\AiRouteName;
 use App\Ai\AiUsageLogger;
+use App\Ai\NormalizesContentBlockResponses;
 use App\Ai\Storage\CompactingConversationStore;
 use App\Models\ArticleVersion;
 use App\Models\LegalDocument;
@@ -19,6 +20,7 @@ use Illuminate\Filesystem\FilesystemAdapter;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\ServiceProvider;
@@ -46,6 +48,11 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         JsonResource::withoutWrapping();
+
+        // mibeko-dashboard#80 : aplatit `message.content` quand un fournisseur
+        // compatible OpenAI (Mistral compris) le renvoie en blocs plutôt qu'en
+        // chaîne — laravel/ai v0.9.1 fait planter StepResponse sur ce format.
+        Http::globalResponseMiddleware(new NormalizesContentBlockResponses);
 
         ArticleVersion::observe(ArticleVersionObserver::class);
         LegalDocument::observe(LegalDocumentObserver::class);
