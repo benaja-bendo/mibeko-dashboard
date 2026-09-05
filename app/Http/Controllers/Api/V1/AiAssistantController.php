@@ -468,7 +468,7 @@ class AiAssistantController extends Controller
                 $emitDelta($citationFilter->flush());
             } catch (\Throwable $e) {
                 report($e);
-                $this->usageLogger->error($user, AiRouteName::ASSISTANT_CHAT, conversationId: $id, id: $logId);
+                $this->usageLogger->error($user, AiRouteName::ASSISTANT_CHAT, conversationId: $id, id: $logId, exception: $e);
 
                 ServerSentEvents::send([
                     'message' => config('app.debug')

@@ -175,7 +175,7 @@ class LibraryAiController extends Controller
                 );
             } catch (\Throwable $e) {
                 report($e);
-                $this->usageLogger->error($user, $route, id: $logId);
+                $this->usageLogger->error($user, $route, id: $logId, exception: $e);
 
                 $message = config('app.debug')
                     ? $e->getMessage()

@@ -63,10 +63,35 @@ class AiUsageLogger
      * Appel fournisseur qui a échoué après avoir démarré (erreur réseau,
      * fournisseur en panne…) — jetons connus si le fournisseur les a rendus
      * avant l'échec, sinon zéro.
+     *
+     * mibeko-dashboard#84 : `$exception`, quand fourni, pose la classe et un
+     * message tronqué/nettoyé sur la ligne — de quoi root-causer le prochain
+     * incident depuis la base, sans logs serveur ni accès au VPS. `provider`/
+     * `model` restent `null` si l'appelant ne les connaît pas encore à
+     * l'endroit du `catch` : jamais une valeur devinée.
      */
-    public function error(?User $user, string $route, ?string $provider = null, ?string $model = null, ?string $conversationId = null, ?string $id = null): AiUsageLog
-    {
-        return $this->write($user, $route, AiUsageLog::STATUS_ERROR, $provider, $model, 0, 0, $conversationId, $id);
+    public function error(
+        ?User $user,
+        string $route,
+        ?string $provider = null,
+        ?string $model = null,
+        ?string $conversationId = null,
+        ?string $id = null,
+        ?\Throwable $exception = null,
+    ): AiUsageLog {
+        return $this->write(
+            $user,
+            $route,
+            AiUsageLog::STATUS_ERROR,
+            $provider,
+            $model,
+            0,
+            0,
+            $conversationId,
+            $id,
+            errorClass: $exception === null ? null : $exception::class,
+            errorMessage: $exception ? $this->sanitizeErrorMessage($exception->getMessage()) : null,
+        );
     }
 
     private function write(
@@ -79,6 +104,8 @@ class AiUsageLogger
         int $tokensOutput,
         ?string $conversationId = null,
         ?string $id = null,
+        ?string $errorClass = null,
+        ?string $errorMessage = null,
     ): AiUsageLog {
         // mibeko-dashboard#83 : un id peut être imposé par l'appelant — posé
         // par le limiteur `ai_assistant` quand cette requête a consommé un
@@ -98,6 +125,8 @@ class AiUsageLogger
             'tokens_output' => $tokensOutput,
             'cost_estimated_fcfa' => $this->estimateCost($provider, $model, $tokensInput, $tokensOutput),
             'conversation_id' => $conversationId,
+            'error_class' => $errorClass,
+            'error_message' => $errorMessage,
         ]);
 
         if ($id !== null) {
@@ -107,6 +136,26 @@ class AiUsageLogger
         $log->save();
 
         return $log;
+    }
+
+    /**
+     * mibeko-dashboard#84 : un message d'exception HTTP peut embarquer la
+     * requête sortante entière (Guzzle notamment), donc un jeton d'API — on
+     * retire ce qui y ressemble AVANT de tronquer, la longueur seule ne
+     * suffit pas à l'exclure si le secret arrive tôt dans le message. Cette
+     * table est déjà consultée par plusieurs profils en lecture seule.
+     */
+    private function sanitizeErrorMessage(string $message): string
+    {
+        // Le jeton d'abord (« Bearer sk-... » sans forcément être précédé de
+        // « Authorization: »), sinon le second remplacement ne verrait plus
+        // que « Bearer » — le jeton lui-même resterait exposé après coup.
+        $scrubbed = preg_replace('/bearer\s+\S+/i', 'Bearer [retiré]', $message) ?? $message;
+        // Filet plus large sur l'en-tête complet, au cas où un autre schéma
+        // (Basic, une clé brute…) suit « Authorization: ».
+        $scrubbed = preg_replace('/(authorization:\s*)\S+(?:\s+\S+)?/i', '$1[retiré]', $scrubbed) ?? $scrubbed;
+
+        return mb_substr($scrubbed, 0, 500);
     }
 
     /**
