@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources\V1\Admin;
 
+use App\Ai\AiUserQuotaTier;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -55,6 +56,15 @@ class UserDetailResource extends JsonResource
                 'marketing_consent' => (bool) $settings->marketing_consent,
                 'analytics_consent' => (bool) $settings->analytics_consent,
             ] : null,
+
+            // Quota IA — mibeko-dashboard#95 : effectif = ce que
+            // AiUserQuotaTier::resolve() applique réellement (override compte
+            // tenu), pour que l'admin ne devine jamais depuis un rôle seul.
+            'ai_quota' => [
+                'effective' => AiUserQuotaTier::resolve($this->resource),
+                'override_limit' => $settings->ai_quota_override_limit ?? null,
+                'override_note' => $settings->ai_quota_override_note ?? null,
+            ],
 
             // Usage
             'dossiers_count' => $this->dossiers()->count(),

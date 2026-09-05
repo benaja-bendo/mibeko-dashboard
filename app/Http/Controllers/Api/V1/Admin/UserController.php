@@ -238,6 +238,43 @@ class UserController extends Controller
         return $this->success(null, 'Double authentification désactivée.');
     }
 
+    /**
+     * Pose un override de quota IA sur ce compte — mibeko-dashboard#95.
+     *
+     * Pensé pour une vente manuelle (§11.3 de business-model.md) : c'est
+     * l'admin qui saisit le chiffre ici, jamais un parcours self-service.
+     * Prime sur le réglage de palier et sur `config/ai.php`
+     * (`AiUserQuotaTier::resolve()`), pas sur la portée jour/mois — celle-ci
+     * reste fixée par le rôle du compte.
+     */
+    public function updateAiQuotaOverride(Request $request, User $user): JsonResponse
+    {
+        $validated = $request->validate([
+            'limit' => ['required', 'integer', 'min:0'],
+            'note' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        $user->settingsOrCreate()->update([
+            'ai_quota_override_limit' => $validated['limit'],
+            'ai_quota_override_note' => $validated['note'] ?? null,
+        ]);
+
+        return $this->success(null, 'Override de quota IA posé pour ce compte.');
+    }
+
+    /**
+     * Retire l'override : le compte retombe sur le palier normal de son rôle.
+     */
+    public function destroyAiQuotaOverride(User $user): JsonResponse
+    {
+        $user->settingsOrCreate()->update([
+            'ai_quota_override_limit' => null,
+            'ai_quota_override_note' => null,
+        ]);
+
+        return $this->success(null, 'Override de quota IA retiré.');
+    }
+
     // ── Helpers ───────────────────────────────────────────────────────────────
 
     /**
