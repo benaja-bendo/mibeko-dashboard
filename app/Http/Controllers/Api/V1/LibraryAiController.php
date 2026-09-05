@@ -164,18 +164,23 @@ class LibraryAiController extends Controller
                     }
                 }
 
-                $start = collect($events)->first(fn ($e) => $e instanceof StreamStart);
+                [$provider, $model] = $this->resolveKnownProviderModel($events);
                 $this->usageLogger->success(
                     $user,
                     $route,
-                    $start->provider ?? 'inconnu',
-                    $start->model ?? 'inconnu',
+                    $provider ?? 'inconnu',
+                    $model ?? 'inconnu',
                     StreamEnd::combineUsage($events),
                     id: $logId,
                 );
             } catch (\Throwable $e) {
                 report($e);
-                $this->usageLogger->error($user, $route, id: $logId, exception: $e);
+
+                // mibeko-dashboard#91 : le flux a pu démarrer (StreamStart déjà
+                // dans $events) avant de tomber en erreur — dans ce cas
+                // fournisseur/modèle sont réellement connus, pas à laisser null.
+                [$provider, $model] = $this->resolveKnownProviderModel($events);
+                $this->usageLogger->error($user, $route, provider: $provider, model: $model, id: $logId, exception: $e);
 
                 $message = config('app.debug')
                     ? $e->getMessage()
@@ -189,6 +194,21 @@ class LibraryAiController extends Controller
                 $this->flushSse();
             }
         }, 200, $this->sseHeaders());
+    }
+
+    /**
+     * Fournisseur/modèle déjà connus si `StreamEvent StreamStart` figure parmi
+     * les événements déjà reçus — jamais devinés : `null` si le flux n'a pas
+     * atteint ce point (mibeko-dashboard#91).
+     *
+     * @param  array<int, mixed>  $events
+     * @return array{0: ?string, 1: ?string}
+     */
+    private function resolveKnownProviderModel(array $events): array
+    {
+        $start = collect($events)->first(fn ($event) => $event instanceof StreamStart);
+
+        return [$start->provider ?? null, $start->model ?? null];
     }
 
     /**
