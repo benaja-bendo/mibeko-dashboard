@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\V1\Admin\AiQuotaTierController as AdminAiQuotaTierController;
 use App\Http\Controllers\Api\V1\Admin\AuditController as AdminAuditController;
 use App\Http\Controllers\Api\V1\Admin\CurationFlagController as AdminCurationFlagController;
 use App\Http\Controllers\Api\V1\Admin\DocumentTypeController as AdminDocumentTypeController;
@@ -370,6 +371,14 @@ Route::prefix('v1')->middleware('throttle:api')->group(function () {
             Route::apiResource('tags', AdminTagController::class)
                 ->only(['index', 'store', 'update', 'destroy']);
 
+            // ── Quotas IA par palier (mibeko-dashboard#95) ─────────────────────
+            Route::get('ai-quota-tiers', [AdminAiQuotaTierController::class, 'index'])
+                ->name('ai-quota-tiers.index');
+            Route::put('ai-quota-tiers/{tier}', [AdminAiQuotaTierController::class, 'update'])
+                ->name('ai-quota-tiers.update');
+            Route::delete('ai-quota-tiers/{tier}', [AdminAiQuotaTierController::class, 'destroy'])
+                ->name('ai-quota-tiers.destroy');
+
             // Triage des signalements (CurationFlag)
             Route::post('flags/bulk', [AdminCurationFlagController::class, 'bulk'])
                 ->name('flags.bulk');
@@ -390,6 +399,12 @@ Route::prefix('v1')->middleware('throttle:api')->group(function () {
                 ->name('users.two-factor.disable');
             Route::post('users/{user}/impersonate', [AdminImpersonationController::class, 'start'])
                 ->name('users.impersonate');
+            // mibeko-dashboard#95 : override de quota IA — vente manuelle, posé
+            // par le fondateur, jamais un parcours self-service.
+            Route::put('users/{user}/ai-quota-override', [AdminUserController::class, 'updateAiQuotaOverride'])
+                ->name('users.ai-quota-override.update');
+            Route::delete('users/{user}/ai-quota-override', [AdminUserController::class, 'destroyAiQuotaOverride'])
+                ->name('users.ai-quota-override.destroy');
             Route::apiResource('users', AdminUserController::class)
                 ->only(['index', 'store', 'show', 'update', 'destroy']);
 

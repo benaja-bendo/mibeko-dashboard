@@ -30,6 +30,11 @@ class UserSetting extends Model implements Auditable
         'analytics_consent',
         'analytics_consent_at',
         'billing_info',
+        // mibeko-dashboard#95 : override de quota IA posé par un admin depuis
+        // l'espace administration — jamais par l'utilisateur lui-même,
+        // exclu à dessein des routes self-service (PreferencesController).
+        'ai_quota_override_limit',
+        'ai_quota_override_note',
     ];
 
     protected function casts(): array
@@ -41,6 +46,7 @@ class UserSetting extends Model implements Auditable
             'analytics_consent' => 'boolean',
             'analytics_consent_at' => 'datetime',
             'billing_info' => 'array',
+            'ai_quota_override_limit' => 'integer',
         ];
     }
 
