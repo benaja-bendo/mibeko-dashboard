@@ -39,6 +39,10 @@ class AiUsageLog extends Model
         'tokens_output',
         'cost_estimated_fcfa',
         'conversation_id',
+        // mibeko-dashboard#84 : déjà tronqués/nettoyés par
+        // AiUsageLogger::sanitizeErrorMessage() avant d'arriver ici.
+        'error_class',
+        'error_message',
     ];
 
     protected function casts(): array
