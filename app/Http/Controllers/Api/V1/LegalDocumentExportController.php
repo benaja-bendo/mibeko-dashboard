@@ -6,16 +6,29 @@ use App\Http\Controllers\Controller;
 use App\Models\Article;
 use App\Models\LegalDocument;
 use App\Services\DocumentExportPdfService;
+use App\Services\EntitlementsResolver;
 use App\Traits\GuardsUnpublishedDocuments;
+use App\Traits\HttpResponses;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Str;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class LegalDocumentExportController extends Controller
 {
-    use GuardsUnpublishedDocuments;
+    use GuardsUnpublishedDocuments, HttpResponses;
+
+    /**
+     * Durée de vie du jeton d'export signé (mibeko-dashboard#86) : assez
+     * courte pour rester une capacité ponctuelle, assez large pour couvrir
+     * la latence d'un réseau dégradé entre le mint et le clic qui suit.
+     */
+    private const SIGNED_URL_TTL_SECONDS = 120;
+
+    public function __construct(private readonly EntitlementsResolver $entitlements) {}
 
     /**
      * Export a full legal document to PDF.
@@ -68,5 +81,42 @@ class LegalDocumentExportController extends Controller
         $filename = 'Article-'.$article->numero_article.'-'.Str::slug($document->titre_officiel ?? 'document').'.pdf';
 
         return $pdf->download($filename);
+    }
+
+    /**
+     * Mint une URL signée à courte durée de vie pour l'export PDF d'un
+     * document — mibeko-dashboard#86. Le clic direct `<a href>` du lecteur
+     * Bibliothèque ne porte aucun jeton Bearer : cet endpoint (lui,
+     * authentifié) vérifie l'entitlement une fois, puis délègue la preuve
+     * à la signature de l'URL qu'il renvoie.
+     */
+    public function mintDocumentToken(Request $request, string $id): JsonResponse
+    {
+        return $this->mintSignedUrl($request, 'legal-documents.export.signed', $id);
+    }
+
+    /**
+     * Idem pour l'export d'un article seul (consommé par l'app mobile).
+     */
+    public function mintArticleToken(Request $request, string $id): JsonResponse
+    {
+        return $this->mintSignedUrl($request, 'articles.export.signed', $id);
+    }
+
+    private function mintSignedUrl(Request $request, string $routeName, string $id): JsonResponse
+    {
+        abort_unless(
+            $this->entitlements->resolve($request->user())['features']['export'],
+            403,
+            "L'export PDF Mibeko est réservé aux comptes Pro."
+        );
+
+        return $this->success([
+            'url' => URL::temporarySignedRoute(
+                $routeName,
+                now()->addSeconds(self::SIGNED_URL_TTL_SECONDS),
+                ['id' => $id],
+            ),
+        ]);
     }
 }
