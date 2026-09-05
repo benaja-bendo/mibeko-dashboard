@@ -6,20 +6,31 @@ use App\Models\DocumentType;
 use App\Models\Institution;
 use App\Models\LegalDocument;
 use App\Models\StructureNode;
+use App\Models\User;
 use App\Observers\ArticleVersionObserver;
 use Illuminate\Support\Facades\Storage;
 use Laravel\Ai\Embeddings;
+use Spatie\Permission\Models\Role;
 
 /**
  * Couvre l'export PDF Mibeko (`/legal-documents/{id}/export` et
  * `/articles/{id}/export`) : génération effective du PDF avec la mise en
  * page Mibeko (couverture, sommaire, corps) sans erreur de rendu Blade, et
  * mise en cache (voir DocumentExportPdfService) du rendu par version.
+ *
+ * Ces routes sont verrouillées derrière l'entitlement `export`
+ * (mibeko-dashboard#86) : tous les appels ici passent par un compte Pro
+ * (Bearer Sanctum) — l'entitlement elle-même est couverte séparément par
+ * LegalDocumentExportEntitlementTest.
  */
 beforeEach(function () {
     ArticleVersionObserver::$shouldSkipEmbeddings = true;
     Embeddings::fake();
     Storage::fake('s3');
+
+    Role::findOrCreate('user_pro');
+    $this->pro = User::factory()->create();
+    $this->pro->assignRole('user_pro');
 
     DocumentType::create(['code' => 'LOI', 'nom' => 'Loi']);
     $institution = Institution::factory()->create(['nom' => 'Ministère de la Justice']);
@@ -66,7 +77,7 @@ beforeEach(function () {
 });
 
 it('exporte un document complet en PDF', function () {
-    $response = $this->get("/api/v1/legal-documents/{$this->document->id}/export");
+    $response = $this->actingAs($this->pro)->get("/api/v1/legal-documents/{$this->document->id}/export");
 
     $response->assertStatus(200)
         ->assertHeader('content-type', 'application/pdf');
@@ -75,7 +86,7 @@ it('exporte un document complet en PDF', function () {
 });
 
 it('met le PDF en cache et le réutilise au lieu de le regénérer', function () {
-    $this->get("/api/v1/legal-documents/{$this->document->id}/export")->assertStatus(200);
+    $this->actingAs($this->pro)->get("/api/v1/legal-documents/{$this->document->id}/export")->assertStatus(200);
 
     $directory = "exports/documents/{$this->document->id}";
     $files = Storage::disk('s3')->files($directory);
@@ -86,14 +97,14 @@ it('met le PDF en cache et le réutilise au lieu de le regénérer', function ()
     // PDF (`%PDF...`), pas ce marqueur.
     Storage::disk('s3')->put($files[0], 'CACHE-HIT-MARKER');
 
-    $response = $this->get("/api/v1/legal-documents/{$this->document->id}/export");
+    $response = $this->actingAs($this->pro)->get("/api/v1/legal-documents/{$this->document->id}/export");
 
     $response->assertStatus(200);
     expect($response->streamedContent())->toBe('CACHE-HIT-MARKER');
 });
 
 it('régénère le PDF en cache quand le contenu du document change', function () {
-    $this->get("/api/v1/legal-documents/{$this->document->id}/export")->assertStatus(200);
+    $this->actingAs($this->pro)->get("/api/v1/legal-documents/{$this->document->id}/export")->assertStatus(200);
 
     $directory = "exports/documents/{$this->document->id}";
     $pathBefore = Storage::disk('s3')->files($directory)[0];
@@ -110,7 +121,7 @@ it('régénère le PDF en cache quand le contenu du document change', function (
     $this->document->refresh();
     $this->document->forceFill(['updated_at' => $this->document->updated_at->addSecond()])->saveQuietly();
 
-    $this->get("/api/v1/legal-documents/{$this->document->id}/export")->assertStatus(200);
+    $this->actingAs($this->pro)->get("/api/v1/legal-documents/{$this->document->id}/export")->assertStatus(200);
 
     $filesAfter = Storage::disk('s3')->files($directory);
     expect($filesAfter)->toHaveCount(1)
@@ -118,7 +129,7 @@ it('régénère le PDF en cache quand le contenu du document change', function (
 });
 
 it('exporte un article seul en PDF', function () {
-    $response = $this->get("/api/v1/articles/{$this->article->id}/export");
+    $response = $this->actingAs($this->pro)->get("/api/v1/articles/{$this->article->id}/export");
 
     $response->assertStatus(200)
         ->assertHeader('content-type', 'application/pdf');
@@ -127,6 +138,6 @@ it('exporte un article seul en PDF', function () {
 });
 
 it('renvoie 404 pour un document inexistant', function () {
-    $this->get('/api/v1/legal-documents/00000000-0000-0000-0000-000000000000/export')
+    $this->actingAs($this->pro)->get('/api/v1/legal-documents/00000000-0000-0000-0000-000000000000/export')
         ->assertStatus(404);
 });

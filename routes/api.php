@@ -52,6 +52,7 @@ use App\Http\Controllers\Api\V1\StructureNodeController;
 use App\Http\Controllers\Api\V1\SyncController;
 use App\Http\Controllers\Api\V1\TwoFactorController;
 use App\Http\Controllers\PdfProxyController;
+use App\Http\Middleware\EnsureExportEntitled;
 use App\Http\Middleware\EnsureMobileReleaseSecret;
 use Illuminate\Support\Facades\Route;
 
@@ -169,6 +170,14 @@ Route::prefix('v1')->middleware('throttle:api')->group(function () {
         // Bibliothèque — IA à la demande (streaming SSE, sans état)
         Route::post('library/explain', [LibraryAiController::class, 'explain'])->middleware('throttle:ai_assistant');
         Route::post('library/synthesis', [LibraryAiController::class, 'synthesis'])->middleware('throttle:ai_assistant');
+
+        // BE5 - PDF Export : jeton signé à courte durée de vie (mibeko-dashboard#86)
+        // pour le clic direct <a href> du lecteur Bibliothèque et l'URL brute
+        // mobile, qui ne portent aucun jeton Bearer. Vérifie l'entitlement
+        // `export` une fois ici ; l'export lui-même (hors auth:sanctum, plus
+        // bas) fait confiance à la signature qui en résulte.
+        Route::get('legal-documents/{id}/export-token', [LegalDocumentExportController::class, 'mintDocumentToken']);
+        Route::get('articles/{id}/export-token', [LegalDocumentExportController::class, 'mintArticleToken']);
     });
 
     // Bibliothèque — lecture publique : contenu identique pour tous, mis en
@@ -321,9 +330,15 @@ Route::prefix('v1')->middleware('throttle:api')->group(function () {
     // `download` — c'est la même nature d'opération (lecture froide d'un PDF
     // du corpus publié, streamé depuis MinIO).
 
-    // BE5 - PDF Export
-    Route::get('legal-documents/{id}/export', [LegalDocumentExportController::class, 'export']);
-    Route::get('articles/{id}/export', [LegalDocumentExportController::class, 'exportArticle']);
+    // BE5 - PDF Export — verrouillé derrière l'entitlement `export`
+    // (mibeko-dashboard#86) : Bearer Sanctum pro, ou signature valide mintée
+    // par les endpoints export-token ci-dessus (voir EnsureExportEntitled).
+    Route::get('legal-documents/{id}/export', [LegalDocumentExportController::class, 'export'])
+        ->middleware(EnsureExportEntitled::class)
+        ->name('legal-documents.export.signed');
+    Route::get('articles/{id}/export', [LegalDocumentExportController::class, 'exportArticle'])
+        ->middleware(EnsureExportEntitled::class)
+        ->name('articles.export.signed');
 
     // Curation / Signalements (Mobile App) — endpoint public : le contrôleur
     // force source='report'/severity='info' (jamais bloquant) et le quota

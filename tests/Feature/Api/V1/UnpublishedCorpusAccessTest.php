@@ -154,9 +154,12 @@ it('répond 404 sur le pdf d\'un brouillon pour un anonyme, 200 pour un éditeur
         ->assertHeader('Content-Type', 'application/pdf');
 });
 
-it('répond 404 sur l\'export PDF d\'un brouillon pour un anonyme, 200 pour un éditeur', function () {
+it('répond 403 sur l\'export PDF d\'un brouillon pour un anonyme (entitlement, mibeko-dashboard#86), 200 pour un éditeur', function () {
+    // L'entitlement export (mibeko-dashboard#86) intercepte l'appel anonyme
+    // AVANT la garde de visibilité du brouillon : même réponse (403) qu'un
+    // document publié, published ou pas — rien à énumérer.
     $this->get("/api/v1/legal-documents/{$this->draft->id}/export")
-        ->assertNotFound();
+        ->assertForbidden();
 
     $response = $this->actingAs($this->editor)
         ->get("/api/v1/legal-documents/{$this->draft->id}/export");
@@ -164,9 +167,9 @@ it('répond 404 sur l\'export PDF d\'un brouillon pour un anonyme, 200 pour un �
     $response->assertOk()->assertHeader('content-type', 'application/pdf');
 });
 
-it('répond 404 sur l\'export d\'un article de brouillon pour un anonyme, 200 pour un éditeur', function () {
+it('répond 403 sur l\'export d\'un article de brouillon pour un anonyme (entitlement, mibeko-dashboard#86), 200 pour un éditeur', function () {
     $this->get("/api/v1/articles/{$this->draftArticle->id}/export")
-        ->assertNotFound();
+        ->assertForbidden();
 
     $response = $this->actingAs($this->editor)
         ->get("/api/v1/articles/{$this->draftArticle->id}/export");
