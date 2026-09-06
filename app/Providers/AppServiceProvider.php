@@ -244,11 +244,16 @@ class AppServiceProvider extends ServiceProvider
             // mibeko-dashboard#83 : au-delà de ce point, un crédit a déjà été
             // tenté et a échoué (solde insuffisant) — jamais atteint tant
             // qu'un crédit couvre la requête, cf. plus bas.
+            //
+            // mibeko-dashboard#101 : le message ne promet plus d'acheter des
+            // crédits sur app.mibeko.fr — aucun parcours d'achat n'existe
+            // (ni self-service, ni même l'écran admin de #102). Il dit
+            // seulement quand le quota revient, comme $adminDailyResponse.
             $dailyResponse = function (Request $request, array $headers) use ($log) {
                 $log($request);
 
                 return response()->json([
-                    'message' => 'Plafond journalier de requêtes IA atteint et aucun crédit disponible. Réessayez demain, ou achetez des crédits sur app.mibeko.fr.',
+                    'message' => 'Plafond journalier de requêtes IA atteint. Réessayez demain.',
                     'code' => 'AI_RATE_LIMITED',
                     'scope' => 'day',
                 ], 429, $headers);
@@ -262,6 +267,8 @@ class AppServiceProvider extends ServiceProvider
             // sinon un plafond mensuel se lit comme un mur définitif.
             // mibeko-dashboard#83 : comme $dailyResponse, jamais atteint tant
             // qu'un crédit couvre la requête.
+            // mibeko-dashboard#101 : même retrait de la promesse d'achat que
+            // $dailyResponse ci-dessus — seule l'échéance reste dans le message.
             $monthResponse = function (Request $request, array $headers) use ($log) {
                 $log($request);
 
@@ -273,7 +280,7 @@ class AppServiceProvider extends ServiceProvider
                 };
 
                 return response()->json([
-                    'message' => "Plafond mensuel de requêtes IA atteint et aucun crédit disponible. Réessayez {$delai}, ou achetez des crédits sur app.mibeko.fr.",
+                    'message' => "Plafond mensuel de requêtes IA atteint. Réessayez {$delai}.",
                     'code' => 'AI_RATE_LIMITED',
                     'scope' => 'month',
                 ], 429, $headers);

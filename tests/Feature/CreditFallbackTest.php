@@ -39,14 +39,16 @@ it('consomme un crédit et laisse passer une requête IA au-delà du quota gratu
     expect((new CreditLedger)->balance($user))->toBe(9);
 });
 
-it('refuse toujours en 429, message à l\'appui, si le quota est dépassé sans crédit', function () {
+it('refuse toujours en 429 si le quota est dépassé sans crédit, sans promettre d\'achat', function () {
     $user = User::factory()->create();
     simulateAiThrottleHits('month:'.$user->id, config('ai.quotas.standard.per_month'), 30 * 86400);
 
+    // mibeko-dashboard#101 : le message dit l'échéance, jamais un achat —
+    // aucun parcours de crédits en libre-service n'existe.
     $this->actingAs($user)
         ->postJson('/api/v1/assistant/chat', ['message' => 'Bonjour'])
         ->assertStatus(429)
-        ->assertJsonPath('message', fn ($message) => str_contains($message, 'crédit'));
+        ->assertJsonPath('message', fn ($message) => str_contains($message, 'Plafond mensuel') && ! str_contains($message, 'crédit'));
 
     expect(CreditLedgerEntry::where('user_id', $user->id)->exists())->toBeFalse();
 });

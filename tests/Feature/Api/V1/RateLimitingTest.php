@@ -121,8 +121,8 @@ it('user_pro garde un plafond journalier distinct du palier gratuit', function (
     $this->actingAs($user)
         ->postJson('/api/v1/assistant/chat', ['message' => 'Bonjour'])
         ->assertStatus(429)
-        // mibeko-dashboard#83 : ce compte n'a pas de crédit, le message le dit.
-        ->assertJsonPath('message', 'Plafond journalier de requêtes IA atteint et aucun crédit disponible. Réessayez demain, ou achetez des crédits sur app.mibeko.fr.')
+        // mibeko-dashboard#101 : le message ne promet plus d'achat de crédits.
+        ->assertJsonPath('message', 'Plafond journalier de requêtes IA atteint. Réessayez demain.')
         ->assertJsonPath('scope', 'day');
 });
 
