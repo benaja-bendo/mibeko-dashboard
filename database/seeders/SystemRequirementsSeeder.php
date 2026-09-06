@@ -38,6 +38,9 @@ class SystemRequirementsSeeder extends Seeder
             // Journaux officiels ingérés par le pipeline : un JO est un contenant,
             // pas une norme — il se place sous le texte générique dans la hiérarchie.
             ['code' => 'JO', 'nom' => 'Journal officiel', 'niveau_hierarchique' => 110],
+            // Une décision applique et interprète le droit, elle ne le crée
+            // pas — mibeko-python#19.
+            ['code' => 'JURIS', 'nom' => 'Décision de justice', 'niveau_hierarchique' => 130],
         ];
 
         foreach ($types as $type) {
