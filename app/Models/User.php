@@ -115,6 +115,12 @@ class User extends Authenticatable implements Auditable
         return $this->hasMany(AgentConversation::class);
     }
 
+    /** Abonnements Pro vendus à la main — mibeko-dashboard#100. */
+    public function planGrants(): HasMany
+    {
+        return $this->hasMany(PlanGrant::class);
+    }
+
     /**
      * Récupère le profil mobile associé à l'utilisateur.
      */

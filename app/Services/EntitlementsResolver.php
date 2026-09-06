@@ -65,7 +65,18 @@ class EntitlementsResolver
         // élevé, cf. AiUserQuotaTier) alors qu'il reste Pro côté fonctionnalités
         // — les garder séparés rend cette asymétrie visible dans le code
         // plutôt que dépendante d'une liste qui prétendrait les unifier.
-        if ($user->hasRole('editor') || $user->hasAnyRole(AiUserQuotaTier::ELEVATED_QUOTA_ROLES) || $user->subscribed('default')) {
+        //
+        // mibeko-dashboard#100 : `AiUserQuotaTier::isProTier()` reconnaît en
+        // plus un abonnement vendu à la main et borné dans le temps
+        // (`PlanGrant`) — jusqu'ici seul `user_pro` (un rôle sans échéance)
+        // en tenait lieu. Réutilisé tel quel plutôt que redévinée ici : c'est
+        // exactement ce même point que consulte le limiteur de débit
+        // (`AppServiceProvider::boot()`), pour la même raison qui a motivé
+        // ELEVATED_QUOTA_ROLES (#85) — une définition de « qui est Pro »
+        // dupliquée finit toujours par diverger. Vérifié en LECTURE LIVE,
+        // jamais via un job planifié : un octroi expiré cesse de compter au
+        // tick suivant, sans redéploiement.
+        if ($user->hasRole('editor') || $user->hasRole('admin') || AiUserQuotaTier::isProTier($user) || $user->subscribed('default')) {
             return 'pro';
         }
 

@@ -3,6 +3,7 @@
 namespace App\Http\Resources\V1\Admin;
 
 use App\Ai\AiUserQuotaTier;
+use App\Models\PlanGrant;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -69,6 +70,19 @@ class UserDetailResource extends JsonResource
             // Usage
             'dossiers_count' => $this->dossiers()->count(),
             'conversations_count' => $this->agentConversations()->count(),
+
+            // Abonnement Pro vendu à la main — mibeko-dashboard#100. Distinct
+            // de l'abonnement Cashier ci-dessous : c'est aujourd'hui le seul
+            // rail réel (Cashier/Stripe ne fonctionne pas au Congo).
+            'plan_grant' => ($grant = PlanGrant::latestActiveFor($this->resource)) ? [
+                'id' => $grant->id,
+                'ends_at' => optional($grant->ends_at)->toIso8601String(),
+                'amount_fcfa' => $grant->amount_fcfa,
+                'channel' => $grant->channel,
+                'reference' => $grant->reference,
+                'notes' => $grant->notes,
+                'granted_by' => optional($grant->creator)->name,
+            ] : null,
 
             // Abonnement (Cashier)
             'subscription' => $subscription ? [

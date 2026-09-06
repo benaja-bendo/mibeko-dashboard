@@ -325,7 +325,14 @@ class AppServiceProvider extends ServiceProvider
                 }
             }
 
-            if ($user->hasRole('user_pro')) {
+            // mibeko-dashboard#100 : `isProTier()` reconnaît aussi un
+            // abonnement vendu à la main (PlanGrant) — un simple
+            // `hasRole('user_pro')` ferait diverger cette branche de
+            // `$tier` (calculé quelques lignes plus haut via `tierFor()`,
+            // qui reconnaît déjà les deux) : la clé `day:`/`month:` choisie
+            // ici doit toujours correspondre à la portée que `$tier` a
+            // réellement résolue.
+            if (AiUserQuotaTier::isProTier($user)) {
                 $minuteLimit = Limit::perMinute(config('ai.quotas.user_pro.per_minute'))
                     ->by('minute:'.$user->id)
                     ->response($minuteResponse);

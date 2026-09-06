@@ -405,6 +405,12 @@ Route::prefix('v1')->middleware('throttle:api')->group(function () {
                 ->name('users.ai-quota-override.update');
             Route::delete('users/{user}/ai-quota-override', [AdminUserController::class, 'destroyAiQuotaOverride'])
                 ->name('users.ai-quota-override.destroy');
+            // mibeko-dashboard#100 : abonnement Pro vendu à la main — même
+            // doctrine que l'override de quota ci-dessus.
+            Route::post('users/{user}/plan-grant', [AdminUserController::class, 'grantProPlan'])
+                ->name('users.plan-grant.store');
+            Route::delete('users/{user}/plan-grant', [AdminUserController::class, 'revokeProPlan'])
+                ->name('users.plan-grant.destroy');
             Route::apiResource('users', AdminUserController::class)
                 ->only(['index', 'store', 'show', 'update', 'destroy']);
 

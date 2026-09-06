@@ -7,6 +7,7 @@ use App\Http\Requests\Api\V1\Admin\StoreUserRequest;
 use App\Http\Requests\Api\V1\Admin\UpdateUserRequest;
 use App\Http\Resources\V1\Admin\UserDetailResource;
 use App\Http\Resources\V1\Admin\UserResource;
+use App\Models\PlanGrant;
 use App\Models\User;
 use App\Notifications\PasswordResetCodeNotification;
 use Illuminate\Database\Eloquent\Builder;
@@ -273,6 +274,52 @@ class UserController extends Controller
         ]);
 
         return $this->success(null, 'Override de quota IA retiré.');
+    }
+
+    /**
+     * Accorde un abonnement Pro jusqu'à une date donnée — mibeko-dashboard#100.
+     *
+     * Pensé pour une vente manuelle (§11.3 de business-model.md), au même
+     * titre que l'override de quota ci-dessus : c'est l'admin qui saisit
+     * l'ajustement après un encaissement mobile money ou en espèces, jamais
+     * un parcours self-service. `PlanGrant::hasActive()` est consulté en
+     * lecture live par `EntitlementsResolver` et `AiUserQuotaTier` : l'octroi
+     * expire de lui-même à `ends_at`, sans job planifié ni redéploiement.
+     */
+    public function grantProPlan(Request $request, User $user): JsonResponse
+    {
+        $validated = $request->validate([
+            'ends_at' => ['required', 'date', 'after:now'],
+            'amount_fcfa' => ['nullable', 'integer', 'min:0'],
+            'channel' => ['nullable', 'string', 'max:40'],
+            'reference' => ['nullable', 'string', 'max:255'],
+            'notes' => ['nullable', 'string', 'max:1000'],
+        ]);
+
+        $grant = $user->planGrants()->create([
+            ...$validated,
+            'plan' => PlanGrant::PLAN_PRO,
+            'created_by' => $request->user()->id,
+        ]);
+
+        return $this->success(['id' => $grant->id], 'Abonnement Pro accordé.');
+    }
+
+    /**
+     * Met fin immédiatement à l'octroi Pro actif de ce compte, sans attendre
+     * son échéance — par exemple en cas d'erreur de saisie ou de remboursement.
+     */
+    public function revokeProPlan(User $user): JsonResponse
+    {
+        $grant = PlanGrant::latestActiveFor($user);
+
+        if (! $grant) {
+            return $this->error(null, 'Aucun abonnement Pro accordé à la main n\'est actif pour ce compte.', 404);
+        }
+
+        $grant->update(['ends_at' => now()]);
+
+        return $this->success(null, 'Abonnement Pro retiré.');
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────

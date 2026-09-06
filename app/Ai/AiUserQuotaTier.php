@@ -3,6 +3,7 @@
 namespace App\Ai;
 
 use App\Models\AiQuotaTierSetting;
+use App\Models\PlanGrant;
 use App\Models\User;
 
 /**
@@ -36,15 +37,29 @@ class AiUserQuotaTier
     public const ELEVATED_QUOTA_ROLES = ['admin', 'user_pro'];
 
     /**
-     * Palier de l'utilisateur — seul endroit qui traduit un rôle Spatie en
-     * palier de quota (mibeko-dashboard#95 : réutilisé par l'admin des
-     * paliers, qui n'a donc pas à redéviner cette correspondance).
+     * Vrai si l'utilisateur doit être traité comme Pro pour le quota IA —
+     * rôle `user_pro` OU abonnement vendu à la main en cours de validité
+     * (`PlanGrant`, mibeko-dashboard#100). Seul point que `tierFor()` ET le
+     * limiteur de débit (`AppServiceProvider::boot()`) consultent pour cette
+     * question : les faire diverger reproduirait exactement le défaut de #85
+     * (`user_pro` reconnu ici, ignoré là-bas).
+     */
+    public static function isProTier(User $user): bool
+    {
+        return $user->hasRole('user_pro') || PlanGrant::hasActive($user);
+    }
+
+    /**
+     * Palier de l'utilisateur — seul endroit qui traduit un rôle Spatie (ou
+     * un octroi actif) en palier de quota (mibeko-dashboard#95 : réutilisé
+     * par l'admin des paliers, qui n'a donc pas à redéviner cette
+     * correspondance).
      */
     public static function tierFor(User $user): string
     {
         return match (true) {
             $user->hasRole('admin') => 'admin',
-            $user->hasRole('user_pro') => 'user_pro',
+            self::isProTier($user) => 'user_pro',
             default => 'standard',
         };
     }
