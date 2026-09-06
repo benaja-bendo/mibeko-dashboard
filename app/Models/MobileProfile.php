@@ -7,6 +7,14 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class MobileProfile extends Model
 {
+    /**
+     * Liste fermée — mibeko-dashboard#98. Voir la migration de normalisation
+     * pour le détail des orthographes regroupées derrière chaque valeur.
+     *
+     * @var list<string>
+     */
+    public const PROFESSIONS = ['Citoyen', 'Étudiant', 'Professionnel du droit', 'Autre'];
+
     protected $fillable = [
         'user_id',
         'phone',

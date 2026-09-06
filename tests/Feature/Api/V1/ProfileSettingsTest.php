@@ -37,7 +37,8 @@ it('updates personal information including the extended profile', function () {
     $response = $this->actingAs($user)->putJson('/api/v1/profile', [
         'name' => 'Nouveau Nom',
         'phone' => '+242068000000',
-        'profession' => 'Avocat',
+        // mibeko-dashboard#98 : liste fermée depuis le 06/09/2026.
+        'profession' => 'Professionnel du droit',
         'company' => 'Cabinet Mibeko',
     ]);
 
@@ -45,7 +46,15 @@ it('updates personal information including the extended profile', function () {
         ->assertJsonPath('data.name', 'Nouveau Nom')
         ->assertJsonPath('data.profile.company', 'Cabinet Mibeko');
 
-    expect($user->fresh()->mobileProfile->profession)->toBe('Avocat');
+    expect($user->fresh()->mobileProfile->profession)->toBe('Professionnel du droit');
+});
+
+it('refuse une profession hors de la liste fermée', function () {
+    $user = User::factory()->create();
+
+    $this->actingAs($user)->putJson('/api/v1/profile', ['profession' => 'Avocat'])
+        ->assertStatus(422)
+        ->assertJsonValidationErrors('profession');
 });
 
 it('changes the password and revokes other sessions', function () {
