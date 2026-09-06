@@ -4,6 +4,7 @@ namespace App\Ai;
 
 use App\Models\AiUsageLog;
 use App\Models\User;
+use Illuminate\Support\Facades\RateLimiter;
 use Laravel\Ai\Responses\Data\Usage;
 
 /**
@@ -135,7 +136,50 @@ class AiUsageLogger
 
         $log->save();
 
+        // mibeko-dashboard#99 : un échec qui n'a livré aucune réponse ne doit
+        // pas coûter de quota — voir `refundQuota()`.
+        if ($user !== null && $id === null && in_array($status, [AiUsageLog::STATUS_ERROR, AiUsageLog::STATUS_NO_CONTENT], true)) {
+            $this->refundQuota($user);
+        }
+
         return $log;
+    }
+
+    /**
+     * Annule le hit du limiteur `ai_assistant` (`AppServiceProvider::boot()`)
+     * quand une question n'a livré aucune réponse — mibeko-dashboard#99.
+     *
+     * `ThrottleRequests` compte une question dès qu'elle ENTRE dans
+     * l'application (le hit a lieu avant le contrôleur, voir la classe
+     * `Illuminate\Routing\Middleware\ThrottleRequests::handleRequest()`), pas
+     * quand une réponse est réellement livrée. Un échec fournisseur (panne,
+     * mauvaise configuration de failover…) consommait donc le quota d'un
+     * utilisateur pour un incident dont il n'est pas responsable — confirmé
+     * en production par l'incident `AI_ASSISTANT_FAILOVER` du 05/09/2026, où
+     * 17 échecs ont chacun décompté une question.
+     *
+     * Rembourser APRÈS coup plutôt que de retarder le hit lui-même laisse le
+     * mécanisme de blocage intact (un simple pré-contrôle en lecture,
+     * `RateLimiter::attempts()`, jamais modifié ici) : la clé de cache est
+     * EXACTEMENT celle que `ThrottleRequests` vient d'incrémenter
+     * (`AiUserQuotaTier::cacheKey`), donc ce remboursement annule pile
+     * l'effet de ce hit précis.
+     *
+     * Ne s'applique jamais à une requête déjà couverte par un crédit ($id
+     * non nul, posé par le limiteur quand `CreditLedger::consume()` a
+     * réussi) : cette requête n'a jamais fait bouger ce compteur, l'omettre
+     * du retour de la fermeture `RateLimiter::for('ai_assistant', …)` est ce
+     * qui l'a laissée passer sans hit.
+     */
+    private function refundQuota(User $user): void
+    {
+        $tier = AiUserQuotaTier::tierFor($user);
+        ['scope' => $scope] = AiUserQuotaTier::tierDefinition($tier);
+
+        RateLimiter::decrement(
+            AiUserQuotaTier::cacheKey($user, $scope),
+            $scope === 'month' ? 60 * 60 * 24 * 30 : 60 * 60 * 24,
+        );
     }
 
     /**
