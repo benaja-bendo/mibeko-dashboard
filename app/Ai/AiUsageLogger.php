@@ -26,8 +26,9 @@ class AiUsageLogger
         Usage $usage,
         ?string $conversationId = null,
         ?string $id = null,
+        ?int $toolCallsCount = null,
     ): AiUsageLog {
-        return $this->write($user, $route, AiUsageLog::STATUS_SUCCESS, $provider, $model, $usage->promptTokens, $usage->completionTokens, $conversationId, $id);
+        return $this->write($user, $route, AiUsageLog::STATUS_SUCCESS, $provider, $model, $usage->promptTokens, $usage->completionTokens, $conversationId, $id, toolCallsCount: $toolCallsCount);
     }
 
     /**
@@ -79,6 +80,7 @@ class AiUsageLogger
         ?string $conversationId = null,
         ?string $id = null,
         ?\Throwable $exception = null,
+        ?int $toolCallsCount = null,
     ): AiUsageLog {
         return $this->write(
             $user,
@@ -92,6 +94,7 @@ class AiUsageLogger
             $id,
             errorClass: $exception === null ? null : $exception::class,
             errorMessage: $exception ? $this->sanitizeErrorMessage($exception->getMessage()) : null,
+            toolCallsCount: $toolCallsCount,
         );
     }
 
@@ -107,6 +110,7 @@ class AiUsageLogger
         ?string $id = null,
         ?string $errorClass = null,
         ?string $errorMessage = null,
+        ?int $toolCallsCount = null,
     ): AiUsageLog {
         // mibeko-dashboard#83 : un id peut être imposé par l'appelant — posé
         // par le limiteur `ai_assistant` quand cette requête a consommé un
@@ -125,6 +129,9 @@ class AiUsageLogger
             'tokens_input' => $tokensInput,
             'tokens_output' => $tokensOutput,
             'cost_estimated_fcfa' => $this->estimateCost($provider, $model, $tokensInput, $tokensOutput),
+            // mibeko-dashboard#103 : proxy de la répartition par étape, voir
+            // AssistantChatService::toolCallsCountFromEvents/FromResponse.
+            'tool_calls_count' => $toolCallsCount,
             'conversation_id' => $conversationId,
             'error_class' => $errorClass,
             'error_message' => $errorMessage,

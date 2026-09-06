@@ -175,6 +175,30 @@ class AssistantChatService
     }
 
     /**
+     * Nombre d'appels à `SearchLegalDatabase` dans ce tour — mibeko-dashboard#103.
+     *
+     * Le SDK n'expose pas le détail des jetons par étape d'un agent en
+     * plusieurs appels (chaque étape est un appel modèle distinct qui
+     * réexpédie toute la conversation depuis le début) : ce compte est le
+     * proxy retenu, corrélé au coût, sans intercepter les appels HTTP du
+     * fournisseur un par un.
+     */
+    public function toolCallsCountFromEvents(iterable $events): int
+    {
+        return collect($events)
+            ->whereInstanceOf(ToolResultEvent::class)
+            ->filter(fn ($event) => $event->toolResult->name === self::SEARCH_TOOL)
+            ->count();
+    }
+
+    public function toolCallsCountFromResponse(AgentResponse $response): int
+    {
+        return collect($response->toolResults ?? [])
+            ->filter(fn ($result) => $result instanceof ToolResultData && $result->name === self::SEARCH_TOOL)
+            ->count();
+    }
+
+    /**
      * Finalise un tour : recale le dernier message utilisateur (nettoyage du
      * contexte RAG, méta), attache les sources au dernier message assistant et
      * neutralise ses éventuels marqueurs de citation orphelins.

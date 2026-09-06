@@ -91,7 +91,14 @@ class SearchLegalDatabase implements Tool
     public function handle(Request $request): Stringable|string
     {
         $query = $request['query'] ?? '';
-        $limit = $request['limit'] ?? 5;
+        // mibeko-dashboard#103 : plafonné à 5, jamais 10 — l'agent peut
+        // rappeler l'outil plusieurs fois (jusqu'à 5 recherches, cf.
+        // MaxSteps sur MibekoIA), et CHAQUE étape supplémentaire réexpédie
+        // au fournisseur la conversation entière depuis le début, extraits
+        // compris. Le coût observé en production (~63 FCFA/question, six
+        // fois l'estimation initiale) grossit avec ce plafond au carré, pas
+        // linéairement — le réduire ici profite à chaque étape suivante.
+        $limit = max(1, min(5, (int) ($request['limit'] ?? 5)));
         $documentType = $request['document_type'] ?? null;
         $documentTitle = $request['document_title'] ?? null;
 
@@ -211,7 +218,7 @@ class SearchLegalDatabase implements Tool
     {
         return [
             'query' => $schema->string()->description('Mots-clés optimisés pour la recherche légale (ex: "conditions divorce")')->required(),
-            'limit' => $schema->integer()->description('Nombre de résultats maximum (entre 1 et 10)')->default(5),
+            'limit' => $schema->integer()->description('Nombre de résultats maximum (entre 1 et 5)')->default(5),
             'document_type' => $schema->string()->description(
                 'Code du type de document. Valeurs admises, à reprendre TELLES QUELLES : '
                 .implode(', ', self::typeCodes()).'. Tout autre code ne désigne aucun document.'

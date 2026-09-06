@@ -109,3 +109,29 @@ it('numbers and de-duplicates sources across successive tool calls', function ()
         // Aucune source fantôme n'en ressort côté interface.
         ->and(SearchLegalDatabase::extractsFrom(json_encode($second)))->toBe([]);
 });
+
+it('plafonne les résultats à 5 même si le modèle en demande plus (#103)', function () {
+    // Chaque étape d'appel d'outil réexpédie la conversation entière au
+    // fournisseur : un appel qui rendrait 10 extraits coûterait deux fois
+    // plus, et ce coût se répète à chaque étape suivante du même tour.
+    $document = LegalDocument::factory()->create(['titre_officiel' => 'Code du plafond']);
+
+    for ($i = 1; $i <= 7; $i++) {
+        $article = Article::factory()->create(['document_id' => $document->id, 'numero_article' => (string) $i]);
+        ArticleVersion::factory()->create([
+            'article_id' => $article->id,
+            'contenu_texte' => "Disposition plafonnante numéro {$i}.",
+            'validity_period' => '[2020-01-01,)',
+        ]);
+    }
+
+    $results = json_decode((new SearchLegalDatabase)->handle(new Request(['query' => 'plafonnante', 'limit' => 10])), true);
+
+    expect($results)->toHaveCount(5);
+});
+
+it('refuse une limite à zéro ou négative sans planter', function () {
+    $results = json_decode((new SearchLegalDatabase)->handle(new Request(['query' => 'licenciement', 'limit' => 0])), true);
+
+    expect($results)->toHaveCount(1);
+});

@@ -38,6 +38,10 @@ class AiUsageLog extends Model
         'tokens_input',
         'tokens_output',
         'cost_estimated_fcfa',
+        // mibeko-dashboard#103 : nombre d'appels à SearchLegalDatabase dans ce
+        // tour — proxy de la répartition du coût par étape, faute de détail
+        // par appel modèle exposé par le SDK.
+        'tool_calls_count',
         'conversation_id',
         // mibeko-dashboard#84 : déjà tronqués/nettoyés par
         // AiUsageLogger::sanitizeErrorMessage() avant d'arriver ici.

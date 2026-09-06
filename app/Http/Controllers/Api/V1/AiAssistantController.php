@@ -408,6 +408,7 @@ class AiAssistantController extends Controller
                     $response->usage,
                     $response->conversationId,
                     $logId,
+                    toolCallsCount: $this->chatService->toolCallsCountFromEvents($response->events),
                 );
             }
         );
@@ -430,6 +431,11 @@ class AiAssistantController extends Controller
             // apprendre la non-réponse même si la persistance échoue ensuite.
             $searchRan = false;
             $sourcesEmitted = false;
+            // mibeko-dashboard#103 : compté ici plutôt que déduit de $response
+            // après coup — un échec en cours de flux (catch ci-dessous) n'a
+            // pas de StreamedAgentResponse complet, seuls ces événements déjà
+            // vus disent combien de recherches ont tourné avant la panne.
+            $toolCallsCount = 0;
 
             $emitDelta = function (string $text): void {
                 if ($text !== '') {
@@ -440,6 +446,7 @@ class AiAssistantController extends Controller
             try {
                 foreach ($agentResponse as $event) {
                     if ($event instanceof ToolCall && $event->toolCall->name === AssistantChatService::SEARCH_TOOL) {
+                        $toolCallsCount++;
                         ServerSentEvents::send(
                             ['type' => 'status', 'message' => 'Recherche dans la base de données juridique...'],
                             'status'
@@ -468,7 +475,7 @@ class AiAssistantController extends Controller
                 $emitDelta($citationFilter->flush());
             } catch (\Throwable $e) {
                 report($e);
-                $this->usageLogger->error($user, AiRouteName::ASSISTANT_CHAT, conversationId: $id, id: $logId, exception: $e);
+                $this->usageLogger->error($user, AiRouteName::ASSISTANT_CHAT, conversationId: $id, id: $logId, exception: $e, toolCallsCount: $toolCallsCount);
 
                 ServerSentEvents::send([
                     'message' => config('app.debug')
@@ -513,6 +520,7 @@ class AiAssistantController extends Controller
             $response->usage,
             $response->conversationId,
             $logId,
+            toolCallsCount: $this->chatService->toolCallsCountFromResponse($response),
         );
 
         // Marqueurs [n] sans source réelle neutralisés avant restitution : le
