@@ -24,6 +24,47 @@ use Illuminate\Support\Facades\Cache;
 class LibraryHomeController extends Controller
 {
     /**
+     * Nombre de textes fondamentaux servis à l'accueil.
+     */
+    private const ESSENTIAL_LIMIT = 6;
+
+    /**
+     * Natures de texte éligibles au rang de « texte fondamental ».
+     *
+     * `AU` est bien le code des actes uniformes OHADA — vérifié dans le
+     * référentiel, pas deviné : `ACTE_UNIFORME` n'existe pas.
+     */
+    private const ESSENTIAL_TYPES = ['CONST', 'CODE', 'AU'];
+
+    /**
+     * Périmètres annoncés au public (« République du Congo · espace OHADA »).
+     * `communautaire` en est exclu : c'est ce qui faisait remonter un code
+     * CEMAC parmi les textes essentiels du Congo.
+     */
+    private const ESSENTIAL_SCOPES = ['national', 'ohada'];
+
+    /**
+     * Répartition des places, appliquée dans l'ordre.
+     *
+     * Un tri unique — quel qu'il soit — ne peut pas tenir les deux moitiés de
+     * la promesse : classés au volume, les codes nationaux (2 826 articles pour
+     * le seul Code civil) occupent toutes les places et l'OHADA disparaît ;
+     * classés par nature, la Constitution passe derrière n'importe quel code.
+     * D'où des quotas explicites. Les places qu'un groupe ne remplit pas sont
+     * rendues aux suivants, puis au repli — une base pauvre (développement,
+     * corpus en cours de constitution) reste servie.
+     *
+     * Le périmètre prime sur la nature dans les deux derniers groupes : le
+     * typage est faillible — l'Acte uniforme portant droit commercial général
+     * est enregistré `CODE` en production — alors que `legal_scope` est fiable.
+     */
+    private const ESSENTIAL_QUOTAS = [
+        ['column' => 'type_code', 'value' => 'CONST', 'take' => 1],
+        ['column' => 'legal_scope', 'value' => 'national', 'take' => 3],
+        ['column' => 'legal_scope', 'value' => 'ohada', 'take' => 2],
+    ];
+
+    /**
      * Suggestions de recherche affichées sur l'accueil de la Bibliothèque.
      */
     private const SEARCH_SUGGESTIONS = [
@@ -58,18 +99,7 @@ class LibraryHomeController extends Controller
     public function index(): JsonResponse
     {
         $data = Cache::remember('library:home', now()->addMinutes(10), function (): array {
-            $essentials = LegalDocument::query()
-                ->published()
-                ->with('type')
-                ->withCount('articles')
-                ->where(function ($query) {
-                    $query->where('type_code', 'CONST')
-                        ->orWhere('titre_officiel', 'ILIKE', 'code %')
-                        ->orWhere('titre_officiel', 'ILIKE', 'constitution%');
-                })
-                ->orderBy('titre_officiel')
-                ->limit(6)
-                ->get();
+            $essentials = $this->essentialDocuments();
 
             $recents = LegalDocument::query()
                 ->published()
@@ -95,6 +125,85 @@ class LibraryHomeController extends Controller
         });
 
         return $this->success($data, 'Accueil de la bibliothèque récupéré avec succès');
+    }
+
+    /**
+     * Sélectionne les textes fondamentaux affichés à l'accueil.
+     *
+     * Cette sélection était auparavant faite sur l'intitulé — `type_code =
+     * 'CONST'` ou un titre commençant par « code » ou « constitution » —, triée
+     * par ordre alphabétique et coupée à six. Trois conséquences se voyaient en
+     * production le 07/09/2026 (mibeko-dashboard#114) :
+     *
+     *  1. **un texte abrogé en tête de la page d'accueil.** Aucun filtre ne
+     *     portait sur `statut`, si bien que l'Acte fondamental du 24 octobre
+     *     1997 — `statut = 'abroge'`, et vérifié comme tel dans notre propre
+     *     base — était servi badgé « Constitution », tandis que la Constitution
+     *     en vigueur n'était pas retenue : son intitulé commence par
+     *     « Republique », sans accent ;
+     *  2. **du droit hors périmètre** : un code CEMAC entrait parce que son
+     *     titre commence par « Code », sur une page qui annonce « République du
+     *     Congo · espace OHADA » ;
+     *  3. **« essentiel » ne voulait rien dire** : l'ordre alphabétique plus
+     *     `limit(6)` interdisait structurellement au Code du travail, au Code
+     *     pénal ou aux actes uniformes d'y figurer un jour.
+     *
+     * La sélection repose désormais sur des propriétés du document, jamais sur
+     * son intitulé : il est en vigueur, il est du droit qui nous concerne, et
+     * c'est un texte consolidé (`STOCK`) et non un acte unitaire issu d'un
+     * Journal officiel (`FLUX`). Ce dernier critère n'est pas décoratif : en
+     * production, un « Journal officiel n° 1-2011 » est enregistré avec le type
+     * `AU` et serait remonté au rang de texte fondamental sans lui.
+     *
+     * À volume égal le plus fourni passe devant, puis l'intitulé départage :
+     * deux appels successifs renvoient le même ordre.
+     */
+    private function essentialDocuments(): Collection
+    {
+        $eligible = fn () => LegalDocument::query()
+            ->published()
+            ->where('statut', 'vigueur')
+            ->where('document_role', 'STOCK')
+            ->whereIn('legal_scope', self::ESSENTIAL_SCOPES)
+            ->whereIn('type_code', self::ESSENTIAL_TYPES)
+            ->with('type')
+            ->withCount('articles')
+            ->orderByDesc('articles_count')
+            ->orderBy('titre_officiel');
+
+        $picked = new Collection;
+
+        $fill = function (?array $quota) use ($eligible, &$picked): void {
+            $take = $quota === null
+                ? self::ESSENTIAL_LIMIT - $picked->count()
+                : min($quota['take'], self::ESSENTIAL_LIMIT - $picked->count());
+
+            if ($take <= 0) {
+                return;
+            }
+
+            $query = $eligible();
+
+            if ($quota !== null) {
+                $query->where($quota['column'], $quota['value']);
+            }
+
+            if ($picked->isNotEmpty()) {
+                $query->whereNotIn('id', $picked->pluck('id')->all());
+            }
+
+            $picked = $picked->merge($query->limit($take)->get());
+        };
+
+        foreach (self::ESSENTIAL_QUOTAS as $quota) {
+            $fill($quota);
+        }
+
+        // Repli : ce que les quotas n'ont pas rempli (corpus incomplet, ou un
+        // périmètre encore vide) est complété sans distinction de groupe.
+        $fill(null);
+
+        return $picked;
     }
 
     /**
