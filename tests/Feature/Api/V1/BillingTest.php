@@ -1,6 +1,8 @@
 <?php
 
+use App\Models\PlanGrant;
 use App\Models\User;
+use App\Services\CreditLedger;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Routing\Middleware\ThrottleRequests;
 
@@ -67,4 +69,31 @@ it('refuses the billing portal when stripe is not configured', function () {
 
 it('blocks billing endpoints for guests', function () {
     $this->getJson('/api/v1/billing')->assertStatus(401);
+});
+
+it('montre le Pro manuel et son échéance sans inventer un abonnement Stripe', function () {
+    $user = User::factory()->create();
+    $grant = PlanGrant::factory()->for($user)->create(['notes' => 'Note interne confidentielle']);
+    $this->actingAs($user)->getJson('/api/v1/billing')->assertOk()
+        ->assertJsonPath('data.effective_plan', 'pro')
+        ->assertJsonPath('data.subscription.status', 'none')
+        ->assertJsonPath('data.manual_subscription.id', $grant->id)
+        ->assertJsonMissing(['notes' => 'Note interne confidentielle']);
+    $this->travelTo($grant->ends_at);
+    $this->getJson('/api/v1/billing')->assertOk()
+        ->assertJsonPath('data.effective_plan', 'libre')->assertJsonPath('data.manual_subscription', null);
+    $this->getJson('/api/v1/billing/manual-grants')->assertJsonPath('data.0.status', 'ended');
+});
+
+it('isole les historiques client et ne révèle pas les notes ni les auteurs internes', function () {
+    $user = User::factory()->create();
+    $other = User::factory()->create();
+    PlanGrant::factory()->for($user)->create();
+    PlanGrant::factory()->for($other)->create();
+    app(CreditLedger::class)->purchase($user, 20, 'Motif interne');
+    app(CreditLedger::class)->purchase($other, 50);
+    $this->actingAs($user)->getJson('/api/v1/billing/manual-grants')->assertJsonCount(1, 'data');
+    $this->getJson('/api/v1/billing/credits')->assertJsonCount(1, 'data')
+        ->assertJsonPath('data.0.amount', 20)->assertJsonMissing(['reason' => 'Motif interne']);
+    $this->getJson('/api/v1/billing')->assertJsonPath('data.credit_balance', 20);
 });

@@ -10,6 +10,7 @@ use App\Http\Resources\V1\Admin\UserResource;
 use App\Models\PlanGrant;
 use App\Models\User;
 use App\Notifications\PasswordResetCodeNotification;
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -17,6 +18,8 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use OwenIt\Auditing\Events\AuditCustom;
 
 /**
@@ -290,19 +293,37 @@ class UserController extends Controller
     {
         $validated = $request->validate([
             'ends_at' => ['required', 'date', 'after:now'],
-            'amount_fcfa' => ['nullable', 'integer', 'min:0'],
-            'channel' => ['nullable', 'string', 'max:40'],
-            'reference' => ['nullable', 'string', 'max:255'],
+            'amount_fcfa' => ['nullable', 'integer', 'between:0,2147483647'],
+            'channel' => [Rule::requiredIf($request->integer('amount_fcfa') > 0), 'nullable', 'string', 'max:40'],
+            'reference' => [Rule::requiredIf($request->integer('amount_fcfa') > 0), 'nullable', 'string', 'max:255'],
             'notes' => ['nullable', 'string', 'max:1000'],
         ]);
 
-        $grant = $user->planGrants()->create([
-            ...$validated,
-            'plan' => PlanGrant::PLAN_PRO,
-            'created_by' => $request->user()->id,
-        ]);
+        return DB::transaction(function () use ($request, $user, $validated) {
+            DB::select('select pg_advisory_xact_lock(hashtextextended(?, 0))', ['plan-user:'.$user->id]);
+            if (! empty($validated['reference'])) {
+                $key = ($validated['channel'] ?? '').':'.$validated['reference'];
+                DB::select('select pg_advisory_xact_lock(hashtextextended(?, 0))', ['plan-grant:'.$key]);
+                $existing = PlanGrant::where('channel', $validated['channel'] ?? null)
+                    ->where('reference', $validated['reference'])->first();
+                if ($existing) {
+                    if ($existing->user_id !== $user->id
+                        || $existing->amount_fcfa !== (isset($validated['amount_fcfa']) ? (int) $validated['amount_fcfa'] : null)
+                        || ! $existing->ends_at->equalTo(Carbon::parse($validated['ends_at']))) {
+                        throw ValidationException::withMessages(['reference' => 'Cette référence est déjà utilisée pour un autre abonnement.']);
+                    }
 
-        return $this->success(['id' => $grant->id], 'Abonnement Pro accordé.');
+                    return $this->success(['id' => $existing->id], 'Abonnement déjà enregistré.');
+                }
+            }
+            $grant = $user->planGrants()->create([
+                ...$validated,
+                'plan' => PlanGrant::PLAN_PRO,
+                'created_by' => $request->user()->id,
+            ]);
+
+            return $this->success(['id' => $grant->id], 'Abonnement Pro accordé.');
+        });
     }
 
     /**
@@ -311,15 +332,19 @@ class UserController extends Controller
      */
     public function revokeProPlan(User $user): JsonResponse
     {
-        $grant = PlanGrant::latestActiveFor($user);
+        return DB::transaction(function () use ($user) {
+            DB::select('select pg_advisory_xact_lock(hashtextextended(?, 0))', ['plan-user:'.$user->id]);
+            $grants = $user->planGrants()->where('plan', PlanGrant::PLAN_PRO)
+                ->where('starts_at', '<=', now())->where('ends_at', '>', now())->get();
+            if ($grants->isEmpty()) {
+                return $this->error(null, 'Aucun abonnement Pro accordé à la main n\'est actif pour ce compte.', 404);
+            }
+            foreach ($grants as $grant) {
+                $grant->update(['ends_at' => now()]);
+            }
 
-        if (! $grant) {
-            return $this->error(null, 'Aucun abonnement Pro accordé à la main n\'est actif pour ce compte.', 404);
-        }
-
-        $grant->update(['ends_at' => now()]);
-
-        return $this->success(null, 'Abonnement Pro retiré.');
+            return $this->success(null, 'Octrois manuels actifs retirés. Les accès par rôle ou Stripe sont inchangés.');
+        });
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────

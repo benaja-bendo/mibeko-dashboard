@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use OwenIt\Auditing\Contracts\Auditable;
 
 /**
  * Un abonnement Pro vendu à la main, borné dans le temps — mibeko-dashboard#100.
@@ -17,9 +18,9 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * `AiUserQuotaTier::ELEVATED_QUOTA_ROLES` (mibeko-dashboard#85) — une
  * définition de « qui est Pro » dupliquée finit toujours par diverger.
  */
-class PlanGrant extends Model
+class PlanGrant extends Model implements Auditable
 {
-    use HasFactory, HasUuids;
+    use HasFactory, HasUuids, \OwenIt\Auditing\Auditable;
 
     public const PLAN_PRO = 'pro';
 
@@ -66,6 +67,21 @@ class PlanGrant extends Model
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    /** Données partageables avec le titulaire, sans les notes internes. */
+    public function customerPayload(): array
+    {
+        return [
+            'id' => $this->id,
+            'starts_at' => $this->starts_at->toIso8601String(),
+            'ends_at' => $this->ends_at->toIso8601String(),
+            'status' => $this->ends_at->isPast() || $this->ends_at->equalTo(now()) ? 'ended' : ($this->starts_at->isFuture() ? 'scheduled' : 'active'),
+            'amount_fcfa' => $this->amount_fcfa,
+            'channel' => $this->channel,
+            'reference' => $this->reference,
+            'created_at' => $this->created_at->toIso8601String(),
+        ];
     }
 
     /**

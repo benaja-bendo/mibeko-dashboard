@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use OwenIt\Auditing\Contracts\Auditable;
 
 /**
  * Une ligne du grand livre de crédits — mibeko-dashboard#66.
@@ -13,9 +14,9 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * existante. Écrire via `CreditLedger`, jamais directement — c'est lui qui
  * pose le verrou consultatif nécessaire à une consommation atomique.
  */
-class CreditLedgerEntry extends Model
+class CreditLedgerEntry extends Model implements Auditable
 {
-    use HasUuids;
+    use HasUuids, \OwenIt\Auditing\Auditable;
 
     public const UPDATED_AT = null;
 

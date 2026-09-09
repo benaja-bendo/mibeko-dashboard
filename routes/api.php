@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\V1\Admin\AiQuotaTierController as AdminAiQuotaTierController;
 use App\Http\Controllers\Api\V1\Admin\AuditController as AdminAuditController;
+use App\Http\Controllers\Api\V1\Admin\BillingController as AdminBillingController;
 use App\Http\Controllers\Api\V1\Admin\CurationFlagController as AdminCurationFlagController;
 use App\Http\Controllers\Api\V1\Admin\DocumentTypeController as AdminDocumentTypeController;
 use App\Http\Controllers\Api\V1\Admin\ImpersonationController as AdminImpersonationController;
@@ -124,6 +125,8 @@ Route::prefix('v1')->middleware('throttle:api')->group(function () {
 
         // Facturation (Cashier / Stripe)
         Route::get('billing', [BillingController::class, 'overview']);
+        Route::get('billing/manual-grants', [BillingController::class, 'manualGrants']);
+        Route::get('billing/credits', [BillingController::class, 'credits']);
         Route::put('billing/info', [BillingController::class, 'updateInfo']);
         Route::post('billing/checkout', [BillingController::class, 'checkout']);
         Route::get('billing/portal', [BillingController::class, 'portal']);
@@ -387,6 +390,12 @@ Route::prefix('v1')->middleware('throttle:api')->group(function () {
 
             // ── Gestion des utilisateurs ──────────────────────────────────────
             Route::get('users/stats', [AdminUserController::class, 'stats'])->name('users.stats');
+            Route::get('billing/summary', [AdminBillingController::class, 'summary']);
+            Route::get('billing/grants', [AdminBillingController::class, 'grants']);
+            Route::get('billing/untracked', [AdminBillingController::class, 'untracked']);
+            Route::get('billing/credits', [AdminBillingController::class, 'credits']);
+            Route::get('users/{user}/credits', [AdminBillingController::class, 'userCredits']);
+            Route::post('users/{user}/credits', [AdminBillingController::class, 'storeCredits']);
             Route::post('users/{id}/restore', [AdminUserController::class, 'restore'])
                 ->name('users.restore');
             Route::post('users/{user}/password-reset', [AdminUserController::class, 'sendPasswordReset'])

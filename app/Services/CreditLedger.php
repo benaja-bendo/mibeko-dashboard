@@ -25,7 +25,7 @@ use InvalidArgumentException;
  */
 class CreditLedger
 {
-    public function purchase(User $user, int $amount, ?string $reason = null, ?string $referenceId = null): CreditLedgerEntry
+    public function purchase(User $user, int $amount, ?string $reason = null, ?string $referenceId = null, ?User $createdBy = null): CreditLedgerEntry
     {
         if ($amount <= 0) {
             throw new InvalidArgumentException("Un achat de crédits doit être positif ({$amount} donné).");
@@ -37,6 +37,7 @@ class CreditLedger
             'amount' => $amount,
             'reason' => $reason,
             'reference_id' => $referenceId,
+            'created_by' => $createdBy?->id,
         ]);
     }
 
