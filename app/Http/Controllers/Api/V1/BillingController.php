@@ -3,7 +3,11 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Models\CreditLedgerEntry;
+use App\Models\PlanGrant;
 use App\Models\User;
+use App\Services\CreditLedger;
+use App\Services\EntitlementsResolver;
 use App\Traits\HttpResponses;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -35,7 +39,26 @@ class BillingController extends Controller
             'billing_info' => $this->billingInfoPayload($user),
             'plans' => config('billing.plans'),
             'stripe_enabled' => $this->stripeEnabled(),
+            'effective_plan' => app(EntitlementsResolver::class)->resolve($user)['plan'],
+            'manual_subscription' => PlanGrant::latestActiveFor($user)?->customerPayload(),
+            'credit_balance' => app(CreditLedger::class)->balance($user),
         ]);
+    }
+
+    public function manualGrants(Request $request): JsonResponse
+    {
+        $grants = $request->user()->planGrants()->latest()->orderByDesc('id')->paginate(20);
+        $grants->through(fn (PlanGrant $grant) => $grant->customerPayload());
+
+        return $this->paginatedSuccess($grants);
+    }
+
+    public function credits(Request $request): JsonResponse
+    {
+        return $this->paginatedSuccess(CreditLedgerEntry::query()
+            ->where('user_id', $request->user()->id)
+            ->select(['id', 'type', 'amount', 'created_at'])
+            ->latest()->orderByDesc('id')->paginate(20));
     }
 
     /**
