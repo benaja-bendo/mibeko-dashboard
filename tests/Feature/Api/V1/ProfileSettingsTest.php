@@ -112,6 +112,7 @@ it('replaces the notification preferences matrix', function () {
         'new_document' => ['email' => true, 'push' => false, 'in_app' => true],
         'share' => ['email' => true, 'push' => false, 'in_app' => true],
         'legal_alert' => ['email' => true, 'push' => true, 'in_app' => true],
+        'billing' => ['email' => true, 'push' => false, 'in_app' => true],
         'system' => ['email' => true, 'push' => false, 'in_app' => true],
         '_frequency' => 'daily',
     ];

@@ -58,11 +58,15 @@ class UserSetting extends Model implements Auditable
     /** Nouveau texte juridique publié — c'est le type porté par la veille légale. */
     public const TYPE_NEW_DOCUMENT = 'new_document';
 
+    /** Rappel d'échéance d'un abonnement Pro vendu à la main — mibeko-dashboard#121. */
+    public const TYPE_BILLING = 'billing';
+
     public const NOTIFICATION_TYPES = [
         'extraction_update', // Mise à jour d'une extraction de document
         self::TYPE_NEW_DOCUMENT, // Nouveau document juridique publié
         'share',             // Partage d'un dossier / document
         'legal_alert',       // Alerte légale (échéances, nouveautés réglementaires)
+        self::TYPE_BILLING,  // Rappel d'échéance d'abonnement (pas la confirmation d'achat, toujours envoyée)
         'system',            // Messages système / sécurité
     ];
 

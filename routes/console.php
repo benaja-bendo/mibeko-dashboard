@@ -37,6 +37,12 @@ Schedule::command('mibeko:send-echeance-reminders')
     ->runInBackground()
     ->appendOutputTo(storage_path('logs/echeance-reminders.log'));
 
+Schedule::command('mibeko:send-plan-grant-reminders')
+    ->dailyAt('07:15')
+    ->withoutOverlapping()
+    ->runInBackground()
+    ->appendOutputTo(storage_path('logs/plan-grant-reminders.log'));
+
 // Filet de sécurité : les documents ingérés par le pipeline Python (écriture
 // directe en base, sans Eloquent) arrivent sans slug et resteraient invisibles
 // du site vitrine une fois publiés. On répare les slugs manquants chaque heure.
