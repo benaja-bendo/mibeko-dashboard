@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict bWbECm2CGLj8cQsGVteJR8cGIc3xxYnm2qwSgijufLeS2MvSH8HYCzD1t7zf6br
+\restrict 25NpbjT3NfCvlYR3hGY5DAnzowbxUOEA79SfeS1ksh1MKeHNqKrek0Hs3OyTcTI
 
 -- Dumped from database version 16.11 (Debian 16.11-1.pgdg12+1)
 -- Dumped by pg_dump version 18.1
@@ -259,6 +259,53 @@ CREATE TABLE public.agent_message_feedback (
 
 
 --
+-- Name: ai_quota_tier_settings; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.ai_quota_tier_settings (
+    id uuid NOT NULL,
+    tier character varying(20) NOT NULL,
+    "limit" integer NOT NULL,
+    created_at timestamp(0) without time zone,
+    updated_at timestamp(0) without time zone
+);
+
+
+--
+-- Name: ai_usage_logs; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.ai_usage_logs (
+    id uuid NOT NULL,
+    user_id uuid,
+    route character varying(40) NOT NULL,
+    status character varying(20) NOT NULL,
+    provider character varying(40),
+    model character varying(60),
+    tokens_input integer DEFAULT 0 NOT NULL,
+    tokens_output integer DEFAULT 0 NOT NULL,
+    cost_estimated_fcfa numeric(10,4),
+    conversation_id character varying(36),
+    created_at timestamp(0) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    error_class character varying(255),
+    error_message character varying(500),
+    tool_calls_count smallint
+);
+
+
+--
+-- Name: app_settings; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.app_settings (
+    key character varying(255) NOT NULL,
+    value text,
+    created_at timestamp(0) without time zone,
+    updated_at timestamp(0) without time zone
+);
+
+
+--
 -- Name: article_versions; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -390,6 +437,24 @@ CREATE TABLE public.contact_messages (
 
 
 --
+-- Name: credit_ledger_entries; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.credit_ledger_entries (
+    id uuid NOT NULL,
+    user_id uuid,
+    type character varying(20) NOT NULL,
+    amount integer NOT NULL,
+    reason character varying(255),
+    reference_id character varying(36),
+    created_by uuid,
+    created_at timestamp(0) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    CONSTRAINT credit_ledger_entries_amount_not_zero_check CHECK ((amount <> 0)),
+    CONSTRAINT credit_ledger_entries_type_check CHECK (((type)::text = ANY ((ARRAY['purchase'::character varying, 'consumption'::character varying, 'correction'::character varying])::text[])))
+);
+
+
+--
 -- Name: curation_flags; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -425,7 +490,9 @@ CREATE TABLE public.devices (
     status character varying(255),
     last_registered_at timestamp(0) without time zone,
     created_at timestamp(0) without time zone DEFAULT CURRENT_TIMESTAMP,
-    updated_at timestamp(0) without time zone DEFAULT CURRENT_TIMESTAMP
+    updated_at timestamp(0) without time zone DEFAULT CURRENT_TIMESTAMP,
+    user_id uuid,
+    app_version character varying(20)
 );
 
 
@@ -448,7 +515,7 @@ CREATE TABLE public.document_relations (
     updated_at timestamp(0) without time zone DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT chk_document_relations_endpoints CHECK ((((source_doc_id IS NOT NULL) OR (source_article_id IS NOT NULL)) AND ((target_doc_id IS NOT NULL) OR (target_article_id IS NOT NULL)))),
     CONSTRAINT document_relations_confidence_check CHECK (((confidence >= (0)::numeric) AND (confidence <= (1)::numeric))),
-    CONSTRAINT document_relations_relation_type_check CHECK (((relation_type)::text = ANY ((ARRAY['CREE'::character varying, 'MODIFIE'::character varying, 'ABROGE'::character varying, 'CITE'::character varying, 'COMPLETE'::character varying, 'RENUMEROTE'::character varying])::text[])))
+    CONSTRAINT document_relations_relation_type_check CHECK (((relation_type)::text = ANY (ARRAY[('CREE'::character varying)::text, ('MODIFIE'::character varying)::text, ('ABROGE'::character varying)::text, ('CITE'::character varying)::text, ('COMPLETE'::character varying)::text, ('RENUMEROTE'::character varying)::text])))
 );
 
 
@@ -630,8 +697,8 @@ CREATE TABLE public.extraction_runs (
     markdown_media_file_id uuid,
     json_media_file_id uuid,
     meta jsonb DEFAULT '{}'::jsonb,
-    CONSTRAINT extraction_runs_source_check CHECK (((source)::text = ANY ((ARRAY['MINERU'::character varying, 'MANUAL_UPLOAD'::character varying, 'PARSING'::character varying])::text[]))),
-    CONSTRAINT extraction_runs_status_check CHECK (((status)::text = ANY ((ARRAY['queued'::character varying, 'running'::character varying, 'succeeded'::character varying, 'failed'::character varying, 'partial'::character varying, 'needs_review'::character varying, 'discarded'::character varying])::text[])))
+    CONSTRAINT extraction_runs_source_check CHECK (((source)::text = ANY ((ARRAY['MINERU'::character varying, 'MANUAL_UPLOAD'::character varying, 'PARSING'::character varying, 'STRUCTURATION_LLM'::character varying])::text[]))),
+    CONSTRAINT extraction_runs_status_check CHECK (((status)::text = ANY (ARRAY[('queued'::character varying)::text, ('running'::character varying)::text, ('succeeded'::character varying)::text, ('failed'::character varying)::text, ('partial'::character varying)::text, ('needs_review'::character varying)::text, ('discarded'::character varying)::text])))
 );
 
 
@@ -735,6 +802,20 @@ ALTER SEQUENCE public.jobs_id_seq OWNED BY public.jobs.id;
 
 
 --
+-- Name: jurisprudence_citations; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.jurisprudence_citations (
+    id uuid DEFAULT public.uuid_generate_v4() NOT NULL,
+    decision_id uuid NOT NULL,
+    cited_article_id uuid,
+    reference_brute text NOT NULL,
+    created_at timestamp(0) without time zone,
+    updated_at timestamp(0) without time zone
+);
+
+
+--
 -- Name: legal_documents; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -761,10 +842,68 @@ CREATE TABLE public.legal_documents (
     deleted_at timestamp(0) without time zone,
     legal_scope character varying(20) DEFAULT 'national'::character varying NOT NULL,
     slug character varying(255),
+    watch_notified_at timestamp(0) without time zone,
+    date_entree_vigueur_inconnue boolean DEFAULT false NOT NULL,
+    statut_verifie_le timestamp(0) without time zone,
+    statut_verifie_par uuid,
+    libelle_descriptif text,
+    libelle_descriptif_source character varying(20),
     CONSTRAINT chk_legal_documents_role_logic CHECK (((((document_role)::text = 'STOCK'::text) AND (consolidation_as_of IS NOT NULL) AND (official_journal_id IS NULL) AND (stock_code IS NOT NULL)) OR (((document_role)::text = 'FLUX'::text) AND (consolidation_as_of IS NULL)))),
-    CONSTRAINT legal_documents_document_role_check CHECK (((document_role)::text = ANY ((ARRAY['STOCK'::character varying, 'FLUX'::character varying])::text[]))),
-    CONSTRAINT legal_documents_legal_scope_check CHECK (((legal_scope)::text = ANY ((ARRAY['national'::character varying, 'ohada'::character varying, 'communautaire'::character varying])::text[]))),
-    CONSTRAINT legal_documents_statut_check CHECK (((statut)::text = ANY ((ARRAY['vigueur'::character varying, 'abroge'::character varying, 'projet'::character varying])::text[])))
+    CONSTRAINT legal_documents_curation_status_check CHECK (((curation_status)::text = ANY ((ARRAY['draft'::character varying, 'review'::character varying, 'validated'::character varying, 'published'::character varying])::text[]))),
+    CONSTRAINT legal_documents_document_role_check CHECK (((document_role)::text = ANY (ARRAY[('STOCK'::character varying)::text, ('FLUX'::character varying)::text]))),
+    CONSTRAINT legal_documents_legal_scope_check CHECK (((legal_scope)::text = ANY (ARRAY[('national'::character varying)::text, ('ohada'::character varying)::text, ('communautaire'::character varying)::text]))),
+    CONSTRAINT legal_documents_libelle_descriptif_source_check CHECK ((((libelle_descriptif IS NULL) AND (libelle_descriptif_source IS NULL)) OR ((libelle_descriptif IS NOT NULL) AND ((libelle_descriptif_source)::text = ANY ((ARRAY['article'::character varying, 'manuel'::character varying])::text[]))))),
+    CONSTRAINT legal_documents_statut_check CHECK (((statut)::text = ANY (ARRAY[('vigueur'::character varying)::text, ('abroge'::character varying)::text, ('projet'::character varying)::text])))
+);
+
+
+--
+-- Name: legal_watch_dispatches; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.legal_watch_dispatches (
+    id uuid NOT NULL,
+    document_ids json NOT NULL,
+    document_count integer NOT NULL,
+    status character varying(20) DEFAULT 'pending'::character varying NOT NULL,
+    in_app_written_at timestamp(0) without time zone,
+    pushes_dispatched_at timestamp(0) without time zone,
+    delivered_at timestamp(0) without time zone,
+    attempts smallint DEFAULT '0'::smallint NOT NULL,
+    last_error text,
+    created_at timestamp(0) without time zone,
+    updated_at timestamp(0) without time zone
+);
+
+
+--
+-- Name: manual_payment_orders; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.manual_payment_orders (
+    id uuid NOT NULL,
+    user_id uuid NOT NULL,
+    created_by uuid NOT NULL,
+    verification_started_by uuid,
+    resolved_by uuid,
+    plan_grant_id uuid,
+    idempotency_key uuid NOT NULL,
+    reference character varying(40) NOT NULL,
+    offer_code character varying(40) DEFAULT 'pro'::character varying NOT NULL,
+    amount_fcfa integer NOT NULL,
+    duration_months smallint NOT NULL,
+    channel character varying(40) NOT NULL,
+    payment_instructions text NOT NULL,
+    status character varying(30) DEFAULT 'awaiting_payment'::character varying NOT NULL,
+    payment_reference character varying(255),
+    payment_declared_at timestamp(0) with time zone,
+    verification_started_at timestamp(0) with time zone,
+    activated_at timestamp(0) with time zone,
+    rejected_at timestamp(0) with time zone,
+    rejection_reason text,
+    internal_notes text,
+    created_at timestamp(0) without time zone,
+    updated_at timestamp(0) without time zone
 );
 
 
@@ -787,7 +926,9 @@ CREATE TABLE public.media_files (
     description character varying(255),
     created_at timestamp(0) without time zone DEFAULT CURRENT_TIMESTAMP,
     updated_at timestamp(0) without time zone DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT media_files_file_category_check CHECK (((file_category)::text = ANY ((ARRAY['SOURCE_PDF'::character varying, 'EXTRACTION_MARKDOWN'::character varying, 'EXTRACTION_JSON'::character varying])::text[])))
+    page_count integer,
+    CONSTRAINT media_files_file_category_check CHECK (((file_category)::text = ANY (ARRAY[('SOURCE_PDF'::character varying)::text, ('EXTRACTION_MARKDOWN'::character varying)::text, ('EXTRACTION_JSON'::character varying)::text]))),
+    CONSTRAINT media_files_page_count_check CHECK (((page_count IS NULL) OR (page_count > 0)))
 );
 
 
@@ -837,7 +978,8 @@ CREATE TABLE public.mobile_profiles (
     legal_interests text,
     app_preferences json,
     created_at timestamp(0) without time zone DEFAULT CURRENT_TIMESTAMP,
-    updated_at timestamp(0) without time zone DEFAULT CURRENT_TIMESTAMP
+    updated_at timestamp(0) without time zone DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT mobile_profiles_profession_check CHECK (((profession IS NULL) OR ((profession)::text = ANY ((ARRAY['Citoyen'::character varying, 'Étudiant'::character varying, 'Professionnel du droit'::character varying, 'Autre'::character varying])::text[]))))
 );
 
 
@@ -908,7 +1050,8 @@ CREATE TABLE public.notifications (
     data json,
     read_at timestamp(0) without time zone,
     created_at timestamp(0) without time zone DEFAULT CURRENT_TIMESTAMP,
-    updated_at timestamp(0) without time zone DEFAULT CURRENT_TIMESTAMP
+    updated_at timestamp(0) without time zone DEFAULT CURRENT_TIMESTAMP,
+    dedupe_key character varying(191)
 );
 
 
@@ -1011,6 +1154,60 @@ ALTER SEQUENCE public.personal_access_tokens_id_seq OWNED BY public.personal_acc
 
 
 --
+-- Name: plan_grant_reminders; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.plan_grant_reminders (
+    id bigint NOT NULL,
+    plan_grant_id uuid NOT NULL,
+    offset_days smallint NOT NULL,
+    sent_on date NOT NULL,
+    created_at timestamp(0) without time zone,
+    updated_at timestamp(0) without time zone
+);
+
+
+--
+-- Name: plan_grant_reminders_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.plan_grant_reminders_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: plan_grant_reminders_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.plan_grant_reminders_id_seq OWNED BY public.plan_grant_reminders.id;
+
+
+--
+-- Name: plan_grants; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.plan_grants (
+    id uuid NOT NULL,
+    user_id uuid NOT NULL,
+    plan character varying(20) DEFAULT 'pro'::character varying NOT NULL,
+    starts_at timestamp(0) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    ends_at timestamp(0) without time zone NOT NULL,
+    amount_fcfa integer,
+    channel character varying(40),
+    reference character varying(255),
+    notes text,
+    created_by uuid,
+    created_at timestamp(0) without time zone,
+    updated_at timestamp(0) without time zone,
+    revoked_at timestamp(0) without time zone
+);
+
+
+--
 -- Name: role_has_permissions; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -1080,7 +1277,8 @@ CREATE TABLE public.structure_nodes (
     validation_status character varying(255) DEFAULT 'pending'::character varying,
     sort_order integer DEFAULT 0,
     created_at timestamp(0) without time zone DEFAULT CURRENT_TIMESTAMP,
-    updated_at timestamp(0) without time zone DEFAULT CURRENT_TIMESTAMP
+    updated_at timestamp(0) without time zone DEFAULT CURRENT_TIMESTAMP,
+    deleted_at timestamp(0) without time zone
 );
 
 
@@ -1212,7 +1410,7 @@ CREATE TABLE public.user_settings (
     id uuid NOT NULL,
     user_id uuid NOT NULL,
     locale character varying(8) DEFAULT 'fr'::character varying NOT NULL,
-    timezone character varying(64) DEFAULT 'Africa/Kinshasa'::character varying NOT NULL,
+    timezone character varying(64) DEFAULT 'Africa/Brazzaville'::character varying NOT NULL,
     date_format character varying(20) DEFAULT 'd/m/Y'::character varying NOT NULL,
     notification_preferences json,
     marketing_consent boolean DEFAULT false NOT NULL,
@@ -1222,7 +1420,9 @@ CREATE TABLE public.user_settings (
     billing_info json,
     created_at timestamp(0) without time zone,
     updated_at timestamp(0) without time zone,
-    theme character varying(255) DEFAULT 'lex-gold'::character varying NOT NULL
+    theme character varying(255) DEFAULT 'lex-gold'::character varying NOT NULL,
+    ai_quota_override_limit integer,
+    ai_quota_override_note character varying(255)
 );
 
 
@@ -1240,7 +1440,7 @@ CREATE TABLE public.users (
     two_factor_recovery_codes text,
     two_factor_confirmed_at timestamp(0) without time zone,
     remember_token character varying(100),
-    status character varying(255),
+    status character varying(255) DEFAULT 'active'::character varying,
     last_seen_at timestamp(0) without time zone,
     created_at timestamp(0) without time zone,
     updated_at timestamp(0) without time zone,
@@ -1311,6 +1511,13 @@ ALTER TABLE ONLY public.personal_access_tokens ALTER COLUMN id SET DEFAULT nextv
 
 
 --
+-- Name: plan_grant_reminders id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.plan_grant_reminders ALTER COLUMN id SET DEFAULT nextval('public.plan_grant_reminders_id_seq'::regclass);
+
+
+--
 -- Name: roles id; Type: DEFAULT; Schema: public; Owner: -
 --
 
@@ -1361,6 +1568,38 @@ ALTER TABLE ONLY public.agent_message_feedback
 
 ALTER TABLE ONLY public.agent_message_feedback
     ADD CONSTRAINT agent_message_feedback_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: ai_quota_tier_settings ai_quota_tier_settings_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.ai_quota_tier_settings
+    ADD CONSTRAINT ai_quota_tier_settings_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: ai_quota_tier_settings ai_quota_tier_settings_tier_unique; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.ai_quota_tier_settings
+    ADD CONSTRAINT ai_quota_tier_settings_tier_unique UNIQUE (tier);
+
+
+--
+-- Name: ai_usage_logs ai_usage_logs_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.ai_usage_logs
+    ADD CONSTRAINT ai_usage_logs_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: app_settings app_settings_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.app_settings
+    ADD CONSTRAINT app_settings_pkey PRIMARY KEY (key);
 
 
 --
@@ -1420,11 +1659,27 @@ ALTER TABLE ONLY public.contact_messages
 
 
 --
+-- Name: credit_ledger_entries credit_ledger_entries_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.credit_ledger_entries
+    ADD CONSTRAINT credit_ledger_entries_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: curation_flags curation_flags_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.curation_flags
     ADD CONSTRAINT curation_flags_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: devices devices_device_id_unique; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.devices
+    ADD CONSTRAINT devices_device_id_unique UNIQUE (device_id);
 
 
 --
@@ -1572,6 +1827,22 @@ ALTER TABLE ONLY public.jobs
 
 
 --
+-- Name: jurisprudence_citations jurisprudence_citations_decision_id_reference_brute_unique; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.jurisprudence_citations
+    ADD CONSTRAINT jurisprudence_citations_decision_id_reference_brute_unique UNIQUE (decision_id, reference_brute);
+
+
+--
+-- Name: jurisprudence_citations jurisprudence_citations_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.jurisprudence_citations
+    ADD CONSTRAINT jurisprudence_citations_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: legal_documents legal_documents_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -1585,6 +1856,54 @@ ALTER TABLE ONLY public.legal_documents
 
 ALTER TABLE ONLY public.legal_documents
     ADD CONSTRAINT legal_documents_slug_unique UNIQUE (slug);
+
+
+--
+-- Name: legal_watch_dispatches legal_watch_dispatches_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.legal_watch_dispatches
+    ADD CONSTRAINT legal_watch_dispatches_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: manual_payment_orders manual_payment_orders_idempotency_key_unique; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.manual_payment_orders
+    ADD CONSTRAINT manual_payment_orders_idempotency_key_unique UNIQUE (idempotency_key);
+
+
+--
+-- Name: manual_payment_orders manual_payment_orders_payment_reference_unique; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.manual_payment_orders
+    ADD CONSTRAINT manual_payment_orders_payment_reference_unique UNIQUE (payment_reference);
+
+
+--
+-- Name: manual_payment_orders manual_payment_orders_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.manual_payment_orders
+    ADD CONSTRAINT manual_payment_orders_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: manual_payment_orders manual_payment_orders_plan_grant_id_unique; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.manual_payment_orders
+    ADD CONSTRAINT manual_payment_orders_plan_grant_id_unique UNIQUE (plan_grant_id);
+
+
+--
+-- Name: manual_payment_orders manual_payment_orders_reference_unique; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.manual_payment_orders
+    ADD CONSTRAINT manual_payment_orders_reference_unique UNIQUE (reference);
 
 
 --
@@ -1652,6 +1971,14 @@ ALTER TABLE ONLY public.notifications
 
 
 --
+-- Name: notifications notifications_user_dedupe_unique; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.notifications
+    ADD CONSTRAINT notifications_user_dedupe_unique UNIQUE (user_id, dedupe_key);
+
+
+--
 -- Name: official_journals official_journals_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -1689,6 +2016,30 @@ ALTER TABLE ONLY public.personal_access_tokens
 
 ALTER TABLE ONLY public.personal_access_tokens
     ADD CONSTRAINT personal_access_tokens_token_key UNIQUE (token);
+
+
+--
+-- Name: plan_grant_reminders plan_grant_reminders_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.plan_grant_reminders
+    ADD CONSTRAINT plan_grant_reminders_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: plan_grant_reminders plan_grant_reminders_plan_grant_id_offset_days_sent_on_unique; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.plan_grant_reminders
+    ADD CONSTRAINT plan_grant_reminders_plan_grant_id_offset_days_sent_on_unique UNIQUE (plan_grant_id, offset_days, sent_on);
+
+
+--
+-- Name: plan_grants plan_grants_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.plan_grants
+    ADD CONSTRAINT plan_grants_pkey PRIMARY KEY (id);
 
 
 --
@@ -1835,6 +2186,27 @@ CREATE INDEX agent_message_feedback_message_id_index ON public.agent_message_fee
 
 
 --
+-- Name: ai_usage_logs_conversation_id_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX ai_usage_logs_conversation_id_index ON public.ai_usage_logs USING btree (conversation_id);
+
+
+--
+-- Name: ai_usage_logs_route_created_at_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX ai_usage_logs_route_created_at_index ON public.ai_usage_logs USING btree (route, created_at);
+
+
+--
+-- Name: ai_usage_logs_user_id_created_at_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX ai_usage_logs_user_id_created_at_index ON public.ai_usage_logs USING btree (user_id, created_at);
+
+
+--
 -- Name: contact_messages_created_at_index; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -1846,6 +2218,27 @@ CREATE INDEX contact_messages_created_at_index ON public.contact_messages USING 
 --
 
 CREATE INDEX contact_messages_handled_index ON public.contact_messages USING btree (handled);
+
+
+--
+-- Name: credit_ledger_entries_reference_id_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX credit_ledger_entries_reference_id_index ON public.credit_ledger_entries USING btree (reference_id);
+
+
+--
+-- Name: credit_ledger_entries_type_created_at_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX credit_ledger_entries_type_created_at_index ON public.credit_ledger_entries USING btree (type, created_at);
+
+
+--
+-- Name: credit_ledger_entries_user_id_created_at_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX credit_ledger_entries_user_id_created_at_index ON public.credit_ledger_entries USING btree (user_id, created_at);
 
 
 --
@@ -1954,6 +2347,13 @@ CREATE INDEX idx_legal_docs_metadata ON public.legal_documents USING gin (metada
 
 
 --
+-- Name: idx_legal_documents_libelle_descriptif_trgm; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_legal_documents_libelle_descriptif_trgm ON public.legal_documents USING gin (libelle_descriptif public.gin_trgm_ops);
+
+
+--
 -- Name: idx_pat_expires_at; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -2024,10 +2424,59 @@ CREATE INDEX idx_versions_search ON public.article_versions USING gin (search_ts
 
 
 --
+-- Name: jurisprudence_citations_cited_article_id_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX jurisprudence_citations_cited_article_id_index ON public.jurisprudence_citations USING btree (cited_article_id);
+
+
+--
 -- Name: legal_documents_legal_scope_index; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX legal_documents_legal_scope_index ON public.legal_documents USING btree (legal_scope);
+
+
+--
+-- Name: legal_documents_watch_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX legal_documents_watch_idx ON public.legal_documents USING btree (curation_status, watch_notified_at);
+
+
+--
+-- Name: legal_watch_dispatches_status_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX legal_watch_dispatches_status_idx ON public.legal_watch_dispatches USING btree (status, created_at);
+
+
+--
+-- Name: manual_payment_orders_status_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX manual_payment_orders_status_index ON public.manual_payment_orders USING btree (status);
+
+
+--
+-- Name: manual_payment_orders_user_id_created_at_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX manual_payment_orders_user_id_created_at_index ON public.manual_payment_orders USING btree (user_id, created_at);
+
+
+--
+-- Name: plan_grants_user_id_plan_starts_at_ends_at_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX plan_grants_user_id_plan_starts_at_ends_at_index ON public.plan_grants USING btree (user_id, plan, starts_at, ends_at);
+
+
+--
+-- Name: structure_nodes_deleted_at_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX structure_nodes_deleted_at_index ON public.structure_nodes USING btree (deleted_at);
 
 
 --
@@ -2161,6 +2610,14 @@ ALTER TABLE ONLY public.agent_message_feedback
 
 
 --
+-- Name: ai_usage_logs ai_usage_logs_user_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.ai_usage_logs
+    ADD CONSTRAINT ai_usage_logs_user_id_foreign FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE SET NULL;
+
+
+--
 -- Name: article_versions article_versions_article_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -2217,6 +2674,22 @@ ALTER TABLE ONLY public.articles
 
 
 --
+-- Name: credit_ledger_entries credit_ledger_entries_created_by_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.credit_ledger_entries
+    ADD CONSTRAINT credit_ledger_entries_created_by_foreign FOREIGN KEY (created_by) REFERENCES public.users(id) ON DELETE SET NULL;
+
+
+--
+-- Name: credit_ledger_entries credit_ledger_entries_user_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.credit_ledger_entries
+    ADD CONSTRAINT credit_ledger_entries_user_id_foreign FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE SET NULL;
+
+
+--
 -- Name: curation_flags curation_flags_article_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -2246,6 +2719,14 @@ ALTER TABLE ONLY public.curation_flags
 
 ALTER TABLE ONLY public.curation_flags
     ADD CONSTRAINT curation_flags_resolved_by_foreign FOREIGN KEY (resolved_by) REFERENCES public.users(id) ON DELETE SET NULL;
+
+
+--
+-- Name: devices devices_user_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.devices
+    ADD CONSTRAINT devices_user_id_foreign FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE SET NULL;
 
 
 --
@@ -2385,6 +2866,22 @@ ALTER TABLE ONLY public.extraction_runs
 
 
 --
+-- Name: jurisprudence_citations jurisprudence_citations_cited_article_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.jurisprudence_citations
+    ADD CONSTRAINT jurisprudence_citations_cited_article_id_foreign FOREIGN KEY (cited_article_id) REFERENCES public.articles(id) ON DELETE SET NULL;
+
+
+--
+-- Name: jurisprudence_citations jurisprudence_citations_decision_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.jurisprudence_citations
+    ADD CONSTRAINT jurisprudence_citations_decision_id_foreign FOREIGN KEY (decision_id) REFERENCES public.legal_documents(id) ON DELETE CASCADE;
+
+
+--
 -- Name: legal_documents legal_documents_institution_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -2401,11 +2898,59 @@ ALTER TABLE ONLY public.legal_documents
 
 
 --
+-- Name: legal_documents legal_documents_statut_verifie_par_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.legal_documents
+    ADD CONSTRAINT legal_documents_statut_verifie_par_foreign FOREIGN KEY (statut_verifie_par) REFERENCES public.users(id) ON DELETE SET NULL;
+
+
+--
 -- Name: legal_documents legal_documents_type_code_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.legal_documents
     ADD CONSTRAINT legal_documents_type_code_fkey FOREIGN KEY (type_code) REFERENCES public.document_types(code);
+
+
+--
+-- Name: manual_payment_orders manual_payment_orders_created_by_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.manual_payment_orders
+    ADD CONSTRAINT manual_payment_orders_created_by_foreign FOREIGN KEY (created_by) REFERENCES public.users(id) ON DELETE RESTRICT;
+
+
+--
+-- Name: manual_payment_orders manual_payment_orders_plan_grant_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.manual_payment_orders
+    ADD CONSTRAINT manual_payment_orders_plan_grant_id_foreign FOREIGN KEY (plan_grant_id) REFERENCES public.plan_grants(id) ON DELETE SET NULL;
+
+
+--
+-- Name: manual_payment_orders manual_payment_orders_resolved_by_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.manual_payment_orders
+    ADD CONSTRAINT manual_payment_orders_resolved_by_foreign FOREIGN KEY (resolved_by) REFERENCES public.users(id) ON DELETE SET NULL;
+
+
+--
+-- Name: manual_payment_orders manual_payment_orders_user_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.manual_payment_orders
+    ADD CONSTRAINT manual_payment_orders_user_id_foreign FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+
+--
+-- Name: manual_payment_orders manual_payment_orders_verification_started_by_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.manual_payment_orders
+    ADD CONSTRAINT manual_payment_orders_verification_started_by_foreign FOREIGN KEY (verification_started_by) REFERENCES public.users(id) ON DELETE SET NULL;
 
 
 --
@@ -2446,6 +2991,30 @@ ALTER TABLE ONLY public.model_has_roles
 
 ALTER TABLE ONLY public.notifications
     ADD CONSTRAINT notifications_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+
+--
+-- Name: plan_grant_reminders plan_grant_reminders_plan_grant_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.plan_grant_reminders
+    ADD CONSTRAINT plan_grant_reminders_plan_grant_id_foreign FOREIGN KEY (plan_grant_id) REFERENCES public.plan_grants(id) ON DELETE CASCADE;
+
+
+--
+-- Name: plan_grants plan_grants_created_by_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.plan_grants
+    ADD CONSTRAINT plan_grants_created_by_foreign FOREIGN KEY (created_by) REFERENCES public.users(id) ON DELETE SET NULL;
+
+
+--
+-- Name: plan_grants plan_grants_user_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.plan_grants
+    ADD CONSTRAINT plan_grants_user_id_foreign FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
 
 
 --
@@ -2500,13 +3069,13 @@ ALTER TABLE ONLY public.user_settings
 -- PostgreSQL database dump complete
 --
 
-\unrestrict bWbECm2CGLj8cQsGVteJR8cGIc3xxYnm2qwSgijufLeS2MvSH8HYCzD1t7zf6br
+\unrestrict 25NpbjT3NfCvlYR3hGY5DAnzowbxUOEA79SfeS1ksh1MKeHNqKrek0Hs3OyTcTI
 
 --
 -- PostgreSQL database dump
 --
 
-\restrict 09MKF0tKYptUewskW7F8ZiWqNNISxcJ3lg2dyuPftb3IJKb8smsVIhxdw0HbXO5
+\restrict bYkGMWcdn2osaTkJddHgzabUkRlW11veIYkkaWIU21lAdEUWf39nlmGIeY7793K
 
 -- Dumped from database version 16.11 (Debian 16.11-1.pgdg12+1)
 -- Dumped by pg_dump version 18.1
@@ -2557,6 +3126,34 @@ COPY public.migrations (id, migration, batch) FROM stdin;
 29	2026_07_03_202911_add_jurist_review_to_article_versions_table	18
 30	2026_07_03_205603_create_dossier_annexes_tables	18
 32	2026_07_04_144711_extend_extraction_runs_status_check	19
+33	2026_07_20_121602_extend_extraction_runs_source_check	20
+34	2026_07_21_124041_fix_default_timezone_to_brazzaville	21
+35	2026_07_30_153610_add_user_and_unique_constraint_to_devices_table	22
+36	2026_07_30_153611_add_watch_notified_at_to_legal_documents_table	22
+37	2026_07_30_211054_add_dedupe_key_to_notifications_table	22
+38	2026_07_30_211055_create_legal_watch_dispatches_table	22
+40	2026_07_30_213330_enable_push_for_new_document_preference	23
+41	2026_08_01_183510_create_app_settings_table	24
+43	2026_08_02_150000_add_date_entree_vigueur_inconnue_to_legal_documents_table	25
+44	2026_07_30_224500_add_app_version_to_devices_table	26
+46	2026_08_03_100000_normalise_curation_status_and_add_check	27
+47	2026_08_10_120000_add_statut_verification_to_legal_documents_table	28
+48	2026_08_11_211931_add_soft_deletes_to_structure_nodes_table	29
+49	2026_08_16_133440_add_libelle_descriptif_to_legal_documents_table	30
+51	2026_08_29_140000_add_page_count_to_media_files_table	31
+52	2026_09_03_060000_create_ai_usage_logs_table	32
+54	2026_09_04_190000_create_credit_ledger_entries_table	33
+56	2026_09_05_120000_add_error_context_to_ai_usage_logs_table	34
+57	2026_09_03_101500_set_default_active_on_users_status	35
+60	2026_09_05_040254_create_ai_quota_tier_settings_table	36
+61	2026_09_05_040255_add_ai_quota_override_to_user_settings_table	36
+62	2026_09_06_001951_create_plan_grants_table	37
+63	2026_09_06_090606_normalize_mobile_profiles_profession_values	38
+64	2026_09_06_110216_add_tool_calls_count_to_ai_usage_logs_table	39
+65	2026_09_06_153252_create_jurisprudence_citations_table	40
+66	2026_09_10_081616_create_manual_payment_orders_table	41
+67	2026_09_10_120000_add_revoked_at_to_plan_grants_table	41
+68	2026_09_10_120001_create_plan_grant_reminders_table	41
 \.
 
 
@@ -2564,12 +3161,12 @@ COPY public.migrations (id, migration, batch) FROM stdin;
 -- Name: migrations_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.migrations_id_seq', 32, true);
+SELECT pg_catalog.setval('public.migrations_id_seq', 68, true);
 
 
 --
 -- PostgreSQL database dump complete
 --
 
-\unrestrict 09MKF0tKYptUewskW7F8ZiWqNNISxcJ3lg2dyuPftb3IJKb8smsVIhxdw0HbXO5
+\unrestrict bYkGMWcdn2osaTkJddHgzabUkRlW11veIYkkaWIU21lAdEUWf39nlmGIeY7793K
 
