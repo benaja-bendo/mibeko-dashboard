@@ -8,6 +8,7 @@ use App\Models\PlanGrant;
 use App\Models\User;
 use App\Services\CreditLedger;
 use App\Services\EntitlementsResolver;
+use App\Services\PlanGrantReceiptPdfService;
 use App\Traits\HttpResponses;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -59,6 +60,21 @@ class BillingController extends Controller
             ->where('user_id', $request->user()->id)
             ->select(['id', 'type', 'amount', 'created_at'])
             ->latest()->orderByDesc('id')->paginate(20));
+    }
+
+    /**
+     * Justificatif (reçu de confirmation, pas une facture) d'un octroi Pro
+     * vendu à la main — mibeko-dashboard#121. 404 plutôt que 403 sur un
+     * octroi d'un autre compte : ne pas révéler qu'un identifiant existe.
+     */
+    public function manualGrantReceipt(Request $request, PlanGrant $grant, PlanGrantReceiptPdfService $receipts): HttpResponse
+    {
+        abort_unless($grant->user_id === $request->user()->id, HttpResponse::HTTP_NOT_FOUND);
+
+        return response($receipts->render($grant), HttpResponse::HTTP_OK, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'attachment; filename="'.$receipts->filenameFor($grant).'"',
+        ]);
     }
 
     /**

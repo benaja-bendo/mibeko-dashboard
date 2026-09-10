@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\ManualPaymentOrder;
 use App\Models\PlanGrant;
 use App\Models\User;
+use App\Notifications\PlanGrantActivatedNotification;
 use App\Traits\HttpResponses;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\JsonResponse;
@@ -135,6 +136,12 @@ class ManualPaymentOrderController extends Controller
                 'resolved_by' => $request->user()->id,
                 'plan_grant_id' => $grant->id,
             ]);
+
+            // Confirmation + accès au justificatif (mibeko-dashboard#121) :
+            // toujours envoyée, jamais gatée par les préférences — c'est la
+            // preuve d'une transaction déjà réalisée, pas du contenu
+            // optionnel (cf. docblock de la notification).
+            $order->user?->notify(new PlanGrantActivatedNotification($grant));
 
             return $this->success($order->fresh()->adminPayload(), 'Paiement vérifié et abonnement activé.');
         });

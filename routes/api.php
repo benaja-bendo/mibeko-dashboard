@@ -129,6 +129,7 @@ Route::prefix('v1')->middleware('throttle:api')->group(function () {
         // Facturation (Cashier / Stripe)
         Route::get('billing', [BillingController::class, 'overview']);
         Route::get('billing/manual-grants', [BillingController::class, 'manualGrants']);
+        Route::get('billing/manual-grants/{grant}/receipt', [BillingController::class, 'manualGrantReceipt']);
         Route::get('billing/payment-orders', [ManualPaymentOrderController::class, 'index']);
         Route::post('billing/payment-orders/{paymentOrder}/declare', [ManualPaymentOrderController::class, 'declare']);
         Route::get('billing/credits', [BillingController::class, 'credits']);
@@ -402,6 +403,7 @@ Route::prefix('v1')->middleware('throttle:api')->group(function () {
             Route::get('users/stats', [AdminUserController::class, 'stats'])->name('users.stats');
             Route::get('billing/summary', [AdminBillingController::class, 'summary']);
             Route::get('billing/grants', [AdminBillingController::class, 'grants']);
+            Route::get('billing/grants/{grant}/receipt', [AdminBillingController::class, 'receipt']);
             Route::get('billing/untracked', [AdminBillingController::class, 'untracked']);
             Route::get('billing/credits', [AdminBillingController::class, 'credits']);
             Route::get('billing/payment-orders', [AdminManualPaymentOrderController::class, 'index']);

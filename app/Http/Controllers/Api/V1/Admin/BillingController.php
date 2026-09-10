@@ -7,6 +7,7 @@ use App\Models\CreditLedgerEntry;
 use App\Models\PlanGrant;
 use App\Models\User;
 use App\Services\CreditLedger;
+use App\Services\PlanGrantReceiptPdfService;
 use App\Traits\HttpResponses;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
@@ -15,6 +16,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
+use Symfony\Component\HttpFoundation\Response as HttpResponse;
 
 class BillingController extends Controller
 {
@@ -67,6 +69,15 @@ class BillingController extends Controller
         ]);
 
         return $this->paginatedSuccess($rows);
+    }
+
+    /** Même justificatif que côté client — l'admin peut le retrouver sans dépendre du titulaire. */
+    public function receipt(PlanGrant $grant, PlanGrantReceiptPdfService $receipts): HttpResponse
+    {
+        return response($receipts->render($grant), HttpResponse::HTTP_OK, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'attachment; filename="'.$receipts->filenameFor($grant).'"',
+        ]);
     }
 
     public function untracked(): JsonResponse

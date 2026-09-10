@@ -3,9 +3,11 @@
 use App\Models\ManualPaymentOrder;
 use App\Models\PlanGrant;
 use App\Models\User;
+use App\Notifications\PlanGrantActivatedNotification;
 use App\Services\EntitlementsResolver;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Routing\Middleware\ThrottleRequests;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Str;
 use Spatie\Permission\Models\Role;
 
@@ -62,6 +64,7 @@ it('refuse de réutiliser une clé pour une autre commande', function () {
 });
 
 it('vérifie puis active une commande une seule fois', function () {
+    Notification::fake();
     $order = ManualPaymentOrder::factory()->for($this->customer)->create([
         'created_by' => $this->admin->id,
         'status' => ManualPaymentOrder::STATUS_PAYMENT_DECLARED,
@@ -88,6 +91,12 @@ it('vérifie puis active une commande une seule fois', function () {
         ->and($grant->reference)->toBe('MM-20260910-001')
         ->and($grant->starts_at->diffInMonths($grant->ends_at))->toBe(2.0)
         ->and(app(EntitlementsResolver::class)->resolve($this->customer)['plan'])->toBe('pro');
+
+    // mibeko-dashboard#121 : confirmation envoyée une seule fois, même si
+    // l'activation est rejouée (idempotence côté commande, pas seulement côté octroi).
+    Notification::assertSentTimes(PlanGrantActivatedNotification::class, 1);
+    Notification::assertSentTo($this->customer, PlanGrantActivatedNotification::class,
+        fn (PlanGrantActivatedNotification $notification) => $notification->grant->is($grant));
 });
 
 it('interdit une activation sans vérification préalable', function () {
