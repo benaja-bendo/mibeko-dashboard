@@ -148,6 +148,35 @@ class UserSetting extends Model implements Auditable
     }
 
     /**
+     * Matrice de préférences complète, jamais partielle : toute case absente
+     * — type ajouté après l'enregistrement de la ligne (mibeko-dashboard#121 :
+     * `billing`), ou jamais personnalisée — retombe sur sa valeur par défaut.
+     * `UserSettingResource` s'en sert pour ne jamais renvoyer un objet dont
+     * il manque une clé : le front (`NotificationsCard`) indexe chaque type
+     * sans filet, une ligne `user_settings` antérieure à ce type y ferait
+     * planter le rendu (constaté en vérification manuelle le 10/09/2026).
+     *
+     * @return array<string, mixed>
+     */
+    public function resolvedNotificationPreferences(): array
+    {
+        $stored = is_array($this->notification_preferences) ? $this->notification_preferences : [];
+        $defaults = self::defaultNotificationPreferences();
+        $resolved = [];
+
+        foreach (self::NOTIFICATION_TYPES as $type) {
+            $resolved[$type] = [];
+            foreach (self::NOTIFICATION_CHANNELS as $channel) {
+                $resolved[$type][$channel] = $stored[$type][$channel] ?? $defaults[$type][$channel];
+            }
+        }
+
+        $resolved['_frequency'] = $stored['_frequency'] ?? $defaults['_frequency'];
+
+        return $resolved;
+    }
+
+    /**
      * Valeurs par défaut utilisées lors de la création implicite d'une ligne settings.
      *
      * @return array<string, mixed>

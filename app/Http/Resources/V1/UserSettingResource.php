@@ -23,9 +23,9 @@ class UserSettingResource extends JsonResource
             'theme' => $this->theme ?? 'lex-gold',
             'timezone' => $this->timezone,
             'date_format' => $this->date_format,
-            // On garantit une matrice complète même si la colonne est nulle.
-            'notification_preferences' => $this->notification_preferences
-                ?? UserSetting::defaultNotificationPreferences(),
+            // Matrice toujours complète : colonne nulle, ou juste privée
+            // d'un type ajouté depuis (voir resolvedNotificationPreferences()).
+            'notification_preferences' => $this->resolvedNotificationPreferences(),
             'consents' => [
                 'marketing' => (bool) $this->marketing_consent,
                 'marketing_at' => $this->marketing_consent_at?->toIso8601String(),

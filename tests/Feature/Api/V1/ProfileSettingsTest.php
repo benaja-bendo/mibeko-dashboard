@@ -124,6 +124,33 @@ it('replaces the notification preferences matrix', function () {
         ->assertJsonPath('data.notification_preferences.extraction_update.email', false);
 });
 
+/**
+ * mibeko-dashboard#121 : une ligne `user_settings` enregistrée avant l'ajout
+ * du type `billing` ne porte pas cette clé — le front indexe chaque type
+ * sans filet et plantait sur cette matrice partielle (constaté en
+ * vérification manuelle le 10/09/2026, avant ce correctif).
+ */
+it('complète une matrice de préférences enregistrée avant l\'ajout d\'un type', function () {
+    $user = User::factory()->create();
+    $user->settings()->create([
+        ...UserSetting::defaults(),
+        'notification_preferences' => [
+            'extraction_update' => ['email' => true, 'push' => false, 'in_app' => true],
+            'new_document' => ['email' => true, 'push' => true, 'in_app' => true],
+            'share' => ['email' => true, 'push' => false, 'in_app' => true],
+            'legal_alert' => ['email' => true, 'push' => false, 'in_app' => true],
+            'system' => ['email' => true, 'push' => false, 'in_app' => true],
+            '_frequency' => 'instant',
+        ],
+    ]);
+
+    $this->actingAs($user)->getJson('/api/v1/profile')
+        ->assertStatus(200)
+        ->assertJsonPath('data.settings.notification_preferences.billing.email', true)
+        ->assertJsonPath('data.settings.notification_preferences.billing.push', false)
+        ->assertJsonPath('data.settings.notification_preferences.extraction_update.push', false);
+});
+
 it('rejects an incomplete notification matrix', function () {
     $user = User::factory()->create();
 
