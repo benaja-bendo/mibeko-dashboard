@@ -404,6 +404,8 @@ Route::prefix('v1')->middleware('throttle:api')->group(function () {
             Route::get('billing/summary', [AdminBillingController::class, 'summary']);
             Route::get('billing/grants', [AdminBillingController::class, 'grants']);
             Route::get('billing/grants/{grant}/receipt', [AdminBillingController::class, 'receipt']);
+            Route::get('billing/grants/{grant}/movements', [AdminBillingController::class, 'grantMovements']);
+            Route::post('billing/grants/{grant}/movements', [AdminBillingController::class, 'storeGrantMovement']);
             Route::get('billing/untracked', [AdminBillingController::class, 'untracked']);
             Route::get('billing/credits', [AdminBillingController::class, 'credits']);
             Route::get('billing/payment-orders', [AdminManualPaymentOrderController::class, 'index']);
