@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\V1\Admin\AiQuotaTierController as AdminAiQuotaTierController;
 use App\Http\Controllers\Api\V1\Admin\AuditController as AdminAuditController;
 use App\Http\Controllers\Api\V1\Admin\BillingController as AdminBillingController;
+use App\Http\Controllers\Api\V1\Admin\ContactInboxController;
 use App\Http\Controllers\Api\V1\Admin\CurationFlagController as AdminCurationFlagController;
 use App\Http\Controllers\Api\V1\Admin\DocumentTypeController as AdminDocumentTypeController;
 use App\Http\Controllers\Api\V1\Admin\ImpersonationController as AdminImpersonationController;
@@ -366,6 +367,11 @@ Route::prefix('v1')->middleware('throttle:api')->group(function () {
         ->name('admin.')
         ->group(function () {
             Route::get('overview', [AdminOverviewController::class, 'index']);
+
+            Route::get('messages', [ContactInboxController::class, 'index']);
+            Route::patch('messages/{message}', [ContactInboxController::class, 'update']);
+            Route::get('newsletter-subscriptions', [ContactInboxController::class, 'newsletter']);
+            Route::get('newsletter-subscriptions/export', [ContactInboxController::class, 'exportNewsletter']);
 
             Route::apiResource('document-types', AdminDocumentTypeController::class)
                 ->only(['index', 'store', 'update', 'destroy']);
