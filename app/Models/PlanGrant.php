@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use OwenIt\Auditing\Contracts\Auditable;
 
 /**
@@ -68,6 +69,12 @@ class PlanGrant extends Model implements Auditable
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    /** Grand livre FCFA (encaissements, remboursements, corrections) — mibeko-dashboard#122. */
+    public function movements(): HasMany
+    {
+        return $this->hasMany(PlanGrantMovement::class);
     }
 
     /** Données partageables avec le titulaire, sans les notes internes. */
