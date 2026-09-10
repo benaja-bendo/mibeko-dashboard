@@ -88,7 +88,9 @@ class DocumentExportPdfService
         // Document volumineux : le rendu DomPDF peut prendre plusieurs
         // minutes et consommer beaucoup de mémoire.
         set_time_limit(600);
-        ini_set('memory_limit', '512M');
+        if (! app()->environment('testing')) {
+            ini_set('memory_limit', '512M');
+        }
 
         $document->loadMissing([
             'institution',

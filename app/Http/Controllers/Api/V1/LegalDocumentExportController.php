@@ -66,7 +66,9 @@ class LegalDocumentExportController extends Controller
      */
     public function exportArticle(Request $request, string $id): Response
     {
-        ini_set('memory_limit', '256M');
+        if (! app()->environment('testing')) {
+            ini_set('memory_limit', '256M');
+        }
         $article = Article::query()
             ->with(['document', 'document.institution', 'document.type', 'parentNode', 'activeVersion'])
             ->findOrFail($id);
