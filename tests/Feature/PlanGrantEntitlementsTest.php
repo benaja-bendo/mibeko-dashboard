@@ -76,3 +76,22 @@ it('le rôle admin garde la priorité sur un octroi Pro pour le palier de quota'
 
     expect(AiUserQuotaTier::tierFor($admin))->toBe('admin');
 });
+
+/**
+ * mibeko-dashboard#121 : la révocation coupe l'accès sans réécrire `ends_at`,
+ * pour que la période contractuelle d'origine reste lisible sur le
+ * justificatif même après une coupure anticipée.
+ */
+it('une révocation coupe l\'accès sans réécrire la période contractuelle', function () {
+    $user = User::factory()->create();
+    $grant = PlanGrant::factory()->for($user)->create(['ends_at' => now()->addMonth()]);
+    $contractedEndsAt = $grant->ends_at;
+
+    $grant->revoke();
+    $grant->refresh();
+
+    expect($grant->ends_at->equalTo($contractedEndsAt))->toBeTrue()
+        ->and($grant->revoked_at)->not->toBeNull()
+        ->and(PlanGrant::hasActive($user))->toBeFalse()
+        ->and($grant->status())->toBe('revoked');
+});

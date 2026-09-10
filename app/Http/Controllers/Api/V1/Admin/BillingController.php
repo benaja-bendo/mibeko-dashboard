@@ -24,8 +24,7 @@ class BillingController extends Controller
     {
         $validated = $request->validate(['month' => ['sometimes', 'date_format:Y-m']]);
         $month = CarbonImmutable::createFromFormat('!Y-m', $validated['month'] ?? now()->format('Y-m'));
-        $active = PlanGrant::query()->where('plan', PlanGrant::PLAN_PRO)
-            ->where('starts_at', '<=', now())->where('ends_at', '>', now());
+        $active = PlanGrant::query()->where('plan', PlanGrant::PLAN_PRO)->active();
         $recorded = PlanGrant::query()->where('created_at', '>=', $month)
             ->where('created_at', '<', $month->addMonth());
 
@@ -42,7 +41,7 @@ class BillingController extends Controller
     public function grants(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'status' => ['sometimes', Rule::in(['active', 'ended', 'expiring_7', 'expiring_30'])],
+            'status' => ['sometimes', Rule::in(['active', 'ended', 'revoked', 'expiring_7', 'expiring_30'])],
             'user_id' => ['sometimes', 'uuid'],
         ]);
         $query = PlanGrant::query()->with(['user:id,name,email', 'creator:id,name']);
@@ -51,9 +50,11 @@ class BillingController extends Controller
         }
         $status = $validated['status'] ?? null;
         if ($status === 'ended') {
-            $query->where('ends_at', '<=', now());
+            $query->where('ends_at', '<=', now())->whereNull('revoked_at');
+        } elseif ($status === 'revoked') {
+            $query->whereNotNull('revoked_at');
         } elseif ($status) {
-            $query->where('starts_at', '<=', now())->where('ends_at', '>', now());
+            $query->active();
             if ($status !== 'active') {
                 $query->where('ends_at', '<=', now()->addDays($status === 'expiring_7' ? 7 : 30));
             }
@@ -77,7 +78,7 @@ class BillingController extends Controller
     private function untrackedAccounts(): Builder
     {
         return User::role('user_pro')->whereDoesntHave('planGrants', fn (Builder $query) => $query
-            ->where('plan', PlanGrant::PLAN_PRO)->where('starts_at', '<=', now())->where('ends_at', '>', now()));
+            ->where('plan', PlanGrant::PLAN_PRO)->active());
     }
 
     public function credits(Request $request): JsonResponse

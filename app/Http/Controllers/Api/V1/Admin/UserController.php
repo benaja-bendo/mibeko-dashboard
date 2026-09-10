@@ -334,13 +334,12 @@ class UserController extends Controller
     {
         return DB::transaction(function () use ($user) {
             DB::select('select pg_advisory_xact_lock(hashtextextended(?, 0))', ['plan-user:'.$user->id]);
-            $grants = $user->planGrants()->where('plan', PlanGrant::PLAN_PRO)
-                ->where('starts_at', '<=', now())->where('ends_at', '>', now())->get();
+            $grants = $user->planGrants()->where('plan', PlanGrant::PLAN_PRO)->active()->get();
             if ($grants->isEmpty()) {
                 return $this->error(null, 'Aucun abonnement Pro accordé à la main n\'est actif pour ce compte.', 404);
             }
             foreach ($grants as $grant) {
-                $grant->update(['ends_at' => now()]);
+                $grant->revoke();
             }
 
             return $this->success(null, 'Octrois manuels actifs retirés. Les accès par rôle ou Stripe sont inchangés.');

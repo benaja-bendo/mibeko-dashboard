@@ -39,6 +39,7 @@ class PlanGrant extends Model implements Auditable
     protected $casts = [
         'starts_at' => 'datetime',
         'ends_at' => 'datetime',
+        'revoked_at' => 'datetime',
         'amount_fcfa' => 'integer',
     ];
 
@@ -76,12 +77,43 @@ class PlanGrant extends Model implements Auditable
             'id' => $this->id,
             'starts_at' => $this->starts_at->toIso8601String(),
             'ends_at' => $this->ends_at->toIso8601String(),
-            'status' => $this->ends_at->isPast() || $this->ends_at->equalTo(now()) ? 'ended' : ($this->starts_at->isFuture() ? 'scheduled' : 'active'),
+            'revoked_at' => $this->revoked_at?->toIso8601String(),
+            'status' => $this->status(),
             'amount_fcfa' => $this->amount_fcfa,
             'channel' => $this->channel,
             'reference' => $this->reference,
             'created_at' => $this->created_at->toIso8601String(),
         ];
+    }
+
+    /**
+     * `revoked` prime sur `ended`/`scheduled` : une coupure anticipée reste
+     * visible même après la date de fin contractuelle d'origine, pour ne
+     * pas se confondre avec une échéance normalement arrivée à son terme.
+     */
+    public function status(): string
+    {
+        if ($this->revoked_at !== null) {
+            return 'revoked';
+        }
+
+        return $this->ends_at->isPast() || $this->ends_at->equalTo(now())
+            ? 'ended'
+            : ($this->starts_at->isFuture() ? 'scheduled' : 'active');
+    }
+
+    /**
+     * Coupe l'accès immédiatement sans toucher `ends_at` : la période
+     * contractuelle d'origine reste lisible sur le justificatif et dans
+     * l'historique, seule `revoked_at` distingue une fin anticipée d'une
+     * échéance normale (mibeko-dashboard#121).
+     */
+    public function revoke(): void
+    {
+        // `forceFill` à dessein : `revoked_at` est hors `$fillable` pour
+        // qu'aucun payload admin de masse ne puisse le poser en douce, cette
+        // méthode reste le seul point d'écriture légitime.
+        $this->forceFill(['revoked_at' => now()])->save();
     }
 
     /**
@@ -111,11 +143,28 @@ class PlanGrant extends Model implements Auditable
         return static::query()
             ->where('user_id', $user->id)
             ->where('plan', $plan)
+            ->active();
+    }
+
+    /**
+     * Octrois en cours de validité à cet instant : bornes contractuelles ET
+     * non révoqués. Seul point de vérité pour « actif » — consommé ici, dans
+     * `BillingController`/`UserController` (admin) et par tout futur appelant,
+     * pour éviter que la définition de « qui est Pro » ne diverge entre eux
+     * (déjà arrivé une fois, cf. `AiUserQuotaTier::ELEVATED_QUOTA_ROLES`).
+     *
+     * @param  Builder<self>  $query
+     * @return Builder<self>
+     */
+    public function scopeActive(Builder $query): Builder
+    {
+        return $query
             ->where('starts_at', '<=', now())
-            // Strict, pas `>=` : une révocation pose `ends_at = now()`, et le
-            // cast `datetime` tronque à la seconde à l'écriture comme à la
+            // Strict, pas `>=` : une révocation pose `revoked_at = now()`, et
+            // le cast `datetime` tronque à la seconde à l'écriture comme à la
             // lecture — un `>=` laisserait l'octroi actif jusqu'à la seconde
             // suivante au lieu de s'éteindre immédiatement.
-            ->where('ends_at', '>', now());
+            ->where('ends_at', '>', now())
+            ->whereNull('revoked_at');
     }
 }
