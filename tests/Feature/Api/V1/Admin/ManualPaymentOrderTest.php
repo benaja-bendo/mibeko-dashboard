@@ -2,6 +2,7 @@
 
 use App\Models\ManualPaymentOrder;
 use App\Models\PlanGrant;
+use App\Models\PlanGrantMovement;
 use App\Models\User;
 use App\Notifications\PlanGrantActivatedNotification;
 use App\Services\EntitlementsResolver;
@@ -97,6 +98,34 @@ it('vérifie puis active une commande une seule fois', function () {
     Notification::assertSentTimes(PlanGrantActivatedNotification::class, 1);
     Notification::assertSentTo($this->customer, PlanGrantActivatedNotification::class,
         fn (PlanGrantActivatedNotification $notification) => $notification->grant->is($grant));
+
+    // mibeko-dashboard#122 : sans précision, l'encaissement réel suit le montant saisi de la commande.
+    expect(PlanGrantMovement::where('plan_grant_id', $grant->id)->sole())
+        ->type->toBe('collected')->amount_fcfa->toBe($order->amount_fcfa);
+});
+
+it('distingue le montant réellement encaissé du montant saisi lors de l\'activation', function () {
+    $order = ManualPaymentOrder::factory()->for($this->customer)->create([
+        'created_by' => $this->admin->id,
+        'status' => ManualPaymentOrder::STATUS_VERIFYING,
+        'payment_reference' => 'MM-20260910-PARTIEL',
+        'amount_fcfa' => 15000,
+    ]);
+
+    $collectedAt = now()->subDay()->startOfSecond();
+    $this->actingAs($this->admin)
+        ->postJson("/api/v1/admin/billing/payment-orders/{$order->id}/activate", [
+            'collected_amount_fcfa' => 12000,
+            'collected_at' => $collectedAt->toIso8601String(),
+        ])
+        ->assertOk();
+
+    $grant = PlanGrant::sole();
+    expect($grant->amount_fcfa)->toBe(15000);
+    $movement = PlanGrantMovement::where('plan_grant_id', $grant->id)->sole();
+    expect($movement->amount_fcfa)->toBe(12000)
+        ->and($movement->manual_payment_order_id)->toBe($order->id)
+        ->and($movement->occurred_at->equalTo($collectedAt))->toBeTrue();
 });
 
 it('interdit une activation sans vérification préalable', function () {

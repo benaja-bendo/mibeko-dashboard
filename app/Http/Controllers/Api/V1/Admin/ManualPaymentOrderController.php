@@ -7,6 +7,7 @@ use App\Models\ManualPaymentOrder;
 use App\Models\PlanGrant;
 use App\Models\User;
 use App\Notifications\PlanGrantActivatedNotification;
+use App\Services\PlanGrantLedger;
 use App\Traits\HttpResponses;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\JsonResponse;
@@ -102,9 +103,19 @@ class ManualPaymentOrderController extends Controller
         });
     }
 
-    public function activate(Request $request, ManualPaymentOrder $paymentOrder): JsonResponse
+    public function activate(Request $request, ManualPaymentOrder $paymentOrder, PlanGrantLedger $ledger): JsonResponse
     {
-        return DB::transaction(function () use ($request, $paymentOrder) {
+        // Montant réellement encaissé, distinct du montant saisi à la
+        // commande (mibeko-dashboard#122) : pré-rempli côté front avec
+        // amount_fcfa, mais modifiable pour un paiement partiel ou en trop —
+        // le geste d'activation reste à un clic dans le cas courant, sans
+        // empêcher de corriger avant de confirmer.
+        $validated = $request->validate([
+            'collected_amount_fcfa' => ['sometimes', 'integer', 'between:1,2147483647'],
+            'collected_at' => ['sometimes', 'date'],
+        ]);
+
+        return DB::transaction(function () use ($request, $paymentOrder, $ledger, $validated) {
             $order = ManualPaymentOrder::query()->lockForUpdate()->findOrFail($paymentOrder->id);
             if ($order->status === ManualPaymentOrder::STATUS_ACTIVATED && $order->plan_grant_id) {
                 return $this->success($order->adminPayload(), 'Commande déjà activée.');
@@ -136,6 +147,13 @@ class ManualPaymentOrderController extends Controller
                 'resolved_by' => $request->user()->id,
                 'plan_grant_id' => $grant->id,
             ]);
+            $ledger->collect(
+                $grant,
+                $validated['collected_amount_fcfa'] ?? $order->amount_fcfa,
+                $order,
+                isset($validated['collected_at']) ? CarbonImmutable::parse($validated['collected_at']) : null,
+                $request->user(),
+            );
 
             // Confirmation + accès au justificatif (mibeko-dashboard#121) :
             // toujours envoyée, jamais gatée par les préférences — c'est la

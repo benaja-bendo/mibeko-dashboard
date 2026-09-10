@@ -10,6 +10,7 @@ use App\Http\Resources\V1\Admin\UserResource;
 use App\Models\PlanGrant;
 use App\Models\User;
 use App\Notifications\PasswordResetCodeNotification;
+use App\Services\PlanGrantLedger;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
@@ -289,7 +290,7 @@ class UserController extends Controller
      * lecture live par `EntitlementsResolver` et `AiUserQuotaTier` : l'octroi
      * expire de lui-même à `ends_at`, sans job planifié ni redéploiement.
      */
-    public function grantProPlan(Request $request, User $user): JsonResponse
+    public function grantProPlan(Request $request, User $user, PlanGrantLedger $ledger): JsonResponse
     {
         $validated = $request->validate([
             'ends_at' => ['required', 'date', 'after:now'],
@@ -299,7 +300,7 @@ class UserController extends Controller
             'notes' => ['nullable', 'string', 'max:1000'],
         ]);
 
-        return DB::transaction(function () use ($request, $user, $validated) {
+        return DB::transaction(function () use ($request, $user, $validated, $ledger) {
             DB::select('select pg_advisory_xact_lock(hashtextextended(?, 0))', ['plan-user:'.$user->id]);
             if (! empty($validated['reference'])) {
                 $key = ($validated['channel'] ?? '').':'.$validated['reference'];
@@ -321,6 +322,15 @@ class UserController extends Controller
                 'plan' => PlanGrant::PLAN_PRO,
                 'created_by' => $request->user()->id,
             ]);
+
+            // mibeko-dashboard#122 : même grand livre que l'activation d'une
+            // commande, pour qu'un octroi accordé directement ne s'affiche
+            // jamais comme un écart — l'admin affirme ici que ce montant a
+            // été encaissé, au même titre que le montant réellement encaissé
+            // saisi à l'activation.
+            if (! empty($validated['amount_fcfa'])) {
+                $ledger->collect($grant, (int) $validated['amount_fcfa'], null, now(), $request->user());
+            }
 
             return $this->success(['id' => $grant->id], 'Abonnement Pro accordé.');
         });
