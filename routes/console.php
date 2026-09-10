@@ -89,3 +89,10 @@ Schedule::command('mibeko:prune-audits --days=365')
 Schedule::command('mibeko:surveiller-file-mail')
     ->everyFifteenMinutes()
     ->appendOutputTo(storage_path('logs/surveiller-file-mail.log'));
+
+// Même besoin que ci-dessus, pour la confirmation d'achat et le rappel
+// d'échéance d'un octroi Pro (mibeko-dashboard#121) : un titulaire qui ne
+// reçoit ni l'un ni l'autre ne doit pas rester silencieux non plus.
+Schedule::command('mibeko:surveiller-file-facturation')
+    ->everyFifteenMinutes()
+    ->appendOutputTo(storage_path('logs/surveiller-file-facturation.log'));
