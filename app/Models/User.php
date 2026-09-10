@@ -121,6 +121,12 @@ class User extends Authenticatable implements Auditable
         return $this->hasMany(PlanGrant::class);
     }
 
+    /** Commandes de paiement manuel suivies avant et après activation. */
+    public function manualPaymentOrders(): HasMany
+    {
+        return $this->hasMany(ManualPaymentOrder::class);
+    }
+
     /**
      * Récupère le profil mobile associé à l'utilisateur.
      */

@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\V1\Admin\CurationFlagController as AdminCurationFla
 use App\Http\Controllers\Api\V1\Admin\DocumentTypeController as AdminDocumentTypeController;
 use App\Http\Controllers\Api\V1\Admin\ImpersonationController as AdminImpersonationController;
 use App\Http\Controllers\Api\V1\Admin\InstitutionController as AdminInstitutionController;
+use App\Http\Controllers\Api\V1\Admin\ManualPaymentOrderController as AdminManualPaymentOrderController;
 use App\Http\Controllers\Api\V1\Admin\OverviewController as AdminOverviewController;
 use App\Http\Controllers\Api\V1\Admin\PublishedDocumentExtractionRepairController;
 use App\Http\Controllers\Api\V1\Admin\TagController as AdminTagController;
@@ -42,6 +43,7 @@ use App\Http\Controllers\Api\V1\LegalDocumentExportController;
 use App\Http\Controllers\Api\V1\LibraryAiController;
 use App\Http\Controllers\Api\V1\LibraryHomeController;
 use App\Http\Controllers\Api\V1\LibrarySearchController;
+use App\Http\Controllers\Api\V1\ManualPaymentOrderController;
 use App\Http\Controllers\Api\V1\NewsletterSubscriptionController;
 use App\Http\Controllers\Api\V1\NotificationController;
 use App\Http\Controllers\Api\V1\OfficialJournalController;
@@ -127,6 +129,8 @@ Route::prefix('v1')->middleware('throttle:api')->group(function () {
         // Facturation (Cashier / Stripe)
         Route::get('billing', [BillingController::class, 'overview']);
         Route::get('billing/manual-grants', [BillingController::class, 'manualGrants']);
+        Route::get('billing/payment-orders', [ManualPaymentOrderController::class, 'index']);
+        Route::post('billing/payment-orders/{paymentOrder}/declare', [ManualPaymentOrderController::class, 'declare']);
         Route::get('billing/credits', [BillingController::class, 'credits']);
         Route::put('billing/info', [BillingController::class, 'updateInfo']);
         Route::post('billing/checkout', [BillingController::class, 'checkout']);
@@ -400,6 +404,11 @@ Route::prefix('v1')->middleware('throttle:api')->group(function () {
             Route::get('billing/grants', [AdminBillingController::class, 'grants']);
             Route::get('billing/untracked', [AdminBillingController::class, 'untracked']);
             Route::get('billing/credits', [AdminBillingController::class, 'credits']);
+            Route::get('billing/payment-orders', [AdminManualPaymentOrderController::class, 'index']);
+            Route::post('users/{user}/payment-orders', [AdminManualPaymentOrderController::class, 'store']);
+            Route::post('billing/payment-orders/{paymentOrder}/verify', [AdminManualPaymentOrderController::class, 'startVerification']);
+            Route::post('billing/payment-orders/{paymentOrder}/activate', [AdminManualPaymentOrderController::class, 'activate']);
+            Route::post('billing/payment-orders/{paymentOrder}/reject', [AdminManualPaymentOrderController::class, 'reject']);
             Route::get('users/{user}/credits', [AdminBillingController::class, 'userCredits']);
             Route::post('users/{user}/credits', [AdminBillingController::class, 'storeCredits']);
             Route::post('users/{id}/restore', [AdminUserController::class, 'restore'])
