@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict 25NpbjT3NfCvlYR3hGY5DAnzowbxUOEA79SfeS1ksh1MKeHNqKrek0Hs3OyTcTI
+\restrict WtE1kWZwaviyNhUIIu3XnFUG9bBexJdqvKlLJ2YdPmXk0gqCXGCG153hc591CWo
 
 -- Dumped from database version 16.11 (Debian 16.11-1.pgdg12+1)
 -- Dumped by pg_dump version 18.1
@@ -1154,6 +1154,27 @@ ALTER SEQUENCE public.personal_access_tokens_id_seq OWNED BY public.personal_acc
 
 
 --
+-- Name: plan_grant_movements; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.plan_grant_movements (
+    id uuid NOT NULL,
+    plan_grant_id uuid NOT NULL,
+    manual_payment_order_id uuid,
+    type character varying(20) NOT NULL,
+    amount_fcfa integer NOT NULL,
+    occurred_at timestamp(0) without time zone NOT NULL,
+    reference_id character varying(64),
+    reason text,
+    created_by uuid,
+    created_at timestamp(0) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    CONSTRAINT plan_grant_movements_amount_not_zero_check CHECK ((amount_fcfa <> 0)),
+    CONSTRAINT plan_grant_movements_sign_check CHECK (((((type)::text = 'collected'::text) AND (amount_fcfa > 0)) OR (((type)::text = 'refund'::text) AND (amount_fcfa < 0)) OR ((type)::text = 'correction'::text))),
+    CONSTRAINT plan_grant_movements_type_check CHECK (((type)::text = ANY ((ARRAY['collected'::character varying, 'refund'::character varying, 'correction'::character varying])::text[])))
+);
+
+
+--
 -- Name: plan_grant_reminders; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -2019,6 +2040,14 @@ ALTER TABLE ONLY public.personal_access_tokens
 
 
 --
+-- Name: plan_grant_movements plan_grant_movements_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.plan_grant_movements
+    ADD CONSTRAINT plan_grant_movements_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: plan_grant_reminders plan_grant_reminders_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -2463,6 +2492,20 @@ CREATE INDEX manual_payment_orders_status_index ON public.manual_payment_orders 
 --
 
 CREATE INDEX manual_payment_orders_user_id_created_at_index ON public.manual_payment_orders USING btree (user_id, created_at);
+
+
+--
+-- Name: plan_grant_movements_plan_grant_id_type_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX plan_grant_movements_plan_grant_id_type_index ON public.plan_grant_movements USING btree (plan_grant_id, type);
+
+
+--
+-- Name: plan_grant_movements_reference_id_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX plan_grant_movements_reference_id_index ON public.plan_grant_movements USING btree (reference_id);
 
 
 --
@@ -2994,6 +3037,30 @@ ALTER TABLE ONLY public.notifications
 
 
 --
+-- Name: plan_grant_movements plan_grant_movements_created_by_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.plan_grant_movements
+    ADD CONSTRAINT plan_grant_movements_created_by_foreign FOREIGN KEY (created_by) REFERENCES public.users(id) ON DELETE SET NULL;
+
+
+--
+-- Name: plan_grant_movements plan_grant_movements_manual_payment_order_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.plan_grant_movements
+    ADD CONSTRAINT plan_grant_movements_manual_payment_order_id_foreign FOREIGN KEY (manual_payment_order_id) REFERENCES public.manual_payment_orders(id) ON DELETE SET NULL;
+
+
+--
+-- Name: plan_grant_movements plan_grant_movements_plan_grant_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.plan_grant_movements
+    ADD CONSTRAINT plan_grant_movements_plan_grant_id_foreign FOREIGN KEY (plan_grant_id) REFERENCES public.plan_grants(id) ON DELETE CASCADE;
+
+
+--
 -- Name: plan_grant_reminders plan_grant_reminders_plan_grant_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -3069,13 +3136,13 @@ ALTER TABLE ONLY public.user_settings
 -- PostgreSQL database dump complete
 --
 
-\unrestrict 25NpbjT3NfCvlYR3hGY5DAnzowbxUOEA79SfeS1ksh1MKeHNqKrek0Hs3OyTcTI
+\unrestrict WtE1kWZwaviyNhUIIu3XnFUG9bBexJdqvKlLJ2YdPmXk0gqCXGCG153hc591CWo
 
 --
 -- PostgreSQL database dump
 --
 
-\restrict bYkGMWcdn2osaTkJddHgzabUkRlW11veIYkkaWIU21lAdEUWf39nlmGIeY7793K
+\restrict tPeFVJGDbwWVdDzA8465ddSRCEW9L0qcZhj4Z9pVOR3kcrktvLJaSB5d95drnyH
 
 -- Dumped from database version 16.11 (Debian 16.11-1.pgdg12+1)
 -- Dumped by pg_dump version 18.1
@@ -3154,6 +3221,7 @@ COPY public.migrations (id, migration, batch) FROM stdin;
 66	2026_09_10_081616_create_manual_payment_orders_table	41
 67	2026_09_10_120000_add_revoked_at_to_plan_grants_table	41
 68	2026_09_10_120001_create_plan_grant_reminders_table	41
+69	2026_09_11_090000_create_plan_grant_movements_table	42
 \.
 
 
@@ -3161,12 +3229,12 @@ COPY public.migrations (id, migration, batch) FROM stdin;
 -- Name: migrations_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.migrations_id_seq', 68, true);
+SELECT pg_catalog.setval('public.migrations_id_seq', 69, true);
 
 
 --
 -- PostgreSQL database dump complete
 --
 
-\unrestrict bYkGMWcdn2osaTkJddHgzabUkRlW11veIYkkaWIU21lAdEUWf39nlmGIeY7793K
+\unrestrict tPeFVJGDbwWVdDzA8465ddSRCEW9L0qcZhj4Z9pVOR3kcrktvLJaSB5d95drnyH
 
