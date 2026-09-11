@@ -51,6 +51,7 @@ use App\Http\Controllers\Api\V1\PasswordResetController;
 use App\Http\Controllers\Api\V1\PreferencesController;
 use App\Http\Controllers\Api\V1\PrivacyController;
 use App\Http\Controllers\Api\V1\ProfileController;
+use App\Http\Controllers\Api\V1\ReviewQueueController;
 use App\Http\Controllers\Api\V1\SessionController;
 use App\Http\Controllers\Api\V1\SitemapController;
 use App\Http\Controllers\Api\V1\StructureNodeController;
@@ -325,6 +326,12 @@ Route::prefix('v1')->middleware('throttle:api')->group(function () {
         Route::post('legal-documents/{id}/analyze-ai', [DocumentCurationController::class, 'analyzeAi'])
             ->middleware('throttle:ai_assistant');
         Route::patch('curation-flags/{flag}', [DocumentCurationController::class, 'update']);
+        Route::post('legal-documents/{id}/correction-requests', [DocumentCurationController::class, 'requestCorrection']);
+
+        // File de revue priorisée et assignable (mibeko-front#33).
+        Route::get('review-queue', [ReviewQueueController::class, 'index']);
+        Route::post('legal-documents/{id}/claim', [ReviewQueueController::class, 'claim']);
+        Route::post('legal-documents/{id}/release', [ReviewQueueController::class, 'release']);
     });
 
     // Lecture des relations — routes publiques (comme le reste du corpus REST).
