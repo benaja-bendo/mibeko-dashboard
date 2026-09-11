@@ -81,13 +81,18 @@ it('filtre par statut', function () {
 });
 
 it('filtre les utilisateurs en ligne', function () {
-    User::factory()->create(['status' => 'active', 'last_seen_at' => now()->subMinutes(2)]);
+    $online = User::factory()->create(['status' => 'active', 'last_seen_at' => now()->subMinutes(2)]);
     User::factory()->create(['status' => 'active', 'last_seen_at' => now()->subHours(2)]);
 
-    $this->actingAs($this->admin)
+    // mibeko-dashboard#129 : cet appel authentifié en Bearer marque l'admin
+    // lui-même « en ligne » (middleware `UpdateLastSeen` sur le groupe api).
+    $response = $this->actingAs($this->admin)
         ->getJson('/api/v1/admin/users?online=1')
         ->assertOk()
-        ->assertJsonCount(1, 'data');
+        ->assertJsonCount(2, 'data');
+
+    expect(collect($response->json('data'))->pluck('id')->sort()->values()->all())
+        ->toBe(collect([$this->admin->id, $online->id])->sort()->values()->all());
 });
 
 it('segmente l\'équipe interne', function () {
