@@ -566,3 +566,33 @@ it('expose la page du PDF source de l\'article, et rien quand elle manque', func
         ->assertJsonPath('data.current_article.page', null)
         ->assertJsonPath('data.section.articles.0.page', null);
 });
+
+/**
+ * Provenance externe (mibeko-front#32). Les clés viennent de `metadata`,
+ * jamais omises quand elles manquent : le client doit pouvoir écrire
+ * « provenance non confirmée » plutôt que de deviner une absence de champ.
+ */
+it('expose la provenance externe quand l\'ingestion l\'a capturée', function () {
+    $document = publishedCodeWithArticle('Acte uniforme avec provenance', '1', 'Texte.');
+    $document->update(['metadata' => [
+        'source_url' => 'http://biblio.ohada.org/pmb/opac_css/doc_num.php?explnum_id=483',
+        'fetched_at' => '2026-08-09T00:29:16+00:00',
+        'autorite' => 'OHADA',
+    ]]);
+
+    $this->getJson("/api/v1/legal-documents/slug/{$document->slug}")
+        ->assertStatus(200)
+        ->assertJsonPath('data.document.provenance.source_url', 'http://biblio.ohada.org/pmb/opac_css/doc_num.php?explnum_id=483')
+        ->assertJsonPath('data.document.provenance.fetched_at', '2026-08-09T00:29:16+00:00')
+        ->assertJsonPath('data.document.provenance.autorite', 'OHADA');
+});
+
+it('renvoie une provenance explicitement nulle plutôt que d\'omettre le champ', function () {
+    $document = publishedCodeWithArticle('Texte sans provenance capturée', '1', 'Texte.');
+
+    $this->getJson("/api/v1/legal-documents/slug/{$document->slug}")
+        ->assertStatus(200)
+        ->assertJsonPath('data.document.provenance.source_url', null)
+        ->assertJsonPath('data.document.provenance.fetched_at', null)
+        ->assertJsonPath('data.document.provenance.autorite', null);
+});

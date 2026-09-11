@@ -82,6 +82,19 @@ class LegalDocumentResource extends JsonResource
                 'publication' => $this->date_publication?->toIso8601String(),
             ],
 
+            // Provenance externe (mibeko-front#32) — lue depuis `metadata`,
+            // renseignée uniquement pour les documents dont l'ingestion a
+            // capturé une source (le pipeline standard le fait ; un import
+            // manuel via l'admin — `ingestion_mode: web_upload` — non).
+            // Chaque champ vaut `null`, jamais omis, quand l'information est
+            // inconnue : au client de l'écrire explicitement plutôt que de
+            // deviner « source officielle » par défaut.
+            'provenance' => [
+                'source_url' => $this->metadata['source_url'] ?? null,
+                'fetched_at' => $this->metadata['fetched_at'] ?? null,
+                'autorite' => $this->metadata['autorite'] ?? null,
+            ],
+
             // FK exposées pour les filtres côté client
             'institution_id' => $this->institution_id,
             'official_journal_id' => $this->official_journal_id,
