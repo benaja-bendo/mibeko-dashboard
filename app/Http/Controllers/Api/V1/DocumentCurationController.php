@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Http\Resources\V1\CurationFlagResource;
+use App\Http\Resources\V1\PublicationChecklistResource;
 use App\Jobs\DetectDocumentAnomalies;
 use App\Models\CurationFlag;
 use App\Models\LegalDocument;
@@ -165,6 +166,29 @@ class DocumentCurationController extends Controller
             new CurationFlagResource($flag->load('creator:id,name')),
             'Demande de correction transmise',
             201
+        );
+    }
+
+    /**
+     * Historique des preuves de validation (dashboard#119) : chaque passage
+     * du garde-fou de publication sur ce document, bloqué ou réussi, du plus
+     * récent au plus ancien — de quoi répondre après coup à « qui a validé
+     * quoi, quand, et sur quelle version du document ».
+     */
+    public function publicationChecklists(Request $request, string $id): JsonResponse
+    {
+        $document = LegalDocument::findOrFail($id);
+        Gate::authorize('update', $document);
+
+        $checklists = $document->publicationChecklists()
+            ->with('actor:id,name')
+            ->orderByDesc('created_at')
+            ->paginate(min((int) $request->input('per_page', 20), 100));
+
+        return $this->paginatedSuccess(
+            $checklists,
+            PublicationChecklistResource::class,
+            'Preuves de validation récupérées'
         );
     }
 }
