@@ -8,6 +8,7 @@ use App\Models\CurationFlag;
 use App\Models\LegalDocument;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 
 /**
@@ -69,6 +70,10 @@ class ReviewQueueController extends Controller
      * Prend en charge un document (auto-assignation). Idempotent si déjà pris
      * par l'appelant ; refusé (409, conflit d'édition) si un autre éditeur
      * l'a déjà pris en charge.
+     *
+     * Verrouillé (dashboard#119) : sans `lockForUpdate()`, deux éditeurs
+     * cliquant au même instant liraient tous les deux `assigned_to` vide et
+     * repartiraient tous les deux avec la prise en charge.
      */
     public function claim(string $id, Request $request): JsonResponse
     {
@@ -76,19 +81,30 @@ class ReviewQueueController extends Controller
         Gate::authorize('update', $document);
 
         $user = $request->user();
+        $conflict = false;
 
-        if ($document->assigned_to && $document->assigned_to !== $user->id) {
+        DB::transaction(function () use ($id, $user, &$document, &$conflict) {
+            $document = LegalDocument::whereKey($id)->lockForUpdate()->firstOrFail();
+
+            if ($document->assigned_to && $document->assigned_to !== $user->id) {
+                $conflict = true;
+
+                return;
+            }
+
+            $document->update([
+                'assigned_to' => $user->id,
+                'assigned_at' => now(),
+            ]);
+        });
+
+        if ($conflict) {
             return $this->error(
                 ['assigned_to' => ['Ce document est déjà pris en charge par un autre éditeur.']],
                 'Conflit : document déjà assigné',
                 409
             );
         }
-
-        $document->update([
-            'assigned_to' => $user->id,
-            'assigned_at' => now(),
-        ]);
 
         return $this->success(
             new ReviewQueueItemResource($document->load('assignee:id,name')),

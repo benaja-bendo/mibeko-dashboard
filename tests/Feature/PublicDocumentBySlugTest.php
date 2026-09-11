@@ -24,12 +24,13 @@ beforeEach(function () {
     DocumentType::firstOrCreate(['code' => 'CODE'], ['nom' => 'Code']);
 });
 
-function publishedCodeWithArticle(string $title, string $articleNumber, string $content): LegalDocument
+function publishedCodeWithArticle(string $title, string $articleNumber, string $content, array $overrides = []): LegalDocument
 {
     $document = LegalDocument::factory()->create([
         'type_code' => 'CODE',
         'titre_officiel' => $title,
         'curation_status' => 'published',
+        ...$overrides,
     ]);
 
     $article = Article::factory()->create([
@@ -588,7 +589,7 @@ it('expose la provenance externe quand l\'ingestion l\'a capturée', function ()
 });
 
 it('renvoie une provenance explicitement nulle plutôt que d\'omettre le champ', function () {
-    $document = publishedCodeWithArticle('Texte sans provenance capturée', '1', 'Texte.');
+    $document = publishedCodeWithArticle('Texte sans provenance capturée', '1', 'Texte.', ['metadata' => null]);
 
     $this->getJson("/api/v1/legal-documents/slug/{$document->slug}")
         ->assertStatus(200)

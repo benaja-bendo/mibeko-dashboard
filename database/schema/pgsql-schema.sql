@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict WtE1kWZwaviyNhUIIu3XnFUG9bBexJdqvKlLJ2YdPmXk0gqCXGCG153hc591CWo
+\restrict g7VjuCPIuMgdNmAbUv1IFJZ8CEZUNSGhmiH2Lttw0oSrQ5jZvnqfWrK5L0ubqyh
 
 -- Dumped from database version 16.11 (Debian 16.11-1.pgdg12+1)
 -- Dumped by pg_dump version 18.1
@@ -474,7 +474,8 @@ CREATE TABLE public.curation_flags (
     suggestion jsonb,
     anchor jsonb,
     confidence numeric(5,4),
-    run_id uuid
+    run_id uuid,
+    created_by uuid
 );
 
 
@@ -848,6 +849,10 @@ CREATE TABLE public.legal_documents (
     statut_verifie_par uuid,
     libelle_descriptif text,
     libelle_descriptif_source character varying(20),
+    assigned_to uuid,
+    assigned_at timestamp(0) without time zone,
+    curation_status_changed_at timestamp(0) without time zone,
+    provenance_inconnue boolean DEFAULT false NOT NULL,
     CONSTRAINT chk_legal_documents_role_logic CHECK (((((document_role)::text = 'STOCK'::text) AND (consolidation_as_of IS NOT NULL) AND (official_journal_id IS NULL) AND (stock_code IS NOT NULL)) OR (((document_role)::text = 'FLUX'::text) AND (consolidation_as_of IS NULL)))),
     CONSTRAINT legal_documents_curation_status_check CHECK (((curation_status)::text = ANY ((ARRAY['draft'::character varying, 'review'::character varying, 'validated'::character varying, 'published'::character varying])::text[]))),
     CONSTRAINT legal_documents_document_role_check CHECK (((document_role)::text = ANY (ARRAY[('STOCK'::character varying)::text, ('FLUX'::character varying)::text]))),
@@ -1225,6 +1230,23 @@ CREATE TABLE public.plan_grants (
     created_at timestamp(0) without time zone,
     updated_at timestamp(0) without time zone,
     revoked_at timestamp(0) without time zone
+);
+
+
+--
+-- Name: publication_checklists; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.publication_checklists (
+    id uuid NOT NULL,
+    document_id uuid NOT NULL,
+    actor_id uuid,
+    target_status character varying(20) NOT NULL,
+    outcome character varying(20) NOT NULL,
+    criteria jsonb NOT NULL,
+    document_snapshot_updated_at timestamp(0) without time zone,
+    created_at timestamp(0) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    CONSTRAINT publication_checklists_outcome_check CHECK (((outcome)::text = ANY ((ARRAY['passed'::character varying, 'blocked'::character varying, 'forced'::character varying])::text[])))
 );
 
 
@@ -2072,6 +2094,14 @@ ALTER TABLE ONLY public.plan_grants
 
 
 --
+-- Name: publication_checklists publication_checklists_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.publication_checklists
+    ADD CONSTRAINT publication_checklists_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: role_has_permissions role_has_permissions_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -2516,6 +2546,13 @@ CREATE INDEX plan_grants_user_id_plan_starts_at_ends_at_index ON public.plan_gra
 
 
 --
+-- Name: publication_checklists_document_id_created_at_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX publication_checklists_document_id_created_at_index ON public.publication_checklists USING btree (document_id, created_at);
+
+
+--
 -- Name: structure_nodes_deleted_at_index; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -2741,6 +2778,14 @@ ALTER TABLE ONLY public.curation_flags
 
 
 --
+-- Name: curation_flags curation_flags_created_by_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.curation_flags
+    ADD CONSTRAINT curation_flags_created_by_foreign FOREIGN KEY (created_by) REFERENCES public.users(id) ON DELETE SET NULL;
+
+
+--
 -- Name: curation_flags curation_flags_document_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -2925,6 +2970,14 @@ ALTER TABLE ONLY public.jurisprudence_citations
 
 
 --
+-- Name: legal_documents legal_documents_assigned_to_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.legal_documents
+    ADD CONSTRAINT legal_documents_assigned_to_foreign FOREIGN KEY (assigned_to) REFERENCES public.users(id) ON DELETE SET NULL;
+
+
+--
 -- Name: legal_documents legal_documents_institution_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -3085,6 +3138,22 @@ ALTER TABLE ONLY public.plan_grants
 
 
 --
+-- Name: publication_checklists publication_checklists_actor_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.publication_checklists
+    ADD CONSTRAINT publication_checklists_actor_id_foreign FOREIGN KEY (actor_id) REFERENCES public.users(id) ON DELETE SET NULL;
+
+
+--
+-- Name: publication_checklists publication_checklists_document_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.publication_checklists
+    ADD CONSTRAINT publication_checklists_document_id_foreign FOREIGN KEY (document_id) REFERENCES public.legal_documents(id) ON DELETE CASCADE;
+
+
+--
 -- Name: role_has_permissions role_has_permissions_permission_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -3136,13 +3205,13 @@ ALTER TABLE ONLY public.user_settings
 -- PostgreSQL database dump complete
 --
 
-\unrestrict WtE1kWZwaviyNhUIIu3XnFUG9bBexJdqvKlLJ2YdPmXk0gqCXGCG153hc591CWo
+\unrestrict g7VjuCPIuMgdNmAbUv1IFJZ8CEZUNSGhmiH2Lttw0oSrQ5jZvnqfWrK5L0ubqyh
 
 --
 -- PostgreSQL database dump
 --
 
-\restrict tPeFVJGDbwWVdDzA8465ddSRCEW9L0qcZhj4Z9pVOR3kcrktvLJaSB5d95drnyH
+\restrict kCukGWLGoDX5tdwrEzpDJDuHpdL2UbIT4eLHlEkRBjpxpkDDqdQbDAIZKOcVhqQ
 
 -- Dumped from database version 16.11 (Debian 16.11-1.pgdg12+1)
 -- Dumped by pg_dump version 18.1
@@ -3222,6 +3291,10 @@ COPY public.migrations (id, migration, batch) FROM stdin;
 67	2026_09_10_120000_add_revoked_at_to_plan_grants_table	41
 68	2026_09_10_120001_create_plan_grant_reminders_table	41
 69	2026_09_11_090000_create_plan_grant_movements_table	42
+70	2026_09_11_140000_add_review_assignment_to_legal_documents_table	43
+71	2026_09_11_140001_add_created_by_to_curation_flags_table	43
+72	2026_09_11_162230_create_publication_checklists_table	44
+73	2026_09_11_162231_add_provenance_inconnue_to_legal_documents_table	44
 \.
 
 
@@ -3229,12 +3302,12 @@ COPY public.migrations (id, migration, batch) FROM stdin;
 -- Name: migrations_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.migrations_id_seq', 69, true);
+SELECT pg_catalog.setval('public.migrations_id_seq', 73, true);
 
 
 --
 -- PostgreSQL database dump complete
 --
 
-\unrestrict tPeFVJGDbwWVdDzA8465ddSRCEW9L0qcZhj4Z9pVOR3kcrktvLJaSB5d95drnyH
+\unrestrict kCukGWLGoDX5tdwrEzpDJDuHpdL2UbIT4eLHlEkRBjpxpkDDqdQbDAIZKOcVhqQ
 

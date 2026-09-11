@@ -61,6 +61,7 @@ class LegalDocument extends Model implements Auditable
         'legal_scope',
         'assigned_to',
         'assigned_at',
+        'provenance_inconnue',
     ];
 
     /**
@@ -154,6 +155,27 @@ class LegalDocument extends Model implements Auditable
         self::STATUS_VALIDATED => [self::STATUS_REVIEW, self::STATUS_DRAFT],
     ];
 
+    /**
+     * Champs de fond dont la modification invalide une validation
+     * (dashboard#119) : ce qu'un éditeur a effectivement vérifié en passant
+     * le document à `validated`. Volontairement absents : `assigned_to`/
+     * `assigned_at` (assignation, pas contenu) et `themes` (taxonomie, hors
+     * colonnes du modèle). Le contenu des articles est couvert séparément
+     * par `ArticleVersionObserver`.
+     *
+     * @var array<int, string>
+     */
+    const VALIDATION_INVALIDATING_FIELDS = [
+        'titre_officiel',
+        'libelle_descriptif',
+        'date_signature',
+        'date_publication',
+        'date_entree_vigueur',
+        'statut',
+        'official_journal_id',
+        'metadata',
+    ];
+
     protected function casts(): array
     {
         return [
@@ -161,6 +183,7 @@ class LegalDocument extends Model implements Auditable
             'date_publication' => 'date',
             'date_entree_vigueur' => 'date',
             'date_entree_vigueur_inconnue' => 'boolean',
+            'provenance_inconnue' => 'boolean',
             'statut_verifie_le' => 'datetime',
             'consolidation_as_of' => 'date',
             'watch_notified_at' => 'datetime',
@@ -207,6 +230,36 @@ class LegalDocument extends Model implements Auditable
                 // (mibeko-front#33) : seul point de passage d'une transition
                 // de statut, déjà validée par le garde-fou ci-dessus.
                 $document->curation_status_changed_at = now();
+            }
+        });
+
+        // Invalide une validation devenue obsolète (dashboard#119) : si un
+        // champ de fond change après un passage à `validated`, la preuve de
+        // validation ne porte plus sur le document tel qu'il est maintenant
+        // — on repasse en `review` plutôt que de laisser une publication
+        // ultérieure s'appuyer sur un contrôle périmé. Ignoré quand
+        // `curation_status` change dans la MÊME écriture : c'est alors une
+        // transition explicite, déjà couverte par le garde-fou ci-dessus.
+        // `validated → review` est un retour arrière déjà autorisé
+        // (CURATION_TRANSITIONS_ARRIERE) : poser le champ directement ici
+        // est sûr, pas un contournement de la machine à états.
+        static::saving(function (LegalDocument $document) {
+            if (
+                $document->exists
+                && $document->getOriginal('curation_status') === self::STATUS_VALIDATED
+                && ! $document->isDirty('curation_status')
+                && $document->isDirty(self::VALIDATION_INVALIDATING_FIELDS)
+            ) {
+                $document->curation_status = self::STATUS_REVIEW;
+                $document->curation_status_changed_at = now();
+
+                Log::warning('Validation invalidée par une modification postérieure.', [
+                    'document_id' => $document->id,
+                    'fields' => array_values(array_intersect(
+                        array_keys($document->getDirty()),
+                        self::VALIDATION_INVALIDATING_FIELDS
+                    )),
+                ]);
             }
         });
 
@@ -324,6 +377,15 @@ class LegalDocument extends Model implements Auditable
     public function curationFlags(): HasMany
     {
         return $this->hasMany(CurationFlag::class, 'document_id');
+    }
+
+    /**
+     * Historique des passages du garde-fou de publication (dashboard#119) —
+     * preuve de validation, un enregistrement par évaluation, jamais modifié.
+     */
+    public function publicationChecklists(): HasMany
+    {
+        return $this->hasMany(PublicationChecklist::class, 'document_id');
     }
 
     /**

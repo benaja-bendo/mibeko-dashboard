@@ -327,6 +327,9 @@ Route::prefix('v1')->middleware('throttle:api')->group(function () {
             ->middleware('throttle:ai_assistant');
         Route::patch('curation-flags/{flag}', [DocumentCurationController::class, 'update']);
         Route::post('legal-documents/{id}/correction-requests', [DocumentCurationController::class, 'requestCorrection']);
+        // Preuves de validation (dashboard#119) : historique des passages du
+        // garde-fou de publication sur ce document.
+        Route::get('legal-documents/{id}/publication-checklists', [DocumentCurationController::class, 'publicationChecklists']);
 
         // File de revue priorisée et assignable (mibeko-front#33).
         Route::get('review-queue', [ReviewQueueController::class, 'index']);

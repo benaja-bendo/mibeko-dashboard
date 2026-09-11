@@ -6,10 +6,18 @@ use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use OwenIt\Auditing\Contracts\Auditable;
 
-class CurationFlag extends Model
+/**
+ * `Auditable` (dashboard#119) : historique complet résolu/rouvert/requalifié,
+ * individuel ET en masse (`Admin\CurationFlagController::bulk()`) — jusqu'ici
+ * seul l'état courant (`resolved_by`/`resolved_at`) était fiable, sans trace
+ * des aller-retours. Même mécanisme que `LegalDocument`, table `audits`
+ * déjà générique.
+ */
+class CurationFlag extends Model implements Auditable
 {
-    use HasFactory, HasUuids;
+    use HasFactory, HasUuids, \OwenIt\Auditing\Auditable;
 
     protected $table = 'curation_flags';
 
