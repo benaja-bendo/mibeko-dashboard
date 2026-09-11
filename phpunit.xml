@@ -18,6 +18,16 @@
         </include>
     </source>
     <php>
+        <!--
+            Le CLI PHP local tourne avec le memory_limit par défaut (128M), pas assez
+            pour un run complet dans un seul process (aucun isolation par test) : ça
+            plante en pratique dans des tests qui allouent lourd (export PDF dompdf).
+            La CI GitHub Actions ne voit jamais ce plantage car elle force déjà
+            memory_limit=512M via setup-php (ini-values) ; cette ligne aligne le local
+            sur la même valeur pour que `php artisan test` marche pareil partout,
+            sans toucher au php.ini système.
+        -->
+        <ini name="memory_limit" value="512M" />
         <env name="APP_ENV" value="testing" />
         <env name="APP_MAINTENANCE_DRIVER" value="file" />
         <env name="BCRYPT_ROUNDS" value="4" />
