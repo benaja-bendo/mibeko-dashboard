@@ -109,6 +109,25 @@ it('annule une invitation', function () {
     $this->assertDatabaseMissing('user_invitations', ['id' => $invitation->id]);
 });
 
+it('refuse d\'annuler une invitation déjà acceptée', function () {
+    // mibeko-dashboard#130 : une invitation acceptée a déjà produit un compte
+    // `User` indépendant — la supprimer n'aurait aucun effet sur ce compte,
+    // et laissait croire à l'admin qu'il venait de le désactiver.
+    $invitation = UserInvitation::create([
+        'email' => 'recrue@mibeko.test',
+        'token' => Hash::make('tok'),
+        'roles' => ['editor'],
+        'expires_at' => now()->addDays(7),
+        'accepted_at' => now(),
+    ]);
+
+    $this->actingAs($this->admin)
+        ->deleteJson("/api/v1/admin/invitations/{$invitation->id}")
+        ->assertStatus(409);
+
+    $this->assertDatabaseHas('user_invitations', ['id' => $invitation->id]);
+});
+
 it('renvoie une invitation avec un nouveau token', function () {
     Notification::fake();
 

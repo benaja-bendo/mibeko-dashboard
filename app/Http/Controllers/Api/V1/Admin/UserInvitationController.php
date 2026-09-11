@@ -93,6 +93,10 @@ class UserInvitationController extends Controller
      */
     public function destroy(UserInvitation $invitation): JsonResponse
     {
+        if ($invitation->accepted_at !== null) {
+            return $this->error(null, 'Cette invitation a déjà été acceptée — pour agir sur le compte, utilisez la gestion des utilisateurs.', 409);
+        }
+
         $invitation->delete();
 
         return $this->success(null, 'Invitation annulée avec succès');
