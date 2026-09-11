@@ -113,8 +113,16 @@ class CurationFlagController extends Controller
         $ids = $request->validated('ids');
         $action = $request->validated('action');
 
+        // Chaque signalement passe par l'instance Eloquent (pas une écriture
+        // de masse en query builder) : même exigence que côté document
+        // (LegalDocumentController::bulkUpdate) — un lot doit produire la
+        // même trace qu'une action au coup par coup, entrée `audits`
+        // comprise depuis que CurationFlag est Auditable (dashboard#119).
+        $flags = CurationFlag::whereIn('id', $ids)->get();
+        $affected = $flags->count();
+
         if ($action === 'delete') {
-            $affected = CurationFlag::whereIn('id', $ids)->delete();
+            $flags->each(fn (CurationFlag $flag) => $flag->delete());
 
             return $this->success(
                 ['affected' => $affected],
@@ -124,11 +132,11 @@ class CurationFlagController extends Controller
 
         $resolved = $action === 'resolve';
 
-        $affected = CurationFlag::whereIn('id', $ids)->update([
+        $flags->each(fn (CurationFlag $flag) => $flag->update([
             'resolved' => $resolved,
             'resolved_at' => $resolved ? now() : null,
             'resolved_by' => $resolved ? $request->user()->id : null,
-        ]);
+        ]));
 
         $message = $resolved
             ? trans_choice('{0}Aucun signalement résolu|{1}1 signalement résolu|[2,*]:count signalements résolus', $affected, ['count' => $affected])
