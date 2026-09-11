@@ -4,6 +4,7 @@ namespace App\Observers;
 
 use App\Ai\CorpusVersion;
 use App\Models\ArticleVersion;
+use App\Models\LegalDocument;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
@@ -30,6 +31,21 @@ class ArticleVersionObserver
         // prime. saveQuietly() de l'embedding ne re-déclenche pas cet événement.
         if ($contentChanged) {
             CorpusVersion::bump();
+        }
+
+        // Invalide une validation devenue obsolète (dashboard#119) : même
+        // condition que ci-dessus, appliquée au document parent — un
+        // contenu d'article modifié après `validated` rend la preuve de
+        // validation périmée, pas seulement le cache IA. `wasRecentlyCreated`
+        // est volontairement exclu ici : une PREMIÈRE version (structuration
+        // initiale) ne peut pas invalider une validation, le document est
+        // encore en `draft`/`review` à ce stade.
+        if ($articleVersion->wasChanged('contenu_texte') && ! $articleVersion->wasRecentlyCreated) {
+            $document = $articleVersion->article?->document;
+
+            if ($document && $document->curation_status === LegalDocument::STATUS_VALIDATED) {
+                $document->update(['curation_status' => LegalDocument::STATUS_REVIEW]);
+            }
         }
 
         if (static::$shouldSkipEmbeddings) {
