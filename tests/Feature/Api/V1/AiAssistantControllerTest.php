@@ -106,8 +106,8 @@ it('caches the ai response for identical queries', function () {
 
     // Vérifier que la réponse est dans le cache (clé = message normalisé + mode
     // + références + version du corpus).
-    $normalizedMessage = 'quelles sont les conditions de mariage'; // sans point d'interrogation et espaces en trop
-    $cacheKey = 'ai_response_'.md5($normalizedMessage.'|concise|'.'|'.CorpusVersion::current());
+    $normalizedMessage = 'quelles sont les conditions de mariage ?';
+    $cacheKey = 'ai_response_v2_'.md5($normalizedMessage.'|concise|'.'|'.CorpusVersion::current());
     expect(Cache::has($cacheKey))->toBeTrue();
 
     // Deuxième requête identique : doit utiliser le cache
@@ -639,7 +639,7 @@ it('strips orphan citation markers from the JSON reply and its cache', function 
 
     // La réponse mise en cache est déjà nettoyée : une requête identique
     // ultérieure ne resservira aucun marqueur orphelin.
-    $cacheKey = 'ai_response_'.md5(strtolower($message).'|concise||'.CorpusVersion::current());
+    $cacheKey = 'ai_response_v2_'.md5(strtolower($message).'|concise||'.CorpusVersion::current());
     expect(Cache::get($cacheKey)['reply'])->toBe('Le preavis est un mois. Voir aussi.');
 });
 

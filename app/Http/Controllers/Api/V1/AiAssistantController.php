@@ -20,6 +20,9 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Laravel\Ai\Responses\StreamedAgentResponse;
+use Laravel\Ai\Streaming\Events\Error as StreamError;
+use Laravel\Ai\Streaming\Events\StreamEnd;
+use Laravel\Ai\Streaming\Events\StreamStart;
 use Laravel\Ai\Streaming\Events\TextDelta;
 use Laravel\Ai\Streaming\Events\ToolCall;
 use Laravel\Ai\Streaming\Events\ToolResult;
@@ -378,6 +381,7 @@ class AiAssistantController extends Controller
      */
     private function streamReply(MibekoIA $agent, User $user, ?string $id, string $userMessage, array $userMeta, string $cacheKey, ?string $logId = null)
     {
+        $cacheable = $id === null;
         if (! $id) {
             $conversation = $this->chatService->createConversation($user, $userMessage);
             $id = $conversation->id;
@@ -388,32 +392,7 @@ class AiAssistantController extends Controller
         // qu'il puisse noter immédiatement la réponse (feedback).
         $assistantMessageId = null;
 
-        $agentResponse = $agent->stream($userMessage, provider: $this->assistantProviders())->then(
-            function (StreamedAgentResponse $response) use ($user, $userMessage, $userMeta, $cacheKey, $logId, &$assistantMessageId) {
-                $sources = $this->chatService->sourcesFromEvents($response->events);
-                // Le corpus a été interrogé et n'a rien rendu : l'état est persisté
-                // et mis en cache avec la réponse, pour que l'historique et une
-                // requête identique ultérieure disent la même chose que le flux.
-                $noResult = $this->chatService->searchRanInEvents($response->events) && $sources === [];
-                // finalizeTurn nettoie déjà le texte persisté ; on met en cache la
-                // même version vérifiée pour que les requêtes identiques ultérieures
-                // ne resservent pas de marqueur [n] orphelin.
-                $assistantMessageId = $this->chatService->finalizeTurn($response->conversationId, $userMessage, $userMeta, $sources, $noResult);
-                $this->chatService->cacheResponse($cacheKey, $this->chatService->verifyCitations($response->text, $sources), $sources, $noResult);
-                $this->usageLogger->success(
-                    $user,
-                    AiRouteName::ASSISTANT_CHAT,
-                    (string) $response->meta->provider,
-                    (string) $response->meta->model,
-                    $response->usage,
-                    $response->conversationId,
-                    $logId,
-                    toolCallsCount: $this->chatService->toolCallsCountFromEvents($response->events),
-                );
-            }
-        );
-
-        return $this->streamedResponse(function () use ($agentResponse, &$assistantMessageId, $user, $id, $logId) {
+        return $this->streamedResponse(function () use ($agent, $userMessage, $userMeta, $cacheKey, $cacheable, &$assistantMessageId, $user, $id, $logId) {
             // La persistance (question + réponse) a lieu dans le callback `then()`
             // du package, déclenché à la FIN de l'itération. Sans cela, une
             // déconnexion client (onglet fermé, Stop, réseau) tuerait le script au
@@ -437,18 +416,67 @@ class AiAssistantController extends Controller
             // vus disent combien de recherches ont tourné avant la panne.
             $toolCallsCount = 0;
 
-            $emitDelta = function (string $text): void {
+            $provider = null;
+            $model = null;
+            $partial = '';
+            $allSources = [];
+            $generationComplete = false;
+            $failed = false;
+
+            $emitDelta = function (string $text) use (&$partial): void {
+                $partial .= $text;
                 if ($text !== '') {
                     ServerSentEvents::send(['type' => 'text_delta', 'delta' => $text]);
                 }
             };
 
             try {
+                $agentResponse = $agent->stream($userMessage, provider: $this->assistantProviders())->then(
+                    function (StreamedAgentResponse $response) use ($user, $userMessage, $userMeta, $cacheKey, $cacheable, $logId, &$assistantMessageId, &$generationComplete) {
+                        $generationComplete = true;
+                        $sources = $this->chatService->sourcesFromEvents($response->events);
+                        // Le corpus a été interrogé et n'a rien rendu : l'état est persisté
+                        // et mis en cache avec la réponse, pour que l'historique et une
+                        // requête identique ultérieure disent la même chose que le flux.
+                        $noResult = $this->chatService->searchRanInEvents($response->events) && $sources === [];
+                        // finalizeTurn nettoie déjà le texte persisté ; on met en cache la
+                        // même version vérifiée pour que les requêtes identiques ultérieures
+                        // ne resservent pas de marqueur [n] orphelin.
+                        $assistantMessageId = $this->chatService->finalizeTurn($response->conversationId, $userMessage, $userMeta, $sources, $noResult);
+                        if ($cacheable) {
+                            $this->chatService->cacheResponse($cacheKey, $this->chatService->verifyCitations($response->text, $sources), $sources, $noResult);
+                        }
+                        $this->usageLogger->success(
+                            $user,
+                            AiRouteName::ASSISTANT_CHAT,
+                            (string) $response->meta->provider,
+                            (string) $response->meta->model,
+                            $response->usage,
+                            $response->conversationId,
+                            $logId,
+                            toolCallsCount: $this->chatService->toolCallsCountFromEvents($response->events),
+                        );
+                    }
+                );
+
                 foreach ($agentResponse as $event) {
+                    if ($event instanceof StreamStart) {
+                        $provider = $event->provider;
+                        $model = $event->model;
+                    }
+                    if ($event instanceof StreamError) {
+                        throw new \RuntimeException($event->message);
+                    }
+                    if ($event instanceof StreamEnd) {
+                        $emitDelta($citationFilter->flush());
+                        if ($event->reason !== 'stop' || trim($partial) === '') {
+                            throw new \RuntimeException('Réponse IA incomplète (fin : '.$event->reason.').');
+                        }
+                    }
                     if ($event instanceof ToolCall && $event->toolCall->name === AssistantChatService::SEARCH_TOOL) {
                         $toolCallsCount++;
                         ServerSentEvents::send(
-                            ['type' => 'status', 'message' => 'Recherche dans la base de données juridique...'],
+                            ['type' => 'status', 'message' => $toolCallsCount === 1 ? 'Recherche des textes applicables…' : 'Vérification de fondements complémentaires…'],
                             'status'
                         );
                     }
@@ -461,8 +489,10 @@ class AiAssistantController extends Controller
                         $sources = SearchLegalDatabase::extractsFrom($event->toolResult->result);
                         if (! empty($sources)) {
                             $sourcesEmitted = true;
+                            $allSources = [...$allSources, ...$sources];
                             $citationFilter->registerSources($sources);
                             ServerSentEvents::send($sources, 'sources');
+                            ServerSentEvents::send(['message' => count($allSources).' extraits trouvés · préparation de la réponse…'], 'status');
                         }
                     }
 
@@ -474,18 +504,27 @@ class AiAssistantController extends Controller
                 // Vide le tampon résiduel (marqueur incomplet, texte en attente).
                 $emitDelta($citationFilter->flush());
             } catch (\Throwable $e) {
+                $failed = true;
                 report($e);
-                $this->usageLogger->error($user, AiRouteName::ASSISTANT_CHAT, conversationId: $id, id: $logId, exception: $e, toolCallsCount: $toolCallsCount);
+                $errorMessage = 'La réponse a été interrompue. Vous pouvez réessayer votre question.';
+                ServerSentEvents::send(['message' => $errorMessage], 'error');
+                try {
+                    $this->usageLogger->error($user, AiRouteName::ASSISTANT_CHAT, provider: $provider, model: $model, conversationId: $id, id: $logId, exception: $e, toolCallsCount: $toolCallsCount);
+                } catch (\Throwable $loggingError) {
+                    report($loggingError);
+                }
 
-                ServerSentEvents::send([
-                    'message' => config('app.debug')
-                        ? $e->getMessage()
-                        : 'Une erreur est survenue lors de la génération de la réponse.',
-                ], 'error');
+                if (! $generationComplete) {
+                    try {
+                        $assistantMessageId = $this->chatService->recordFailedTurn($user, $id, $userMessage, $userMeta, $partial, $allSources, $errorMessage);
+                    } catch (\Throwable $persistenceError) {
+                        report($persistenceError);
+                    }
+                }
             } finally {
                 // Le corpus a été interrogé sans rien rendre : le client rend un
                 // état « aucune réponse » explicite au lieu d'une réponse nue.
-                if ($searchRan && ! $sourcesEmitted) {
+                if (! $failed && $searchRan && ! $sourcesEmitted) {
                     ServerSentEvents::send(['reason' => SearchLegalDatabase::AUCUN_EXTRAIT], 'no_result');
                 }
 
@@ -535,7 +574,9 @@ class AiAssistantController extends Controller
             }
         }
 
-        $this->chatService->cacheResponse($cacheKey, $reply, $sources, $noResult);
+        if (! $id) {
+            $this->chatService->cacheResponse($cacheKey, $reply, $sources, $noResult);
+        }
 
         return response()->json([
             'conversation_id' => $response->conversationId,

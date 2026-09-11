@@ -9,6 +9,7 @@ use App\Models\AgentConversation;
 use App\Models\AgentConversationMessage;
 use App\Models\User;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Laravel\Ai\Responses\AgentResponse;
 use Laravel\Ai\Responses\Data\ToolResult as ToolResultData;
@@ -38,9 +39,9 @@ class AssistantChatService
      */
     public function cacheKey(string $userMessage, string $mode, array $references): string
     {
-        $normalized = strtolower(trim(preg_replace('/[^a-zA-Z0-9\s]/', '', $userMessage)));
+        $normalized = mb_strtolower(preg_replace('/\s+/u', ' ', trim($userMessage)) ?? $userMessage);
 
-        return 'ai_response_'.md5(
+        return 'ai_response_v2_'.md5(
             $normalized.'|'.$mode.'|'.implode(',', array_column($references, 'id')).'|'.CorpusVersion::current()
         );
     }
@@ -118,6 +119,23 @@ class AssistantChatService
                 'no_result' => $cached['no_result'] ?? false,
             ], fn ($valeur) => $valeur !== false && $valeur !== null),
         ]);
+    }
+
+    /** Conserve un échec lisible, exclu du contexte rejoué au modèle. */
+    public function recordFailedTurn(User $user, string $conversationId, string $question, array $userMeta, string $partial, array $sources, string $message): string
+    {
+        return DB::transaction(function () use ($user, $conversationId, $question, $userMeta, $partial, $sources, $message): string {
+            $conversation = AgentConversation::findOrFail($conversationId);
+            $assistant = $this->writeCachedTurn($conversation, $user, $question, [
+                ...$userMeta, 'turn_status' => 'error',
+            ], ['reply' => $partial !== '' ? $partial : $message, 'sources' => $sources]);
+            $assistant->update(['meta' => [
+                'turn_status' => 'error', 'error_message' => $message, 'sources' => $sources,
+            ]]);
+            $conversation->touch();
+
+            return $assistant->id;
+        });
     }
 
     /**

@@ -2,6 +2,7 @@
 
 namespace App\Ai\Storage;
 
+use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Collection;
 use Laravel\Ai\Messages\Message;
 use Laravel\Ai\Messages\ToolResultMessage;
@@ -24,6 +25,18 @@ use Laravel\Ai\Storage\DatabaseConversationStore;
  */
 class CompactingConversationStore extends DatabaseConversationStore
 {
+    /** Les échecs restent visibles dans l'API, jamais dans le contexte du SDK. */
+    protected function table(string $table): Builder
+    {
+        $query = parent::table($table);
+
+        if ($table === $this->messagesTable()) {
+            $query->whereRaw("COALESCE(meta::jsonb->>'turn_status', '') <> 'error'");
+        }
+
+        return $query;
+    }
+
     /**
      * Texte de remplacement des extraits des tours précédents.
      */

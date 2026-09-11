@@ -2,8 +2,10 @@
 
 namespace App\Ai;
 
+use GuzzleHttp\Psr7\PumpStream;
 use GuzzleHttp\Psr7\Utils;
 use Psr\Http\Message\ResponseInterface;
+use UnexpectedValueException;
 
 /**
  * mibeko-dashboard#80 : les fournisseurs au format Chat Completions (Mistral,
@@ -19,12 +21,41 @@ use Psr\Http\Message\ResponseInterface;
  * seul défaut de parsing. Enregistré comme middleware réponse global
  * (Http::globalResponseMiddleware) car cette forme de réponse touche tout
  * fournisseur compatible OpenAI, y compris la chaîne de secours #77.
+ * Les deltas SSE sont normalisés ligne par ligne, sans précharger le flux (#105).
  */
 class NormalizesContentBlockResponses
 {
     public function __invoke(ResponseInterface $response): ResponseInterface
     {
-        if (! str_contains($response->getHeaderLine('Content-Type'), 'json')) {
+        $contentType = strtolower($response->getHeaderLine('Content-Type'));
+
+        if (str_contains($contentType, 'text/event-stream')) {
+            $source = $response->getBody();
+
+            // Lecture paresseuse : ne jamais attendre la réponse complète avant
+            // de transmettre le premier fragment au lecteur SSE du SDK.
+            return $response->withoutHeader('Content-Length')->withBody(new PumpStream(function () use ($source): string|false {
+                if ($source->eof()) {
+                    return false;
+                }
+
+                $line = Utils::readLine($source);
+                if (! str_starts_with($line, 'data:')) {
+                    return $line;
+                }
+
+                $data = json_decode(trim(substr($line, 5)), true);
+                if (! is_array($data) || ! isset($data['choices']) || ! is_array($data['choices'])) {
+                    return $line;
+                }
+
+                $normalized = $this->normalizeChoices($data, 'delta');
+
+                return $normalized === $data ? $line : 'data: '.json_encode($normalized, JSON_THROW_ON_ERROR)."\n";
+            }));
+        }
+
+        if (! str_contains($contentType, 'json')) {
             return $response;
         }
 
@@ -40,27 +71,34 @@ class NormalizesContentBlockResponses
             return $response;
         }
 
-        $changed = false;
+        $normalized = $this->normalizeChoices($data, 'message');
 
+        return $normalized === $data ? $response : $response->withoutHeader('Content-Length')
+            ->withBody(Utils::streamFor(json_encode($normalized, JSON_THROW_ON_ERROR)));
+    }
+
+    private function normalizeChoices(array $data, string $field): array
+    {
         foreach ($data['choices'] as &$choice) {
-            $content = $choice['message']['content'] ?? null;
-
+            $content = $choice[$field]['content'] ?? null;
             if (! is_array($content)) {
                 continue;
             }
 
-            $choice['message']['content'] = collect($content)
-                ->map(fn ($block) => is_array($block) ? ($block['text'] ?? '') : (string) $block)
-                ->implode('');
-
-            $changed = true;
+            $text = '';
+            foreach ($content as $block) {
+                if (is_string($block)) {
+                    $text .= $block;
+                } elseif (is_array($block) && ($block['type'] ?? 'text') === 'text') {
+                    if (! is_string($block['text'] ?? null)) {
+                        throw new UnexpectedValueException('Le fournisseur IA a renvoyé un bloc de texte invalide.');
+                    }
+                    $text .= $block['text'];
+                }
+            }
+            $choice[$field]['content'] = $text;
         }
-        unset($choice);
 
-        if (! $changed) {
-            return $response;
-        }
-
-        return $response->withBody(Utils::streamFor(json_encode($data)));
+        return $data;
     }
 }
