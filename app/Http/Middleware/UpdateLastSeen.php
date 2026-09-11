@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\User;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -19,10 +20,15 @@ class UpdateLastSeen
         if (Auth::check()) {
             $user = Auth::user();
             if (! $user->last_seen_at || $user->last_seen_at->diffInMinutes(now()) >= 2) {
-                // Éviter de déclencher les événements de mise à jour à chaque fois
-                $user->timestamps = false;
-                $user->forceFill(['last_seen_at' => now()])->save();
-                $user->timestamps = true;
+                // mibeko-dashboard#129 : `last_seen_at` est exclu du contenu
+                // audité (User::$auditExclude), mais owen-it/auditing crée
+                // quand même une ligne « updated » à diff vide à chaque save —
+                // ce ping de présence ne doit produire aucune ligne d'audit.
+                User::withoutAuditing(function () use ($user) {
+                    $user->timestamps = false;
+                    $user->forceFill(['last_seen_at' => now()])->save();
+                    $user->timestamps = true;
+                });
             }
         }
 

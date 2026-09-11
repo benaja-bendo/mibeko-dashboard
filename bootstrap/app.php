@@ -4,6 +4,7 @@ use App\Http\Middleware\HandleAppearance;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Middleware\SecureApiHeaders;
 use App\Http\Middleware\UpdateLastSeen;
+use Illuminate\Contracts\Auth\Middleware\AuthenticatesRequests;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -44,6 +45,22 @@ return Application::configure(basePath: dirname(__DIR__))
             AddLinkHeadersForPreloadedAssets::class,
             UpdateLastSeen::class,
         ]);
+
+        // mibeko-dashboard#129 : mibeko-front s'authentifie en Bearer Sanctum,
+        // donc passe par ce groupe et jamais par `web` — sans ce câblage,
+        // `last_seen_at` n'était mis à jour que par les pages Inertia mortes.
+        $middleware->api(append: [
+            UpdateLastSeen::class,
+        ]);
+
+        // La résolution de l'utilisateur (`auth:sanctum`) doit avoir eu lieu
+        // avant qu'on lise Auth::user() ; sans cette priorité explicite, le
+        // groupe `api` place ce middleware avant le middleware de route qui
+        // authentifie la requête.
+        $middleware->appendToPriorityList(
+            after: AuthenticatesRequests::class,
+            append: UpdateLastSeen::class,
+        );
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //
