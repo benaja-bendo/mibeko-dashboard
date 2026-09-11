@@ -61,6 +61,7 @@ class LegalDocument extends Model implements Auditable
         'legal_scope',
         'assigned_to',
         'assigned_at',
+        'provenance_inconnue',
     ];
 
     /**
@@ -161,6 +162,7 @@ class LegalDocument extends Model implements Auditable
             'date_publication' => 'date',
             'date_entree_vigueur' => 'date',
             'date_entree_vigueur_inconnue' => 'boolean',
+            'provenance_inconnue' => 'boolean',
             'statut_verifie_le' => 'datetime',
             'consolidation_as_of' => 'date',
             'watch_notified_at' => 'datetime',
@@ -324,6 +326,15 @@ class LegalDocument extends Model implements Auditable
     public function curationFlags(): HasMany
     {
         return $this->hasMany(CurationFlag::class, 'document_id');
+    }
+
+    /**
+     * Historique des passages du garde-fou de publication (dashboard#119) —
+     * preuve de validation, un enregistrement par évaluation, jamais modifié.
+     */
+    public function publicationChecklists(): HasMany
+    {
+        return $this->hasMany(PublicationChecklist::class, 'document_id');
     }
 
     /**

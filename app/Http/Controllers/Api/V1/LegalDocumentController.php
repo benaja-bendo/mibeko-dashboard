@@ -6,12 +6,12 @@ use App\Ai\ThemeClassifier;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\V1\LegalDocumentResource;
 use App\Models\Article;
-use App\Models\CurationFlag;
 use App\Models\DocumentRelation;
 use App\Models\LegalDocument;
 use App\Models\StructureNode;
 use App\Models\Tag;
 use App\Services\Curation\LibelleDescriptifExtractor;
+use App\Services\Curation\PublicationGuardrail;
 use App\Services\DocumentDeletionService;
 use App\Services\LegalWatchNotifier;
 use App\Services\SourcePdfResolver;
@@ -717,7 +717,7 @@ class LegalDocumentController extends Controller
      * scope, type) and the curation workflow status. Publishing requires the
      * document to have at least one article.
      */
-    public function update(Request $request, string $id, LegalWatchNotifier $watch): JsonResponse
+    public function update(Request $request, string $id, LegalWatchNotifier $watch, PublicationGuardrail $guardrail): JsonResponse
     {
         $document = LegalDocument::findOrFail($id);
 
@@ -747,6 +747,11 @@ class LegalDocumentController extends Controller
             // de date d'entrée en vigueur plutôt que de la laisser simplement
             // oubliée avant publication.
             'date_entree_vigueur_inconnue' => ['sometimes', 'boolean'],
+            // Gate éditorial (dashboard#119) : même doctrine que la date
+            // d'entrée en vigueur ci-dessus, pour la provenance externe
+            // (metadata.source_url/fetched_at) — assumer explicitement son
+            // absence plutôt que publier sans qu'elle ait jamais été vue.
+            'provenance_inconnue' => ['sometimes', 'boolean'],
             'statut' => ['sometimes', 'string', 'in:vigueur,abroge,projet'],
             'legal_scope' => ['sometimes', 'string', Rule::in(LegalDocument::LEGAL_SCOPES)],
             'type_code' => ['sometimes', 'string', 'exists:document_types,code'],
@@ -772,66 +777,6 @@ class LegalDocumentController extends Controller
         $isPublishing = ($validated['curation_status'] ?? null) === LegalDocument::STATUS_PUBLISHED;
         $force = $request->boolean('force');
 
-        if ($isPublishing && ! $document->articles()->exists()) {
-            return $this->error(
-                ['curation_status' => ['Un document sans article ne peut pas être publié.']],
-                'Impossible de publier un document sans article.',
-                422
-            );
-        }
-
-        // Gate éditorial (audit phase 3c) : pas de publication sur une date
-        // d'entrée en vigueur simplement absente — soit elle est renseignée
-        // (ici ou déjà en base), soit son absence est explicitement assumée.
-        if ($isPublishing) {
-            $dateConnue = ! is_null($validated['date_entree_vigueur'] ?? $document->date_entree_vigueur);
-            $inconnueAssumee = $validated['date_entree_vigueur_inconnue'] ?? $document->date_entree_vigueur_inconnue;
-
-            if (! $dateConnue && ! $inconnueAssumee) {
-                return $this->error(
-                    ['date_entree_vigueur' => [
-                        "La date d'entrée en vigueur est inconnue. Renseignez-la, ou confirmez explicitement "
-                        ."(date_entree_vigueur_inconnue) qu'elle est inconnue pour publier quand même.",
-                    ]],
-                    "Impossible de publier sans date d'entrée en vigueur, sauf confirmation explicite qu'elle est inconnue.",
-                    422
-                );
-            }
-        }
-
-        // Garde-fou qualité : un document conservant des anomalies de curation
-        // BLOQUANTES non résolues (trous/doublons de numérotation, contenu perdu…)
-        // ne doit pas atteindre le catalogue publié. Les anomalies `warning`/`info`
-        // informent l'éditeur sans empêcher la publication. (Les lignes antérieures
-        // sans `severity` sont traitées comme bloquantes pour préserver le comportement.)
-        // `force` permet à l'éditeur d'outrepasser ce garde-fou en connaissance de cause.
-        if ($isPublishing && ! $force) {
-            $blockingFlags = $document->curationFlags()
-                ->where('resolved', false)
-                ->where(function ($q) {
-                    $q->where('severity', CurationFlag::SEVERITY_BLOCKING)
-                        ->orWhereNull('severity');
-                })
-                ->count();
-
-            if ($blockingFlags > 0) {
-                return $this->error(
-                    ['curation_status' => ["Ce document a {$blockingFlags} anomalie(s) bloquante(s) non résolue(s). Résolvez-les avant de publier, ou utilisez « Publier quand même »."]],
-                    'Impossible de publier un document avec des anomalies de curation bloquantes non résolues.',
-                    422
-                );
-            }
-        }
-
-        // Publication forcée malgré des anomalies bloquantes : on trace la décision
-        // de l'éditeur pour garder un fil d'audit (le contenu peut être imparfait).
-        if ($isPublishing && $force) {
-            Log::warning('Publication forcée d\'un document malgré le garde-fou de curation.', [
-                'document_id' => $document->id,
-                'user_id' => $request->user()?->id,
-            ]);
-        }
-
         // La contrainte chk_legal_documents_role_logic interdit le
         // rattachement d'un document STOCK (consolidé) à un journal officiel.
         if (! empty($validated['official_journal_id']) && $document->document_role === 'STOCK') {
@@ -841,10 +786,6 @@ class LegalDocumentController extends Controller
                 422
             );
         }
-
-        // Contexte non persisté lu par LegalDocument::guardUnpublishing —
-        // doit être posé AVANT update() pour être visible du hook `saving`.
-        $document->transitionMotif = $validated['motif'] ?? null;
 
         // Voir bulkUpdate : poser le statut juridique à la main vaut
         // vérification, et se trace. Sans horodatage, « vigueur » resterait
@@ -861,7 +802,67 @@ class LegalDocumentController extends Controller
             $validated['libelle_descriptif_source'] = null;
         }
 
-        $document->update(Arr::except($validated, ['themes', 'force', 'motif']));
+        $updateData = Arr::except($validated, ['themes', 'force', 'motif']);
+        $motif = $validated['motif'] ?? null;
+        $blocked = null;
+
+        // Garde-fou de publication (dashboard#119, PublicationGuardrail) :
+        // évalué et écrit sous verrou de ligne, pour qu'une publication
+        // concurrente sur le MÊME document ne puisse jamais lire un décompte
+        // de flags ou une provenance déjà périmés (cf. tests de concurrence).
+        // Le verrou n'est pris que si la requête publie réellement — une
+        // simple correction de titre n'a pas besoin de retenir la ligne.
+        DB::transaction(function () use (
+            $id, $isPublishing, $force, $validated, $updateData, $motif, $request, $guardrail, &$document, &$blocked
+        ) {
+            if ($isPublishing) {
+                $document = LegalDocument::whereKey($id)->lockForUpdate()->firstOrFail();
+            }
+
+            // Contexte non persisté lu par LegalDocument::guardUnpublishing —
+            // doit être posé AVANT update() pour être visible du hook `saving`.
+            $document->transitionMotif = $motif;
+
+            if ($isPublishing) {
+                $result = $guardrail->evaluate(
+                    $document,
+                    pending: Arr::only($validated, ['date_entree_vigueur', 'date_entree_vigueur_inconnue', 'provenance_inconnue']),
+                    force: $force,
+                );
+
+                if ($result->failed()) {
+                    // Bloqué : on trace la tentative (preuve de validation,
+                    // dashboard#119) mais on n'écrit jamais le document —
+                    // laisser update() s'exécuter puis échouer sur la machine
+                    // à états produirait une preuve « passed » mensongère.
+                    $guardrail->record($document, $result, $request->user());
+                    $blocked = $result;
+
+                    return;
+                }
+
+                if ($result->forced) {
+                    Log::warning('Publication forcée d\'un document malgré le garde-fou de curation.', [
+                        'document_id' => $document->id,
+                        'user_id' => $request->user()?->id,
+                    ]);
+                }
+            }
+
+            $document->update($updateData);
+
+            if ($isPublishing) {
+                $guardrail->record($document, $result, $request->user());
+            }
+        });
+
+        if ($blocked !== null) {
+            return $this->error(
+                collect($blocked->reasons)->map(fn ($message) => [$message])->all(),
+                $blocked->firstReason(),
+                422
+            );
+        }
 
         if (array_key_exists('themes', $validated)) {
             $themeIds = $validated['themes'];
@@ -1042,7 +1043,7 @@ class LegalDocumentController extends Controller
      * @bodyParam action string required Action to perform: set_curation_status, set_statut.
      * @bodyParam value string required New value for the action.
      */
-    public function bulkUpdate(Request $request, LegalWatchNotifier $watch): JsonResponse
+    public function bulkUpdate(Request $request, LegalWatchNotifier $watch, PublicationGuardrail $guardrail): JsonResponse
     {
         $validated = $request->validate([
             'ids' => ['required', 'array', 'min:1', 'max:200'],
@@ -1060,6 +1061,8 @@ class LegalDocumentController extends Controller
             // silencieux. La valeur est persistée sur les documents concernés,
             // pour que la décision reste tracée et non rejouée à chaque lot.
             'date_entree_vigueur_inconnue' => ['sometimes', 'boolean'],
+            // Symétrique pour la provenance (dashboard#119).
+            'provenance_inconnue' => ['sometimes', 'boolean'],
         ]);
 
         $allowedCurationStatuses = [
@@ -1097,6 +1100,7 @@ class LegalDocumentController extends Controller
         $skipped = 0;
         $motifsDeSkip = [];
         $inconnueAssumeePourLeLot = $request->boolean('date_entree_vigueur_inconnue');
+        $provenanceInconnueAssumeePourLeLot = $request->boolean('provenance_inconnue');
         $documentsDejaDepublies = collect();
 
         if ($isPublishing) {
@@ -1127,10 +1131,16 @@ class LegalDocumentController extends Controller
         }
 
         DB::transaction(function () use (
-            $documents, $column, $request, $isPublishing, $motif,
-            $inconnueAssumeePourLeLot, $documentsDejaDepublies,
+            $documents, $column, $request, $isPublishing, $motif, $guardrail,
+            $inconnueAssumeePourLeLot, $provenanceInconnueAssumeePourLeLot, $documentsDejaDepublies,
             &$publishedIds, &$skipped, &$motifsDeSkip
         ) {
+            // Verrouille les lignes du lot pour la durée de la transaction :
+            // un PATCH unitaire concurrent sur l'un de ces documents (ou un
+            // second lot qui le recouperait) attend la fin de cette écriture
+            // plutôt que de lire un décompte de flags déjà périmé.
+            $documents = LegalDocument::whereIn('id', $documents->pluck('id'))->lockForUpdate()->get();
+
             foreach ($documents as $document) {
                 $donnees = [$column => $request->value];
 
@@ -1144,39 +1154,64 @@ class LegalDocumentController extends Controller
                     $donnees['statut_verifie_par'] = $request->user()?->id;
                 }
 
-                if ($isPublishing) {
-                    // Mêmes gardes que la curation unitaire, plus strictes sur un
-                    // point assumé (audit initial) : bulkUpdate bloque sur TOUTE
-                    // anomalie non résolue, pas seulement `blocking` — pas de
-                    // `force` en masse.
-                    $dejaDepublie = $documentsDejaDepublies->has($document->id);
-                    $sansArticle = ! $document->articles()->exists();
-                    $anomalieNonResolue = $document->curationFlags()->where('resolved', false)->exists();
-                    $dateInconnueNonAssumee = is_null($document->date_entree_vigueur)
-                        && ! $document->date_entree_vigueur_inconnue
-                        && ! $inconnueAssumeePourLeLot;
+                $result = null;
 
-                    if ($dejaDepublie || $sansArticle || $anomalieNonResolue || $dateInconnueNonAssumee) {
+                if ($isPublishing) {
+                    // Une dépublication en masse est un cas à part (audit
+                    // phase 3a, motif ci-dessus) : ce n'est pas un critère du
+                    // garde-fou, il se vérifie avant.
+                    if ($documentsDejaDepublies->has($document->id)) {
                         $skipped++;
                         $motifsDeSkip[] = [
                             'id' => $document->id,
                             'titre' => $document->titre_officiel,
-                            'motif' => match (true) {
-                                $dejaDepublie => 'document déjà dépublié : republication unitaire obligatoire',
-                                $sansArticle => 'aucun article',
-                                $anomalieNonResolue => 'anomalies de curation non résolues',
-                                default => "date d'entrée en vigueur non renseignée et absence non assumée",
-                            },
+                            'motif' => 'document déjà dépublié : republication unitaire obligatoire',
                         ];
 
                         continue;
                     }
 
-                    // La décision « date inconnue » est persistée, pas seulement
-                    // consommée : le document reste publiable ensuite sans avoir
+                    // Même garde-fou que la curation unitaire (PublicationGuardrail,
+                    // dashboard#119), avec le même durcissement volontaire déjà en
+                    // place : `strictFlags` bloque sur TOUTE anomalie non résolue
+                    // (pas seulement `blocking`), et `force` n'est jamais transmis
+                    // en masse.
+                    $result = $guardrail->evaluate(
+                        $document,
+                        pending: [
+                            'date_entree_vigueur_inconnue' => $inconnueAssumeePourLeLot,
+                            'provenance_inconnue' => $provenanceInconnueAssumeePourLeLot,
+                        ],
+                        strictFlags: true,
+                    );
+
+                    if ($result->failed()) {
+                        $skipped++;
+                        $motifsDeSkip[] = [
+                            'id' => $document->id,
+                            'titre' => $document->titre_officiel,
+                            // Vocabulaire court, propre à la liste `skipped` du lot —
+                            // distinct des messages plus longs du chemin unitaire.
+                            'motif' => match (true) {
+                                ! $result->criteria['has_article'] => 'aucun article',
+                                ! $result->criteria['flags_ok'] => 'anomalies de curation non résolues',
+                                ! $result->criteria['provenance_ok'] => 'provenance non renseignée et absence non assumée',
+                                default => "date d'entrée en vigueur non renseignée et absence non assumée",
+                            },
+                        ];
+                        $guardrail->record($document, $result, $request->user());
+
+                        continue;
+                    }
+
+                    // Les décisions « inconnue » sont persistées, pas seulement
+                    // consommées : le document reste publiable ensuite sans avoir
                     // à repasser le drapeau.
                     if ($inconnueAssumeePourLeLot && is_null($document->date_entree_vigueur)) {
                         $donnees['date_entree_vigueur_inconnue'] = true;
+                    }
+                    if ($provenanceInconnueAssumeePourLeLot && empty($document->metadata['source_url'] ?? null)) {
+                        $donnees['provenance_inconnue'] = true;
                     }
                 }
 
@@ -1205,6 +1240,7 @@ class LegalDocumentController extends Controller
                 }
 
                 if ($isPublishing) {
+                    $guardrail->record($document, $result, $request->user());
                     $publishedIds[] = $document->id;
                 }
             }
