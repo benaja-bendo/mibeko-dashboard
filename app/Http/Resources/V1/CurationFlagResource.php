@@ -32,6 +32,7 @@ class CurationFlagResource extends JsonResource
             'resolved_at' => $this->resolved_at?->toIso8601String(),
             'resolved_by' => $this->whenLoaded('resolver', fn () => $this->resolver?->name),
             'created_at' => $this->created_at?->toIso8601String(),
+            'created_by' => $this->whenLoaded('creator', fn () => $this->creator?->name),
             // Cible dans l'arbre : un article OU une division (node), avec le numéro
             // de page pour le surlignage PDF si connu.
             'article_id' => $this->article_id,

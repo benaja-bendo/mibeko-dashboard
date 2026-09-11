@@ -59,6 +59,8 @@ class LegalDocument extends Model implements Auditable
         'extraction_status',
         'metadata',
         'legal_scope',
+        'assigned_to',
+        'assigned_at',
     ];
 
     /**
@@ -163,6 +165,8 @@ class LegalDocument extends Model implements Auditable
             'consolidation_as_of' => 'date',
             'watch_notified_at' => 'datetime',
             'metadata' => 'array',
+            'assigned_at' => 'datetime',
+            'curation_status_changed_at' => 'datetime',
         ];
     }
 
@@ -199,6 +203,10 @@ class LegalDocument extends Model implements Auditable
         static::saving(function (LegalDocument $document) {
             if ($document->exists && $document->isDirty('curation_status')) {
                 static::guardCurationStatusTransition($document);
+                // Alimente l'ancienneté affichée par la file de revue
+                // (mibeko-front#33) : seul point de passage d'une transition
+                // de statut, déjà validée par le garde-fou ci-dessus.
+                $document->curation_status_changed_at = now();
             }
         });
 
@@ -316,6 +324,15 @@ class LegalDocument extends Model implements Auditable
     public function curationFlags(): HasMany
     {
         return $this->hasMany(CurationFlag::class, 'document_id');
+    }
+
+    /**
+     * Éditeur qui a pris en charge ce document dans la file de revue
+     * (mibeko-front#33) — voir `ReviewQueueController::claim()`/`release()`.
+     */
+    public function assignee(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'assigned_to');
     }
 
     /**

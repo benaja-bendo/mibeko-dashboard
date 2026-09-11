@@ -34,7 +34,8 @@ class DocumentCurationController extends Controller
         $flags = CurationFlag::query()
             ->where('document_id', $document->id)
             ->when($request->boolean('open_only'), fn ($q) => $q->where('resolved', false))
-            ->with('resolver:id,name')
+            ->when($request->filled('type_probleme'), fn ($q) => $q->where('type_probleme', $request->query('type_probleme')))
+            ->with(['resolver:id,name', 'creator:id,name'])
             ->orderBy('resolved')
             ->orderByRaw("CASE severity WHEN 'blocking' THEN 0 WHEN 'warning' THEN 1 ELSE 2 END")
             ->orderByDesc('created_at')
@@ -127,6 +128,43 @@ class DocumentCurationController extends Controller
         return $this->success(
             new CurationFlagResource($flag->load('resolver:id,name')),
             $resolved ? 'Anomalie résolue' : 'Anomalie rouverte'
+        );
+    }
+
+    /**
+     * Transmet une demande de correction tracée depuis la file de revue
+     * (mibeko-front#33) : crée un signalement humain, bloquant par défaut,
+     * qui suit exactement le même cycle que les autres réserves — résolu via
+     * `update()` ci-dessus, et il bloque déjà la publication (garde-fou de
+     * `LegalDocumentController::update()`) tant qu'il reste ouvert.
+     */
+    public function requestCorrection(Request $request, string $id): JsonResponse
+    {
+        $document = LegalDocument::findOrFail($id);
+        Gate::authorize('update', $document);
+
+        $validated = $request->validate([
+            'description' => ['required', 'string', 'max:5000'],
+            'severity' => ['sometimes', 'string', Rule::in([
+                CurationFlag::SEVERITY_BLOCKING,
+                CurationFlag::SEVERITY_WARNING,
+            ])],
+        ]);
+
+        $flag = CurationFlag::create([
+            'document_id' => $document->id,
+            'source' => CurationFlag::SOURCE_HUMAN,
+            'type_probleme' => 'correction_demandee',
+            'severity' => $validated['severity'] ?? CurationFlag::SEVERITY_BLOCKING,
+            'description' => $validated['description'],
+            'created_by' => $request->user()->id,
+            'resolved' => false,
+        ]);
+
+        return $this->success(
+            new CurationFlagResource($flag->load('creator:id,name')),
+            'Demande de correction transmise',
+            201
         );
     }
 }
