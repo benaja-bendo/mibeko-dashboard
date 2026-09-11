@@ -20,6 +20,7 @@ class CurationFlag extends Model
         'article_id',
         'node_id',
         'source',
+        'created_by',
         'type_probleme',
         'severity',
         'description',
@@ -94,5 +95,16 @@ class CurationFlag extends Model
     public function resolver(): BelongsTo
     {
         return $this->belongsTo(User::class, 'resolved_by');
+    }
+
+    /**
+     * Éditeur à l'origine d'un signalement humain (ex : demande de correction
+     * transmise depuis la file de revue, mibeko-front#33). Absent pour les
+     * signalements automatiques (`source` heuristic/structural/llm) et les
+     * signalements publics (`source=report`, anonymes).
+     */
+    public function creator(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'created_by');
     }
 }
