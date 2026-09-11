@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Observers\ArticleVersionObserver;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Ai\Embeddings;
+use OwenIt\Auditing\Models\Audit;
 use Spatie\Permission\Models\Role;
 
 uses(RefreshDatabase::class);
@@ -277,6 +278,30 @@ it('résout en masse une sélection de signalements avec traçabilité', functio
     expect($b->refresh()->resolved)->toBeTrue();
     // Le signalement non sélectionné reste ouvert.
     expect($untouched->refresh()->resolved)->toBeFalse();
+});
+
+it('résout en masse produit la même trace d\'audit qu\'une résolution au coup par coup (dashboard#119)', function () {
+    $unitaire = CurationFlag::create(['document_id' => $this->document->id, 'type_probleme' => 'erreur', 'resolved' => false]);
+    $enMasse = CurationFlag::create(['document_id' => $this->document->id, 'type_probleme' => 'doublon', 'resolved' => false]);
+
+    $this->actingAs($this->admin)
+        ->patchJson("/api/v1/admin/flags/{$unitaire->id}", ['resolved' => true])
+        ->assertOk();
+
+    $this->actingAs($this->admin)
+        ->postJson('/api/v1/admin/flags/bulk', ['action' => 'resolve', 'ids' => [$enMasse->id]])
+        ->assertOk();
+
+    $audits = fn (CurationFlag $flag) => Audit::query()
+        ->where('auditable_type', CurationFlag::class)
+        ->where('auditable_id', $flag->id)
+        ->where('event', 'updated')
+        ->count();
+
+    // Le lot ne produit pas moins de trace que le coup par coup : les deux
+    // chemins passent désormais par la même instance Eloquent.
+    expect($audits($unitaire))->toBeGreaterThan(0)
+        ->and($audits($enMasse))->toBe($audits($unitaire));
 });
 
 it('ré-ouvre en masse une sélection et efface la traçabilité', function () {
