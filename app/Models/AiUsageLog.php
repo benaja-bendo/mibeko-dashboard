@@ -33,6 +33,10 @@ class AiUsageLog extends Model
         'user_id',
         'route',
         'status',
+        // mibeko-dashboard#137 : NULL = non applicable (statut autre que
+        // success, ou route hors assistant/chat) ; true/false uniquement
+        // posé par AiAssistantController via AiUsageLogger::success().
+        'has_citation',
         'provider',
         'model',
         'tokens_input',
@@ -52,6 +56,7 @@ class AiUsageLog extends Model
     protected function casts(): array
     {
         return [
+            'has_citation' => 'boolean',
             'tokens_input' => 'integer',
             'tokens_output' => 'integer',
             'cost_estimated_fcfa' => 'decimal:4',

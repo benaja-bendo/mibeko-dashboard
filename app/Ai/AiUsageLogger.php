@@ -18,6 +18,12 @@ use Laravel\Ai\Responses\Data\Usage;
  */
 class AiUsageLogger
 {
+    /**
+     * mibeko-dashboard#137 : `$hasCitation` distingue une réponse réussie
+     * AVEC au moins une source citée d'une réponse réussie sans source
+     * (dont `no_result`) — jamais posé pour les autres statuts/routes,
+     * `AiUsageLog::has_citation` y reste `null` (non applicable).
+     */
     public function success(
         ?User $user,
         string $route,
@@ -27,8 +33,9 @@ class AiUsageLogger
         ?string $conversationId = null,
         ?string $id = null,
         ?int $toolCallsCount = null,
+        ?bool $hasCitation = null,
     ): AiUsageLog {
-        return $this->write($user, $route, AiUsageLog::STATUS_SUCCESS, $provider, $model, $usage->promptTokens, $usage->completionTokens, $conversationId, $id, toolCallsCount: $toolCallsCount);
+        return $this->write($user, $route, AiUsageLog::STATUS_SUCCESS, $provider, $model, $usage->promptTokens, $usage->completionTokens, $conversationId, $id, toolCallsCount: $toolCallsCount, hasCitation: $hasCitation);
     }
 
     /**
@@ -111,6 +118,7 @@ class AiUsageLogger
         ?string $errorClass = null,
         ?string $errorMessage = null,
         ?int $toolCallsCount = null,
+        ?bool $hasCitation = null,
     ): AiUsageLog {
         // mibeko-dashboard#83 : un id peut être imposé par l'appelant — posé
         // par le limiteur `ai_assistant` quand cette requête a consommé un
@@ -124,6 +132,7 @@ class AiUsageLogger
             'user_id' => $user?->id,
             'route' => $route,
             'status' => $status,
+            'has_citation' => $hasCitation,
             'provider' => $provider,
             'model' => $model,
             'tokens_input' => $tokensInput,

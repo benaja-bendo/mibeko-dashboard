@@ -28,7 +28,8 @@ class PrivacyController extends Controller
     {
         $user = $request->user()->load(
             'mobileProfile', 'settings', 'notifications', 'roles', 'tags',
-            'onboardingEnrollments.stepsProgress', 'onboardingEnrollments.journey'
+            'onboardingEnrollments.stepsProgress', 'onboardingEnrollments.journey',
+            'productActivationEvents'
         );
 
         $payload = [
@@ -69,6 +70,16 @@ class PrivacyController extends Controller
                     'completed_at' => $progress->completed_at?->toIso8601String(),
                     'value' => $progress->value,
                 ]),
+            ]),
+            // mibeko-dashboard#137 : détail nominatif d'activation produit.
+            // Schéma déjà borné à des identifiants opaques — rien à filtrer,
+            // l'export reflète l'état stocké.
+            'product_activation' => $user->productActivationEvents->map(fn ($event) => [
+                'event_type' => $event->event_type,
+                'surface' => $event->surface,
+                'reference_type' => $event->reference_type,
+                'reference_id' => $event->reference_id,
+                'created_at' => $event->created_at->toIso8601String(),
             ]),
         ];
 

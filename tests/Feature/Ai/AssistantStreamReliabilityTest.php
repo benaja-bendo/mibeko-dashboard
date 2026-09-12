@@ -36,7 +36,33 @@ it('serves real provider SSE content blocks without a fake agent', function () {
     $body = $response->streamedContent();
     expect($body)->toContain('Bonjour.')->not->toContain('event: error')
         ->and(AiUsageLog::sole()->status)->toBe('success')
+        // mibeko-dashboard#137 : aucune recherche appelée, donc aucune source
+        // possible — has_citation doit rester false, jamais null (le statut
+        // est bien success) ni true (rien n'a été cité).
+        ->and(AiUsageLog::sole()->has_citation)->toBeFalse()
         ->and(AgentConversationMessage::where('role', 'assistant')->sole()->content)->toBe('Bonjour.');
+});
+
+it('marks a no_result success (searched, nothing found) as uncited, distinct from an error', function () {
+    // mibeko-dashboard#137 : le corpus est interrogé mais vide — un succès
+    // applicatif distinct d'un échec (meta.no_result), avec has_citation
+    // false (aucune source), pas null (le statut reste success).
+    Embeddings::fake();
+    $sequence = Http::sequence()
+        ->push(providerStream([
+            ['choices' => [['delta' => ['tool_calls' => [['index' => 0, 'id' => 'call_0', 'function' => ['name' => 'SearchLegalDatabase', 'arguments' => json_encode(['query' => 'terme introuvable'])]]]], 'finish_reason' => 'tool_calls']]],
+        ]), 200, ['Content-Type' => 'text/event-stream'])
+        ->push(providerStream([
+            ['choices' => [['delta' => ['content' => [['type' => 'text', 'text' => "Je n'ai rien trouvé dans le corpus."]]], 'finish_reason' => 'stop']]],
+        ]), 200, ['Content-Type' => 'text/event-stream']);
+    Http::fake(['*' => $sequence]);
+
+    $body = $this->postJson('/api/v1/assistant/chat', ['message' => 'Une question sans réponse', 'stream' => true])->streamedContent();
+
+    expect($body)->not->toContain('event: error')
+        ->and(AiUsageLog::sole()->status)->toBe('success')
+        ->and(AiUsageLog::sole()->has_citation)->toBeFalse()
+        ->and(AgentConversationMessage::where('role', 'assistant')->sole()->meta['no_result'] ?? null)->toBeTrue();
 });
 
 it('persists failed turns and excludes them from replay', function (array $frames) {
@@ -46,6 +72,9 @@ it('persists failed turns and excludes them from replay', function (array $frame
     $conversationId = $response->headers->get('X-Conversation-Id');
     expect($body)->toContain('event: error')->toContain('[DONE]')
         ->and(AiUsageLog::sole()->status)->toBe('error')
+        // mibeko-dashboard#137 : non applicable sur un échec — jamais false
+        // (qui signifierait "réussi mais sans source").
+        ->and(AiUsageLog::sole()->has_citation)->toBeNull()
         ->and(AgentConversationMessage::count())->toBe(2)
         ->and(AgentConversationMessage::where('role', 'assistant')->sole()->meta['turn_status'])->toBe('error')
         ->and(app(ConversationStore::class)->getLatestConversationMessages($conversationId, 20))->toBeEmpty();
@@ -107,6 +136,8 @@ it('completes several real streamed searches before a block-form answer', functi
     $body = $this->postJson('/api/v1/assistant/chat', ['message' => 'Le consentement au mariage', 'stream' => true])->streamedContent();
     expect($body)->toContain('event: sources')->toContain('consentement')->not->toContain('event: error')
         ->and(AiUsageLog::sole()->status)->toBe('success')
+        // mibeko-dashboard#137 : des sources ont bien été trouvées et citées.
+        ->and(AiUsageLog::sole()->has_citation)->toBeTrue()
         ->and(AiUsageLog::sole()->tool_calls_count)->toBe(2);
     Http::assertSentCount(3);
 });

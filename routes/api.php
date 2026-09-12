@@ -52,6 +52,7 @@ use App\Http\Controllers\Api\V1\OnboardingController;
 use App\Http\Controllers\Api\V1\PasswordResetController;
 use App\Http\Controllers\Api\V1\PreferencesController;
 use App\Http\Controllers\Api\V1\PrivacyController;
+use App\Http\Controllers\Api\V1\ProductEventController;
 use App\Http\Controllers\Api\V1\ProfileController;
 use App\Http\Controllers\Api\V1\ReviewQueueController;
 use App\Http\Controllers\Api\V1\SessionController;
@@ -136,6 +137,10 @@ Route::prefix('v1')->middleware('throttle:api')->group(function () {
             Route::post('onboarding/postpone', [OnboardingController::class, 'postpone']);
             Route::post('onboarding/replay', [OnboardingController::class, 'replay']);
         });
+
+        // Mesure d'activation produit (mibeko-dashboard#137)
+        Route::middleware('throttle:product_events')
+            ->post('product-events', [ProductEventController::class, 'store']);
 
         // Facturation (Cashier / Stripe)
         Route::get('billing', [BillingController::class, 'overview']);

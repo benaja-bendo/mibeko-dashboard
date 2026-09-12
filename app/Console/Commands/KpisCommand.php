@@ -58,6 +58,7 @@ class KpisCommand extends Command
         $this->dossiers($connexion);
         $this->veille($connexion);
         $this->corpus($connexion);
+        $this->activation($connexion);
 
         return self::SUCCESS;
     }
@@ -239,5 +240,164 @@ class KpisCommand extends Command
         );
 
         $this->line(sprintf('Corpus : %d publié(s), %d non publié(s).', $c->publies, $c->non_publies));
+    }
+
+    /**
+     * mibeko-dashboard#137 : jalons d'usage réel (pas l'onboarding lui-même,
+     * cf. `onboarding_enrollments`/`onboarding_step_progress` #136, exclus
+     * ici — « un guide passé ne constitue pas une activation »). Cohortes
+     * hebdomadaires sur 12 semaines glissantes ; « réponse réussie » lue sur
+     * `ai_usage_logs` (#61), « recherche utile »/« activation candidate » sur
+     * `product_activation_events` (#137, seuls jalons sans autre source de
+     * vérité serveur). Retour J+7 calculé UNIQUEMENT pour les comptes dont
+     * la fenêtre est déjà entièrement passée — « non mesurable » sinon,
+     * jamais un 0 % qui mélangerait « pas revenu » et « pas encore mesurable ».
+     *
+     * Limite assumée : la ventilation par surface réutilise l'approximation
+     * déjà en place dans `comptes()` (origine par nom de jeton) — aucune des
+     * tables lues ici (`ai_usage_logs`, `onboarding_*`) ne porte de colonne
+     * de plateforme par ligne, seuls les 2 nouveaux événements de #137 en
+     * portent une.
+     */
+    private function activation(Connection $connexion): void
+    {
+        $this->newLine();
+        $this->info('## Activation produit');
+
+        $returnStart = (int) config('product_activation.return_window.start_days');
+        $returnEnd = (int) config('product_activation.return_window.end_days');
+
+        $cohortes = $connexion->select("
+            with cohorte as (
+                select id, created_at, date_trunc('week', created_at)::date as semaine
+                from users
+                where deleted_at is null and created_at >= now() - interval '12 weeks'
+            ),
+            recherche as (
+                select distinct user_id from product_activation_events where event_type = 'search_useful'
+            ),
+            reponse as (
+                select distinct user_id from ai_usage_logs where route = 'assistant/chat' and status = 'success'
+            ),
+            activation as (
+                select distinct user_id from product_activation_events where event_type = 'source_opened_after_answer'
+            )
+            select
+                c.semaine,
+                count(*) as taille,
+                count(*) filter (where r.user_id is not null) as recherche_utile,
+                count(*) filter (where rp.user_id is not null) as reponse_reussie,
+                count(*) filter (where a.user_id is not null) as activation_candidate
+            from cohorte c
+            left join recherche r on r.user_id = c.id
+            left join reponse rp on rp.user_id = c.id
+            left join activation a on a.user_id = c.id
+            group by c.semaine
+            order by c.semaine
+        ");
+
+        if (empty($cohortes)) {
+            $this->line('Aucune cohorte sur les 12 dernières semaines.');
+
+            return;
+        }
+
+        $this->table(
+            ['Semaine', 'Taille', 'Recherche utile', 'Réponse réussie', 'Activation candidate'],
+            collect($cohortes)->map(fn ($r) => [
+                $r->semaine,
+                $r->taille,
+                $this->pourcentage((int) $r->recherche_utile, (int) $r->taille),
+                $this->pourcentage((int) $r->reponse_reussie, (int) $r->taille),
+                $this->pourcentage((int) $r->activation_candidate, (int) $r->taille),
+            ])->all(),
+        );
+
+        $delai = $connexion->selectOne("
+            with premiere_activation as (
+                select user_id, min(created_at) as activee_le
+                from product_activation_events
+                where event_type = 'source_opened_after_answer'
+                group by user_id
+            )
+            select percentile_cont(0.5) within group (
+                order by extract(epoch from (pa.activee_le - u.created_at)) / 86400.0
+            ) as delai_median_jours
+            from users u
+            join premiere_activation pa on pa.user_id = u.id
+            where u.created_at >= now() - interval '12 weeks'
+        ");
+
+        $report = $connexion->selectOne("
+            select
+                count(*) filter (where oe.status = 'postponed') as reportes,
+                count(*) as inscrits
+            from onboarding_enrollments oe
+            join users u on u.id = oe.user_id
+            where u.created_at >= now() - interval '12 weeks'
+        ");
+
+        // Cohorte "mature" = fenêtre de retour J+7 déjà entièrement passée
+        // pour CE compte (pas un cutoff par semaine) — un compte créé avant-hier
+        // n'est jamais compté, ni comme retourné ni comme non-retourné.
+        $retour = $connexion->selectOne('
+            with mature as (
+                select id, created_at
+                from users
+                where deleted_at is null
+                  and created_at >= now() - interval \'12 weeks\'
+                  and now() >= created_at + (? * interval \'1 day\')
+            )
+            select
+                count(*) as eligibles,
+                count(*) filter (where exists (
+                    select 1 from personal_access_tokens t
+                    where t.tokenable_id = mature.id
+                      and t.last_used_at between mature.created_at + (? * interval \'1 day\') and mature.created_at + (? * interval \'1 day\')
+                ) or exists (
+                    select 1 from ai_usage_logs a
+                    where a.user_id = mature.id
+                      and a.created_at between mature.created_at + (? * interval \'1 day\') and mature.created_at + (? * interval \'1 day\')
+                ) or exists (
+                    select 1 from product_activation_events p
+                    where p.user_id = mature.id
+                      and p.created_at between mature.created_at + (? * interval \'1 day\') and mature.created_at + (? * interval \'1 day\')
+                )) as retournes
+            from mature
+        ', [$returnEnd, $returnStart, $returnEnd, $returnStart, $returnEnd, $returnStart, $returnEnd]);
+
+        $derniere = collect($cohortes)->last();
+
+        $retourTexte = $retour->eligibles > 0
+            ? sprintf('%d%% (sur %d compte(s) mature(s))', round($retour->retournes / $retour->eligibles * 100), $retour->eligibles)
+            : 'non mesurable (aucune cohorte mature)';
+
+        $this->line(sprintf(
+            'Dernière cohorte (semaine du %s, %d compte(s)) : %s recherche utile, %s réponse réussie, %s activation candidate. Retour J+7 : %s.',
+            $derniere->semaine,
+            $derniere->taille,
+            $this->pourcentage((int) $derniere->recherche_utile, (int) $derniere->taille),
+            $this->pourcentage((int) $derniere->reponse_reussie, (int) $derniere->taille),
+            $this->pourcentage((int) $derniere->activation_candidate, (int) $derniere->taille),
+            $retourTexte,
+        ));
+
+        if ($delai !== null && $delai->delai_median_jours !== null) {
+            $this->line(sprintf("Délai médian jusqu'à l'activation candidate : %.1f jour(s).", $delai->delai_median_jours));
+        }
+
+        if ($report !== null && (int) $report->inscrits > 0) {
+            $this->line(sprintf(
+                'Report onboarding : %d/%d (%s) des inscriptions de la période.',
+                $report->reportes,
+                $report->inscrits,
+                $this->pourcentage((int) $report->reportes, (int) $report->inscrits),
+            ));
+        }
+    }
+
+    private function pourcentage(int $numerateur, int $denominateur): string
+    {
+        return $denominateur > 0 ? round($numerateur / $denominateur * 100).'%' : 'non mesurable';
     }
 }

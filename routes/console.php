@@ -81,6 +81,15 @@ Schedule::command('mibeko:prune-audits --days=365')
     ->runInBackground()
     ->appendOutputTo(storage_path('logs/prune-audits.log'));
 
+// mibeko-dashboard#137 : agrège durablement (product_activation_cohort_stats)
+// avant de purger le détail nominatif (product_activation_events) au-delà de
+// la rétention (config('product_activation.retention_days')).
+Schedule::command('mibeko:purge-product-events')
+    ->monthlyOn(1, '02:15')
+    ->withoutOverlapping()
+    ->runInBackground()
+    ->appendOutputTo(storage_path('logs/purge-product-events.log'));
+
 // Un e-mail de réinitialisation ou d'invitation qui ne part pas ne doit pas
 // rester muet (mibeko-dashboard#60) : l'API répond 200 dans tous les cas
 // (anti-énumération), et rien d'autre ne surveille cette file. Volontairement

@@ -7,6 +7,7 @@ use App\Jobs\GenerateConversationTitle;
 use App\Models\AgentConversation;
 use App\Models\AgentConversationMessage;
 use App\Models\AgentMessageFeedback;
+use App\Models\AiUsageLog;
 use App\Models\LegalDocument;
 use App\Models\User;
 use Illuminate\Support\Facades\Cache;
@@ -335,6 +336,10 @@ it('can chat with the assistant', function () {
 
     // Check that a conversation was created
     expect(AgentConversation::where('user_id', $user->id)->count())->toBe(1);
+
+    // mibeko-dashboard#137 : chemin synchrone, aucune source — has_citation
+    // doit être false (pas null : le statut est bien success).
+    expect(AiUsageLog::sole()->has_citation)->toBeFalse();
 });
 
 it('rejects an invalid response mode', function () {

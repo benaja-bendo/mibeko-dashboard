@@ -1,0 +1,8 @@
+{
+    "message": "Aucune référence valide (existante, appartenant au compte, et pertinente pour « source_opened_after_answer »).",
+    "errors": {
+        "reference_id": [
+            "Aucune référence valide (existante, appartenant au compte, et pertinente pour « source_opened_after_answer »)."
+        ]
+    }
+}

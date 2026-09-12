@@ -5,6 +5,7 @@ use App\Models\Device;
 use App\Models\Dossier;
 use App\Models\DossierEcheance;
 use App\Models\LegalDocument;
+use App\Models\ProductActivationEvent;
 use App\Models\User;
 use Laravel\Sanctum\PersonalAccessToken;
 
@@ -21,13 +22,30 @@ function logIaAt(array $attributes, string $createdAt): AiUsageLog
     return $log->fresh();
 }
 
+/** Même contrainte que `logIaAt()` : `created_at` géré par Eloquent, écrasé par `save()`. */
+function utilisateurCreeLe(string $createdAt): User
+{
+    $user = User::factory()->create();
+    User::whereKey($user->id)->update(['created_at' => $createdAt]);
+
+    return $user->fresh();
+}
+
+function evenementActivationLe(array $attributes, string $createdAt): ProductActivationEvent
+{
+    $event = ProductActivationEvent::create($attributes);
+    ProductActivationEvent::whereKey($event->id)->update(['created_at' => $createdAt]);
+
+    return $event->fresh();
+}
+
 it('refuse une connexion qui n\'est pas déclarée', function () {
     $this->artisan('mibeko:kpis', ['--connection' => 'connexion_inexistante'])
         ->expectsOutputToContain('n\'est pas déclarée')
         ->assertExitCode(1);
 });
 
-it('imprime les cinq sections sur une base sans données', function () {
+it('imprime les six sections sur une base sans données', function () {
     $this->artisan('mibeko:kpis', ['--connection' => config('database.default')])
         ->assertSuccessful()
         ->expectsOutputToContain('## Comptes')
@@ -36,7 +54,9 @@ it('imprime les cinq sections sur une base sans données', function () {
         ->expectsOutputToContain('## Dossiers')
         ->expectsOutputToContain('## Veille (appareils push)')
         ->expectsOutputToContain('Aucun appareil enregistré.')
-        ->expectsOutputToContain('## Corpus');
+        ->expectsOutputToContain('## Corpus')
+        ->expectsOutputToContain('## Activation produit')
+        ->expectsOutputToContain('Aucune cohorte sur les 12 dernières semaines.');
 });
 
 it('compte les comptes vivants et leur origine par jeton', function () {
@@ -117,4 +137,68 @@ it('compte le corpus publié et non publié', function () {
     $this->artisan('mibeko:kpis', ['--connection' => config('database.default')])
         ->assertSuccessful()
         ->expectsOutputToContain('Corpus : 1 publié(s), 1 non publié(s).');
+});
+
+// ── Activation produit (mibeko-dashboard#137) ─────────────────────────────
+
+it('affiche 0% avec le dénominateur quand une cohorte n\'a aucun événement', function () {
+    User::factory()->count(3)->create();
+
+    $this->artisan('mibeko:kpis', ['--connection' => config('database.default')])
+        ->assertSuccessful()
+        ->expectsOutputToContain('3 compte(s)) : 0% recherche utile, 0% réponse réussie, 0% activation candidate');
+});
+
+it('affiche non mesurable pour le retour J+7 d\'une cohorte trop jeune', function () {
+    User::factory()->create();
+
+    $this->artisan('mibeko:kpis', ['--connection' => config('database.default')])
+        ->assertSuccessful()
+        ->expectsOutputToContain('Retour J+7 : non mesurable (aucune cohorte mature).');
+});
+
+it('compte un retour dans la fenêtre J+7 pour une cohorte mature', function () {
+    $user = utilisateurCreeLe(now()->subDays(20)->toDateTimeString());
+    $user->createToken('mibeko-saas-web');
+    PersonalAccessToken::where('tokenable_id', $user->id)
+        ->update(['last_used_at' => now()->subDays(20)->addDays(8)]);
+
+    $this->artisan('mibeko:kpis', ['--connection' => config('database.default')])
+        ->assertSuccessful()
+        ->expectsOutputToContain('Retour J+7 : 100% (sur 1 compte(s) mature(s))');
+});
+
+it('ne compte pas une réponse réussie et citée sans source ouverte comme activation candidate', function () {
+    $user = User::factory()->create();
+    AiUsageLog::create([
+        'user_id' => $user->id, 'route' => 'assistant/chat',
+        'status' => AiUsageLog::STATUS_SUCCESS, 'has_citation' => true,
+    ]);
+
+    $this->artisan('mibeko:kpis', ['--connection' => config('database.default')])
+        ->assertSuccessful()
+        ->expectsOutputToContain('100% réponse réussie, 0% activation candidate');
+});
+
+it('ne compte qu\'une première activation et calcule le délai depuis la plus ancienne', function () {
+    $user = utilisateurCreeLe(now()->subDays(5)->toDateTimeString());
+    $log = AiUsageLog::create([
+        'user_id' => $user->id, 'route' => 'assistant/chat',
+        'status' => AiUsageLog::STATUS_SUCCESS, 'has_citation' => true,
+    ]);
+
+    evenementActivationLe([
+        'user_id' => $user->id, 'event_type' => 'source_opened_after_answer', 'surface' => 'web',
+        'reference_type' => 'ai_usage_log', 'reference_id' => $log->id, 'client_event_id' => 'e1',
+    ], now()->subDays(5)->addDays(2)->toDateTimeString());
+
+    evenementActivationLe([
+        'user_id' => $user->id, 'event_type' => 'source_opened_after_answer', 'surface' => 'mobile',
+        'reference_type' => 'ai_usage_log', 'reference_id' => $log->id, 'client_event_id' => 'e2',
+    ], now()->subDays(5)->addDays(4)->toDateTimeString());
+
+    $this->artisan('mibeko:kpis', ['--connection' => config('database.default')])
+        ->assertSuccessful()
+        ->expectsOutputToContain('100% activation candidate')
+        ->expectsOutputToContain('Délai médian jusqu\'à l\'activation candidate : 2.0 jour(s).');
 });

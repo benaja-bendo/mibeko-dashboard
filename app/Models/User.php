@@ -147,6 +147,15 @@ class User extends Authenticatable implements Auditable
     }
 
     /**
+     * Récupère le détail nominatif des événements d'activation produit de
+     * l'utilisateur (mibeko-dashboard#137).
+     */
+    public function productActivationEvents(): HasMany
+    {
+        return $this->hasMany(ProductActivationEvent::class);
+    }
+
+    /**
      * Récupère les préférences / consentements applicatifs de l'utilisateur.
      */
     public function settings(): HasOne

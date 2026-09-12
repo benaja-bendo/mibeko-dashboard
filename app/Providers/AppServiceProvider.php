@@ -117,6 +117,15 @@ class AppServiceProvider extends ServiceProvider
             return Limit::perMinute(app()->environment('testing') ? 30 : 60)->by($request->user()->id);
         });
 
+        // Mesure d'activation produit (mibeko-dashboard#137) : isolé
+        // d'`ai_assistant` par construction (tables et compteurs disjoints) —
+        // un abus ou un refus ici ne peut jamais affecter le quota Assistant
+        // de l'utilisateur, conformément à « l'échec de collecte ne doit pas
+        // bloquer l'utilisateur ».
+        RateLimiter::for('product_events', function (Request $request) {
+            return Limit::perMinute(app()->environment('testing') ? 30 : 60)->by($request->user()->id);
+        });
+
         // Recherche publique du fonds (site vitrine, sans compte) : endpoint non
         // authentifié et requêtes SQL coûteuses (ILIKE + trigram) → quota par IP
         // pour protéger la base d'un abus, sans pénaliser l'usage humain normal.

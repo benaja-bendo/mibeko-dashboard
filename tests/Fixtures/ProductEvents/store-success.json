@@ -1,0 +1,9 @@
+{
+    "success": true,
+    "message": "Événement enregistré.",
+    "data": {
+        "id": "<uuid>",
+        "event_type": "search_useful",
+        "created_at": "2026-01-01T00:00:00+00:00"
+    }
+}

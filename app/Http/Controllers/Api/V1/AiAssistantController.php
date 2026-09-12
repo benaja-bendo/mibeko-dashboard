@@ -455,6 +455,7 @@ class AiAssistantController extends Controller
                             $response->conversationId,
                             $logId,
                             toolCallsCount: $this->chatService->toolCallsCountFromEvents($response->events),
+                            hasCitation: $sources !== [],
                         );
                     }
                 );
@@ -560,6 +561,7 @@ class AiAssistantController extends Controller
             $response->conversationId,
             $logId,
             toolCallsCount: $this->chatService->toolCallsCountFromResponse($response),
+            hasCitation: $sources !== [],
         );
 
         // Marqueurs [n] sans source réelle neutralisés avant restitution : le
