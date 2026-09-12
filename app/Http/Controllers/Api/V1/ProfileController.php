@@ -5,8 +5,7 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\V1\UpdateProfileRequest;
 use App\Http\Resources\V1\UserProfileResource;
-use App\Models\MobileProfile;
-use App\Models\Tag;
+use App\Services\ProfileAttributeWriter;
 use App\Traits\HttpResponses;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -20,6 +19,8 @@ use Illuminate\Support\Facades\Hash;
 class ProfileController extends Controller
 {
     use HttpResponses;
+
+    public function __construct(private readonly ProfileAttributeWriter $profileWriter) {}
 
     /**
      * Retourne le compte complet : identité, profil étendu, rôles/permissions
@@ -60,25 +61,10 @@ class ProfileController extends Controller
             ->only(['phone', 'profession', 'company', 'usage_context', 'job_title'])
             ->all();
 
-        if (array_key_exists('profession', $profileData) && ! array_key_exists('usage_context', $profileData)) {
-            $profileData['usage_context'] = MobileProfile::deriveUsageContext($profileData['profession']);
-        } elseif (array_key_exists('usage_context', $profileData) && ! array_key_exists('profession', $profileData)) {
-            $profileData['profession'] = MobileProfile::deriveProfession($profileData['usage_context']);
-        }
-
-        if ($profileData !== []) {
-            $now = now();
-
-            MobileProfile::query()->upsert(
-                [[...$profileData, 'user_id' => $user->id, 'created_at' => $now, 'updated_at' => $now]],
-                ['user_id'],
-                [...array_keys($profileData), 'updated_at']
-            );
-        }
+        $this->profileWriter->applyProfileFields($user, $profileData);
 
         if (array_key_exists('interests', $validated)) {
-            $tagIds = Tag::query()->whereIn('slug', $validated['interests'])->pluck('id');
-            $user->tags()->sync($tagIds);
+            $this->profileWriter->applyInterests($user, $validated['interests']);
         }
 
         return $this->success(
