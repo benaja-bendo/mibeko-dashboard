@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\V1\Admin\InstitutionController as AdminInstitutionC
 use App\Http\Controllers\Api\V1\Admin\ManualPaymentOrderController as AdminManualPaymentOrderController;
 use App\Http\Controllers\Api\V1\Admin\OverviewController as AdminOverviewController;
 use App\Http\Controllers\Api\V1\Admin\PublishedDocumentExtractionRepairController;
+use App\Http\Controllers\Api\V1\Admin\SanteController as AdminSanteController;
 use App\Http\Controllers\Api\V1\Admin\TagController as AdminTagController;
 use App\Http\Controllers\Api\V1\Admin\UserController as AdminUserController;
 use App\Http\Controllers\Api\V1\Admin\UserInvitationController as AdminUserInvitationController;
@@ -382,6 +383,7 @@ Route::prefix('v1')->middleware('throttle:api')->group(function () {
         ->name('admin.')
         ->group(function () {
             Route::get('overview', [AdminOverviewController::class, 'index']);
+            Route::get('sante', [AdminSanteController::class, 'index']);
 
             Route::get('messages', [ContactInboxController::class, 'index']);
             Route::patch('messages/{message}', [ContactInboxController::class, 'update']);
