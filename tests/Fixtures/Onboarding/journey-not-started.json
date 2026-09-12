@@ -1,0 +1,55 @@
+{
+    "available": true,
+    "journey": {
+        "key": "onboarding",
+        "version": 1,
+        "steps": [
+            {
+                "key": "welcome",
+                "type": "welcome",
+                "scope": "common",
+                "config": {
+                    "title_key": "onboarding.welcome.title"
+                },
+                "binding": null,
+                "conditions": [],
+                "supported": true,
+                "progress": {
+                    "viewed_at": null,
+                    "skipped_at": null,
+                    "completed_at": null,
+                    "value": null
+                }
+            },
+            {
+                "key": "usage_context",
+                "type": "single_choice",
+                "scope": "common",
+                "config": {
+                    "options": [
+                        {
+                            "code": "personal",
+                            "label_key": "onboarding.usage_context.personal"
+                        }
+                    ]
+                },
+                "binding": "profile.usage_context",
+                "conditions": [],
+                "supported": true,
+                "progress": {
+                    "viewed_at": null,
+                    "skipped_at": null,
+                    "completed_at": null,
+                    "value": null
+                }
+            }
+        ]
+    },
+    "enrollment": {
+        "status": "not_started",
+        "started_at": null,
+        "completed_at": null,
+        "postponed_at": null,
+        "replay_count": 0
+    }
+}

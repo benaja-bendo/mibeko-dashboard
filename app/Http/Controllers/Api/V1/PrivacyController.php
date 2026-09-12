@@ -26,7 +26,10 @@ class PrivacyController extends Controller
      */
     public function export(Request $request): StreamedResponse
     {
-        $user = $request->user()->load('mobileProfile', 'settings', 'notifications', 'roles', 'tags');
+        $user = $request->user()->load(
+            'mobileProfile', 'settings', 'notifications', 'roles', 'tags',
+            'onboardingEnrollments.stepsProgress', 'onboardingEnrollments.journey'
+        );
 
         $payload = [
             'generated_at' => now()->toIso8601String(),
@@ -49,6 +52,24 @@ class PrivacyController extends Controller
                 'marketing_consent', 'marketing_consent_at', 'analytics_consent', 'analytics_consent_at',
             ]),
             'notifications' => $user->notifications->map->only(['title', 'message', 'type', 'read_at', 'created_at']),
+            // mibeko-dashboard#136 : progression d'onboarding. `value` est
+            // déjà NULL en base pour un binding sensible (OnboardingStepWriter)
+            // — rien à filtrer ici en plus, l'export ne fait que refléter l'état stocké.
+            'onboarding' => $user->onboardingEnrollments->map(fn ($enrollment) => [
+                'journey_key' => $enrollment->journey_key,
+                'journey_version' => $enrollment->journey?->version,
+                'status' => $enrollment->status,
+                'started_at' => $enrollment->started_at?->toIso8601String(),
+                'completed_at' => $enrollment->completed_at?->toIso8601String(),
+                'replay_count' => $enrollment->replay_count,
+                'steps' => $enrollment->stepsProgress->map(fn ($progress) => [
+                    'step_key' => $progress->step_key,
+                    'viewed_at' => $progress->viewed_at?->toIso8601String(),
+                    'skipped_at' => $progress->skipped_at?->toIso8601String(),
+                    'completed_at' => $progress->completed_at?->toIso8601String(),
+                    'value' => $progress->value,
+                ]),
+            ]),
         ];
 
         $filename = 'mibeko-donnees-'.$user->id.'-'.now()->format('Ymd').'.json';

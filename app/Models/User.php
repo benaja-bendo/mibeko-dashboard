@@ -138,6 +138,15 @@ class User extends Authenticatable implements Auditable
     }
 
     /**
+     * Récupère les inscriptions de l'utilisateur aux parcours d'onboarding
+     * versionnés (mibeko-dashboard#136).
+     */
+    public function onboardingEnrollments(): HasMany
+    {
+        return $this->hasMany(OnboardingEnrollment::class);
+    }
+
+    /**
      * Récupère les préférences / consentements applicatifs de l'utilisateur.
      */
     public function settings(): HasOne

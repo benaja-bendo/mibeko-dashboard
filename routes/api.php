@@ -48,6 +48,7 @@ use App\Http\Controllers\Api\V1\ManualPaymentOrderController;
 use App\Http\Controllers\Api\V1\NewsletterSubscriptionController;
 use App\Http\Controllers\Api\V1\NotificationController;
 use App\Http\Controllers\Api\V1\OfficialJournalController;
+use App\Http\Controllers\Api\V1\OnboardingController;
 use App\Http\Controllers\Api\V1\PasswordResetController;
 use App\Http\Controllers\Api\V1\PreferencesController;
 use App\Http\Controllers\Api\V1\PrivacyController;
@@ -127,6 +128,14 @@ Route::prefix('v1')->middleware('throttle:api')->group(function () {
         // Conformité RGPD — export & suppression
         Route::get('profile/export', [PrivacyController::class, 'export']);
         Route::delete('profile', [PrivacyController::class, 'destroy']);
+
+        // Onboarding — parcours d'accueil versionné (mibeko-dashboard#136)
+        Route::middleware('throttle:onboarding_progress')->group(function () {
+            Route::get('onboarding/journey', [OnboardingController::class, 'index']);
+            Route::patch('onboarding/steps/{stepKey}', [OnboardingController::class, 'updateStep']);
+            Route::post('onboarding/postpone', [OnboardingController::class, 'postpone']);
+            Route::post('onboarding/replay', [OnboardingController::class, 'replay']);
+        });
 
         // Facturation (Cashier / Stripe)
         Route::get('billing', [BillingController::class, 'overview']);

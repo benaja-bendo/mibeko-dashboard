@@ -1,0 +1,34 @@
+{
+    "available": true,
+    "journey": {
+        "key": "onboarding",
+        "version": 1,
+        "steps": [
+            {
+                "key": "discover_sources",
+                "type": "guided_action",
+                "scope": "common",
+                "config": {
+                    "cta_key": "onboarding.discover_sources.cta",
+                    "title_key": "onboarding.discover_sources.title"
+                },
+                "binding": null,
+                "conditions": [],
+                "supported": false,
+                "progress": {
+                    "viewed_at": null,
+                    "skipped_at": null,
+                    "completed_at": null,
+                    "value": null
+                }
+            }
+        ]
+    },
+    "enrollment": {
+        "status": "not_started",
+        "started_at": null,
+        "completed_at": null,
+        "postponed_at": null,
+        "replay_count": 0
+    }
+}

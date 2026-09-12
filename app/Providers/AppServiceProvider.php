@@ -108,6 +108,15 @@ class AppServiceProvider extends ServiceProvider
             return Limit::perMinute(180)->by($request->user()?->id ?: $request->ip());
         });
 
+        // Progression d'onboarding (mibeko-dashboard#136) : un client répond
+        // à plusieurs étapes en quelques secondes (vue + réponse + retries
+        // réseau occasionnels) — quota séparé du générique `api` pour qu'une
+        // rafale de complétion ne consomme pas le budget d'autres appels du
+        // même utilisateur. Toujours authentifié, clé = user id.
+        RateLimiter::for('onboarding_progress', function (Request $request) {
+            return Limit::perMinute(app()->environment('testing') ? 30 : 60)->by($request->user()->id);
+        });
+
         // Recherche publique du fonds (site vitrine, sans compte) : endpoint non
         // authentifié et requêtes SQL coûteuses (ILIKE + trigram) → quota par IP
         // pour protéger la base d'un abus, sans pénaliser l'usage humain normal.

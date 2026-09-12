@@ -19,6 +19,7 @@ class DatabaseSeeder extends Seeder
             SystemRequirementsSeeder::class,
             RolesAndPermissionsSeeder::class,
             ThemesSeeder::class,
+            OnboardingJourneySeeder::class,
             // PopularCodesSeeder::class,
             // RealisticLegalSeeder::class, // Désactivé pour la prod : on utilise uniquement les vrais JSON
             // CongoJournalOfficielSeeder::class,
