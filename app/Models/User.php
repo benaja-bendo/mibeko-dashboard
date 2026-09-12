@@ -92,7 +92,9 @@ class User extends Authenticatable implements Auditable
     }
 
     /**
-     * Récupère tous les tags de l'utilisateur.
+     * Récupère tous les tags de l'utilisateur — sert désormais aussi de
+     * catalogue pour les centres d'intérêt facultatifs du profil
+     * (mibeko-dashboard#135), en plus de son usage éditorial d'origine.
      */
     public function tags(): MorphToMany
     {

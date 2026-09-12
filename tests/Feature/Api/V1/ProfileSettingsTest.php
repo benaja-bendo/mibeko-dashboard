@@ -27,7 +27,11 @@ it('returns the full account payload with settings', function () {
         ->assertJsonPath('data.settings.locale', 'fr')
         ->assertJsonPath('data.settings.timezone', 'Africa/Brazzaville')
         ->assertJsonStructure([
-            'data' => ['id', 'email', 'roles', 'permissions', 'security' => ['two_factor_enabled'], 'settings'],
+            'data' => [
+                'id', 'email', 'roles', 'permissions', 'security' => ['two_factor_enabled'], 'settings',
+                // mibeko-dashboard#135 : cadre d'usage, métier, intérêts.
+                'profile' => ['phone', 'profession', 'usage_context', 'job_title', 'company', 'interests'],
+            ],
         ]);
 });
 

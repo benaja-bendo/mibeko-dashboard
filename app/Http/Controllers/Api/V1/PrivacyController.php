@@ -26,7 +26,7 @@ class PrivacyController extends Controller
      */
     public function export(Request $request): StreamedResponse
     {
-        $user = $request->user()->load('mobileProfile', 'settings', 'notifications', 'roles');
+        $user = $request->user()->load('mobileProfile', 'settings', 'notifications', 'roles', 'tags');
 
         $payload = [
             'generated_at' => now()->toIso8601String(),
@@ -38,7 +38,12 @@ class PrivacyController extends Controller
                 'roles' => $user->getRoleNames()->values(),
                 'created_at' => $user->created_at?->toIso8601String(),
             ],
-            'profile' => $user->mobileProfile?->only(['phone', 'profession', 'company', 'dob', 'gender']),
+            // mibeko-dashboard#135 : cadre d'usage/métier/intérêts inclus au
+            // même titre que le reste du profil étendu.
+            'profile' => array_merge(
+                $user->mobileProfile?->only(['phone', 'profession', 'usage_context', 'job_title', 'company', 'dob', 'gender']) ?? [],
+                ['interests' => $user->tags->pluck('slug')->all()]
+            ),
             'settings' => $user->settings?->only([
                 'locale', 'timezone', 'date_format', 'notification_preferences',
                 'marketing_consent', 'marketing_consent_at', 'analytics_consent', 'analytics_consent_at',

@@ -30,11 +30,16 @@ class UserProfileResource extends JsonResource
             // l'écran de vérification) — ajout non destructif.
             'email_verified_at' => $this->email_verified_at?->toIso8601String(),
             'status' => $this->status,
-            // Profil étendu (téléphone, fonction, organisation) — entité unique côté DRC.
+            // Profil étendu (téléphone, cadre d'usage, métier, organisation,
+            // centres d'intérêt) — entité unique côté DB.
             'profile' => [
                 'phone' => $profile?->phone,
                 'profession' => $profile?->profession,
+                'usage_context' => $profile?->usage_context,
+                'job_title' => $profile?->job_title,
                 'company' => $profile?->company,
+                // Slugs de la taxonomie "Thèmes de vie" (table `tags`).
+                'interests' => $this->tags->sortBy('display_order')->pluck('slug')->values(),
             ],
             // RBAC en lecture seule : l'utilisateur ne peut pas modifier ses propres rôles.
             'roles' => $this->getRoleNames()->values(),

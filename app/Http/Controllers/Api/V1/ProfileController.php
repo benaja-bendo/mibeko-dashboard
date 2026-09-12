@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\V1\UpdateProfileRequest;
 use App\Http\Resources\V1\UserProfileResource;
+use App\Models\MobileProfile;
+use App\Models\Tag;
 use App\Traits\HttpResponses;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -25,7 +27,7 @@ class ProfileController extends Controller
      */
     public function show(Request $request): JsonResponse
     {
-        $user = $request->user()->load('roles', 'mobileProfile', 'settings');
+        $user = $request->user()->load('roles', 'mobileProfile', 'settings', 'tags');
 
         return $this->success(new UserProfileResource($user), 'Profil récupéré avec succès.');
     }
@@ -33,8 +35,17 @@ class ProfileController extends Controller
     /**
      * Met à jour les informations personnelles.
      *
-     * Le nom vit sur `users` ; téléphone / fonction / organisation sur le profil
-     * étendu (`mobile_profiles`), créé à la volée si absent.
+     * Le nom vit sur `users` ; téléphone / fonction / cadre d'usage / métier /
+     * organisation sur le profil étendu (`mobile_profiles`, upsert atomique sur
+     * `user_id` — mibeko-dashboard#135, corrige une race condition qui pouvait
+     * dupliquer la ligne sous deux PATCH concurrents) ; intérêts via les tags
+     * de l'utilisateur (taxonomie "Thèmes de vie" réutilisée telle quelle).
+     *
+     * PATCH strictement partiel : une clé absente de la requête ne touche pas
+     * la colonne correspondante (`sometimes` côté FormRequest). `profession`
+     * et `usage_context` se complètent mutuellement quand un seul des deux est
+     * fourni (mapping catégorie ↔ catégorie documenté dans MobileProfile),
+     * jamais quand les deux sont déjà présents.
      */
     public function update(UpdateProfileRequest $request): JsonResponse
     {
@@ -45,16 +56,33 @@ class ProfileController extends Controller
             $user->update(['name' => $validated['name']]);
         }
 
-        $profileData = collect($validated)->only(['phone', 'profession', 'company'])->all();
+        $profileData = collect($validated)
+            ->only(['phone', 'profession', 'company', 'usage_context', 'job_title'])
+            ->all();
+
+        if (array_key_exists('profession', $profileData) && ! array_key_exists('usage_context', $profileData)) {
+            $profileData['usage_context'] = MobileProfile::deriveUsageContext($profileData['profession']);
+        } elseif (array_key_exists('usage_context', $profileData) && ! array_key_exists('profession', $profileData)) {
+            $profileData['profession'] = MobileProfile::deriveProfession($profileData['usage_context']);
+        }
 
         if ($profileData !== []) {
-            $user->mobileProfile
-                ? $user->mobileProfile->update($profileData)
-                : $user->mobileProfile()->create($profileData);
+            $now = now();
+
+            MobileProfile::query()->upsert(
+                [[...$profileData, 'user_id' => $user->id, 'created_at' => $now, 'updated_at' => $now]],
+                ['user_id'],
+                [...array_keys($profileData), 'updated_at']
+            );
+        }
+
+        if (array_key_exists('interests', $validated)) {
+            $tagIds = Tag::query()->whereIn('slug', $validated['interests'])->pluck('id');
+            $user->tags()->sync($tagIds);
         }
 
         return $this->success(
-            new UserProfileResource($user->fresh()->load('roles', 'mobileProfile', 'settings')),
+            new UserProfileResource($user->fresh()->load('roles', 'mobileProfile', 'settings', 'tags')),
             'Profil mis à jour avec succès.'
         );
     }
