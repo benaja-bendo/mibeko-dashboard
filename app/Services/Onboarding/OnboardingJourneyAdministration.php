@@ -8,6 +8,11 @@ use Illuminate\Validation\ValidationException;
 
 class OnboardingJourneyAdministration
 {
+    private const LEGACY_MISSING_TITLES = [
+        'usage_context' => "Quel est votre cadre d'usage ?",
+        'interests' => "Des centres d'intérêt à signaler ?",
+    ];
+
     public function __construct(private readonly OnboardingDefinitionValidator $definitionValidator) {}
 
     /** @param list<array<string, mixed>>|null $definition */
@@ -26,6 +31,10 @@ class OnboardingJourneyAdministration
                 throw ValidationException::withMessages([
                     'definition' => ['Une définition est obligatoire sans version active à copier.'],
                 ]);
+            }
+
+            if ($definition === null) {
+                $source = $this->completeLegacyTitles($source);
             }
 
             return OnboardingJourney::create([
@@ -86,9 +95,10 @@ class OnboardingJourneyAdministration
             ]);
         }
 
-        $this->definitionValidator->validate($source->definition);
+        $definition = $this->completeLegacyTitles($source->definition);
+        $this->definitionValidator->validate($definition);
 
-        return OnboardingJourney::publish($source->key, $source->definition);
+        return OnboardingJourney::publish($source->key, $definition);
     }
 
     public function archive(OnboardingJourney $journey): OnboardingJourney
@@ -111,5 +121,23 @@ class OnboardingJourneyAdministration
                 'journey' => ['Une version publiée est immuable. Créez un brouillon.'],
             ]);
         }
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $definition
+     * @return list<array<string, mixed>>
+     */
+    private function completeLegacyTitles(array $definition): array
+    {
+        return array_map(function (array $step): array {
+            $config = $step['config'] ?? [];
+            $fallbackTitle = self::LEGACY_MISSING_TITLES[$step['key'] ?? ''] ?? null;
+
+            if (($config['title'] ?? '') === '' && ($config['title_key'] ?? '') === '' && $fallbackTitle !== null) {
+                $step['config']['title'] = $fallbackTitle;
+            }
+
+            return $step;
+        }, $definition);
     }
 }

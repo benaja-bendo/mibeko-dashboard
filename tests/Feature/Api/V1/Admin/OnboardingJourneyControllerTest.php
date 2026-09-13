@@ -51,6 +51,27 @@ it('crée un unique brouillon en copiant la version active', function () {
         ->and($active->fresh()->is_active)->toBeTrue();
 });
 
+it('complète les titres absents de la première version lors de la création du brouillon', function () {
+    $legacyDefinition = onboardingDefinition();
+    unset($legacyDefinition[1]['config']['title']);
+    $legacyDefinition[2]['key'] = 'interests';
+    $legacyDefinition[2]['type'] = 'multi_choice';
+    $legacyDefinition[2]['scope'] = 'common';
+    $legacyDefinition[2]['binding'] = 'profile.interests';
+    $legacyDefinition[2]['config'] = ['source' => 'tags:themes-de-vie'];
+    $legacyDefinition[2]['conditions'] = [];
+    $active = OnboardingJourney::publish('onboarding', $legacyDefinition);
+
+    $response = $this->actingAs($this->admin)->postJson('/api/v1/admin/onboarding-journeys/drafts')
+        ->assertCreated()
+        ->assertJsonPath('data.definition.1.config.title', "Quel est votre cadre d'usage ?")
+        ->assertJsonPath('data.definition.2.config.title', "Des centres d'intérêt à signaler ?");
+
+    expect($active->fresh()->definition[1]['config'])->not->toHaveKey('title')
+        ->and($active->definition[2]['config'])->not->toHaveKey('title')
+        ->and($response->json('data.status'))->toBe('draft');
+});
+
 it('enregistre et audite le contenu texte brut d’un brouillon', function () {
     OnboardingJourney::publish('onboarding', onboardingDefinition());
     $draftId = $this->actingAs($this->admin)->postJson('/api/v1/admin/onboarding-journeys/drafts')->json('data.id');
@@ -149,6 +170,27 @@ it('publie atomiquement et laisse les inscriptions existantes sur leur version',
     $newUser = User::factory()->create();
     $this->actingAs($newUser)->getJson('/api/v1/onboarding/journey?platform=web')
         ->assertJsonPath('data.journey.version', 2)->assertJsonPath('data.journey.steps.0.config.title', 'Version 2');
+});
+
+it('complète les titres absents de la première version lors d’un retour arrière', function () {
+    $legacyDefinition = onboardingDefinition();
+    unset($legacyDefinition[1]['config']['title']);
+    $legacyDefinition[2]['key'] = 'interests';
+    $legacyDefinition[2]['type'] = 'multi_choice';
+    $legacyDefinition[2]['scope'] = 'common';
+    $legacyDefinition[2]['binding'] = 'profile.interests';
+    $legacyDefinition[2]['config'] = ['source' => 'tags:themes-de-vie'];
+    $legacyDefinition[2]['conditions'] = [];
+    $versionOne = OnboardingJourney::publish('onboarding', $legacyDefinition);
+    OnboardingJourney::publish('onboarding', onboardingDefinition('Version 2'));
+
+    $this->actingAs($this->admin)->postJson("/api/v1/admin/onboarding-journeys/{$versionOne->id}/rollback")
+        ->assertOk()
+        ->assertJsonPath('data.definition.1.config.title', "Quel est votre cadre d'usage ?")
+        ->assertJsonPath('data.definition.2.config.title', "Des centres d'intérêt à signaler ?");
+
+    expect($versionOne->fresh()->definition[1]['config'])->not->toHaveKey('title')
+        ->and($versionOne->fresh()->definition[2]['config'])->not->toHaveKey('title');
 });
 
 it('restaure une ancienne définition dans une nouvelle version sans effacer les progressions', function () {
