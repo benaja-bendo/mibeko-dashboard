@@ -2,8 +2,8 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Database\Factories\UserFactory;
+use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -19,7 +19,7 @@ use OwenIt\Auditing\Auditable as AuditableTrait;
 use OwenIt\Auditing\Contracts\Auditable;
 use Spatie\Permission\Traits\HasRoles;
 
-class User extends Authenticatable implements Auditable
+class User extends Authenticatable implements Auditable, MustVerifyEmail
 {
     /** @use HasFactory<UserFactory> */
     use AuditableTrait, Billable, HasApiTokens, HasFactory, HasRoles, HasUuids, Notifiable, SoftDeletes, TwoFactorAuthenticatable;
@@ -50,6 +50,7 @@ class User extends Authenticatable implements Auditable
         'email',
         'password',
         'status',
+        'email_verification_required',
         'last_seen_at',
         'suspended_at',
         'suspension_reason',
@@ -76,6 +77,7 @@ class User extends Authenticatable implements Auditable
     {
         return [
             'email_verified_at' => 'datetime',
+            'email_verification_required' => 'boolean',
             'password' => 'hashed',
             'two_factor_confirmed_at' => 'datetime',
             'last_seen_at' => 'datetime',

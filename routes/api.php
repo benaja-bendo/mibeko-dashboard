@@ -63,6 +63,7 @@ use App\Http\Controllers\Api\V1\TwoFactorController;
 use App\Http\Controllers\PdfProxyController;
 use App\Http\Middleware\EnsureExportEntitled;
 use App\Http\Middleware\EnsureMobileReleaseSecret;
+use App\Http\Middleware\EnsureRequiredEmailIsVerified;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->middleware('throttle:api')->group(function () {
@@ -92,10 +93,6 @@ Route::prefix('v1')->middleware('throttle:api')->group(function () {
 
     Route::middleware('auth:sanctum')->group(function () {
         Route::get('me', [AuthController::class, 'me']);
-        // mibeko-dashboard#63 : point unique de vérité du droit d'usage
-        // (plan, fonctionnalités, quotas, solde) — web et mobile consomment
-        // cette charge à l'identique, aucun ne re-déduit la règle localement.
-        Route::get('me/entitlements', [EntitlementsController::class, 'show']);
         Route::post('logout', [AuthController::class, 'logout']);
 
         // Renvoi du lien de vérification d'e-mail (app mobile / SPA) — quota
@@ -105,105 +102,115 @@ Route::prefix('v1')->middleware('throttle:api')->group(function () {
 
         // Profile — informations personnelles & mot de passe
         Route::get('profile', [ProfileController::class, 'show']);
-        Route::put('profile', [ProfileController::class, 'update']);
-        Route::put('profile/password', [ProfileController::class, 'updatePassword']);
 
-        // Préférences — affichage, notifications, consentements RGPD
-        Route::get('profile/preferences', [PreferencesController::class, 'show']);
-        Route::put('profile/preferences', [PreferencesController::class, 'update']);
-        Route::put('profile/notification-preferences', [PreferencesController::class, 'updateNotifications']);
-        Route::put('profile/consents', [PreferencesController::class, 'updateConsents']);
+        // Un compte non vérifié conserve uniquement les opérations nécessaires
+        // pour consulter son état, renvoyer le lien et se déconnecter. Toutes
+        // les fonctionnalités liées au compte exigent ensuite l'adresse validée.
+        Route::middleware(EnsureRequiredEmailIsVerified::class)->group(function () {
+            // mibeko-dashboard#63 : point unique de vérité du droit d'usage
+            // (plan, fonctionnalités, quotas, solde) — web et mobile consomment
+            // cette charge à l'identique, aucun ne re-déduit la règle localement.
+            Route::get('me/entitlements', [EntitlementsController::class, 'show']);
+            Route::put('profile', [ProfileController::class, 'update']);
+            Route::put('profile/password', [ProfileController::class, 'updatePassword']);
 
-        // Sécurité — double authentification (2FA TOTP)
-        Route::get('profile/two-factor', [TwoFactorController::class, 'show']);
-        Route::post('profile/two-factor', [TwoFactorController::class, 'store']);
-        Route::post('profile/two-factor/confirm', [TwoFactorController::class, 'confirm']);
-        Route::post('profile/two-factor/recovery-codes', [TwoFactorController::class, 'recoveryCodes']);
-        Route::delete('profile/two-factor', [TwoFactorController::class, 'destroy']);
+            // Préférences — affichage, notifications, consentements RGPD
+            Route::get('profile/preferences', [PreferencesController::class, 'show']);
+            Route::put('profile/preferences', [PreferencesController::class, 'update']);
+            Route::put('profile/notification-preferences', [PreferencesController::class, 'updateNotifications']);
+            Route::put('profile/consents', [PreferencesController::class, 'updateConsents']);
 
-        // Sécurité — sessions actives (jetons Sanctum)
-        Route::get('profile/sessions', [SessionController::class, 'index']);
-        Route::delete('profile/sessions/others', [SessionController::class, 'destroyOthers']);
-        Route::delete('profile/sessions/{id}', [SessionController::class, 'destroy']);
+            // Sécurité — double authentification (2FA TOTP)
+            Route::get('profile/two-factor', [TwoFactorController::class, 'show']);
+            Route::post('profile/two-factor', [TwoFactorController::class, 'store']);
+            Route::post('profile/two-factor/confirm', [TwoFactorController::class, 'confirm']);
+            Route::post('profile/two-factor/recovery-codes', [TwoFactorController::class, 'recoveryCodes']);
+            Route::delete('profile/two-factor', [TwoFactorController::class, 'destroy']);
 
-        // Conformité RGPD — export & suppression
-        Route::get('profile/export', [PrivacyController::class, 'export']);
-        Route::delete('profile', [PrivacyController::class, 'destroy']);
+            // Sécurité — sessions actives (jetons Sanctum)
+            Route::get('profile/sessions', [SessionController::class, 'index']);
+            Route::delete('profile/sessions/others', [SessionController::class, 'destroyOthers']);
+            Route::delete('profile/sessions/{id}', [SessionController::class, 'destroy']);
 
-        // Onboarding — parcours d'accueil versionné (mibeko-dashboard#136)
-        Route::middleware('throttle:onboarding_progress')->group(function () {
-            Route::get('onboarding/journey', [OnboardingController::class, 'index']);
-            Route::patch('onboarding/steps/{stepKey}', [OnboardingController::class, 'updateStep']);
-            Route::post('onboarding/postpone', [OnboardingController::class, 'postpone']);
-            Route::post('onboarding/replay', [OnboardingController::class, 'replay']);
+            // Conformité RGPD — export & suppression
+            Route::get('profile/export', [PrivacyController::class, 'export']);
+            Route::delete('profile', [PrivacyController::class, 'destroy']);
+
+            // Onboarding — parcours d'accueil versionné (mibeko-dashboard#136)
+            Route::middleware('throttle:onboarding_progress')->group(function () {
+                Route::get('onboarding/journey', [OnboardingController::class, 'index']);
+                Route::patch('onboarding/steps/{stepKey}', [OnboardingController::class, 'updateStep']);
+                Route::post('onboarding/postpone', [OnboardingController::class, 'postpone']);
+                Route::post('onboarding/replay', [OnboardingController::class, 'replay']);
+            });
+
+            // Mesure d'activation produit (mibeko-dashboard#137)
+            Route::middleware('throttle:product_events')
+                ->post('product-events', [ProductEventController::class, 'store']);
+
+            // Facturation (Cashier / Stripe)
+            Route::get('billing', [BillingController::class, 'overview']);
+            Route::get('billing/manual-grants', [BillingController::class, 'manualGrants']);
+            Route::get('billing/manual-grants/{grant}/receipt', [BillingController::class, 'manualGrantReceipt']);
+            Route::get('billing/payment-orders', [ManualPaymentOrderController::class, 'index']);
+            Route::post('billing/payment-orders/{paymentOrder}/declare', [ManualPaymentOrderController::class, 'declare']);
+            Route::get('billing/credits', [BillingController::class, 'credits']);
+            Route::put('billing/info', [BillingController::class, 'updateInfo']);
+            Route::post('billing/checkout', [BillingController::class, 'checkout']);
+            Route::get('billing/portal', [BillingController::class, 'portal']);
+            Route::get('billing/invoices/{invoiceId}/pdf', [BillingController::class, 'downloadInvoice']);
+
+            // Dossiers — synchronisation multi-appareils (mobile) + liste web via ?full=1
+            Route::get('dossiers', [DossierController::class, 'index']);
+            Route::post('dossiers/sync', [DossierController::class, 'sync']);
+
+            // Dossiers — CRUD « affaire » du tableau de bord web
+            Route::post('dossiers', [DossierWebController::class, 'store']);
+            Route::get('dossiers/{dossier}', [DossierWebController::class, 'show']);
+            Route::patch('dossiers/{dossier}', [DossierWebController::class, 'update']);
+            Route::delete('dossiers/{dossier}', [DossierWebController::class, 'destroy']);
+            Route::post('dossiers/{dossier}/echeances', [DossierEcheanceController::class, 'store']);
+            Route::patch('echeances/{echeance}', [DossierEcheanceController::class, 'update']);
+            Route::delete('echeances/{echeance}', [DossierEcheanceController::class, 'destroy']);
+
+            // Dossiers — annexes (références juridiques, pièces, documents générés)
+            Route::post('dossiers/{dossier}/references', [DossierAnnexController::class, 'storeReference']);
+            Route::delete('dossiers/{dossier}/references/{target}', [DossierAnnexController::class, 'destroyReference']);
+            Route::post('dossiers/{dossier}/pieces', [DossierAnnexController::class, 'storePiece']);
+            Route::delete('dossiers/{dossier}/pieces/{piece}', [DossierAnnexController::class, 'destroyPiece']);
+            Route::post('dossiers/{dossier}/documents', [DossierAnnexController::class, 'storeDocument']);
+            Route::delete('dossiers/{dossier}/documents/{document}', [DossierAnnexController::class, 'destroyDocument']);
+
+            // Notifications
+            Route::get('notifications', [NotificationController::class, 'index']);
+            Route::patch('notifications/{id}/read', [NotificationController::class, 'markAsRead']);
+            Route::post('notifications/read-all', [NotificationController::class, 'markAllAsRead']);
+            Route::delete('notifications/{id}', [NotificationController::class, 'destroy']);
+
+            // Assistant IA (Mibeko IA)
+            Route::get('assistant/references', [AiAssistantController::class, 'references']);
+            Route::get('assistant/conversations', [AiAssistantController::class, 'index']);
+            Route::get('assistant/conversations/{id}', [AiAssistantController::class, 'show']);
+            Route::put('assistant/conversations/{id}', [AiAssistantController::class, 'update']);
+            Route::delete('assistant/conversations/{id}', [AiAssistantController::class, 'destroy']);
+            Route::post('assistant/chat/{id?}', [AiAssistantController::class, 'chat'])->middleware('throttle:ai_assistant');
+
+            // Avis 👍/👎 sur une réponse de l'assistant.
+            Route::post('assistant/messages/{message}/feedback', [AiAssistantController::class, 'feedback']);
+            Route::delete('assistant/messages/{message}/feedback', [AiAssistantController::class, 'deleteFeedback']);
+
+            // Bibliothèque — IA à la demande (streaming SSE, sans état)
+            Route::post('library/explain', [LibraryAiController::class, 'explain'])->middleware('throttle:ai_assistant');
+            Route::post('library/synthesis', [LibraryAiController::class, 'synthesis'])->middleware('throttle:ai_assistant');
+
+            // BE5 - PDF Export : jeton signé à courte durée de vie (mibeko-dashboard#86)
+            // pour le clic direct <a href> du lecteur Bibliothèque et l'URL brute
+            // mobile, qui ne portent aucun jeton Bearer. Vérifie l'entitlement
+            // `export` une fois ici ; l'export lui-même (hors auth:sanctum, plus
+            // bas) fait confiance à la signature qui en résulte.
+            Route::get('legal-documents/{id}/export-token', [LegalDocumentExportController::class, 'mintDocumentToken']);
+            Route::get('articles/{id}/export-token', [LegalDocumentExportController::class, 'mintArticleToken']);
         });
-
-        // Mesure d'activation produit (mibeko-dashboard#137)
-        Route::middleware('throttle:product_events')
-            ->post('product-events', [ProductEventController::class, 'store']);
-
-        // Facturation (Cashier / Stripe)
-        Route::get('billing', [BillingController::class, 'overview']);
-        Route::get('billing/manual-grants', [BillingController::class, 'manualGrants']);
-        Route::get('billing/manual-grants/{grant}/receipt', [BillingController::class, 'manualGrantReceipt']);
-        Route::get('billing/payment-orders', [ManualPaymentOrderController::class, 'index']);
-        Route::post('billing/payment-orders/{paymentOrder}/declare', [ManualPaymentOrderController::class, 'declare']);
-        Route::get('billing/credits', [BillingController::class, 'credits']);
-        Route::put('billing/info', [BillingController::class, 'updateInfo']);
-        Route::post('billing/checkout', [BillingController::class, 'checkout']);
-        Route::get('billing/portal', [BillingController::class, 'portal']);
-        Route::get('billing/invoices/{invoiceId}/pdf', [BillingController::class, 'downloadInvoice']);
-
-        // Dossiers — synchronisation multi-appareils (mobile) + liste web via ?full=1
-        Route::get('dossiers', [DossierController::class, 'index']);
-        Route::post('dossiers/sync', [DossierController::class, 'sync']);
-
-        // Dossiers — CRUD « affaire » du tableau de bord web
-        Route::post('dossiers', [DossierWebController::class, 'store']);
-        Route::get('dossiers/{dossier}', [DossierWebController::class, 'show']);
-        Route::patch('dossiers/{dossier}', [DossierWebController::class, 'update']);
-        Route::delete('dossiers/{dossier}', [DossierWebController::class, 'destroy']);
-        Route::post('dossiers/{dossier}/echeances', [DossierEcheanceController::class, 'store']);
-        Route::patch('echeances/{echeance}', [DossierEcheanceController::class, 'update']);
-        Route::delete('echeances/{echeance}', [DossierEcheanceController::class, 'destroy']);
-
-        // Dossiers — annexes (références juridiques, pièces, documents générés)
-        Route::post('dossiers/{dossier}/references', [DossierAnnexController::class, 'storeReference']);
-        Route::delete('dossiers/{dossier}/references/{target}', [DossierAnnexController::class, 'destroyReference']);
-        Route::post('dossiers/{dossier}/pieces', [DossierAnnexController::class, 'storePiece']);
-        Route::delete('dossiers/{dossier}/pieces/{piece}', [DossierAnnexController::class, 'destroyPiece']);
-        Route::post('dossiers/{dossier}/documents', [DossierAnnexController::class, 'storeDocument']);
-        Route::delete('dossiers/{dossier}/documents/{document}', [DossierAnnexController::class, 'destroyDocument']);
-
-        // Notifications
-        Route::get('notifications', [NotificationController::class, 'index']);
-        Route::patch('notifications/{id}/read', [NotificationController::class, 'markAsRead']);
-        Route::post('notifications/read-all', [NotificationController::class, 'markAllAsRead']);
-        Route::delete('notifications/{id}', [NotificationController::class, 'destroy']);
-
-        // Assistant IA (Mibeko IA)
-        Route::get('assistant/references', [AiAssistantController::class, 'references']);
-        Route::get('assistant/conversations', [AiAssistantController::class, 'index']);
-        Route::get('assistant/conversations/{id}', [AiAssistantController::class, 'show']);
-        Route::put('assistant/conversations/{id}', [AiAssistantController::class, 'update']);
-        Route::delete('assistant/conversations/{id}', [AiAssistantController::class, 'destroy']);
-        Route::post('assistant/chat/{id?}', [AiAssistantController::class, 'chat'])->middleware('throttle:ai_assistant');
-
-        // Avis 👍/👎 sur une réponse de l'assistant.
-        Route::post('assistant/messages/{message}/feedback', [AiAssistantController::class, 'feedback']);
-        Route::delete('assistant/messages/{message}/feedback', [AiAssistantController::class, 'deleteFeedback']);
-
-        // Bibliothèque — IA à la demande (streaming SSE, sans état)
-        Route::post('library/explain', [LibraryAiController::class, 'explain'])->middleware('throttle:ai_assistant');
-        Route::post('library/synthesis', [LibraryAiController::class, 'synthesis'])->middleware('throttle:ai_assistant');
-
-        // BE5 - PDF Export : jeton signé à courte durée de vie (mibeko-dashboard#86)
-        // pour le clic direct <a href> du lecteur Bibliothèque et l'URL brute
-        // mobile, qui ne portent aucun jeton Bearer. Vérifie l'entitlement
-        // `export` une fois ici ; l'export lui-même (hors auth:sanctum, plus
-        // bas) fait confiance à la signature qui en résulte.
-        Route::get('legal-documents/{id}/export-token', [LegalDocumentExportController::class, 'mintDocumentToken']);
-        Route::get('articles/{id}/export-token', [LegalDocumentExportController::class, 'mintArticleToken']);
     });
 
     // Bibliothèque — lecture publique : contenu identique pour tous, mis en

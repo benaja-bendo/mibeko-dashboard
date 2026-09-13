@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Traits\HttpResponses;
+use Illuminate\Auth\Events\Registered;
 use Illuminate\Contracts\Encryption\DecryptException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -33,19 +34,20 @@ class AuthController extends Controller
 
         // `status` est renseigné ici et pas seulement laissé au défaut de la
         // colonne : un compte né sans statut est invisible à tout filtre
-        // `status = 'active'` (quota, veille, statistiques), et 81 % des comptes
-        // de production l'étaient. `active` — et non `pending` — parce que rien
-        // ne restreint aujourd'hui un compte non vérifié : la vérification
-        // d'e-mail et l'état qui l'accompagne relèvent de mibeko-front#5.
+        // `status = 'active'` (quota, veille, statistiques). La vérification
+        // d'e-mail est portée par un indicateur séparé afin de ne pas confondre
+        // activation administrative et accès conditionnel au produit.
         $user = User::create([
             'name' => $request->name,
             'email' => $request->email,
             'password' => Hash::make($request->password),
             'status' => 'active',
+            'email_verification_required' => true,
         ]);
 
         $user->assignRole('mobile_user');
         $user->mobileProfile()->create();
+        event(new Registered($user));
 
         return $this->success([
             'token' => $user->createToken($request->device_name)->plainTextToken,

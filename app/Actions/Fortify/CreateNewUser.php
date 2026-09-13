@@ -37,6 +37,7 @@ class CreateNewUser implements CreatesNewUsers
             'email' => $input['email'],
             'password' => $input['password'],
             'status' => 'active',
+            'email_verification_required' => true,
         ]);
 
         // Premier utilisateur = admin, les autres = mobile_user
