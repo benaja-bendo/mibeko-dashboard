@@ -25,6 +25,7 @@ it('returns the full account payload with settings', function () {
         ->assertJsonPath('success', true)
         ->assertJsonPath('data.name', 'Me Tshala')
         ->assertJsonPath('data.settings.locale', 'fr')
+        ->assertJsonPath('data.settings.theme', 'mibeko-classic')
         ->assertJsonPath('data.settings.timezone', 'Africa/Brazzaville')
         ->assertJsonStructure([
             'data' => [

@@ -18,6 +18,10 @@ class UserSetting extends Model implements Auditable
     use HasUuids;
     use \OwenIt\Auditing\Auditable;
 
+    protected $attributes = [
+        'theme' => 'mibeko-classic',
+    ];
+
     protected $fillable = [
         'user_id',
         'locale',
@@ -185,7 +189,7 @@ class UserSetting extends Model implements Auditable
     {
         return [
             'locale' => 'fr',
-            'theme' => 'lex-gold',
+            'theme' => 'mibeko-classic',
             'timezone' => 'Africa/Brazzaville',
             'date_format' => 'd/m/Y',
             'notification_preferences' => self::defaultNotificationPreferences(),
