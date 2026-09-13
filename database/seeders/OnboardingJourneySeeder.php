@@ -38,6 +38,7 @@ class OnboardingJourneySeeder extends Seeder
                 'scope' => 'common',
                 'binding' => OnboardingJourney::BINDING_USAGE_CONTEXT,
                 'config' => [
+                    'title' => "Quel est votre cadre d'usage ?",
                     'options' => collect(MobileProfile::USAGE_CONTEXTS)
                         ->map(fn (string $code) => ['code' => $code, 'label_key' => "onboarding.usage_context.{$code}"])
                         ->all(),
@@ -53,7 +54,7 @@ class OnboardingJourneySeeder extends Seeder
                 // (taxonomie "Thèmes de vie" existante, GET library/themes) —
                 // éviter de dupliquer une taxonomie qui a déjà sa propre
                 // source de vérité.
-                'config' => ['source' => 'tags:themes-de-vie'],
+                'config' => ['title' => "Des centres d'intérêt à signaler ?", 'source' => 'tags:themes-de-vie'],
                 'conditions' => [],
             ],
             [
