@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict 7M06CLV42Mrh4Ggt7ocACJkuEbe0b96eyoWZfvSjaDtWKAl11QN8sgQejHMfUKx
+\restrict 5AfYdVSWeLOKtnMQ202tcGqaDQN43r5PqAdAxJOMxONmmjBKiJQ6vIY10mDL9fz
 
 -- Dumped from database version 16.11 (Debian 16.11-1.pgdg12+1)
 -- Dumped by pg_dump version 18.1
@@ -2751,6 +2751,13 @@ CREATE UNIQUE INDEX onboarding_journeys_one_active_per_key ON public.onboarding_
 
 
 --
+-- Name: onboarding_journeys_one_draft_per_key; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX onboarding_journeys_one_draft_per_key ON public.onboarding_journeys USING btree (key) WHERE ((status)::text = 'draft'::text);
+
+
+--
 -- Name: plan_grant_movements_plan_grant_id_type_index; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -3477,13 +3484,13 @@ ALTER TABLE ONLY public.user_settings
 -- PostgreSQL database dump complete
 --
 
-\unrestrict 7M06CLV42Mrh4Ggt7ocACJkuEbe0b96eyoWZfvSjaDtWKAl11QN8sgQejHMfUKx
+\unrestrict 5AfYdVSWeLOKtnMQ202tcGqaDQN43r5PqAdAxJOMxONmmjBKiJQ6vIY10mDL9fz
 
 --
 -- PostgreSQL database dump
 --
 
-\restrict Fg73wrypg80scI02qt0OlcXl3Ud2SynUybWDGNzCVXsVLdT3VPjBgooOdpPFaoX
+\restrict YIy6wfBCxYT16XERrNH9dTcoFhLrvXWkWbKELKuFiSd4GfCa4vc3l93LKHA5Kh5
 
 -- Dumped from database version 16.11 (Debian 16.11-1.pgdg12+1)
 -- Dumped by pg_dump version 18.1
@@ -3577,6 +3584,7 @@ COPY public.migrations (id, migration, batch) FROM stdin;
 90	2026_09_12_122612_create_product_activation_cohort_stats_table	47
 91	2026_09_13_120000_add_email_verification_required_to_users_table	48
 92	2026_09_13_130000_use_light_theme_as_default_for_user_settings	48
+93	2026_09_13_081200_enforce_one_draft_per_onboarding_journey_key	49
 \.
 
 
@@ -3584,12 +3592,12 @@ COPY public.migrations (id, migration, batch) FROM stdin;
 -- Name: migrations_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.migrations_id_seq', 92, true);
+SELECT pg_catalog.setval('public.migrations_id_seq', 93, true);
 
 
 --
 -- PostgreSQL database dump complete
 --
 
-\unrestrict Fg73wrypg80scI02qt0OlcXl3Ud2SynUybWDGNzCVXsVLdT3VPjBgooOdpPFaoX
+\unrestrict YIy6wfBCxYT16XERrNH9dTcoFhLrvXWkWbKELKuFiSd4GfCa4vc3l93LKHA5Kh5
 

@@ -6,6 +6,8 @@ use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Facades\DB;
+use OwenIt\Auditing\Auditable as AuditableTrait;
+use OwenIt\Auditing\Contracts\Auditable;
 
 /**
  * Parcours d'onboarding versionné — mibeko-dashboard#136.
@@ -14,9 +16,9 @@ use Illuminate\Support\Facades\DB;
  * du contenu, cf. `Article`/`ArticleVersion`) ; `is_active` distingue LA
  * version couramment servie pour une `key` parmi toutes celles publiées.
  */
-class OnboardingJourney extends Model
+class OnboardingJourney extends Model implements Auditable
 {
-    use HasUuids;
+    use AuditableTrait, HasUuids;
 
     public const STATUS_DRAFT = 'draft';
 

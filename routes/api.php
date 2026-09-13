@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\V1\Admin\DocumentTypeController as AdminDocumentTyp
 use App\Http\Controllers\Api\V1\Admin\ImpersonationController as AdminImpersonationController;
 use App\Http\Controllers\Api\V1\Admin\InstitutionController as AdminInstitutionController;
 use App\Http\Controllers\Api\V1\Admin\ManualPaymentOrderController as AdminManualPaymentOrderController;
+use App\Http\Controllers\Api\V1\Admin\OnboardingJourneyController as AdminOnboardingJourneyController;
 use App\Http\Controllers\Api\V1\Admin\OverviewController as AdminOverviewController;
 use App\Http\Controllers\Api\V1\Admin\PublishedDocumentExtractionRepairController;
 use App\Http\Controllers\Api\V1\Admin\SanteController as AdminSanteController;
@@ -417,6 +418,17 @@ Route::prefix('v1')->middleware('throttle:api')->group(function () {
                 ->only(['index', 'store', 'update', 'destroy']);
             Route::apiResource('tags', AdminTagController::class)
                 ->only(['index', 'store', 'update', 'destroy']);
+
+            // Éditeur de parcours d'onboarding (mibeko-front#41) : contenu
+            // déclaratif borné, prévisualisation sans effet et versions immuables.
+            Route::get('onboarding-journeys', [AdminOnboardingJourneyController::class, 'index']);
+            Route::post('onboarding-journeys/drafts', [AdminOnboardingJourneyController::class, 'store']);
+            Route::post('onboarding-journeys/validate', [AdminOnboardingJourneyController::class, 'validateDefinition']);
+            Route::post('onboarding-journeys/preview', [AdminOnboardingJourneyController::class, 'preview']);
+            Route::patch('onboarding-journeys/{onboardingJourney}', [AdminOnboardingJourneyController::class, 'update']);
+            Route::post('onboarding-journeys/{onboardingJourney}/publish', [AdminOnboardingJourneyController::class, 'publish']);
+            Route::post('onboarding-journeys/{onboardingJourney}/rollback', [AdminOnboardingJourneyController::class, 'rollback']);
+            Route::post('onboarding-journeys/{onboardingJourney}/archive', [AdminOnboardingJourneyController::class, 'archive']);
 
             // ── Quotas IA par palier (mibeko-dashboard#95) ─────────────────────
             Route::get('ai-quota-tiers', [AdminAiQuotaTierController::class, 'index'])
