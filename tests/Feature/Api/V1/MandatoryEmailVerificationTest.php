@@ -26,7 +26,8 @@ it('valide l’adresse depuis le lien signé puis ouvre les fonctionnalités du 
 
     $this->get($url)
         ->assertOk()
-        ->assertSee('Adresse e-mail vérifiée');
+        ->assertSee('Adresse e-mail vérifiée')
+        ->assertSee(rtrim((string) config('app.frontend_url'), '/').'/auth/verifier-email', false);
 
     expect($user->fresh()->hasVerifiedEmail())->toBeTrue();
 

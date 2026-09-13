@@ -145,5 +145,7 @@ Route::get('/email/verify/{id}/{hash}', function (Request $request, string $id, 
         event(new Verified($user));
     }
 
-    return response()->view('auth.email-verified');
+    return response()->view('auth.email-verified', [
+        'frontendUrl' => rtrim((string) config('app.frontend_url'), '/').'/auth/verifier-email',
+    ]);
 })->middleware(['signed', 'throttle:6,1'])->name('verification.verify');
