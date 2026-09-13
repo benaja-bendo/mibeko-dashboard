@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict g7VjuCPIuMgdNmAbUv1IFJZ8CEZUNSGhmiH2Lttw0oSrQ5jZvnqfWrK5L0ubqyh
+\restrict 7M06CLV42Mrh4Ggt7ocACJkuEbe0b96eyoWZfvSjaDtWKAl11QN8sgQejHMfUKx
 
 -- Dumped from database version 16.11 (Debian 16.11-1.pgdg12+1)
 -- Dumped by pg_dump version 18.1
@@ -289,7 +289,8 @@ CREATE TABLE public.ai_usage_logs (
     created_at timestamp(0) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     error_class character varying(255),
     error_message character varying(500),
-    tool_calls_count smallint
+    tool_calls_count smallint,
+    has_citation boolean
 );
 
 
@@ -450,7 +451,7 @@ CREATE TABLE public.credit_ledger_entries (
     created_by uuid,
     created_at timestamp(0) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     CONSTRAINT credit_ledger_entries_amount_not_zero_check CHECK ((amount <> 0)),
-    CONSTRAINT credit_ledger_entries_type_check CHECK (((type)::text = ANY ((ARRAY['purchase'::character varying, 'consumption'::character varying, 'correction'::character varying])::text[])))
+    CONSTRAINT credit_ledger_entries_type_check CHECK (((type)::text = ANY (ARRAY[('purchase'::character varying)::text, ('consumption'::character varying)::text, ('correction'::character varying)::text])))
 );
 
 
@@ -698,7 +699,7 @@ CREATE TABLE public.extraction_runs (
     markdown_media_file_id uuid,
     json_media_file_id uuid,
     meta jsonb DEFAULT '{}'::jsonb,
-    CONSTRAINT extraction_runs_source_check CHECK (((source)::text = ANY ((ARRAY['MINERU'::character varying, 'MANUAL_UPLOAD'::character varying, 'PARSING'::character varying, 'STRUCTURATION_LLM'::character varying])::text[]))),
+    CONSTRAINT extraction_runs_source_check CHECK (((source)::text = ANY (ARRAY[('MINERU'::character varying)::text, ('MANUAL_UPLOAD'::character varying)::text, ('PARSING'::character varying)::text, ('STRUCTURATION_LLM'::character varying)::text]))),
     CONSTRAINT extraction_runs_status_check CHECK (((status)::text = ANY (ARRAY[('queued'::character varying)::text, ('running'::character varying)::text, ('succeeded'::character varying)::text, ('failed'::character varying)::text, ('partial'::character varying)::text, ('needs_review'::character varying)::text, ('discarded'::character varying)::text])))
 );
 
@@ -854,10 +855,10 @@ CREATE TABLE public.legal_documents (
     curation_status_changed_at timestamp(0) without time zone,
     provenance_inconnue boolean DEFAULT false NOT NULL,
     CONSTRAINT chk_legal_documents_role_logic CHECK (((((document_role)::text = 'STOCK'::text) AND (consolidation_as_of IS NOT NULL) AND (official_journal_id IS NULL) AND (stock_code IS NOT NULL)) OR (((document_role)::text = 'FLUX'::text) AND (consolidation_as_of IS NULL)))),
-    CONSTRAINT legal_documents_curation_status_check CHECK (((curation_status)::text = ANY ((ARRAY['draft'::character varying, 'review'::character varying, 'validated'::character varying, 'published'::character varying])::text[]))),
+    CONSTRAINT legal_documents_curation_status_check CHECK (((curation_status)::text = ANY (ARRAY[('draft'::character varying)::text, ('review'::character varying)::text, ('validated'::character varying)::text, ('published'::character varying)::text]))),
     CONSTRAINT legal_documents_document_role_check CHECK (((document_role)::text = ANY (ARRAY[('STOCK'::character varying)::text, ('FLUX'::character varying)::text]))),
     CONSTRAINT legal_documents_legal_scope_check CHECK (((legal_scope)::text = ANY (ARRAY[('national'::character varying)::text, ('ohada'::character varying)::text, ('communautaire'::character varying)::text]))),
-    CONSTRAINT legal_documents_libelle_descriptif_source_check CHECK ((((libelle_descriptif IS NULL) AND (libelle_descriptif_source IS NULL)) OR ((libelle_descriptif IS NOT NULL) AND ((libelle_descriptif_source)::text = ANY ((ARRAY['article'::character varying, 'manuel'::character varying])::text[]))))),
+    CONSTRAINT legal_documents_libelle_descriptif_source_check CHECK ((((libelle_descriptif IS NULL) AND (libelle_descriptif_source IS NULL)) OR ((libelle_descriptif IS NOT NULL) AND ((libelle_descriptif_source)::text = ANY (ARRAY[('article'::character varying)::text, ('manuel'::character varying)::text]))))),
     CONSTRAINT legal_documents_statut_check CHECK (((statut)::text = ANY (ARRAY[('vigueur'::character varying)::text, ('abroge'::character varying)::text, ('projet'::character varying)::text])))
 );
 
@@ -984,7 +985,10 @@ CREATE TABLE public.mobile_profiles (
     app_preferences json,
     created_at timestamp(0) without time zone DEFAULT CURRENT_TIMESTAMP,
     updated_at timestamp(0) without time zone DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT mobile_profiles_profession_check CHECK (((profession IS NULL) OR ((profession)::text = ANY ((ARRAY['Citoyen'::character varying, 'Étudiant'::character varying, 'Professionnel du droit'::character varying, 'Autre'::character varying])::text[]))))
+    usage_context character varying(255),
+    job_title character varying(255),
+    CONSTRAINT mobile_profiles_profession_check CHECK (((profession IS NULL) OR ((profession)::text = ANY (ARRAY[('Citoyen'::character varying)::text, ('Étudiant'::character varying)::text, ('Professionnel du droit'::character varying)::text, ('Autre'::character varying)::text])))),
+    CONSTRAINT mobile_profiles_usage_context_check CHECK (((usage_context IS NULL) OR ((usage_context)::text = ANY ((ARRAY['personal'::character varying, 'studies'::character varying, 'professional'::character varying, 'other'::character varying])::text[]))))
 );
 
 
@@ -1075,6 +1079,67 @@ CREATE TABLE public.official_journals (
     created_at timestamp(0) without time zone DEFAULT CURRENT_TIMESTAMP,
     updated_at timestamp(0) without time zone DEFAULT CURRENT_TIMESTAMP,
     deleted_at timestamp(0) without time zone
+);
+
+
+--
+-- Name: onboarding_enrollments; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.onboarding_enrollments (
+    id uuid NOT NULL,
+    user_id uuid NOT NULL,
+    journey_id uuid NOT NULL,
+    journey_key character varying(60) NOT NULL,
+    status character varying(20) DEFAULT 'not_started'::character varying NOT NULL,
+    started_at timestamp(0) with time zone,
+    last_started_at timestamp(0) with time zone,
+    completed_at timestamp(0) with time zone,
+    postponed_at timestamp(0) with time zone,
+    last_activity_at timestamp(0) with time zone,
+    replay_count integer DEFAULT 0 NOT NULL,
+    last_client_mutation_id character varying(255),
+    created_at timestamp(0) without time zone,
+    updated_at timestamp(0) without time zone,
+    CONSTRAINT onboarding_enrollments_status_check CHECK (((status)::text = ANY ((ARRAY['not_started'::character varying, 'in_progress'::character varying, 'postponed'::character varying, 'completed'::character varying])::text[])))
+);
+
+
+--
+-- Name: onboarding_journeys; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.onboarding_journeys (
+    id uuid NOT NULL,
+    key character varying(60) NOT NULL,
+    version integer NOT NULL,
+    status character varying(20) DEFAULT 'draft'::character varying NOT NULL,
+    is_active boolean DEFAULT false NOT NULL,
+    definition jsonb NOT NULL,
+    published_at timestamp(0) with time zone,
+    created_at timestamp(0) without time zone,
+    updated_at timestamp(0) without time zone,
+    CONSTRAINT onboarding_journeys_active_implies_published_check CHECK (((NOT is_active) OR ((status)::text = 'published'::text))),
+    CONSTRAINT onboarding_journeys_status_check CHECK (((status)::text = ANY ((ARRAY['draft'::character varying, 'published'::character varying, 'archived'::character varying])::text[])))
+);
+
+
+--
+-- Name: onboarding_step_progress; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.onboarding_step_progress (
+    id uuid NOT NULL,
+    enrollment_id uuid NOT NULL,
+    step_key character varying(100) NOT NULL,
+    viewed_at timestamp(0) with time zone,
+    skipped_at timestamp(0) with time zone,
+    completed_at timestamp(0) with time zone,
+    value jsonb,
+    last_client_mutation_id character varying(255),
+    client_updated_at bigint,
+    created_at timestamp(0) without time zone,
+    updated_at timestamp(0) without time zone
 );
 
 
@@ -1175,7 +1240,7 @@ CREATE TABLE public.plan_grant_movements (
     created_at timestamp(0) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     CONSTRAINT plan_grant_movements_amount_not_zero_check CHECK ((amount_fcfa <> 0)),
     CONSTRAINT plan_grant_movements_sign_check CHECK (((((type)::text = 'collected'::text) AND (amount_fcfa > 0)) OR (((type)::text = 'refund'::text) AND (amount_fcfa < 0)) OR ((type)::text = 'correction'::text))),
-    CONSTRAINT plan_grant_movements_type_check CHECK (((type)::text = ANY ((ARRAY['collected'::character varying, 'refund'::character varying, 'correction'::character varying])::text[])))
+    CONSTRAINT plan_grant_movements_type_check CHECK (((type)::text = ANY (ARRAY[('collected'::character varying)::text, ('refund'::character varying)::text, ('correction'::character varying)::text])))
 );
 
 
@@ -1234,6 +1299,64 @@ CREATE TABLE public.plan_grants (
 
 
 --
+-- Name: product_activation_cohort_stats; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.product_activation_cohort_stats (
+    id bigint NOT NULL,
+    cohort_week date NOT NULL,
+    cohort_size integer NOT NULL,
+    reached_search_useful integer NOT NULL,
+    reached_success_reply integer NOT NULL,
+    reached_activation_candidate integer NOT NULL,
+    median_days_to_activation numeric(6,2),
+    d7_eligible integer NOT NULL,
+    d7_returned integer NOT NULL,
+    computed_at timestamp(0) without time zone NOT NULL
+);
+
+
+--
+-- Name: product_activation_cohort_stats_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.product_activation_cohort_stats_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: product_activation_cohort_stats_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.product_activation_cohort_stats_id_seq OWNED BY public.product_activation_cohort_stats.id;
+
+
+--
+-- Name: product_activation_events; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.product_activation_events (
+    id uuid NOT NULL,
+    user_id uuid,
+    event_type character varying(30) NOT NULL,
+    surface character varying(10) NOT NULL,
+    usage_context character varying(20),
+    onboarding_journey_version integer,
+    reference_type character varying(20) NOT NULL,
+    reference_id uuid NOT NULL,
+    duration_ms integer,
+    client_event_id character varying(100) NOT NULL,
+    created_at timestamp(0) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    CONSTRAINT product_activation_events_event_type_check CHECK (((event_type)::text = ANY ((ARRAY['search_useful'::character varying, 'source_opened_after_answer'::character varying])::text[]))),
+    CONSTRAINT product_activation_events_surface_check CHECK (((surface)::text = ANY ((ARRAY['web'::character varying, 'mobile'::character varying])::text[])))
+);
+
+
+--
 -- Name: publication_checklists; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -1246,7 +1369,7 @@ CREATE TABLE public.publication_checklists (
     criteria jsonb NOT NULL,
     document_snapshot_updated_at timestamp(0) without time zone,
     created_at timestamp(0) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    CONSTRAINT publication_checklists_outcome_check CHECK (((outcome)::text = ANY ((ARRAY['passed'::character varying, 'blocked'::character varying, 'forced'::character varying])::text[])))
+    CONSTRAINT publication_checklists_outcome_check CHECK (((outcome)::text = ANY (ARRAY[('passed'::character varying)::text, ('blocked'::character varying)::text, ('forced'::character varying)::text])))
 );
 
 
@@ -1463,7 +1586,7 @@ CREATE TABLE public.user_settings (
     billing_info json,
     created_at timestamp(0) without time zone,
     updated_at timestamp(0) without time zone,
-    theme character varying(255) DEFAULT 'lex-gold'::character varying NOT NULL,
+    theme character varying(255) DEFAULT 'mibeko-classic'::character varying NOT NULL,
     ai_quota_override_limit integer,
     ai_quota_override_note character varying(255)
 );
@@ -1493,7 +1616,8 @@ CREATE TABLE public.users (
     pm_last_four character varying(4),
     trial_ends_at timestamp(0) without time zone,
     suspended_at timestamp(0) without time zone,
-    suspension_reason character varying(255)
+    suspension_reason character varying(255),
+    email_verification_required boolean DEFAULT false NOT NULL
 );
 
 
@@ -1558,6 +1682,13 @@ ALTER TABLE ONLY public.personal_access_tokens ALTER COLUMN id SET DEFAULT nextv
 --
 
 ALTER TABLE ONLY public.plan_grant_reminders ALTER COLUMN id SET DEFAULT nextval('public.plan_grant_reminders_id_seq'::regclass);
+
+
+--
+-- Name: product_activation_cohort_stats id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.product_activation_cohort_stats ALTER COLUMN id SET DEFAULT nextval('public.product_activation_cohort_stats_id_seq'::regclass);
 
 
 --
@@ -1974,6 +2105,14 @@ ALTER TABLE ONLY public.mobile_profiles
 
 
 --
+-- Name: mobile_profiles mobile_profiles_user_id_unique; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.mobile_profiles
+    ADD CONSTRAINT mobile_profiles_user_id_unique UNIQUE (user_id);
+
+
+--
 -- Name: model_has_permissions model_has_permissions_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -2027,6 +2166,54 @@ ALTER TABLE ONLY public.notifications
 
 ALTER TABLE ONLY public.official_journals
     ADD CONSTRAINT official_journals_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: onboarding_enrollments onboarding_enrollments_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.onboarding_enrollments
+    ADD CONSTRAINT onboarding_enrollments_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: onboarding_enrollments onboarding_enrollments_user_id_journey_key_unique; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.onboarding_enrollments
+    ADD CONSTRAINT onboarding_enrollments_user_id_journey_key_unique UNIQUE (user_id, journey_key);
+
+
+--
+-- Name: onboarding_journeys onboarding_journeys_key_version_unique; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.onboarding_journeys
+    ADD CONSTRAINT onboarding_journeys_key_version_unique UNIQUE (key, version);
+
+
+--
+-- Name: onboarding_journeys onboarding_journeys_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.onboarding_journeys
+    ADD CONSTRAINT onboarding_journeys_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: onboarding_step_progress onboarding_step_progress_enrollment_id_step_key_unique; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.onboarding_step_progress
+    ADD CONSTRAINT onboarding_step_progress_enrollment_id_step_key_unique UNIQUE (enrollment_id, step_key);
+
+
+--
+-- Name: onboarding_step_progress onboarding_step_progress_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.onboarding_step_progress
+    ADD CONSTRAINT onboarding_step_progress_pkey PRIMARY KEY (id);
 
 
 --
@@ -2091,6 +2278,38 @@ ALTER TABLE ONLY public.plan_grant_reminders
 
 ALTER TABLE ONLY public.plan_grants
     ADD CONSTRAINT plan_grants_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: product_activation_cohort_stats product_activation_cohort_stats_cohort_week_unique; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.product_activation_cohort_stats
+    ADD CONSTRAINT product_activation_cohort_stats_cohort_week_unique UNIQUE (cohort_week);
+
+
+--
+-- Name: product_activation_cohort_stats product_activation_cohort_stats_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.product_activation_cohort_stats
+    ADD CONSTRAINT product_activation_cohort_stats_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: product_activation_events product_activation_events_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.product_activation_events
+    ADD CONSTRAINT product_activation_events_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: product_activation_events product_activation_events_user_id_event_type_client_event_id_un; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.product_activation_events
+    ADD CONSTRAINT product_activation_events_user_id_event_type_client_event_id_un UNIQUE (user_id, event_type, client_event_id);
 
 
 --
@@ -2525,6 +2744,13 @@ CREATE INDEX manual_payment_orders_user_id_created_at_index ON public.manual_pay
 
 
 --
+-- Name: onboarding_journeys_one_active_per_key; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX onboarding_journeys_one_active_per_key ON public.onboarding_journeys USING btree (key) WHERE is_active;
+
+
+--
 -- Name: plan_grant_movements_plan_grant_id_type_index; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -2543,6 +2769,20 @@ CREATE INDEX plan_grant_movements_reference_id_index ON public.plan_grant_moveme
 --
 
 CREATE INDEX plan_grants_user_id_plan_starts_at_ends_at_index ON public.plan_grants USING btree (user_id, plan, starts_at, ends_at);
+
+
+--
+-- Name: product_activation_events_event_type_created_at_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX product_activation_events_event_type_created_at_index ON public.product_activation_events USING btree (event_type, created_at);
+
+
+--
+-- Name: product_activation_events_user_id_created_at_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX product_activation_events_user_id_created_at_index ON public.product_activation_events USING btree (user_id, created_at);
 
 
 --
@@ -3090,6 +3330,30 @@ ALTER TABLE ONLY public.notifications
 
 
 --
+-- Name: onboarding_enrollments onboarding_enrollments_journey_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.onboarding_enrollments
+    ADD CONSTRAINT onboarding_enrollments_journey_id_foreign FOREIGN KEY (journey_id) REFERENCES public.onboarding_journeys(id) ON DELETE RESTRICT;
+
+
+--
+-- Name: onboarding_enrollments onboarding_enrollments_user_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.onboarding_enrollments
+    ADD CONSTRAINT onboarding_enrollments_user_id_foreign FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+
+--
+-- Name: onboarding_step_progress onboarding_step_progress_enrollment_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.onboarding_step_progress
+    ADD CONSTRAINT onboarding_step_progress_enrollment_id_foreign FOREIGN KEY (enrollment_id) REFERENCES public.onboarding_enrollments(id) ON DELETE CASCADE;
+
+
+--
 -- Name: plan_grant_movements plan_grant_movements_created_by_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -3135,6 +3399,14 @@ ALTER TABLE ONLY public.plan_grants
 
 ALTER TABLE ONLY public.plan_grants
     ADD CONSTRAINT plan_grants_user_id_foreign FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+
+--
+-- Name: product_activation_events product_activation_events_user_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.product_activation_events
+    ADD CONSTRAINT product_activation_events_user_id_foreign FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE SET NULL;
 
 
 --
@@ -3205,13 +3477,13 @@ ALTER TABLE ONLY public.user_settings
 -- PostgreSQL database dump complete
 --
 
-\unrestrict g7VjuCPIuMgdNmAbUv1IFJZ8CEZUNSGhmiH2Lttw0oSrQ5jZvnqfWrK5L0ubqyh
+\unrestrict 7M06CLV42Mrh4Ggt7ocACJkuEbe0b96eyoWZfvSjaDtWKAl11QN8sgQejHMfUKx
 
 --
 -- PostgreSQL database dump
 --
 
-\restrict kCukGWLGoDX5tdwrEzpDJDuHpdL2UbIT4eLHlEkRBjpxpkDDqdQbDAIZKOcVhqQ
+\restrict Fg73wrypg80scI02qt0OlcXl3Ud2SynUybWDGNzCVXsVLdT3VPjBgooOdpPFaoX
 
 -- Dumped from database version 16.11 (Debian 16.11-1.pgdg12+1)
 -- Dumped by pg_dump version 18.1
@@ -3295,6 +3567,16 @@ COPY public.migrations (id, migration, batch) FROM stdin;
 71	2026_09_11_140001_add_created_by_to_curation_flags_table	43
 72	2026_09_11_162230_create_publication_checklists_table	44
 73	2026_09_11_162231_add_provenance_inconnue_to_legal_documents_table	44
+74	2026_09_12_075936_add_usage_context_and_job_title_to_mobile_profiles_table	45
+75	2026_09_12_075937_add_unique_user_id_to_mobile_profiles_table	45
+79	2026_09_12_094450_create_onboarding_journeys_table	46
+80	2026_09_12_094451_create_onboarding_enrollments_table	46
+81	2026_09_12_094452_create_onboarding_step_progress_table	46
+88	2026_09_12_122609_add_has_citation_to_ai_usage_logs_table	47
+89	2026_09_12_122611_create_product_activation_events_table	47
+90	2026_09_12_122612_create_product_activation_cohort_stats_table	47
+91	2026_09_13_120000_add_email_verification_required_to_users_table	48
+92	2026_09_13_130000_use_light_theme_as_default_for_user_settings	48
 \.
 
 
@@ -3302,12 +3584,12 @@ COPY public.migrations (id, migration, batch) FROM stdin;
 -- Name: migrations_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.migrations_id_seq', 73, true);
+SELECT pg_catalog.setval('public.migrations_id_seq', 92, true);
 
 
 --
 -- PostgreSQL database dump complete
 --
 
-\unrestrict kCukGWLGoDX5tdwrEzpDJDuHpdL2UbIT4eLHlEkRBjpxpkDDqdQbDAIZKOcVhqQ
+\unrestrict Fg73wrypg80scI02qt0OlcXl3Ud2SynUybWDGNzCVXsVLdT3VPjBgooOdpPFaoX
 
