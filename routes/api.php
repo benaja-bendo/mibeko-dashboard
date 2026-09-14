@@ -341,6 +341,14 @@ Route::prefix('v1')->middleware('throttle:api')->group(function () {
         Route::post('document-relations', [DocumentRelationController::class, 'store']);
         Route::delete('relations/{id}', [DocumentRelationController::class, 'destroy']);
 
+        // Détection et triage des relations MODIFIE/ABROGE candidates
+        // (dashboard#123) — le détecteur ne crée jamais que des candidats,
+        // valider/rejeter est le seul chemin vers `confirmed`/`rejected`.
+        Route::get('document-relations', [DocumentRelationController::class, 'triage']);
+        Route::post('legal-documents/{id}/detect-relations', [DocumentRelationController::class, 'detect']);
+        Route::post('relations/{id}/valider', [DocumentRelationController::class, 'valider']);
+        Route::post('relations/{id}/rejeter', [DocumentRelationController::class, 'rejeter']);
+
         // Vue Contrôle : anomalies d'un document (validation humaine).
         Route::get('legal-documents/{id}/curation-flags', [DocumentCurationController::class, 'index']);
         Route::post('legal-documents/{id}/detect-anomalies', [DocumentCurationController::class, 'detect']);

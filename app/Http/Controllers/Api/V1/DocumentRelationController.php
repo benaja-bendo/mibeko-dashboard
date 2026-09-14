@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Article;
 use App\Models\DocumentRelation;
 use App\Models\LegalDocument;
+use App\Services\Curation\RelationCandidateDetector;
 use App\Traits\GuardsUnpublishedDocuments;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -170,5 +171,84 @@ class DocumentRelationController extends Controller
             ]);
 
         return $this->success($documents->concat($articles), 'Cibles trouvées');
+    }
+
+    /**
+     * Triage global des relations, tous documents confondus — pour la liste
+     * de relecture des candidats détectés par heuristique (dashboard#123).
+     * Distinct de `index()` ci-dessus, scopé lui à un seul article.
+     *
+     * Filtres : ?status=candidate|confirmed|rejected, ?relation_type=…, ?document_id=….
+     */
+    public function triage(Request $request): JsonResponse
+    {
+        $relations = DocumentRelation::query()
+            ->with(['sourceDocument:id,titre_officiel', 'targetDocument:id,titre_officiel', 'sourceArticle', 'targetArticle'])
+            ->when($request->filled('status'), fn ($q) => $q->where('status', $request->query('status')))
+            ->when($request->filled('relation_type'), fn ($q) => $q->where('relation_type', $request->query('relation_type')))
+            ->when($request->filled('document_id'), fn ($q) => $q->where(fn ($sub) => $sub
+                ->where('source_doc_id', $request->query('document_id'))
+                ->orWhere('target_doc_id', $request->query('document_id'))))
+            ->orderByDesc('created_at')
+            ->paginate((int) $request->integer('per_page', 20));
+
+        return $this->paginatedSuccess($relations, null, 'Relations récupérées avec succès');
+    }
+
+    /**
+     * Lance le détecteur heuristique de relations MODIFIE/ABROGE candidates
+     * sur ce document (dashboard#123). Ne crée jamais de relation confirmée :
+     * chaque détection reste `candidate` jusqu'à relecture humaine explicite
+     * (`valider`/`rejeter` ci-dessous). Mirroir de `detect-anomalies`
+     * (`DocumentCurationController::detect`).
+     */
+    public function detect(string $id): JsonResponse
+    {
+        $document = LegalDocument::findOrFail($id);
+
+        $resultat = (new RelationCandidateDetector)->detecter($document->load('articles'));
+
+        return $this->success([
+            'candidats' => collect($resultat['candidats'])->values(),
+            'ambigus' => $resultat['ambigus'],
+        ], 'Détection terminée');
+    }
+
+    /**
+     * Confirme une relation candidate — jamais utilisé pour une relation déjà
+     * `confirmed`/`rejected` : la revalider ne changerait que l'horodatage
+     * sans rien signifier de plus.
+     */
+    public function valider(Request $request, string $id): JsonResponse
+    {
+        $relation = DocumentRelation::findOrFail($id);
+
+        $relation->update([
+            'status' => DocumentRelation::STATUS_CONFIRMED,
+            'reviewed_by' => $request->user()?->id,
+            'reviewed_at' => now(),
+        ]);
+
+        return $this->success($relation, 'Relation validée avec succès');
+    }
+
+    /**
+     * Rejette une relation candidate — conservée (pas de delete), pour que le
+     * détecteur ne la re-propose pas au prochain passage sur le même article.
+     */
+    public function rejeter(Request $request, string $id): JsonResponse
+    {
+        $relation = DocumentRelation::findOrFail($id);
+
+        $validated = $request->validate(['commentaire' => 'nullable|string']);
+
+        $relation->update([
+            'status' => DocumentRelation::STATUS_REJECTED,
+            'reviewed_by' => $request->user()?->id,
+            'reviewed_at' => now(),
+            ...($validated['commentaire'] ?? null ? ['commentaire' => $validated['commentaire']] : []),
+        ]);
+
+        return $this->success($relation, 'Relation rejetée avec succès');
     }
 }
