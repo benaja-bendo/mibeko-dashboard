@@ -25,4 +25,29 @@ class DocumentRelationFactory extends Factory
             'commentaire' => $this->faker->sentence(),
         ];
     }
+
+    public function candidate(): static
+    {
+        return $this->state(fn () => [
+            'status' => DocumentRelation::STATUS_CANDIDATE,
+            'source' => DocumentRelation::SOURCE_HEURISTIC,
+            'confidence' => $this->faker->randomFloat(4, 0.5, 0.95),
+        ]);
+    }
+
+    public function confirmed(): static
+    {
+        return $this->state(fn () => [
+            'status' => DocumentRelation::STATUS_CONFIRMED,
+            'source' => DocumentRelation::SOURCE_HUMAN,
+        ]);
+    }
+
+    public function rejected(): static
+    {
+        return $this->state(fn () => [
+            'status' => DocumentRelation::STATUS_REJECTED,
+            'source' => DocumentRelation::SOURCE_HEURISTIC,
+        ]);
+    }
 }

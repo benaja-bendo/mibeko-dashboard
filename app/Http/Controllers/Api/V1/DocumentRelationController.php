@@ -45,11 +45,15 @@ class DocumentRelationController extends Controller
             ->get();
 
         // Ne jamais révéler un texte non publié via « l'autre bout » d'une
-        // relation : on écarte toute relation dont un document rattaché n'est
-        // pas publié (les éditeurs/admins gardent la vue complète).
+        // relation, ni présenter à un lecteur non privilégié une relation pas
+        // encore validée (candidate) ou écartée (rejected) comme si c'était un
+        // fait établi : on écarte toute relation dont un document rattaché
+        // n'est pas publié, ou dont le statut n'est pas confirmé (les
+        // éditeurs/admins gardent la vue complète, statut inclus).
         if (! $canViewUnpublished) {
             $relations = $relations->filter(function (DocumentRelation $relation): bool {
-                return $this->documentIsPublished($relation->sourceDocument)
+                return $relation->status === DocumentRelation::STATUS_CONFIRMED
+                    && $this->documentIsPublished($relation->sourceDocument)
                     && $this->documentIsPublished($relation->targetDocument);
             })->values();
         }
@@ -99,7 +103,15 @@ class DocumentRelationController extends Controller
             return $this->error(null, 'Une source et une cible sont nécessaires.', 422);
         }
 
-        $relation = DocumentRelation::create($validated);
+        // Une relation créée par ce canal est un acte humain direct : déjà
+        // confirmée, jamais un candidat en attente de relecture (cf.
+        // RelationCandidateDetector pour les relations détectées par heuristique).
+        $relation = DocumentRelation::create([
+            ...$validated,
+            'status' => DocumentRelation::STATUS_CONFIRMED,
+            'source' => DocumentRelation::SOURCE_HUMAN,
+            'created_by' => $request->user()?->id,
+        ]);
 
         return $this->success($relation, 'Relation créée avec succès', 201);
     }

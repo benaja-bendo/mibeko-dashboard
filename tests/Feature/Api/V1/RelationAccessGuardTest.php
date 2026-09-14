@@ -122,3 +122,38 @@ it('exclut les relations pointant vers un document non publié pour un anonyme',
         ->assertOk()
         ->assertJsonCount(2, 'data');
 });
+
+it('exclut les relations candidates ou rejetées pour un anonyme, même entre documents publiés (dashboard#123)', function () {
+    $otherPublished = LegalDocument::factory()->create([
+        'curation_status' => LegalDocument::STATUS_PUBLISHED,
+    ]);
+
+    DocumentRelation::factory()->candidate()->create([
+        'source_doc_id' => $this->published->id,
+        'source_article_id' => $this->publishedArticle->id,
+        'target_doc_id' => $otherPublished->id,
+        'relation_type' => 'ABROGE',
+    ]);
+    DocumentRelation::factory()->rejected()->create([
+        'source_doc_id' => $this->published->id,
+        'source_article_id' => $this->publishedArticle->id,
+        'target_doc_id' => $otherPublished->id,
+        'relation_type' => 'MODIFIE',
+    ]);
+    $confirmed = DocumentRelation::factory()->confirmed()->create([
+        'source_doc_id' => $this->published->id,
+        'source_article_id' => $this->publishedArticle->id,
+        'target_doc_id' => $otherPublished->id,
+        'relation_type' => 'CITE',
+    ]);
+
+    $anon = $this->getJson("/api/v1/articles/{$this->publishedArticle->id}/relations")
+        ->assertOk();
+    expect(collect($anon->json('data'))->pluck('id')->all())->toBe([$confirmed->id]);
+
+    // L'éditeur garde la vue complète, statut candidat/rejeté compris.
+    $this->actingAs($this->editor)
+        ->getJson("/api/v1/articles/{$this->publishedArticle->id}/relations")
+        ->assertOk()
+        ->assertJsonCount(3, 'data');
+});

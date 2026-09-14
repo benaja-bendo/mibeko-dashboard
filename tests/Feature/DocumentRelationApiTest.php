@@ -50,6 +50,24 @@ it('crée une relation document-à-document via /document-relations', function (
     expect(DocumentRelation::first()->effective_date->toDateString())->toBe('2015-10-25');
 });
 
+it('crée une relation manuelle déjà confirmée, avec son auteur (dashboard#123)', function () {
+    $editor = editeurPourRelations();
+    $source = LegalDocument::factory()->create(['curation_status' => 'published']);
+    $target = LegalDocument::factory()->create(['curation_status' => 'published']);
+
+    $this->actingAs($editor)->postJson('/api/v1/document-relations', [
+        'source_doc_id' => $source->id,
+        'target_doc_id' => $target->id,
+        'relation_type' => 'ABROGE',
+    ])->assertCreated();
+
+    $relation = DocumentRelation::first();
+
+    expect($relation->status)->toBe(DocumentRelation::STATUS_CONFIRMED)
+        ->and($relation->source)->toBe(DocumentRelation::SOURCE_HUMAN)
+        ->and($relation->created_by)->toBe($editor->id);
+});
+
 it('refuse une relation sans source ni cible', function () {
     $editor = editeurPourRelations();
 
