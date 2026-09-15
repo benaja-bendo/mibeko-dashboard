@@ -66,6 +66,15 @@ class CurationFlag extends Model implements Auditable
      */
     const SOURCE_REPORT = 'report';
 
+    /**
+     * Jeu de détecteurs de contenu v3 planifié (mibeko-dashboard#141, § 3.5
+     * du plan « boîte de réception »). Jamais `structural` : ce dernier
+     * purge tous ses propres signalements non résolus à chaque exécution
+     * (`StructuralAnomalyDetector::detect()`) — partager la valeur ferait
+     * que les deux mécanismes se marcheraient dessus à chaque passage.
+     */
+    const SOURCE_CONFORMITE = 'conformite';
+
     /** Sévérités : seul `blocking` empêche la publication. */
     const SEVERITY_BLOCKING = 'blocking';
 
