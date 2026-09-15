@@ -17,15 +17,20 @@ use App\Services\Curation\Detecteurs\D7ContenuQuasiVide;
 use App\Services\Curation\Detecteurs\D8ConfusionOcr;
 use App\Services\Curation\Detecteurs\D9BalisageHtmlBrut;
 use App\Services\Curation\Detecteurs\DetecteurContenu;
+use App\Services\Curation\Detecteurs\DoublonTitreDate;
+use App\Services\Curation\Detecteurs\PseudoTitre;
+use App\Services\Curation\Detecteurs\SequenceRepartAUn;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Throwable;
 
 /**
  * Jeu de détecteurs de CONTENU v3 (mibeko-dashboard#141, § 3.5 du plan
- * « boîte de réception »). Port de la requête SQL v2 du corps de `#23`,
- * détecteur par détecteur — voir chaque classe de `Detecteurs/` pour la
- * condition d'origine et sa justification.
+ * « boîte de réception »). Onze détecteurs portent la requête SQL v2 du
+ * corps de `#23`, un par condition de son CTE `flags`/`d10` ; trois ajouts
+ * v3 (`PseudoTitre`, `DoublonTitreDate`, `SequenceRepartAUn`) comblent les
+ * trous connus (`#41`, protocole étape 2) — voir chaque classe de
+ * `Detecteurs/` pour sa condition d'origine et sa justification.
  *
  * Distinct de `StructuralAnomalyDetector` : celui-ci lit l'ARBRE (position
  * des feuilles), celui-ci lit le TEXTE (`contenu_texte`/`titre_officiel`).
@@ -76,6 +81,9 @@ class JeuDeDetecteurs
             new D9BalisageHtmlBrut,
             new D10TitreTronque,
             new ArtefactTechniqueResiduel,
+            new PseudoTitre,
+            new DoublonTitreDate,
+            new SequenceRepartAUn,
         ];
     }
 

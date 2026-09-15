@@ -13,6 +13,9 @@ use App\Services\Curation\Detecteurs\D6LatexResiduel;
 use App\Services\Curation\Detecteurs\D7ContenuQuasiVide;
 use App\Services\Curation\Detecteurs\D8ConfusionOcr;
 use App\Services\Curation\Detecteurs\D9BalisageHtmlBrut;
+use App\Services\Curation\Detecteurs\DoublonTitreDate;
+use App\Services\Curation\Detecteurs\PseudoTitre;
+use App\Services\Curation\Detecteurs\SequenceRepartAUn;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
@@ -220,4 +223,94 @@ it('does not flag content without a residual pipeline marker', function () {
     creerArticle($document, '1', 'Un texte tout à fait propre, sans marqueur technique.');
 
     expect((new ArtefactTechniqueResiduel)->detecter($document))->toBeEmpty();
+});
+
+// ── Ajout v3 — pseudo-titre (fragment de formule administrative) ──────────
+
+it('flags a known administrative closing-formula fragment used as a title', function () {
+    $document = LegalDocument::factory()->create(['titre_officiel' => 'communiqué partout où besoin sera.']);
+
+    $candidats = (new PseudoTitre)->detecter($document);
+
+    expect($candidats)->toHaveCount(1)->and($candidats[0])->not->toHaveKey('article_id');
+});
+
+it('does not flag a normal title', function () {
+    $document = LegalDocument::factory()->create(['titre_officiel' => 'Décret n° 2025-240 du 20 juin 2025 portant nomination']);
+
+    expect((new PseudoTitre)->detecter($document))->toBeEmpty();
+});
+
+// ── Ajout v3 — doublon titre + date sur le corpus ──────────────────────────
+
+it('flags a document sharing the exact same title and signature date with another live document', function () {
+    $original = LegalDocument::factory()->create([
+        'titre_officiel' => 'DECISION DU 9 FEVRIER 1959', 'date_signature' => '1959-02-09',
+    ]);
+    $doublon = LegalDocument::factory()->create([
+        'titre_officiel' => 'DECISION DU 9 FEVRIER 1959', 'date_signature' => '1959-02-09',
+    ]);
+
+    expect((new DoublonTitreDate)->detecter($doublon))->toHaveCount(1);
+    // Symétrique : l'original ressort aussi comme candidat, à charge pour la
+    // revue humaine de décider lequel garder — ce détecteur ne tranche pas.
+    expect((new DoublonTitreDate)->detecter($original))->toHaveCount(1);
+});
+
+it('does not flag two documents with the same title but different dates', function () {
+    LegalDocument::factory()->create(['titre_officiel' => 'DECISION DU 9 FEVRIER 1959', 'date_signature' => '1959-02-09']);
+    $autre = LegalDocument::factory()->create(['titre_officiel' => 'DECISION DU 9 FEVRIER 1959', 'date_signature' => '1960-03-01']);
+
+    expect((new DoublonTitreDate)->detecter($autre))->toBeEmpty();
+});
+
+it('does not flag a document with no twin in the corpus', function () {
+    $document = LegalDocument::factory()->create(['titre_officiel' => 'Décret n° 1-2026 du 1 janvier 2026', 'date_signature' => '2026-01-01']);
+
+    expect((new DoublonTitreDate)->detecter($document))->toBeEmpty();
+});
+
+// ── Ajout v3 — numérotation qui redémarre (protocole étape 2) ──────────────
+
+/** Article numéroté à un ordre d'affichage donné, sans contenu pertinent pour ce détecteur. */
+function creerArticleNumerote(LegalDocument $document, int $ordre, string $numero): void
+{
+    $document->articles()->create(['numero_article' => $numero, 'ordre_affichage' => $ordre]);
+}
+
+it('flags a numbering sequence that restarts twice (compilation of several texts)', function () {
+    $document = LegalDocument::factory()->create();
+    // Deux chutes franches (11→1, puis 11→2), chacune après un numéro > 10 :
+    // deux redémarrages, seuil de compilation atteint (comme côté Python,
+    // count_series_restarts avec min_restarts=2). Suffixe « -doublon » sur
+    // les numéros qui répètent une valeur déjà utilisée : `numero_article`
+    // est unique par document en base (contrainte réelle), une vraie
+    // compilation arrive donc déjà renommée par le mécanisme anti-collision
+    // de l'ingestion — le préfixe numérique reste lisible pour ce détecteur.
+    foreach (['11', '1-doublon', '11-doublon', '2-doublon'] as $i => $numero) {
+        creerArticleNumerote($document, $i + 1, $numero);
+    }
+
+    expect((new SequenceRepartAUn)->detecter($document))->toHaveCount(1);
+});
+
+it('does not flag a normal ascending sequence', function () {
+    $document = LegalDocument::factory()->create();
+    foreach (['1', '2', '3', '4', '5'] as $i => $numero) {
+        creerArticleNumerote($document, $i + 1, $numero);
+    }
+
+    expect((new SequenceRepartAUn)->detecter($document))->toBeEmpty();
+});
+
+it('does not flag a single restart (legitimate embedded annex, not a full compilation)', function () {
+    $document = LegalDocument::factory()->create();
+    // Une seule chute franche (11→1) : signal d'une annexe possible, pas
+    // d'une compilation confirmée — hors périmètre de ce détecteur simplifié
+    // (voir sa docblock).
+    foreach (['11', '1'] as $i => $numero) {
+        creerArticleNumerote($document, $i + 1, $numero);
+    }
+
+    expect((new SequenceRepartAUn)->detecter($document))->toBeEmpty();
 });
