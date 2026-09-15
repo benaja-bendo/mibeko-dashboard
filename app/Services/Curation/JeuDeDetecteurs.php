@@ -90,12 +90,28 @@ class JeuDeDetecteurs
     /**
      * Contrôle un document : exécute chaque détecteur, pose les
      * signalements candidats (idempotent), et enregistre le run.
+     *
+     * `$version` : étiquette écrite dans `document_controle_runs.version_jeu`
+     * (défaut `self::VERSION`) — sert à comparer le portage aux compteurs
+     * historiques de la v2 pendant la transition (critère de clôture de
+     * #141), jamais à faire tourner un jeu de détecteurs différent : le code
+     * exécuté est toujours celui de cette classe.
+     *
+     * `$dryRun` : n'écrit NI `curation_flags` NI `document_controle_runs` —
+     * l'objet renvoyé n'est jamais persisté. Le verdict ignore alors le
+     * mécanisme d'idempotence/exceptions (rien n'existe encore à comparer) :
+     * `echec` dès qu'un détecteur trouve au moins un candidat, exactement le
+     * comportement brut de la requête SQL v2 — c'est ce qui rend la
+     * comparaison de compteurs valide.
      */
-    public function controler(LegalDocument $document): DocumentControleRun
+    public function controler(LegalDocument $document, ?string $version = null, bool $dryRun = false): DocumentControleRun
     {
-        return DB::transaction(function () use ($document) {
+        $version ??= self::VERSION;
+
+        $executer = function () use ($document, $version, $dryRun) {
             $resultats = [];
             $incomplet = false;
+            $anomalieTrouvee = false;
 
             foreach ($this->detecteurs as $detecteur) {
                 try {
@@ -118,15 +134,24 @@ class JeuDeDetecteurs
                 }
 
                 $resultats[$detecteur->code()] = count($candidats);
-                foreach ($candidats as $candidat) {
-                    $this->poserSignalement($document, $detecteur, $candidat);
+                if (count($candidats) > 0) {
+                    $anomalieTrouvee = true;
+                }
+                if (! $dryRun) {
+                    foreach ($candidats as $candidat) {
+                        $this->poserSignalement($document, $detecteur, $candidat);
+                    }
                 }
             }
 
-            $reserveOuverte = CurationFlag::where('document_id', $document->id)
-                ->where('source', CurationFlag::SOURCE_CONFORMITE)
-                ->where('resolved', false)
-                ->exists();
+            if ($dryRun) {
+                $reserveOuverte = $anomalieTrouvee;
+            } else {
+                $reserveOuverte = CurationFlag::where('document_id', $document->id)
+                    ->where('source', CurationFlag::SOURCE_CONFORMITE)
+                    ->where('resolved', false)
+                    ->exists();
+            }
 
             $resultat = match (true) {
                 $incomplet => DocumentControleRun::RESULTAT_INCOMPLET,
@@ -134,14 +159,18 @@ class JeuDeDetecteurs
                 default => DocumentControleRun::RESULTAT_OK,
             };
 
-            return DocumentControleRun::create([
+            $attributs = [
                 'document_id' => $document->id,
-                'version_jeu' => self::VERSION,
+                'version_jeu' => $version,
                 'date' => now(),
                 'resultats' => $resultats,
                 'resultat' => $resultat,
-            ]);
-        });
+            ];
+
+            return $dryRun ? new DocumentControleRun($attributs) : DocumentControleRun::create($attributs);
+        };
+
+        return $dryRun ? $executer() : DB::transaction($executer);
     }
 
     /**

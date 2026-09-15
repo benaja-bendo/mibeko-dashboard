@@ -364,6 +364,12 @@ class LegalDocument extends Model implements Auditable
         return $this->hasMany(Article::class, 'document_id');
     }
 
+    /** Historique des passages du jeu de détecteurs de contenu (mibeko-dashboard#141, § 3.5). */
+    public function controleRuns(): HasMany
+    {
+        return $this->hasMany(DocumentControleRun::class, 'document_id');
+    }
+
     public function relations(): HasMany
     {
         return $this->hasMany(DocumentRelation::class, 'source_doc_id');

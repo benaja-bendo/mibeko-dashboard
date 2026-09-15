@@ -31,6 +31,17 @@ Schedule::command('mibeko:process-rag --limit=50 --batch=10 --delay=1000')
     ->runInBackground()
     ->appendOutputTo(storage_path('logs/process-rag.log'));
 
+// Étage 4, moitié Laravel (mibeko-dashboard#141, § 3.5 du plan « boîte de
+// réception ») : jeu de détecteurs de contenu v3, sur les documents vivants
+// dont le dernier passage est absent ou périmé. Même cadence que
+// mibeko:process-rag, pour la même raison (« quelques travaux par jour »,
+// pas besoin d'un calendrier dédié).
+Schedule::command('mibeko:controler-documents --limit=50')
+    ->everyTenMinutes()
+    ->withoutOverlapping()
+    ->runInBackground()
+    ->appendOutputTo(storage_path('logs/controler-documents.log'));
+
 Schedule::command('mibeko:send-echeance-reminders')
     ->dailyAt('07:00')
     ->withoutOverlapping()
