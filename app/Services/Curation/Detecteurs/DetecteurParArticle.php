@@ -28,6 +28,7 @@ abstract class DetecteurParArticle implements DetecteurContenu
             $candidats[] = [
                 'article_id' => $article->id,
                 'description' => $this->description($article, $contenu),
+                'empreinte_source' => $contenu,
                 'anchor' => $this->anchor($article),
             ];
         }

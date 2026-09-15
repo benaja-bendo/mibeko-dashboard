@@ -44,6 +44,7 @@ class PseudoTitre implements DetecteurContenu
 
         return [[
             'description' => "Le titre officiel « {$document->titre_officiel} » est un fragment de formule de clôture administrative, pas un titre.",
+            'empreinte_source' => $titre,
             'anchor' => null,
         ]];
     }

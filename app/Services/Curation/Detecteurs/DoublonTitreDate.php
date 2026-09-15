@@ -58,6 +58,7 @@ class DoublonTitreDate implements DetecteurContenu
 
         return [[
             'description' => 'Un autre document vivant porte exactement le même titre officiel et la même date : doublon probable.',
+            'empreinte_source' => $titre.'|'.$date,
             'anchor' => null,
         ]];
     }

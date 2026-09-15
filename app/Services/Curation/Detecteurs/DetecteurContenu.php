@@ -34,7 +34,14 @@ interface DetecteurContenu
      * moins d'un candidat par occurrence réelle (§ 3, protocole : « chaque
      * détecteur produit un nombre, consigné même à zéro »).
      *
-     * @return array<int, array{article_id?: string, description: string, anchor?: array<string, mixed>}>
+     * `empreinte_source` : le texte exact dont dépend l'anomalie (le contenu
+     * d'un article, le titre officiel…) — sert à poser une empreinte de
+     * contenu sur le signalement (§ 3.5) : une exception déjà résolue ne
+     * ressort pas tant que ce texte précis n'a pas changé. Jamais absent :
+     * sans lui, toute résolution humaine se comporterait comme si le contenu
+     * changeait à chaque passage (aucune exception ne tiendrait jamais).
+     *
+     * @return array<int, array{article_id?: string, description: string, empreinte_source: string, anchor?: array<string, mixed>|null}>
      */
     public function detecter(LegalDocument $document): array;
 }

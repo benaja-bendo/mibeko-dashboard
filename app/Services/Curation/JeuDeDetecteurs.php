@@ -38,14 +38,14 @@ use Throwable;
  * mécanismes purgent des ensembles disjoints, ils ne se marchent jamais
  * dessus (§ 3.5, revue technique du 14/09).
  *
- * Idempotence (phase 2, minimale) : ne crée jamais un second signalement
- * ouvert pour la même identité (document, détecteur, article). Le mécanisme
- * d'exception par empreinte de contenu (signalement RÉSOLU qui ne doit pas
- * ressortir tant que le contenu à son ancrage n'a pas changé, § 3.5) arrive
- * dans une phase séparée — cette version ne le lit pas encore, donc une
- * exception déjà validée pour D8 (`#27`) resterait résolue mais un contenu
- * inchangé ne serait pas encore protégé d'un nouveau signalement si son
- * précédent avait été rouvert entre-temps ; documenté, pas caché.
+ * Idempotence et exceptions (§ 3.5) : ne crée jamais un second signalement
+ * pour la même identité (document, détecteur, article) tant que le dernier
+ * connu — ouvert OU résolu — porte la même empreinte de contenu. Un
+ * signalement ouvert n'est donc jamais dupliqué (peu importe si le contenu a
+ * bougé entre-temps : la revue humaine reste sur la version actuelle du
+ * texte) ; un signalement résolu (exception « fidèle à la source », `#27`)
+ * ne ressort que si le contenu à son ancrage a réellement changé depuis —
+ * jamais à chaque passage planifié sur un texte inchangé.
  */
 class JeuDeDetecteurs
 {
@@ -145,22 +145,37 @@ class JeuDeDetecteurs
     }
 
     /**
-     * Pose un signalement pour un candidat, sauf s'il en existe déjà un
-     * OUVERT pour la même identité (document, détecteur, article) — jamais
-     * de doublon d'un signalement déjà visible en revue.
+     * Pose un signalement pour un candidat — sauf s'il en existe déjà un pour
+     * la même identité (document, détecteur, article) portant la MÊME
+     * empreinte de contenu, qu'il soit encore ouvert ou déjà résolu (§ 3.5) :
+     * un ouvert n'est jamais dupliqué (la revue humaine voit déjà le texte
+     * actuel), un résolu reste une exception valable tant que le texte à cet
+     * ancrage n'a pas changé. Seul un contenu different depuis le dernier
+     * signalement connu (ou l'absence de tout signalement antérieur) fait
+     * naître une nouvelle ligne.
      *
-     * @param  array{article_id?: string, description: string, anchor?: array<string, mixed>|null}  $candidat
+     * @param  array{article_id?: string, description: string, empreinte_source: string, anchor?: array<string, mixed>|null}  $candidat
      */
     private function poserSignalement(LegalDocument $document, DetecteurContenu $detecteur, array $candidat): void
     {
-        $dejaOuvert = CurationFlag::where('document_id', $document->id)
+        $empreinte = hash('sha256', $candidat['empreinte_source']);
+
+        // Tiebreaker sur `id` (UUID ordonné, `HasUuids`) : deux signalements
+        // posés dans la même seconde ne doivent jamais rendre ce choix
+        // arbitraire (même piège que l'ordre par `date` seul sur
+        // document_controle_runs, tests/Feature/DocumentControleRunTest.php).
+        $dernierSignalement = CurationFlag::where('document_id', $document->id)
             ->where('type_probleme', $detecteur->code())
             ->where('article_id', $candidat['article_id'] ?? null)
-            ->where('resolved', false)
-            ->exists();
+            ->orderByDesc('created_at')
+            ->orderByDesc('id')
+            ->first();
 
-        if ($dejaOuvert) {
-            return;
+        if ($dernierSignalement !== null) {
+            $empreinteConnue = $dernierSignalement->anchor['empreinte'] ?? null;
+            if (! $dernierSignalement->resolved || $empreinteConnue === $empreinte) {
+                return;
+            }
         }
 
         CurationFlag::create([
@@ -170,7 +185,7 @@ class JeuDeDetecteurs
             'type_probleme' => $detecteur->code(),
             'severity' => $detecteur->severity(),
             'description' => $candidat['description'],
-            'anchor' => $candidat['anchor'] ?? null,
+            'anchor' => array_merge($candidat['anchor'] ?? [], ['empreinte' => $empreinte]),
             'resolved' => false,
         ]);
     }

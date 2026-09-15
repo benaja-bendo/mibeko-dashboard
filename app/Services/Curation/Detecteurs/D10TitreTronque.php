@@ -48,6 +48,7 @@ class D10TitreTronque implements DetecteurContenu
 
         return [[
             'description' => "Le titre officiel « {$titre} » se termine par un mot-outil ou un tiret/apostrophe orpheline : probablement tronqué.",
+            'empreinte_source' => $titre,
             'anchor' => null,
         ]];
     }

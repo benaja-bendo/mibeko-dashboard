@@ -81,17 +81,41 @@ it('is idempotent : a second run does not duplicate an already open flag', funct
     expect(DocumentControleRun::where('document_id', $document->id)->count())->toBe(2);
 });
 
-it('does not yet protect a resolved exception from being reflagged (gap tracked for the fingerprint phase)', function () {
-    // Comportement TRANSITOIRE et documenté (docblock de JeuDeDetecteurs) :
-    // l'idempotence de cette phase ne regarde que les signalements OUVERTS.
-    // Un signalement déjà résolu (ex. exception « fidèle à la source »,
-    // #27) n'empêche pas encore un nouveau signalement d'être posé — le
-    // mécanisme d'empreinte de contenu qui doit l'empêcher arrive dans une
-    // phase séparée (§ 3.5). Sans risque en production avant cette phase :
-    // rien n'appelle encore `controler()` sur un calendrier (la commande
-    // planifiée est une phase ultérieure, qui ne peut pas partir avant que
-    // ce mécanisme existe). Ce test fixe le comportement actuel pour qu'un
-    // changement futur le change consciemment, pas par accident.
+it('does not reflag a resolved exception whose content fingerprint is unchanged', function () {
+    // Cas fondateur du mécanisme (#27) : une coquille du JO lui-même,
+    // examinée et classée « fidèle à la source » par un humain — elle ne
+    // doit jamais revenir tant que le texte à cet ancrage n'a pas bougé,
+    // même après des dizaines de passages du contrôle planifié. Un numéro
+    // « -doublon » déclenche aussi D2 (aucun suffixe « doublon » n'est dans
+    // sa liste blanche) : les DEUX exceptions sont pré-résolues, comme un
+    // humain qui revoit ce document le ferait pour les deux à la fois.
+    $document = LegalDocument::factory()->create();
+    $contenu = 'Contenu quelconque, suffisamment long.';
+    creerArticleAvecNumero($document, '12-doublon', $contenu);
+    $article = $document->articles()->first();
+
+    foreach (['d1_numero_doublon', 'd2_numero_hors_liste_blanche'] as $typeProbleme) {
+        CurationFlag::create([
+            'document_id' => $document->id,
+            'article_id' => $article->id,
+            'source' => CurationFlag::SOURCE_CONFORMITE,
+            'type_probleme' => $typeProbleme,
+            'severity' => CurationFlag::SEVERITY_BLOCKING,
+            'description' => 'déjà vu, fidèle à la source (#27)',
+            'anchor' => ['empreinte' => hash('sha256', $contenu)],
+            'resolved' => true,
+            'resolved_at' => now(),
+        ]);
+    }
+
+    $run = (new JeuDeDetecteurs)->controler($document);
+
+    expect(CurationFlag::where('document_id', $document->id)->where('type_probleme', 'd1_numero_doublon')->count())->toBe(1)
+        ->and(CurationFlag::where('document_id', $document->id)->where('type_probleme', 'd2_numero_hors_liste_blanche')->count())->toBe(1)
+        ->and($run->resultat)->toBe(DocumentControleRun::RESULTAT_OK);
+});
+
+it('reflags when the content at the anchor changed since the resolved exception', function () {
     $document = LegalDocument::factory()->create();
     creerArticleAvecNumero($document, '12-doublon', 'Contenu quelconque, suffisamment long.');
     $article = $document->articles()->first();
@@ -102,7 +126,8 @@ it('does not yet protect a resolved exception from being reflagged (gap tracked 
         'source' => CurationFlag::SOURCE_CONFORMITE,
         'type_probleme' => 'd1_numero_doublon',
         'severity' => CurationFlag::SEVERITY_BLOCKING,
-        'description' => 'déjà vu et résolu',
+        'description' => 'empreinte d\'un contenu antérieur, depuis modifié',
+        'anchor' => ['empreinte' => hash('sha256', 'un contenu complètement différent')],
         'resolved' => true,
         'resolved_at' => now(),
     ]);

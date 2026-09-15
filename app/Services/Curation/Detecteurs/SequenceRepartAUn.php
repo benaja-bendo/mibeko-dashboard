@@ -43,9 +43,9 @@ class SequenceRepartAUn implements DetecteurContenu
 
     public function detecter(LegalDocument $document): array
     {
-        $ordinaux = $document->articles()
-            ->orderBy('ordre_affichage')
-            ->pluck('numero_article')
+        $numeros = $document->articles()->orderBy('ordre_affichage')->pluck('numero_article');
+
+        $ordinaux = $numeros
             ->map(fn (?string $numero) => $this->versEntier($numero))
             ->filter(fn (?int $n) => $n !== null)
             ->values();
@@ -65,6 +65,11 @@ class SequenceRepartAUn implements DetecteurContenu
 
         return [[
             'description' => "La numérotation des articles redémarre {$redemarrages} fois : compilation probable de plusieurs textes distincts dans le même document.",
+            // La séquence ENTIÈRE des numéros, dans l'ordre : une réingestion
+            // qui segmente le document (donc qui change les numéros restants)
+            // change cette empreinte, une simple correction de contenu sans
+            // toucher la numérotation ne la change pas.
+            'empreinte_source' => $numeros->implode('|'),
             'anchor' => null,
         ]];
     }
