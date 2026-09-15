@@ -1,0 +1,169 @@
+<?php
+
+namespace App\Services\Curation;
+
+use App\Models\CurationFlag;
+use App\Models\DocumentControleRun;
+use App\Models\LegalDocument;
+use App\Services\Curation\Detecteurs\ArtefactTechniqueResiduel;
+use App\Services\Curation\Detecteurs\D10TitreTronque;
+use App\Services\Curation\Detecteurs\D1NumeroDoublon;
+use App\Services\Curation\Detecteurs\D2NumeroHorsListeBlanche;
+use App\Services\Curation\Detecteurs\D3ArticleAmputeDebut;
+use App\Services\Curation\Detecteurs\D4EnteteJoIncruste;
+use App\Services\Curation\Detecteurs\D5FragmentSommaire;
+use App\Services\Curation\Detecteurs\D6LatexResiduel;
+use App\Services\Curation\Detecteurs\D7ContenuQuasiVide;
+use App\Services\Curation\Detecteurs\D8ConfusionOcr;
+use App\Services\Curation\Detecteurs\D9BalisageHtmlBrut;
+use App\Services\Curation\Detecteurs\DetecteurContenu;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Throwable;
+
+/**
+ * Jeu de détecteurs de CONTENU v3 (mibeko-dashboard#141, § 3.5 du plan
+ * « boîte de réception »). Port de la requête SQL v2 du corps de `#23`,
+ * détecteur par détecteur — voir chaque classe de `Detecteurs/` pour la
+ * condition d'origine et sa justification.
+ *
+ * Distinct de `StructuralAnomalyDetector` : celui-ci lit l'ARBRE (position
+ * des feuilles), celui-ci lit le TEXTE (`contenu_texte`/`titre_officiel`).
+ * `source = CurationFlag::SOURCE_CONFORMITE`, jamais `structural` — les deux
+ * mécanismes purgent des ensembles disjoints, ils ne se marchent jamais
+ * dessus (§ 3.5, revue technique du 14/09).
+ *
+ * Idempotence (phase 2, minimale) : ne crée jamais un second signalement
+ * ouvert pour la même identité (document, détecteur, article). Le mécanisme
+ * d'exception par empreinte de contenu (signalement RÉSOLU qui ne doit pas
+ * ressortir tant que le contenu à son ancrage n'a pas changé, § 3.5) arrive
+ * dans une phase séparée — cette version ne le lit pas encore, donc une
+ * exception déjà validée pour D8 (`#27`) resterait résolue mais un contenu
+ * inchangé ne serait pas encore protégé d'un nouveau signalement si son
+ * précédent avait été rouvert entre-temps ; documenté, pas caché.
+ */
+class JeuDeDetecteurs
+{
+    /**
+     * Toute évolution du jeu incrémente cette constante — le protocole
+     * (règle du certificat) déclasse alors tous les runs antérieurs : ils
+     * ne comptent plus dans la mesure de conformité tant qu'un nouveau
+     * passage ne les a pas recontrôlés.
+     */
+    const VERSION = 'v3';
+
+    /** @var array<int, DetecteurContenu> */
+    private array $detecteurs;
+
+    /**
+     * @param  array<int, DetecteurContenu>|null  $detecteurs  Jeu à exécuter —
+     *                                                         `null` (défaut, y compris en production) utilise le jeu v3 complet.
+     *                                                         Injectable pour les tests (ex. un détecteur factice qui lève,
+     *                                                         pour prouver le comportement `incomplet` sans dépendre d'un vrai
+     *                                                         détecteur en échec).
+     */
+    public function __construct(?array $detecteurs = null)
+    {
+        $this->detecteurs = $detecteurs ?? [
+            new D1NumeroDoublon,
+            new D2NumeroHorsListeBlanche,
+            new D3ArticleAmputeDebut,
+            new D4EnteteJoIncruste,
+            new D5FragmentSommaire,
+            new D6LatexResiduel,
+            new D7ContenuQuasiVide,
+            new D8ConfusionOcr,
+            new D9BalisageHtmlBrut,
+            new D10TitreTronque,
+            new ArtefactTechniqueResiduel,
+        ];
+    }
+
+    /**
+     * Contrôle un document : exécute chaque détecteur, pose les
+     * signalements candidats (idempotent), et enregistre le run.
+     */
+    public function controler(LegalDocument $document): DocumentControleRun
+    {
+        return DB::transaction(function () use ($document) {
+            $resultats = [];
+            $incomplet = false;
+
+            foreach ($this->detecteurs as $detecteur) {
+                try {
+                    $candidats = $detecteur->detecter($document);
+                } catch (Throwable $e) {
+                    // Un détecteur en échec ne doit jamais faire échouer les
+                    // autres (protocole, étape 3 : « un détecteur non
+                    // exécuté se déclare non exécuté ») — jamais `null`
+                    // silencieux dans `resultats`, la valeur `false` dit
+                    // explicitement « non évalué », distincte de `0`.
+                    $resultats[$detecteur->code()] = false;
+                    $incomplet = true;
+                    Log::error('JeuDeDetecteurs : détecteur en échec', [
+                        'document_id' => $document->id,
+                        'detecteur' => $detecteur->code(),
+                        'exception' => $e->getMessage(),
+                    ]);
+
+                    continue;
+                }
+
+                $resultats[$detecteur->code()] = count($candidats);
+                foreach ($candidats as $candidat) {
+                    $this->poserSignalement($document, $detecteur, $candidat);
+                }
+            }
+
+            $reserveOuverte = CurationFlag::where('document_id', $document->id)
+                ->where('source', CurationFlag::SOURCE_CONFORMITE)
+                ->where('resolved', false)
+                ->exists();
+
+            $resultat = match (true) {
+                $incomplet => DocumentControleRun::RESULTAT_INCOMPLET,
+                $reserveOuverte => DocumentControleRun::RESULTAT_ECHEC,
+                default => DocumentControleRun::RESULTAT_OK,
+            };
+
+            return DocumentControleRun::create([
+                'document_id' => $document->id,
+                'version_jeu' => self::VERSION,
+                'date' => now(),
+                'resultats' => $resultats,
+                'resultat' => $resultat,
+            ]);
+        });
+    }
+
+    /**
+     * Pose un signalement pour un candidat, sauf s'il en existe déjà un
+     * OUVERT pour la même identité (document, détecteur, article) — jamais
+     * de doublon d'un signalement déjà visible en revue.
+     *
+     * @param  array{article_id?: string, description: string, anchor?: array<string, mixed>|null}  $candidat
+     */
+    private function poserSignalement(LegalDocument $document, DetecteurContenu $detecteur, array $candidat): void
+    {
+        $dejaOuvert = CurationFlag::where('document_id', $document->id)
+            ->where('type_probleme', $detecteur->code())
+            ->where('article_id', $candidat['article_id'] ?? null)
+            ->where('resolved', false)
+            ->exists();
+
+        if ($dejaOuvert) {
+            return;
+        }
+
+        CurationFlag::create([
+            'document_id' => $document->id,
+            'article_id' => $candidat['article_id'] ?? null,
+            'source' => CurationFlag::SOURCE_CONFORMITE,
+            'type_probleme' => $detecteur->code(),
+            'severity' => $detecteur->severity(),
+            'description' => $candidat['description'],
+            'anchor' => $candidat['anchor'] ?? null,
+            'resolved' => false,
+        ]);
+    }
+}
