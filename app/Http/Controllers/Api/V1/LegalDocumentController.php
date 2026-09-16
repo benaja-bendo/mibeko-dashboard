@@ -1196,6 +1196,7 @@ class LegalDocumentController extends Controller
                                 ! $result->criteria['has_article'] => 'aucun article',
                                 ! $result->criteria['flags_ok'] => 'anomalies de curation non résolues',
                                 ! $result->criteria['provenance_ok'] => 'provenance non renseignée et absence non assumée',
+                                ! ($result->criteria['relecture_ok'] ?? true) => 'relecture dirigée non enregistrée',
                                 default => "date d'entrée en vigueur non renseignée et absence non assumée",
                             },
                         ];

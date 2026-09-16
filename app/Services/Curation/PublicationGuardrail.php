@@ -3,6 +3,7 @@
 namespace App\Services\Curation;
 
 use App\Models\CurationFlag;
+use App\Models\DocumentControleRun;
 use App\Models\LegalDocument;
 use App\Models\PublicationChecklist;
 use App\Models\User;
@@ -18,6 +19,17 @@ use App\Models\User;
  *  - le lot bloque sur TOUTE anomalie non résolue, plus strict, jamais de
  *    `force` — durcissement volontaire déjà en place, préservé via
  *    `$strictFlags`.
+ *
+ * Critère de relecture dirigée (dashboard#142, § 2.5 du plan « boîte de
+ * réception ») : si le DERNIER `document_controle_runs` du document n'est
+ * pas `resultat=ok`, une `document_relecture_preuves` couvrant CE run précis
+ * doit exister — jamais outrepassable par `force` (contrairement aux flags),
+ * cette exigence est procédurale : `force` dit « je publie quand même sans
+ * structurer ce que j'ai vérifié », alors que ce critère existe justement
+ * pour qu'une vérification structurée soit enregistrée, pas seulement
+ * déclarée. Absence de run = rien à exiger (le document n'a jamais été
+ * contrôlé par le jeu v3, ne pas bloquer rétroactivement tout le corpus
+ * avant que la commande planifiée n'ait balayé l'existant).
  *
  * `evaluate()` est pure (aucune écriture) : le contrôleur décide quand
  * appeler `record()`, seulement une fois la transition réellement actée —
@@ -60,6 +72,12 @@ class PublicationGuardrail
         $blockingFlagsCount = $flagsQuery->count();
         $flagsOk = $blockingFlagsCount === 0;
 
+        $dernierControleRun = $document->controleRuns()->orderByDesc('date')->orderByDesc('id')->first();
+        $relectureRequise = $dernierControleRun !== null && $dernierControleRun->resultat !== DocumentControleRun::RESULTAT_OK;
+        $relectureOk = ! $relectureRequise || $document->relecturePreuves()
+            ->where('document_controle_run_id', $dernierControleRun->id)
+            ->exists();
+
         $reasons = [];
 
         if (! $hasArticle) {
@@ -74,6 +92,12 @@ class PublicationGuardrail
         if (! $provenanceOk) {
             $reasons['metadata'] = 'La provenance de ce document (source, date de récupération) est inconnue. Renseignez-la, ou '
                 .'confirmez explicitement (provenance_inconnue) qu\'elle est inconnue pour publier quand même.';
+        }
+
+        if (! $relectureOk) {
+            // Jamais outrepassable par `force` — voir docblock de la classe.
+            $reasons['relecture_dirigee'] = 'Le dernier contrôle de conformité de ce document porte des réserves : une relecture '
+                .'dirigée (points d\'observation, sondage) doit être enregistrée avant de publier.';
         }
 
         $forced = false;
@@ -97,6 +121,9 @@ class PublicationGuardrail
             'blocking_flags_count' => $blockingFlagsCount,
             'flags_ok' => $flagsOk,
             'strict_flags' => $strictFlags,
+            'derniere_version_controle' => $dernierControleRun?->version_jeu,
+            'relecture_requise' => $relectureRequise,
+            'relecture_ok' => $relectureOk,
         ];
 
         return new PublicationGuardrailResult(
