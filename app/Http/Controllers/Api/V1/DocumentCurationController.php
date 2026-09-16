@@ -6,8 +6,11 @@ use App\Http\Controllers\Controller;
 use App\Http\Resources\V1\CurationFlagResource;
 use App\Http\Resources\V1\PublicationChecklistResource;
 use App\Jobs\DetectDocumentAnomalies;
+use App\Models\Article;
 use App\Models\CurationFlag;
+use App\Models\DocumentRelecturePreuve;
 use App\Models\LegalDocument;
+use App\Services\Curation\RelectureDirigeeService;
 use App\Services\Curation\StructuralAnomalyDetector;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -190,5 +193,93 @@ class DocumentCurationController extends Controller
             PublicationChecklistResource::class,
             'Preuves de validation récupérées'
         );
+    }
+
+    /**
+     * Exigences de relecture dirigée pour ce document (mibeko-dashboard#142,
+     * étape 4 du protocole de validation) : points d'observation obligatoires
+     * et sondage, calculés côté serveur — le front (mibeko-front#44) ne
+     * recalcule rien, il affiche ceci et confirme. `preuve_existante` dit si
+     * une relecture couvrant le run ACTUEL a déjà été enregistrée (auquel cas
+     * la publication n'est déjà plus bloquée par ce critère).
+     */
+    public function relectureRequise(string $id, RelectureDirigeeService $service): JsonResponse
+    {
+        $document = LegalDocument::findOrFail($id);
+        Gate::authorize('update', $document);
+
+        $dernierRun = $document->controleRuns()->orderByDesc('date')->orderByDesc('id')->first();
+
+        $articleLabel = function (array $ids) {
+            return Article::whereIn('id', $ids)->get(['id', 'numero_article'])
+                ->map(fn (Article $article) => ['id' => $article->id, 'numero_article' => $article->numero_article])
+                ->values();
+        };
+
+        $preuveExistante = $dernierRun !== null
+            ? $document->relecturePreuves()->where('document_controle_run_id', $dernierRun->id)->latest('created_at')->first()
+            : null;
+
+        return $this->success([
+            'document_controle_run_id' => $dernierRun?->id,
+            'version_jeu' => $dernierRun?->version_jeu,
+            'resultat' => $dernierRun?->resultat,
+            'points_obligatoires' => $articleLabel($service->pointsObligatoires($document)->all()),
+            'sondage_articles' => $articleLabel(
+                $dernierRun !== null ? $service->sondage($document, $dernierRun->version_jeu)->all() : []
+            ),
+            'preuve_existante' => $preuveExistante !== null,
+        ], 'Exigences de relecture dirigée calculées');
+    }
+
+    /**
+     * Enregistre une preuve de relecture dirigée. Ne fait JAMAIS confiance au
+     * client sur ce qui était exigé : les points obligatoires et le sondage
+     * sont recalculés ici, comme dans `relectureRequise()`, et la preuve
+     * n'est acceptée que si elle les couvre INTÉGRALEMENT — le bouton
+     * « Valider » du front peut se désactiver trop tôt par bug, jamais ce
+     * garde-fou.
+     */
+    public function enregistrerRelecture(Request $request, string $id, RelectureDirigeeService $service): JsonResponse
+    {
+        $document = LegalDocument::findOrFail($id);
+        Gate::authorize('update', $document);
+
+        $validated = $request->validate([
+            'points_vus' => ['required', 'array'],
+            'points_vus.*' => ['uuid'],
+            'sondage_confirmes' => ['required', 'array'],
+            'sondage_confirmes.*' => ['uuid'],
+        ]);
+
+        $dernierRun = $document->controleRuns()->orderByDesc('date')->orderByDesc('id')->first();
+        if ($dernierRun === null) {
+            return $this->error(null, 'Ce document n\'a encore aucun passage du jeu de détecteurs à relire.', 422);
+        }
+
+        $pointsObligatoires = $service->pointsObligatoires($document);
+        $sondageAttendu = $service->sondage($document, $dernierRun->version_jeu);
+
+        $pointsManquants = $pointsObligatoires->diff($validated['points_vus']);
+        $sondageManquant = $sondageAttendu->diff($validated['sondage_confirmes']);
+
+        if ($pointsManquants->isNotEmpty() || $sondageManquant->isNotEmpty()) {
+            return $this->error(
+                ['points_manquants' => $pointsManquants->values(), 'sondage_manquant' => $sondageManquant->values()],
+                'Tous les points d\'observation obligatoires et tout le sondage doivent être confirmés.',
+                422
+            );
+        }
+
+        $preuve = DocumentRelecturePreuve::create([
+            'document_id' => $document->id,
+            'actor_id' => $request->user()?->id,
+            'document_controle_run_id' => $dernierRun->id,
+            'points_vus' => $validated['points_vus'],
+            'sondage_articles' => $sondageAttendu->all(),
+            'sondage_confirmes' => $validated['sondage_confirmes'],
+        ]);
+
+        return $this->success(['id' => $preuve->id], 'Preuve de relecture enregistrée', 201);
     }
 }

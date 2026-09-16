@@ -361,6 +361,11 @@ Route::prefix('v1')->middleware('throttle:api')->group(function () {
         // Preuves de validation (dashboard#119) : historique des passages du
         // garde-fou de publication sur ce document.
         Route::get('legal-documents/{id}/publication-checklists', [DocumentCurationController::class, 'publicationChecklists']);
+        // Relecture dirigée (dashboard#142, mibeko-front#44) : points
+        // d'observation obligatoires + sondage calculés côté serveur, et leur
+        // confirmation — le garde-fou de publication lit cette dernière.
+        Route::get('legal-documents/{id}/relecture', [DocumentCurationController::class, 'relectureRequise']);
+        Route::post('legal-documents/{id}/relecture', [DocumentCurationController::class, 'enregistrerRelecture']);
 
         // File de revue priorisée et assignable (mibeko-front#33).
         Route::get('review-queue', [ReviewQueueController::class, 'index']);
