@@ -139,3 +139,55 @@ it('conserve les événements de provenance sous la même forme que ManifestEntr
     expect($provenance->fresh()->evenements)->toHaveCount(1)
         ->and($provenance->fresh()->evenements[0]['quoi'])->toBe('telecharge');
 });
+
+it(
+    'porte les 9 champs de ManifestEntry ajoutés par mibeko-python#28 (fichier, statut, size_bytes, '.
+    'jo_numero/jo_date/jo_annee, titre, retroactif, variantes_multiples)',
+    function () {
+        $provenance = IngestionProvenance::create([
+            'manifest_id' => 'sgg-jo/congo-jo-2026-15',
+            'type_source' => 'journal_officiel',
+            'fichier' => 'sources/sgg-jo/congo-jo-2026-15.pdf',
+            'statut' => 'structure',
+            'size_bytes' => 4_215_872,
+            'source_url' => 'https://sgg.cg/JO/2026/congo-jo-2026-15.pdf',
+            'jo_numero' => '15',
+            'jo_date' => '2026-04-12',
+            'jo_annee' => 2026,
+            'titre' => 'Journal officiel n° 15 du 12 avril 2026',
+            'sha256' => str_repeat('d', 64),
+            'retroactif' => false,
+            'variantes_multiples' => ['sgg-jo/congo-jo-2026-15-bis'],
+            'evenements' => [],
+        ]);
+
+        $fresh = $provenance->fresh();
+
+        expect($fresh->fichier)->toBe('sources/sgg-jo/congo-jo-2026-15.pdf')
+            ->and($fresh->statut)->toBe('structure')
+            ->and($fresh->size_bytes)->toBe(4_215_872)
+            ->and($fresh->jo_numero)->toBe('15')
+            ->and($fresh->jo_date->toDateString())->toBe('2026-04-12')
+            ->and($fresh->jo_annee)->toBe(2026)
+            ->and($fresh->titre)->toBe('Journal officiel n° 15 du 12 avril 2026')
+            ->and($fresh->retroactif)->toBeFalse()
+            ->and($fresh->variantes_multiples)->toBe(['sgg-jo/congo-jo-2026-15-bis']);
+    }
+);
+
+it('accepte une provenance sans aucun des 9 nouveaux champs (lignes déjà écrites avant mibeko-python#28)', function () {
+    $provenance = IngestionProvenance::create([
+        'manifest_id' => 'depots/deja-existante-avant-28',
+        'type_source' => 'acte',
+        'sha256' => str_repeat('e', 64),
+        'evenements' => [],
+    ]);
+
+    $fresh = $provenance->fresh();
+
+    expect($fresh->fichier)->toBeNull()
+        ->and($fresh->statut)->toBeNull()
+        ->and($fresh->size_bytes)->toBeNull()
+        ->and($fresh->retroactif)->toBeFalse()
+        ->and($fresh->variantes_multiples)->toBeNull();
+});

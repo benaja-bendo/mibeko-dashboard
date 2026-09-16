@@ -18,14 +18,26 @@ class IngestionProvenance extends Model
     protected $fillable = [
         'manifest_id',
         'type_source',
+        'fichier',
+        'statut',
+        'size_bytes',
         'source_url',
+        'jo_numero',
+        'jo_date',
+        'jo_annee',
+        'titre',
         'sha256',
         'fetched_at',
+        'retroactif',
+        'variantes_multiples',
         'evenements',
     ];
 
     protected $casts = [
         'fetched_at' => 'datetime',
+        'jo_date' => 'date',
+        'retroactif' => 'boolean',
+        'variantes_multiples' => 'array',
         'evenements' => 'array',
     ];
 }
