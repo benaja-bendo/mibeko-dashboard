@@ -94,6 +94,15 @@ class User extends Authenticatable implements Auditable, MustVerifyEmail
     }
 
     /**
+     * Abonnements de l'utilisateur à des textes/thèmes suivis (veille ciblée,
+     * mibeko-dashboard#125) — distinct de `notification_preferences`.
+     */
+    public function legalWatchSubscriptions(): HasMany
+    {
+        return $this->hasMany(LegalWatchSubscription::class);
+    }
+
+    /**
      * Récupère tous les tags de l'utilisateur — sert désormais aussi de
      * catalogue pour les centres d'intérêt facultatifs du profil
      * (mibeko-dashboard#135), en plus de son usage éditorial d'origine.

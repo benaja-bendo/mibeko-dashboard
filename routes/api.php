@@ -42,6 +42,7 @@ use App\Http\Controllers\Api\V1\InstitutionController;
 use App\Http\Controllers\Api\V1\LegalDocumentController;
 use App\Http\Controllers\Api\V1\LegalDocumentDownloadController;
 use App\Http\Controllers\Api\V1\LegalDocumentExportController;
+use App\Http\Controllers\Api\V1\LegalWatchSubscriptionController;
 use App\Http\Controllers\Api\V1\LibraryAiController;
 use App\Http\Controllers\Api\V1\LibraryHomeController;
 use App\Http\Controllers\Api\V1\LibrarySearchController;
@@ -187,6 +188,11 @@ Route::prefix('v1')->middleware('throttle:api')->group(function () {
             Route::patch('notifications/{id}/read', [NotificationController::class, 'markAsRead']);
             Route::post('notifications/read-all', [NotificationController::class, 'markAllAsRead']);
             Route::delete('notifications/{id}', [NotificationController::class, 'destroy']);
+
+            // Veille ciblée — abonnement à un texte ou un thème (mibeko-dashboard#125)
+            Route::get('watches', [LegalWatchSubscriptionController::class, 'index']);
+            Route::post('watches', [LegalWatchSubscriptionController::class, 'store']);
+            Route::delete('watches/{id}', [LegalWatchSubscriptionController::class, 'destroy']);
 
             // Assistant IA (Mibeko IA)
             Route::get('assistant/references', [AiAssistantController::class, 'references']);
