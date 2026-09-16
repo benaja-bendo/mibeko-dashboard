@@ -370,6 +370,12 @@ class LegalDocument extends Model implements Auditable
         return $this->hasMany(DocumentControleRun::class, 'document_id');
     }
 
+    /** Preuves de relecture dirigée (mibeko-dashboard#142). */
+    public function relecturePreuves(): HasMany
+    {
+        return $this->hasMany(DocumentRelecturePreuve::class, 'document_id');
+    }
+
     public function relations(): HasMany
     {
         return $this->hasMany(DocumentRelation::class, 'source_doc_id');
