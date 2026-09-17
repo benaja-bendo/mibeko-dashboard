@@ -15,18 +15,24 @@ use Illuminate\Support\Str;
  * Alertes issues d'un abonnement EXPLICITE à un texte ou un thème
  * (`LegalWatchSubscription`, mibeko-dashboard#125) — distinctes de la veille
  * légale générale (`LegalWatchNotifier`), diffusée à tout utilisateur qui n'a
- * pas coupé `new_document`. Premier déclencheur livré ici : une
- * `DocumentRelation` ABROGE/MODIFIE/COMPLETE qui passe à `confirmed` alerte
- * les abonnés du texte CIBLE (celui qui « reçoit » la relation).
+ * pas coupé `new_document`. Ici, seuls les abonnés d'une cible précise sont
+ * notifiés, sur deux déclencheurs :
+ *  - une `DocumentRelation` ABROGE/MODIFIE/COMPLETE passe à `confirmed` →
+ *    alerte les abonnés du texte CIBLE (celui qui « reçoit » la relation) ;
+ *  - un texte fraîchement publié porte un thème suivi → alerte ses abonnés.
  *
- * Canal in-app uniquement pour cette passe (push et UI front restent en
- * reliquat, cf. le fil de #125). Gatée par `UserSetting::TYPE_LEGAL_ALERT` —
- * un type de préférence réservé de longue date mais jusqu'ici jamais consommé.
+ * Canal in-app uniquement pour cette passe (push, regroupement multi-lots et
+ * UI front restent en reliquat, cf. le fil de #125). Gatée par
+ * `UserSetting::TYPE_LEGAL_ALERT` — un type de préférence réservé de longue
+ * date mais jusqu'ici jamais consommé.
  */
 class LegalWatchSubscriptionNotifier
 {
     /** Valeur de `notifications.type` pour une alerte de relation confirmée. */
     public const TYPE_RELATION = 'legal_watch_relation';
+
+    /** Valeur de `notifications.type` pour une alerte de thème suivi. */
+    public const TYPE_THEME = 'legal_watch_theme';
 
     /**
      * Types de relation jugés pertinents pour un abonné — portée du ticket,
@@ -110,6 +116,77 @@ class LegalWatchSubscriptionNotifier
                 'url' => $this->documentUrl((string) $target->slug),
             ],
         );
+    }
+
+    /**
+     * Alerte les abonnés d'un thème dont un texte vient d'être publié.
+     *
+     * @param  array<int, string>  $documentIds  Identifiants déjà RÉSERVÉS par
+     *                                           `LegalWatchNotifier::documentsPublished()` (jamais rejoué pour un texte
+     *                                           déjà annoncé : la réservation amont, `watch_notified_at`, garantit
+     *                                           qu'un texte n'arrive ici qu'une seule fois dans sa vie — aucune
+     *                                           déduplication supplémentaire n'est donc nécessaire côté thème).
+     */
+    public function documentsPublished(array $documentIds): int
+    {
+        if ($documentIds === []) {
+            return 0;
+        }
+
+        $documents = LegalDocument::query()
+            ->whereIn('id', $documentIds)
+            ->where('curation_status', LegalDocument::STATUS_PUBLISHED)
+            ->with('tags:id,name')
+            ->get(['id', 'titre_officiel', 'slug']);
+
+        if ($documents->isEmpty()) {
+            return 0;
+        }
+
+        $tagIds = $documents->pluck('tags')->flatten()->pluck('id')->unique();
+
+        if ($tagIds->isEmpty()) {
+            return 0;
+        }
+
+        $subscriptionsByTag = LegalWatchSubscription::query()
+            ->where('watchable_type', LegalWatchSubscription::WATCHABLE_THEME)
+            ->whereIn('watchable_id', $tagIds)
+            ->get(['user_id', 'watchable_id'])
+            ->groupBy('watchable_id');
+
+        if ($subscriptionsByTag->isEmpty()) {
+            return 0;
+        }
+
+        $count = 0;
+
+        foreach ($documents as $document) {
+            foreach ($document->tags as $tag) {
+                $subscribers = $subscriptionsByTag->get($tag->id);
+
+                if ($subscribers === null || $subscribers->isEmpty()) {
+                    continue;
+                }
+
+                $count += $this->notify(
+                    $subscribers->pluck('user_id'),
+                    self::TYPE_THEME,
+                    "Nouveau texte publié — {$tag->name}",
+                    Str::limit((string) $document->titre_officiel, 200),
+                    self::TYPE_THEME.':'.$tag->id.':'.$document->id,
+                    [
+                        'type' => self::TYPE_THEME,
+                        'document_id' => (string) $document->id,
+                        'slug' => (string) $document->slug,
+                        'tag_id' => (string) $tag->id,
+                        'url' => $this->documentUrl((string) $document->slug),
+                    ],
+                );
+            }
+        }
+
+        return $count;
     }
 
     /**

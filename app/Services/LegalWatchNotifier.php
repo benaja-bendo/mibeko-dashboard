@@ -82,6 +82,12 @@ class LegalWatchNotifier
 
         SendLegalWatchNotifications::dispatch($claimed['dispatch_id']);
 
+        // mibeko-dashboard#125 : alerte ciblée des abonnés d'un thème, sur le
+        // même lot RÉSERVÉ ci-dessus (jamais un texte déjà annoncé) — aucune
+        // réservation séparée n'est nécessaire, `watch_notified_at` sert aux
+        // deux mécanismes.
+        app(LegalWatchSubscriptionNotifier::class)->documentsPublished($claimed['document_ids']);
+
         return count($claimed['document_ids']);
     }
 
