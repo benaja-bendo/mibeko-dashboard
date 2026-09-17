@@ -15,6 +15,9 @@ services:
       - mibeko_storage:/var/www/html/storage
       - /opt/docker/mibeko-app/secrets/firebase-credentials.json:/var/www/html/storage/app/mibeko-mobile-34c01-firebase-adminsdk-fbsvc-570bc4918b.json:ro
     networks: [internal, proxy, db_internal]
+    labels:
+      - "dev.dozzle.group=mibeko"
+      - "dev.dozzle.icon=laravel"
 
   nginx:
     image: nginx:1.27-alpine
@@ -34,6 +37,7 @@ services:
       - "traefik.http.routers.mibeko.entrypoints=websecure"
       - "traefik.http.routers.mibeko.tls.certresolver=myresolver"
       - "traefik.http.services.mibeko.loadbalancer.server.port=80"
+      - "dev.dozzle.group=mibeko"
 
   queue:
     image: ghcr.io/${GITHUB_REPOSITORY}:latest
@@ -51,6 +55,9 @@ services:
     networks: [internal, proxy, db_internal]
     depends_on: [app]
     mem_limit: 512m
+    labels:
+      - "dev.dozzle.group=mibeko"
+      - "dev.dozzle.icon=laravel"
 
   scheduler:
     image: ghcr.io/${GITHUB_REPOSITORY}:latest
@@ -63,6 +70,9 @@ services:
       - mibeko_storage:/var/www/html/storage
     networks: [internal, proxy, db_internal]
     depends_on: [app]
+    labels:
+      - "dev.dozzle.group=mibeko"
+      - "dev.dozzle.icon=laravel"
 
   reverb:
     image: ghcr.io/${GITHUB_REPOSITORY}:latest
@@ -81,6 +91,8 @@ services:
       - "traefik.http.routers.mibeko-ws.tls.certresolver=myresolver"
       - "traefik.http.services.mibeko-ws.loadbalancer.server.port=8080"
       - "traefik.http.services.mibeko-ws.loadbalancer.responseforwarding.flushinterval=0"
+      - "dev.dozzle.group=mibeko"
+      - "dev.dozzle.icon=laravel"
     healthcheck:
       test: ["CMD", "php", "-r", "try { new \\SplFileInfo('/tmp'); echo 'ok'; } catch (\\Exception $$e) { exit(1); }"]
       interval: 30s
