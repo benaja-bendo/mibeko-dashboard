@@ -278,7 +278,7 @@ def snapshot_path() -> Path:
 
 
 def snapshot_api(api: Api, document_id: str) -> dict[str, Any]:
-    return api.data("GET", f"/admin/legal-documents/{document_id}/extraction-snapshot")
+    return api.data("GET", f"/legal-documents/{document_id}/extraction-snapshot")
 
 
 def repair_payload(
@@ -287,13 +287,17 @@ def repair_payload(
     *,
     execute: bool,
     motif: str,
+    confirm_deletions: int | None = None,
 ) -> dict[str, Any]:
-    return {
+    payload: dict[str, Any] = {
         "execute": execute,
         "expected_fingerprint": fingerprint,
         "motif": motif,
         "target": target,
     }
+    if confirm_deletions is not None:
+        payload["confirm_deletions"] = confirm_deletions
+    return payload
 
 
 def operation_retirer(plan: dict[str, Any], execute: bool) -> None:
@@ -350,7 +354,7 @@ def operation_reconstruire(plan: dict[str, Any], execute: bool) -> None:
     )
     dry_run = api.data(
         "POST",
-        f"/admin/legal-documents/{document_id}/replace-extraction",
+        f"/legal-documents/{document_id}/replace-extraction",
         repair_payload(
             plan["target"],
             snapshot["expected_fingerprint"],
@@ -367,23 +371,26 @@ def operation_reconstruire(plan: dict[str, Any], execute: bool) -> None:
     if state["status"] != "review":
         raise OperationError("Exécution refusée : retirer d'abord le document en review.")
 
+    deletions = int(dry_run["plan"]["articles_soft_deleted"])
     rollback = snapshot_path()
     rollback.write_text(json.dumps(snapshot, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     make_dump("arrete-3277-reconstruction")
     confirm(
         "Cible : extraction de l'Arrêté n° 3277, déjà en review.\n"
         f"Effet : {state['live_articles']} → {expected['live_articles']} unités vivantes, "
-        f"{state['live_nodes']} → {expected['live_nodes']} divisions ; 0 DELETE physique.\n"
+        f"{state['live_nodes']} → {expected['live_nodes']} divisions ; "
+        f"{deletions} article(s) soft-deleted ; 0 DELETE physique.\n"
         f"Retour arrière : snapshot {rollback} via --operation rollback-extraction."
     )
     result = api.data(
         "POST",
-        f"/admin/legal-documents/{document_id}/replace-extraction",
+        f"/legal-documents/{document_id}/replace-extraction",
         repair_payload(
             plan["target"],
             snapshot["expected_fingerprint"],
             execute=True,
             motif=motif,
+            confirm_deletions=deletions,
         ),
     )
     if not result.get("executed"):
@@ -489,7 +496,7 @@ def operation_rollback_extraction(
     motif = "Retour arrière de la reconstruction #56 depuis le snapshot local contrôlé."
     dry_run = api.data(
         "POST",
-        f"/admin/legal-documents/{document_id}/replace-extraction",
+        f"/legal-documents/{document_id}/replace-extraction",
         repair_payload(
             snapshot["target"],
             current["expected_fingerprint"],
@@ -502,20 +509,23 @@ def operation_rollback_extraction(
         return
     if current_state(document_id)["status"] != "review":
         raise OperationError("Rollback refusé : le document doit rester en review.")
+    deletions = int(dry_run["plan"]["articles_soft_deleted"])
     make_dump("arrete-3277-rollback-extraction")
     confirm(
         "Cible : extraction de l'Arrêté n° 3277 en review.\n"
-        f"Effet : restaurer exactement le snapshot {rollback_file}.\n"
+        f"Effet : restaurer exactement le snapshot {rollback_file} "
+        f"({deletions} article(s) soft-deleted).\n"
         "Retour arrière : dump frais pris juste avant cette restauration."
     )
     result = api.data(
         "POST",
-        f"/admin/legal-documents/{document_id}/replace-extraction",
+        f"/legal-documents/{document_id}/replace-extraction",
         repair_payload(
             snapshot["target"],
             current["expected_fingerprint"],
             execute=True,
             motif=motif,
+            confirm_deletions=deletions,
         ),
     )
     after = snapshot_api(api, document_id)
