@@ -65,11 +65,18 @@ class UserSetting extends Model implements Auditable
     /** Rappel d'échéance d'un abonnement Pro vendu à la main — mibeko-dashboard#121. */
     public const TYPE_BILLING = 'billing';
 
+    /**
+     * Alerte ciblée sur un texte/thème suivi (`LegalWatchSubscription`,
+     * mibeko-dashboard#125) — distincte de `TYPE_NEW_DOCUMENT`, qui reste la
+     * veille générale diffusée à tout le monde.
+     */
+    public const TYPE_LEGAL_ALERT = 'legal_alert';
+
     public const NOTIFICATION_TYPES = [
         'extraction_update', // Mise à jour d'une extraction de document
         self::TYPE_NEW_DOCUMENT, // Nouveau document juridique publié
         'share',             // Partage d'un dossier / document
-        'legal_alert',       // Alerte légale (échéances, nouveautés réglementaires)
+        self::TYPE_LEGAL_ALERT, // Alerte légale (échéances, nouveautés réglementaires)
         self::TYPE_BILLING,  // Rappel d'échéance d'abonnement (pas la confirmation d'achat, toujours envoyée)
         'system',            // Messages système / sécurité
     ];

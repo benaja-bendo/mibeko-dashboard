@@ -9,8 +9,10 @@ use App\Ai\NormalizesContentBlockResponses;
 use App\Ai\Storage\CompactingConversationStore;
 use App\Exceptions\InsufficientCreditsException;
 use App\Models\ArticleVersion;
+use App\Models\DocumentRelation;
 use App\Models\LegalDocument;
 use App\Observers\ArticleVersionObserver;
+use App\Observers\DocumentRelationObserver;
 use App\Observers\LegalDocumentObserver;
 use App\Services\CreditLedger;
 use Dedoc\Scramble\Scramble;
@@ -59,6 +61,7 @@ class AppServiceProvider extends ServiceProvider
 
         ArticleVersion::observe(ArticleVersionObserver::class);
         LegalDocument::observe(LegalDocumentObserver::class);
+        DocumentRelation::observe(DocumentRelationObserver::class);
 
         Gate::define('viewApiDocs', function ($user = null) {
             // Autoriser tout le monde (ou mettre une condition spécifique, par ex: return true;)
