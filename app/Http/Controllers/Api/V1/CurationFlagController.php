@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\V1\CurationFlagResource;
 use App\Models\CurationFlag;
 use App\Traits\HttpResponses;
 use Illuminate\Http\JsonResponse;
@@ -59,5 +60,50 @@ class CurationFlagController extends Controller
             'Signalement enregistré avec succès.',
             201
         );
+    }
+
+    /**
+     * Demander un texte absent du catalogue (mibeko-front#34).
+     *
+     * Distinct de `store()` : authentifié (pas d'endpoint public équivalent
+     * pour ce cas), jamais de cible (`document_id`/`article_id` toujours
+     * nuls — la recherche n'a par définition rien trouvé), et `created_by`
+     * posé pour que l'utilisateur retrouve sa demande via `mine()`.
+     */
+    public function storeMissingText(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'description' => ['required', 'string', 'max:5000'],
+        ]);
+
+        $flag = CurationFlag::create([
+            'source' => CurationFlag::SOURCE_REPORT,
+            'severity' => CurationFlag::SEVERITY_INFO,
+            'type_probleme' => CurationFlag::TYPE_TEXTE_MANQUANT,
+            'description' => $validated['description'],
+            'created_by' => $request->user()->id,
+            'resolved' => false,
+        ]);
+
+        return $this->success(
+            new CurationFlagResource($flag),
+            'Votre demande a été enregistrée.',
+            201
+        );
+    }
+
+    /**
+     * Les demandes de texte manquant de l'utilisateur courant (mibeko-front#34)
+     * — c'est ce qui lui permet de retrouver sa demande plus tard.
+     */
+    public function mine(Request $request): JsonResponse
+    {
+        $flags = CurationFlag::query()
+            ->where('created_by', $request->user()->id)
+            ->where('type_probleme', CurationFlag::TYPE_TEXTE_MANQUANT)
+            ->latest()
+            ->paginate(20);
+
+        return $this->paginatedSuccess($flags, CurationFlagResource::class);
     }
 }

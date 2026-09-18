@@ -75,6 +75,16 @@ class CurationFlag extends Model implements Auditable
      */
     const SOURCE_CONFORMITE = 'conformite';
 
+    /**
+     * Demande de texte manquant (mibeko-front#34) : seul `type_probleme` sans
+     * cible possible — `document_id`/`article_id` restent nuls, la demande
+     * elle-même est dans `description`. Distinct des autres valeurs de
+     * `type_probleme` (chaîne libre posée par les détecteurs), celle-ci a une
+     * constante parce qu'elle conditionne une branche de validation dans
+     * `CurationFlagController::storeMissingText()`.
+     */
+    const TYPE_TEXTE_MANQUANT = 'texte_manquant';
+
     /** Sévérités : seul `blocking` empêche la publication. */
     const SEVERITY_BLOCKING = 'blocking';
 

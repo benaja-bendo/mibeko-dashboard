@@ -139,6 +139,13 @@ Route::prefix('v1')->middleware('throttle:api')->group(function () {
             Route::get('profile/export', [PrivacyController::class, 'export']);
             Route::delete('profile', [PrivacyController::class, 'destroy']);
 
+            // Demande de texte manquant (mibeko-front#34) — réutilise
+            // curation_flags (source=report) plutôt qu'un canal dédié, pour
+            // que l'utilisateur retrouve sa demande dans le même suivi que
+            // les autres signalements.
+            Route::post('library/missing-text-requests', [CurationFlagController::class, 'storeMissingText']);
+            Route::get('library/missing-text-requests', [CurationFlagController::class, 'mine']);
+
             // Onboarding — parcours d'accueil versionné (mibeko-dashboard#136)
             Route::middleware('throttle:onboarding_progress')->group(function () {
                 Route::get('onboarding/journey', [OnboardingController::class, 'index']);
