@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Search\SearchQueryLogger;
+use App\Search\SearchSurface;
 use App\Traits\SearchesArticles;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -24,6 +26,8 @@ use Illuminate\Support\Str;
 class LibrarySearchController extends Controller
 {
     use SearchesArticles;
+
+    public function __construct(private readonly SearchQueryLogger $searchLogger) {}
 
     /**
      * Recherche full-text dans la base juridique.
@@ -76,6 +80,8 @@ class LibrarySearchController extends Controller
             withSemantic: $request->boolean('semantic'),
         );
 
+        $this->searchLogger->log(SearchSurface::LIBRARY_SEARCH, $validated['q'], $paginator->total(), $request->user());
+
         return $this->paginatedSuccess($paginator, null, 'Résultats de recherche récupérés avec succès');
     }
 
@@ -98,12 +104,23 @@ class LibrarySearchController extends Controller
 
         $q = trim($validated['q']);
 
+        $documents = $this->suggestDocuments($q);
+        $articles = $this->suggestArticles($q);
+        $passages = $this->suggestPassages($q);
+
+        $this->searchLogger->log(
+            SearchSurface::LIBRARY_SUGGEST,
+            $q,
+            count($documents) + count($articles) + count($passages),
+            $request->user(),
+        );
+
         return response()->json([
             'success' => true,
             'data' => [
-                'documents' => $this->suggestDocuments($q),
-                'articles' => $this->suggestArticles($q),
-                'passages' => $this->suggestPassages($q),
+                'documents' => $documents,
+                'articles' => $articles,
+                'passages' => $passages,
             ],
         ]);
     }

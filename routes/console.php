@@ -101,6 +101,15 @@ Schedule::command('mibeko:purge-product-events')
     ->runInBackground()
     ->appendOutputTo(storage_path('logs/purge-product-events.log'));
 
+// mibeko-dashboard#111 : rétention courte (90 j par défaut,
+// config('search_logging.retention_days')) car la requête journalisée est une
+// donnée personnelle sensible.
+Schedule::command('mibeko:purge-search-logs')
+    ->monthlyOn(1, '02:30')
+    ->withoutOverlapping()
+    ->runInBackground()
+    ->appendOutputTo(storage_path('logs/purge-search-logs.log'));
+
 // Un e-mail de réinitialisation ou d'invitation qui ne part pas ne doit pas
 // rester muet (mibeko-dashboard#60) : l'API répond 200 dans tous les cas
 // (anti-énumération), et rien d'autre ne surveille cette file. Volontairement

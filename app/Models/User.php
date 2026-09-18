@@ -167,6 +167,15 @@ class User extends Authenticatable implements Auditable, MustVerifyEmail
     }
 
     /**
+     * Recherches journalisées de l'utilisateur (mibeko-dashboard#111) —
+     * couverture RGPD (export/effacement), voir `PrivacyController`.
+     */
+    public function searchLogs(): HasMany
+    {
+        return $this->hasMany(SearchLog::class);
+    }
+
+    /**
      * Récupère les préférences / consentements applicatifs de l'utilisateur.
      */
     public function settings(): HasOne

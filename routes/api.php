@@ -13,6 +13,7 @@ use App\Http\Controllers\Api\V1\Admin\OnboardingJourneyController as AdminOnboar
 use App\Http\Controllers\Api\V1\Admin\OverviewController as AdminOverviewController;
 use App\Http\Controllers\Api\V1\Admin\PublishedDocumentExtractionRepairController;
 use App\Http\Controllers\Api\V1\Admin\SanteController as AdminSanteController;
+use App\Http\Controllers\Api\V1\Admin\SearchLogController as AdminSearchLogController;
 use App\Http\Controllers\Api\V1\Admin\TagController as AdminTagController;
 use App\Http\Controllers\Api\V1\Admin\UserController as AdminUserController;
 use App\Http\Controllers\Api\V1\Admin\UserInvitationController as AdminUserInvitationController;
@@ -430,6 +431,10 @@ Route::prefix('v1')->middleware('throttle:api')->group(function () {
             Route::patch('messages/{message}', [ContactInboxController::class, 'update']);
             Route::get('newsletter-subscriptions', [ContactInboxController::class, 'newsletter']);
             Route::get('newsletter-subscriptions/export', [ContactInboxController::class, 'exportNewsletter']);
+
+            // Requêtes fréquentes / sans résultat (mibeko-dashboard#111)
+            Route::get('search-logs/top', [AdminSearchLogController::class, 'top']);
+            Route::get('search-logs/no-results', [AdminSearchLogController::class, 'noResults']);
 
             Route::apiResource('document-types', AdminDocumentTypeController::class)
                 ->only(['index', 'store', 'update', 'destroy']);

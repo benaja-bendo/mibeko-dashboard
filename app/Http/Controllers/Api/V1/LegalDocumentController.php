@@ -10,6 +10,8 @@ use App\Models\DocumentRelation;
 use App\Models\LegalDocument;
 use App\Models\StructureNode;
 use App\Models\Tag;
+use App\Search\SearchQueryLogger;
+use App\Search\SearchSurface;
 use App\Services\Curation\LibelleDescriptifExtractor;
 use App\Services\Curation\PublicationGuardrail;
 use App\Services\DocumentDeletionService;
@@ -41,6 +43,8 @@ use Spatie\QueryBuilder\QueryBuilder;
 class LegalDocumentController extends Controller
 {
     use GuardsUnpublishedDocuments;
+
+    public function __construct(private readonly SearchQueryLogger $searchLogger) {}
 
     /**
      * Plafond de texte servi d'un coup par `?section=` (lecture continue).
@@ -205,6 +209,8 @@ class LegalDocumentController extends Controller
             ->paginate($perPage);
 
         $this->attachEmbeddingProgress($documents);
+
+        $this->searchLogger->log(SearchSurface::LEGAL_DOCUMENTS_SEARCH, $query, $documents->total(), $request->user());
 
         return $this->paginatedSuccess(
             $documents,

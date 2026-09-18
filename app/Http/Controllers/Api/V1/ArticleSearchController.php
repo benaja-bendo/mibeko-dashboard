@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Search\SearchQueryLogger;
+use App\Search\SearchSurface;
 use App\Traits\SearchesArticles;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Http\Exceptions\HttpResponseException;
@@ -24,6 +26,8 @@ use function Laravel\Ai\agent;
 class ArticleSearchController extends Controller
 {
     use SearchesArticles;
+
+    public function __construct(private readonly SearchQueryLogger $searchLogger) {}
 
     /**
      * Get a single validated article with its document context.
@@ -318,6 +322,13 @@ class ArticleSearchController extends Controller
                 'score' => isset($item->total_score) ? round((float) $item->total_score, 4) : 0,
             ];
         });
+
+        $this->searchLogger->log(
+            str_contains($request->path(), 'articles/search') ? SearchSurface::MOBILE_ARTICLES_SEARCH : SearchSurface::MOBILE_SEARCH,
+            $query ?? '',
+            $paginator->total(),
+            $request->user(),
+        );
 
         $aiAnswer = null;
         $wantsRag = $request->boolean('rag', false);

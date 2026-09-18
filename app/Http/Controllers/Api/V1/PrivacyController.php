@@ -29,7 +29,7 @@ class PrivacyController extends Controller
         $user = $request->user()->load(
             'mobileProfile', 'settings', 'notifications', 'roles', 'tags',
             'onboardingEnrollments.stepsProgress', 'onboardingEnrollments.journey',
-            'productActivationEvents'
+            'productActivationEvents', 'searchLogs'
         );
 
         $payload = [
@@ -81,6 +81,14 @@ class PrivacyController extends Controller
                 'reference_id' => $event->reference_id,
                 'created_at' => $event->created_at->toIso8601String(),
             ]),
+            // mibeko-dashboard#111 : requêtes journalisées, retenues 90 jours
+            // glissants (voir `mibeko:purge-search-logs`).
+            'search_logs' => $user->searchLogs->map(fn ($log) => [
+                'query' => $log->query,
+                'results_count' => $log->results_count,
+                'surface' => $log->surface,
+                'created_at' => $log->created_at->toIso8601String(),
+            ]),
         ];
 
         $filename = 'mibeko-donnees-'.$user->id.'-'.now()->format('Ymd').'.json';
@@ -105,6 +113,13 @@ class PrivacyController extends Controller
 
         $user = $request->user();
         $user->tokens()->delete();
+
+        // mibeko-dashboard#111 : `delete()` sur `User` est un SOFT delete, la
+        // FK `nullOnDelete()` de `search_logs.user_id` ne se déclenche donc
+        // jamais ici — anonymiser explicitement plutôt que laisser le journal
+        // pointer vers un compte supprimé.
+        $user->searchLogs()->update(['user_id' => null]);
+
         $user->delete();
 
         return $this->success(null, 'Votre compte a été supprimé.');
