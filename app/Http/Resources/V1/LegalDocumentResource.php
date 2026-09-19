@@ -42,6 +42,15 @@ class LegalDocumentResource extends JsonResource
             'libelle_descriptif_source' => $this->libelle_descriptif_source,
 
             // Référence & Classification
+            //
+            // Numéro de l'acte en forme normalisée (« 2025-240 », « 3497 ») :
+            // avec `type_code` et `date_signature`, il compose la CITATION du
+            // texte — ce que l'on copie dans un mémoire, et ce dont dérive
+            // l'URL canonique depuis la décision du 19/09/2026. Champ ADDITIF
+            // et nullable : un texte dont le titre a perdu sa référence n'en a
+            // pas, et les clients déjà installés l'ignorent.
+            'numero_acte' => $this->numero_acte,
+            'numero_acte_source' => $this->numero_acte_source,
             'reference_nor' => $this->reference_nor,
             'reference' => $this->reference_nor,
             'type_code' => $this->type_code,
