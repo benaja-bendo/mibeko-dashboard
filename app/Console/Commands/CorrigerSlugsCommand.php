@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Services\Cdn\CdnPurgeScheduler;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -48,7 +49,7 @@ class CorrigerSlugsCommand extends Command
 
     protected $description = 'Remplace le slug de documents nommément listés (aucun champ API équivalent) ; l\'ancien reste résolvable (alias).';
 
-    public function handle(): int
+    public function handle(CdnPurgeScheduler $cdnPurge): int
     {
         $chemin = (string) $this->option('mapping');
 
@@ -197,6 +198,14 @@ class CorrigerSlugsCommand extends Command
         });
 
         $this->info("{$touchees} slug(s) corrigé(s), {$alias} ancien(s) slug(s) conservé(s) en alias.");
+
+        // Purge CDN (dashboard#161) : un slug canonique qui change déplace
+        // l'URL publique du texte — l'ancienne doit désormais répondre en 301
+        // (mibeko-site#45) au lieu d'une copie en cache, la nouvelle doit être
+        // servie sans attendre l'expiration.
+        if ($touchees > 0) {
+            $cdnPurge->scheduleAsync();
+        }
 
         return self::SUCCESS;
     }

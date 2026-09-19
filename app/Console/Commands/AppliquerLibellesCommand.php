@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Models\LegalDocument;
+use App\Services\Cdn\CdnPurgeScheduler;
 use Illuminate\Console\Command;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\Response;
@@ -44,7 +45,7 @@ class AppliquerLibellesCommand extends Command
 
     protected $description = 'Applique un lot relu de libellés descriptifs via l\'API (ne touche jamais au titre).';
 
-    public function handle(): int
+    public function handle(CdnPurgeScheduler $cdnPurge): int
     {
         $chemin = (string) $this->option('liste');
 
@@ -127,7 +128,15 @@ class AppliquerLibellesCommand extends Command
             return $this->simuler($lot, $baseUrl, $source);
         }
 
-        return $this->executer($lot, $baseUrl, $source, $jeton);
+        $statut = $this->executer($lot, $baseUrl, $source, $jeton);
+
+        // Purge CDN (dashboard#161) : l'API a déjà PATCH chaque document
+        // publié, et une purge par écriture serait redondante avec la
+        // fenêtre d'une minute du scheduler — un seul appel après le lot
+        // entier suffit.
+        $cdnPurge->scheduleAsync();
+
+        return $statut;
     }
 
     /**
