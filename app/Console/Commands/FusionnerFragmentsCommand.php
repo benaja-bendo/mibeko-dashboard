@@ -90,8 +90,11 @@ use Illuminate\Support\Str;
  * l'assistant en production n'est PAS invalidé et l'audit prod reste vide** —
  * ils atterrissent dans la base de dev locale. La commande le rappelle
  * explicitement en fin d'exécution ; l'invalidation du cache prod est une
- * étape manuelle, et la traçabilité repose sur le fichier de retour arrière
- * et sur l'historique des versions d'articles, tous deux bien écrits en prod.
+ * étape manuelle. La traçabilité repose sur le fichier de retour arrière
+ * SEUL (dashboard#166, 19/09/2026) : la version corrigée s'écrit désormais
+ * EN PLACE, jamais en ouvrant une nouvelle ligne `article_versions` — cette
+ * table n'est pas un journal d'audit de secours, un vrai amendement légal
+ * doit rester le seul à y ouvrir une période.
  *
  *   php artisan mibeko:fusionner-fragments --connection=pgsql_prod_ro \
  *       --titre-fragment="arrêté pourra faire l’objet d’une suspension ou d’un" \
@@ -777,7 +780,7 @@ class FusionnerFragmentsCommand extends Command
             $this->newLine();
             $this->warn('Deux étapes restent MANUELLES sur la cible :');
             $this->line('  · invalider le cache de réponses de l\'assistant (CorpusVersion) — sinon il sert encore le texte tronqué ;');
-            $this->line('  · l\'audit owen-it de ces écritures n\'existe pas sur la cible ; la trace est le fichier de retour arrière ci-dessus et l\'historique des versions d\'articles.');
+            $this->line('  · l\'audit owen-it de ces écritures n\'existe pas sur la cible (connexion par défaut, cf. docblock de la commande) ; seul le fichier de retour arrière ci-dessus fait foi.');
             $this->line('  · les embeddings des versions corrigées sont à NULL : lancer `mibeko:process-rag` sur la cible.');
         }
 
@@ -868,51 +871,51 @@ class FusionnerFragmentsCommand extends Command
     }
 
     /**
-     * Reproduit le versionnage de `ArticleController::update()` : la version
-     * courante est fermée à aujourd'hui et une neuve est ouverte, sauf si elle
-     * a déjà commencé aujourd'hui (la fermer produirait un daterange vide,
-     * rejeté par `chk_article_versions_validity_not_empty`) — auquel cas elle
-     * est réécrite sur place. L'embedding est remis à NULL dans les deux cas :
-     * l'observateur saute la génération par défaut (`$shouldSkipEmbeddings`),
-     * et sans NULL explicite le vecteur du texte TRONQUÉ survivrait pour
-     * toujours à la correction, `mibeko:process-rag` ne sélectionnant que
-     * `whereNull('embedding')`.
+     * Corrige EN PLACE la version active de l'article tronqué — ne fork
+     * JAMAIS (décision du 19/09/2026, dashboard#166) : recoller un article
+     * coupé par un défaut MinerU est une correction, pas un amendement.
+     * Avant cette règle, cette méthode reproduisait volontairement le
+     * versionnage de l'ancien `ArticleController::update()` (fermer la
+     * version courante, en ouvrir une neuve) comme substitut d'audit — parce
+     * qu'`owen-it/auditing` résout la connexion de ses lignes `audits` sur
+     * `config('audit.drivers.database.connection')`, restée à `null`, donc
+     * la connexion PAR DÉFAUT plutôt que `--connection` : sur une écriture
+     * `pgsql_prod_rw`, l'audit atterrissait dans la base de DÉVELOPPEMENT
+     * (constaté le 10/08/2026, toujours vrai). Forker une version comme
+     * pis-aller à cette lacune d'audit plantait une fausse ligne
+     * `article_versions` — exactement le défaut mesuré en production le
+     * 19/09/2026 (2 486 articles à « versions » dont aucune ne correspond à
+     * un amendement légal). La lacune d'audit reste réelle ; elle ne se
+     * répare plus en polluant l'historique légal. Le fichier de retour
+     * arrière reste la trace de cette opération, comme documenté en fin de
+     * commande.
+     *
+     * L'embedding est systématiquement remis à NULL : l'observateur saute la
+     * génération par défaut (`$shouldSkipEmbeddings`), et sans ce NULL
+     * explicite le vecteur du texte TRONQUÉ survivrait à la correction —
+     * `mibeko:process-rag` ne sélectionne que `whereNull('embedding')`.
      */
     private function reecrireLeContenu(Article $article, string $contenu): void
     {
-        $aujourdhui = now()->toDateString();
         $connexion = (string) $article->getConnectionName();
 
-        $chevauchante = ArticleVersion::on($connexion)
+        $active = ArticleVersion::on($connexion)
             ->where('article_id', $article->id)
-            ->whereRaw('validity_period && daterange(?::date, null)', [$aujourdhui])
+            ->whereRaw('upper_inf(validity_period)')
             ->first();
 
-        if ($chevauchante !== null) {
-            $ouverteAujourdhui = ArticleVersion::on($connexion)
-                ->where('id', $chevauchante->id)
-                ->whereRaw('lower(validity_period) = ?::date', [$aujourdhui])
-                ->exists();
+        if ($active !== null) {
+            $active->update(['contenu_texte' => $contenu, 'embedding' => null]);
 
-            if ($ouverteAujourdhui) {
-                $chevauchante->update(['contenu_texte' => $contenu, 'embedding' => null]);
-
-                return;
-            }
-
-            // Binding paramétré : jamais de date interpolée dans le SQL brut.
-            DB::connection($connexion)->update(
-                'UPDATE article_versions
-                 SET validity_period = daterange(lower(validity_period), ?::date)
-                 WHERE id = ?',
-                [$aujourdhui, $chevauchante->id]
-            );
+            return;
         }
 
+        // Aucune version ouverte (cas de bord non observé en production, où
+        // l'article tronqué a toujours une version active) : en poser une
+        // plutôt que d'échouer silencieusement.
         $article->versions()->create([
             'contenu_texte' => $contenu,
-            'source_locator' => $chevauchante?->source_locator ?? [],
-            'validity_period' => ArticleVersion::makeValidityPeriod($aujourdhui),
+            'validity_period' => ArticleVersion::makeValidityPeriod(now()->toDateString()),
             'validation_status' => 'pending',
             'is_verified' => false,
             'embedding' => null,
