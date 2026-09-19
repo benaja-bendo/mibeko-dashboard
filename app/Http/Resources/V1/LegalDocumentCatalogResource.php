@@ -30,6 +30,10 @@ class LegalDocumentCatalogResource extends JsonResource
             // ADDITIF et nullable : les clients déjà installés l'ignorent.
             // À afficher à côté du titre, jamais à sa place.
             'descriptive_label' => $this->libelle_descriptif,
+            // Numéro d'acte : la pièce qui manquait à l'app mobile pour
+            // composer une citation copiable sans la découper dans le titre.
+            // Additif et nullable, comme le libellé au-dessus.
+            'act_number' => $this->numero_acte,
             'type' => $this->type?->code ?? 'UNKNOWN',
             'version_hash' => $this->versionHash(),
             'last_updated' => $this->updated_at->toIso8601String(),

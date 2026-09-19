@@ -13,11 +13,13 @@ use App\Models\Tag;
 use App\Search\SearchQueryLogger;
 use App\Search\SearchSurface;
 use App\Services\Curation\LibelleDescriptifExtractor;
+use App\Services\Curation\NumeroActeExtractor;
 use App\Services\Curation\PublicationGuardrail;
 use App\Services\DocumentDeletionService;
 use App\Services\LegalWatchNotifier;
 use App\Services\SourcePdfResolver;
 use App\Traits\GuardsUnpublishedDocuments;
+use Closure;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -738,6 +740,34 @@ class LegalDocumentController extends Controller
 
         $validated = $request->validate([
             'titre_officiel' => ['sometimes', 'string', 'max:500'],
+            // Numéro de l'acte, en forme normalisée (« 2025-240 », « 3497 »,
+            // « 80-550/ETR-SGDAAPDP ») : la pièce de la citation qui portera
+            // l'URL canonique (décision du 19/09/2026). Saisi à la main par un
+            // éditeur quand le titre a perdu sa référence — d'où une
+            // provenance obligatoire dès qu'il a une valeur, exactement comme
+            // le libellé descriptif : un numéro relu au Journal officiel n'a
+            // pas la même autorité qu'un numéro extrait d'un titre OCR.
+            'numero_acte' => [
+                'sometimes',
+                'nullable',
+                'string',
+                'max:'.NumeroActeExtractor::LONGUEUR_MAX,
+                // Forme vérifiée ici comme à l'extraction : un numéro mal formé
+                // ne se voit pas, il fabrique une URL canonique fausse et une
+                // collision silencieuse avec le vrai porteur de la citation.
+                function (string $attribut, mixed $valeur, Closure $echec) {
+                    if ($valeur !== null && ! app(NumeroActeExtractor::class)->estConforme((string) $valeur)) {
+                        $echec('Le numéro d\'acte doit être en forme normalisée : sans « n° », '
+                            .'sans espace (« 2025-240 », « 3497 », « 80-550/ETR-SGDAAPDP »).');
+                    }
+                },
+            ],
+            'numero_acte_source' => [
+                'exclude_if:numero_acte,null',
+                'required_with:numero_acte',
+                'string',
+                Rule::in(LegalDocument::NUMERO_ACTE_SOURCES),
+            ],
             // Objet de l'acte DÉRIVÉ de son corps, pour les intitulés qui se
             // réduisent au type, au numéro et à la date (« actes en abrégé » du
             // JO). S'affiche À CÔTÉ du titre officiel, jamais à sa place — et
@@ -806,6 +836,14 @@ class LegalDocumentController extends Controller
         if (array_key_exists('statut', $validated)) {
             $validated['statut_verifie_le'] = now();
             $validated['statut_verifie_par'] = $request->user()?->id;
+        }
+
+        // Retirer le numéro retire sa provenance, pour la même raison que le
+        // libellé ci-dessous : la contrainte CHECK
+        // `legal_documents_numero_acte_source_check` refuse une provenance
+        // orpheline.
+        if (array_key_exists('numero_acte', $validated) && $validated['numero_acte'] === null) {
+            $validated['numero_acte_source'] = null;
         }
 
         // Retirer le libellé retire sa provenance : la contrainte CHECK

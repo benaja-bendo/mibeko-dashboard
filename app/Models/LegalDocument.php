@@ -45,6 +45,8 @@ class LegalDocument extends Model implements Auditable
         'consolidation_as_of',
         'stock_code',
         'titre_officiel',
+        'numero_acte',
+        'numero_acte_source',
         'libelle_descriptif',
         'libelle_descriptif_source',
         'slug',
@@ -64,6 +66,24 @@ class LegalDocument extends Model implements Auditable
         'assigned_at',
         'provenance_inconnue',
     ];
+
+    /**
+     * Numéro d'acte EXTRAIT du titre officiel par `mibeko:proposer-numeros`,
+     * puis relu par un humain. Le titre est du texte libre issu de l'OCR : un
+     * numéro qui en vient n'a pas l'autorité d'un numéro relu au JO.
+     */
+    const NUMERO_ACTE_SOURCE_TITRE = 'titre';
+
+    /** Numéro d'acte saisi à la main par un éditeur (corps de l'acte, JO). */
+    const NUMERO_ACTE_SOURCE_MANUEL = 'manuel';
+
+    /**
+     * Provenances autorisées de `numero_acte` (contrainte CHECK en base,
+     * migration du 19/09/2026).
+     *
+     * @var array<int, string>
+     */
+    const NUMERO_ACTE_SOURCES = [self::NUMERO_ACTE_SOURCE_TITRE, self::NUMERO_ACTE_SOURCE_MANUEL];
 
     /**
      * Objet de l'acte DÉRIVÉ de son corps par `mibeko:proposer-libelles`, puis
@@ -168,6 +188,10 @@ class LegalDocument extends Model implements Auditable
      */
     const VALIDATION_INVALIDATING_FIELDS = [
         'titre_officiel',
+        // Le numéro d'acte porte la citation, donc l'URL canonique cible
+        // (décision du 19/09/2026) : le changer après une validation change
+        // l'identité publique du texte, pas un détail de métadonnée.
+        'numero_acte',
         'libelle_descriptif',
         'date_signature',
         'date_publication',
