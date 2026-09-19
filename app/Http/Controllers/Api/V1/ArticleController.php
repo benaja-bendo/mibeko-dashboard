@@ -127,7 +127,27 @@ class ArticleController extends Controller
     }
 
     /**
-     * Update an article.
+     * Corrige un article : coquille OCR, découpage, mise en forme — jamais un
+     * changement de droit. Décision du 19/09/2026 (dashboard#166) : une
+     * correction ne fork JAMAIS de version, quel que soit le jour. Avant
+     * cette règle, un contenu changé un jour différent de celui où la
+     * version active avait commencé ouvrait une nouvelle ligne
+     * `article_versions` — exactement ce qu'un amendement fait, sans qu'un
+     * texte modificateur ne soit jamais désigné. Mesuré en production le
+     * 19/09 : 2 486 articles avaient ainsi des « versions » dont les dates de
+     * début coïncidaient avec des campagnes de réingestion, jamais avec un
+     * amendement réel — ce chemin (Laravel, ce contrôleur) n'en produit
+     * aucune dans l'audit (`owen-it/auditing`, 0 ligne sur `article_versions`
+     * tous événements confondus) : la cause dominante était côté pipeline
+     * Python, mais la RÈGLE elle-même — jour différent = nouvelle version —
+     * était la même faille, prête à se reproduire ici. Un vrai amendement
+     * passe désormais par `addVersion()`, seul chemin qui fork, et qui
+     * exige de désigner le texte modificateur.
+     *
+     * L'historique d'une correction reste traçable : `ArticleVersion` est
+     * `Auditable`, une mise à jour EN PLACE laisse une ligne `updated` dans
+     * `audits` (qui/quand/avant/après) — pas besoin de forker une période de
+     * validité pour ça.
      */
     public function update(Request $request, string $id, CdnPurgeScheduler $cdnPurge): JsonResponse
     {
@@ -154,7 +174,6 @@ class ArticleController extends Controller
                 $versionHandledStatus = false;
 
                 if (isset($validated['content']) || isset($validated['source_locator'])) {
-                    $today = now()->toDateString();
                     $activeVersion = $article->activeVersion;
 
                     $contentChanged = isset($validated['content']) && (! $activeVersion || $activeVersion->contenu_texte !== $validated['content']);
@@ -163,56 +182,30 @@ class ArticleController extends Controller
                     if ($contentChanged || $locatorChanged) {
                         $versionHandledStatus = isset($validated['validation_status']);
 
-                        // Find any version that would overlap with a new version starting today [today, infinity)
-                        $overlappingVersion = ArticleVersion::where('article_id', $article->id)
-                            ->whereRaw('validity_period && daterange(?::date, null)', [$today])
-                            ->first();
+                        $updateData = [];
+                        if (isset($validated['content'])) {
+                            $updateData['contenu_texte'] = $validated['content'];
+                        }
+                        if (isset($validated['source_locator'])) {
+                            $updateData['source_locator'] = $validated['source_locator'];
+                        }
+                        if (isset($validated['validation_status'])) {
+                            $updateData['validation_status'] = $validated['validation_status'];
+                        }
 
-                        if ($overlappingVersion) {
-                            // Check if the overlapping version started exactly today
-                            $startedToday = ArticleVersion::where('id', $overlappingVersion->id)
-                                ->whereRaw('lower(validity_period) = ?::date', [$today])
-                                ->exists();
-
-                            if ($startedToday) {
-                                // Update in place if it's the same day
-                                $updateData = [];
-                                if (isset($validated['content'])) {
-                                    $updateData['contenu_texte'] = $validated['content'];
-                                }
-                                if (isset($validated['source_locator'])) {
-                                    $updateData['source_locator'] = $validated['source_locator'];
-                                }
-                                if (isset($validated['validation_status'])) {
-                                    $updateData['validation_status'] = $validated['validation_status'];
-                                }
-
-                                $overlappingVersion->update($updateData);
-                            } else {
-                                // Close the overlapping version (it must have started before today)
-                                // Binding paramétré : jamais de date interpolée dans le SQL brut.
-                                DB::update(
-                                    'UPDATE article_versions
-                                     SET validity_period = daterange(lower(validity_period), ?::date)
-                                     WHERE id = ?',
-                                    [$today, $overlappingVersion->id]
-                                );
-
-                                // Create new version starting today
-                                $article->versions()->create([
-                                    'contenu_texte' => $validated['content'] ?? ($activeVersion?->contenu_texte ?? ''),
-                                    'source_locator' => $validated['source_locator'] ?? ($activeVersion?->source_locator ?? []),
-                                    'validity_period' => ArticleVersion::makeValidityPeriod($today),
-                                    'validation_status' => $validated['validation_status'] ?? 'pending',
-                                    'is_verified' => false,
-                                ]);
-                            }
+                        if ($activeVersion) {
+                            // Toujours en place — jamais de fork ici (voir le
+                            // docblock de la méthode).
+                            $activeVersion->update($updateData);
                         } else {
-                            // No overlapping version found, create a new one
+                            // Aucune version encore ouverte (article jamais
+                            // versionné) : on en pose une, ouverte, à
+                            // aujourd'hui — c'est un constat de premier état,
+                            // pas un amendement.
                             $article->versions()->create([
-                                'contenu_texte' => $validated['content'] ?? ($activeVersion?->contenu_texte ?? ''),
-                                'source_locator' => $validated['source_locator'] ?? ($activeVersion?->source_locator ?? []),
-                                'validity_period' => ArticleVersion::makeValidityPeriod($today),
+                                'contenu_texte' => $validated['content'] ?? '',
+                                'source_locator' => $validated['source_locator'] ?? [],
+                                'validity_period' => ArticleVersion::makeValidityPeriod(now()->toDateString()),
                                 'validation_status' => $validated['validation_status'] ?? 'pending',
                                 'is_verified' => false,
                             ]);
@@ -284,7 +277,24 @@ class ArticleController extends Controller
     }
 
     /**
-     * Add a new version to an article.
+     * Enregistre un AMENDEMENT : un texte identifié a réellement modifié cet
+     * article à une date de droit donnée (dashboard#166, décision du
+     * 19/09/2026 — deux actions distinctes dans l'UI, texte modificateur
+     * obligatoire pour celle-ci). C'est le seul chemin qui fork une nouvelle
+     * période de validité ; une simple correction passe par `update()` et ne
+     * fork jamais.
+     *
+     * `modifie_par_document_id` est OBLIGATOIRE : un amendement sans texte
+     * désigné est indiscernable après coup d'une correction mal aiguillée —
+     * exactement le défaut mesuré le 19/09 (0 ligne renseignée sur 37 594
+     * `article_versions`).
+     *
+     * Volontairement limité à l'AJOUT EN FIN DE CHRONOLOGIE : `start_date`
+     * doit être postérieure ou égale au début de la version la plus
+     * récente. Insérer un amendement entre deux versions déjà connues
+     * demanderait de scinder un intervalle existant — un cas réel, mais
+     * hors du périmètre de cette évolution ; il échoue en 422 plutôt que de
+     * choisir arbitrairement laquelle des versions chevauchantes fermer.
      */
     public function addVersion(Request $request, string $id): JsonResponse
     {
@@ -293,6 +303,10 @@ class ArticleController extends Controller
         $validated = $request->validate([
             'content' => 'required|string',
             'start_date' => 'required|date',
+            'modifie_par_document_id' => [
+                'required',
+                Rule::exists('legal_documents', 'id')->whereNull('deleted_at'),
+            ],
             'validation_status' => 'sometimes|string|in:pending,validated,error,draft',
         ]);
 
@@ -300,9 +314,28 @@ class ArticleController extends Controller
             return DB::transaction(function () use ($article, $validated) {
                 $startDate = $validated['start_date'];
 
-                // 1. Close any existing version that overlaps with the new start date
-                // We find the active version (the one where the start date is before or equal to the new version's start date
-                // and whose end date is null or after the new start date)
+                $derniereVersion = ArticleVersion::where('article_id', $article->id)
+                    ->orderByRaw('lower(validity_period) desc')
+                    ->first();
+
+                if ($derniereVersion !== null) {
+                    $anterieure = ArticleVersion::where('id', $derniereVersion->id)
+                        ->whereRaw('lower(validity_period) > ?::date', [$startDate])
+                        ->exists();
+
+                    if ($anterieure) {
+                        return $this->error(
+                            null,
+                            'Cette date d\'effet précède la version la plus récente déjà enregistrée : '
+                            .'seul l\'ajout d\'un amendement après la dernière version connue est pris en charge.',
+                            422,
+                        );
+                    }
+                }
+
+                // 1. Ferme toute version qui chevaucherait la nouvelle, ouverte
+                // à `start_date` — dans le cas append-only garanti ci-dessus,
+                // c'est au plus la version active.
                 $overlappingVersion = ArticleVersion::where('article_id', $article->id)
                     ->whereRaw('validity_period && daterange(?::date, null)', [$startDate])
                     ->first();
@@ -313,13 +346,15 @@ class ArticleController extends Controller
                         ->exists();
 
                     if ($startedSameDay) {
-                        // Update in place if it's the same day
+                        // Même date d'effet : corrige l'amendement qu'on vient
+                        // d'enregistrer plutôt que d'en empiler un doublon.
                         $overlappingVersion->update([
                             'contenu_texte' => $validated['content'],
+                            'modifie_par_document_id' => $validated['modifie_par_document_id'],
                             'validation_status' => $validated['validation_status'] ?? $overlappingVersion->validation_status,
                         ]);
                     } else {
-                        // Close it at the new start date (exclusive)
+                        // Ferme la version active à la date d'effet (exclusive).
                         // Binding paramétré : jamais de date interpolée dans le SQL brut.
                         DB::update(
                             'UPDATE article_versions
@@ -328,18 +363,19 @@ class ArticleController extends Controller
                             [$startDate, $overlappingVersion->id]
                         );
 
-                        // Create new one
                         $article->versions()->create([
                             'contenu_texte' => $validated['content'],
+                            'modifie_par_document_id' => $validated['modifie_par_document_id'],
                             'validity_period' => ArticleVersion::makeValidityPeriod($startDate),
                             'validation_status' => $validated['validation_status'] ?? 'pending',
                             'is_verified' => true,
                         ]);
                     }
                 } else {
-                    // Just create if no overlap
+                    // Premier amendement de l'article : rien à fermer.
                     $article->versions()->create([
                         'contenu_texte' => $validated['content'],
+                        'modifie_par_document_id' => $validated['modifie_par_document_id'],
                         'validity_period' => ArticleVersion::makeValidityPeriod($startDate),
                         'validation_status' => $validated['validation_status'] ?? 'pending',
                         'is_verified' => true,
@@ -348,13 +384,13 @@ class ArticleController extends Controller
 
                 return $this->success(
                     new ArticleResource($article->load('versions')),
-                    'Nouvelle version ajoutée avec succès'
+                    'Amendement enregistré avec succès'
                 );
             });
         } catch (\Exception $e) {
-            Log::error('Erreur lors de l\'ajout de version: '.$e->getMessage());
+            Log::error('Erreur lors de l\'enregistrement de l\'amendement: '.$e->getMessage());
 
-            return $this->error(null, 'Erreur lors de l\'ajout de version. Réessayez ou contactez le support.', 500);
+            return $this->error(null, 'Erreur lors de l\'enregistrement de l\'amendement. Réessayez ou contactez le support.', 500);
         }
     }
 
