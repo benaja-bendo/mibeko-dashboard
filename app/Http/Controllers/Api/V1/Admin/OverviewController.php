@@ -249,6 +249,7 @@ class OverviewController extends Controller
             'pending' => $total - $published,
             'versions_without_embedding' => DB::table('article_versions')
                 ->whereNull('embedding')
+                ->whereNull('deleted_at')
                 ->count(),
         ];
     }

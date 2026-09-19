@@ -286,8 +286,9 @@ class ProdPreflightCommand extends Command
         $this->table(['Compteur', 'Valeur'], [
             ['Articles vivants', $connexion->table('articles')->whereNull('deleted_at')->count()],
             ['Articles soft-deleted', $connexion->table('articles')->whereNotNull('deleted_at')->count()],
-            ['Versions d\'articles', $connexion->table('article_versions')->count()],
-            ['Versions sans embedding', $connexion->table('article_versions')->whereNull('embedding')->count()],
+            ['Versions d\'articles vivantes', $connexion->table('article_versions')->whereNull('deleted_at')->count()],
+            ['Versions d\'articles soft-deleted', $connexion->table('article_versions')->whereNotNull('deleted_at')->count()],
+            ['Versions sans embedding', $connexion->table('article_versions')->whereNull('embedding')->whereNull('deleted_at')->count()],
             ['Journaux officiels vivants', $connexion->table('official_journals')->whereNull('deleted_at')->count()],
             ['Fichiers média', $connexion->table('media_files')->count()],
         ]);

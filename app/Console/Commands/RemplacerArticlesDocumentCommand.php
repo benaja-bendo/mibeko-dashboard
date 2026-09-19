@@ -245,7 +245,11 @@ class RemplacerArticlesDocumentCommand extends Command
             }
 
             $articleIdsSource = $articles->pluck('id');
-            $versions = $dbSource->table('article_versions')->whereIn('article_id', $articleIdsSource)->get();
+            // `whereNull('deleted_at')` (dashboard#166) : ne pas ressusciter sur la
+            // cible des versions déjà retirées par la remédiation des faux
+            // amendements — recopier une version soft-deleted la ferait
+            // réapparaître comme si elle comptait encore.
+            $versions = $dbSource->table('article_versions')->whereIn('article_id', $articleIdsSource)->whereNull('deleted_at')->get();
             foreach ($versions->chunk(500) as $chunk) {
                 $dbCible->table('article_versions')->insert($chunk->map(function ($v) {
                     $row = (array) $v;
