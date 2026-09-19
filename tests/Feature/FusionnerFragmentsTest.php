@@ -312,37 +312,37 @@ it('exécute la fusion : complète l\'article, crée les articles suivants, reti
     expect($tete->fresh()->curation_status)->toBe('published');
 });
 
-it('ouvre une nouvelle version de l\'article corrigé et ferme la précédente au lieu de la réécrire', function () {
+it('corrige la version active EN PLACE, sans jamais forker (dashboard#166)', function () {
+    // Décision du 19/09/2026 : recoller un article tronqué par un défaut
+    // MinerU est une CORRECTION, jamais un amendement — même règle que
+    // ArticleController::update(). La version active est ANTÉRIEURE
+    // (période ouverte il y a longtemps), le cas qui aurait forké avant #166.
     $jo = OfficialJournal::factory()->create()->id;
     $tete = arreteTete($jo, 1550, 'Conformément aux articles 91 et 92 de la');
     fragmentSuspension($jo, 'flux:frag-jo28', 'retrait en cas de non-exécution.');
 
     $article7 = articleNumero($tete, '7');
-    $versionInitialeId = $article7->versions()->firstOrFail()->id;
+    $version = $article7->versions()->firstOrFail();
+    $version->validity_period = '[2020-01-01,)';
+    $version->saveQuietly();
+    $idAvant = $version->id;
 
     fusionner(['--titre-fragment' => 'arrêté pourra faire l’objet d’une suspension ou d’un']);
 
-    expect($article7->versions()->count())->toBe(2);
-
-    // L'ancienne garde le texte tronqué et n'est plus ouverte : l'historique
-    // du texte publié reste consultable, la correction est datée.
-    $ancienne = ArticleVersion::findOrFail($versionInitialeId);
-    expect($ancienne->contenu_texte)->toBe('Conformément aux articles 91 et 92 de la')
-        ->and(DB::selectOne('select upper_inf(validity_period) as ouverte from article_versions where id = ?', [$ancienne->id])->ouverte)
-        ->toBeFalse();
+    expect($article7->versions()->count())->toBe(1);
 
     $active = $article7->activeVersion()->firstOrFail();
-    expect($active->id)->not->toBe($versionInitialeId)
-        ->and($active->contenu_texte)->toContain('retrait en cas de non-exécution.');
+    expect($active->id)->toBe($idAvant)
+        ->and($active->contenu_texte)->toContain('retrait en cas de non-exécution.')
+        // La période de validité n'a pas bougé : ce n'est pas un amendement.
+        ->and(DB::selectOne('select lower(validity_period) as debut from article_versions where id = ?', [$idAvant])->debut)
+        ->toBe('2020-01-01');
 });
 
-it('remet à NULL l\'embedding d\'une version déjà ouverte aujourd\'hui, qui est réécrite sur place', function () {
-    // La branche « version ouverte aujourd\'hui » ne crée PAS de version neuve :
-    // elle réécrit celle du jour (fermer une période commencée le jour même
-    // produirait un daterange vide, rejeté par chk_article_versions_validity_not_empty).
-    // C\'est le SEUL chemin où `'embedding' => null` est réellement porteur —
-    // sur une version créée, la colonne est nulle par défaut, donc un test qui
-    // ne passe que par là resterait vert même sans le correctif.
+it('remet à NULL l\'embedding de la version corrigée, qu\'elle ait commencé aujourd\'hui ou il y a longtemps', function () {
+    // Avant #166, seule la version « ouverte aujourd'hui » était réécrite sur
+    // place (l'autre branche forkait) : ce test verrouille que les DEUX
+    // dates suivent désormais le même chemin, sans branche sur le jour.
     $jo = OfficialJournal::factory()->create()->id;
     $tete = arreteTete($jo, 1550, 'Conformément aux articles 91 et 92 de la');
     fragmentSuspension($jo, 'flux:frag-jo28', 'retrait en cas de non-exécution.');
@@ -430,20 +430,27 @@ it('rafraîchit updated_at de l\'article corrigé et de son document pour la syn
         ->and($tete->fresh()->updated_at->isToday())->toBeTrue();
 });
 
-it('trace la correction dans l\'audit owen-it', function () {
+it('trace la correction dans l\'audit owen-it — updated, plus jamais created (dashboard#166)', function () {
     $jo = OfficialJournal::factory()->create()->id;
     $tete = arreteTete($jo, 1550, 'Conformément aux articles 91 et 92 de la');
     fragmentSuspension($jo, 'flux:frag-jo28', 'retrait en cas de non-exécution.');
 
     $article7 = articleNumero($tete, '7');
+    $idAvant = $article7->versions()->firstOrFail()->id;
     Audit::query()->delete();
 
     fusionner(['--titre-fragment' => 'arrêté pourra faire l’objet d’une suspension ou d’un']);
 
     $versionCorrigee = $article7->activeVersion()->firstOrFail();
 
-    expect(Audit::where('auditable_type', ArticleVersion::class)->where('auditable_id', $versionCorrigee->id)->where('event', 'created')->count())
-        ->toBe(1);
+    // `created` existe bien pour les articles RAPATRIÉS (8, 9, 10, SIGNATURE
+    // — des articles neufs sous la tête, jamais un fork) : seule la version
+    // CORRIGÉE elle-même ne doit jamais porter de `created`.
+    expect($versionCorrigee->id)->toBe($idAvant)
+        ->and(Audit::where('auditable_type', ArticleVersion::class)->where('auditable_id', $idAvant)->where('event', 'updated')->count())
+        ->toBe(1)
+        ->and(Audit::where('auditable_type', ArticleVersion::class)->where('auditable_id', $idAvant)->where('event', 'created')->count())
+        ->toBe(0);
 });
 
 it('conserve la page source des articles rapatriés', function () {
