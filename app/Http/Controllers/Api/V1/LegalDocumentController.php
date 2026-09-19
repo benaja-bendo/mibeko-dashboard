@@ -276,19 +276,23 @@ class LegalDocumentController extends Controller
     /**
      * Public, slug-addressed view of a published document for the marketing site.
      *
-     * Serves `/codes/{slug}` (and `?article={numero}`) for SEO pages. Only
+     * Serves `/textes/{slug}` (and `?article={numero}`) for SEO pages. Only
      * published documents are reachable so drafts never get indexed. Returns
      * the document metadata, a lightweight index of every article (numbers
      * only, for navigation and sitemaps) and, when requested, the full text of
      * a single article — keeping the page payload small even on large codes.
+     *
+     * Un ancien slug (`document_slug_aliases`, mibeko-dashboard#155) résout
+     * aussi : la réponse porte alors `canonical_slug` ≠ slug demandé, et c'est
+     * au site d'émettre le 301 (mibeko-site#45). Un slug inconnu, ou un alias
+     * vers un texte non publié, reste un 404.
      */
     public function showBySlug(Request $request, string $slug, SourcePdfResolver $pdfResolver): JsonResponse
     {
-        $document = LegalDocument::query()
-            ->published()
-            ->where('slug', $slug)
-            ->with(['institution', 'type', 'officialJournal', 'tags'])
-            ->firstOrFail();
+        $document = LegalDocument::publishedBySlugOrAlias(
+            $slug,
+            ['institution', 'type', 'officialJournal', 'tags'],
+        );
 
         $ordered = $this->readingOrderedArticles($document);
 
@@ -331,6 +335,9 @@ class LegalDocumentController extends Controller
 
         return $this->success([
             'document' => new LegalDocumentResource($document),
+            // Toujours présent, égal au slug demandé dans le cas courant :
+            // le site compare et redirige (301) quand ils diffèrent.
+            'canonical_slug' => $document->slug,
             'articles' => $articles,
             // Sommaire hiérarchique pour la navigation du site vitrine. Sans le
             // texte des articles (poids maîtrisé sur les gros codes) : la lecture

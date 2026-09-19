@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\DocumentSlugAlias;
 use App\Models\LegalDocument;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
@@ -40,6 +41,66 @@ it('corrige le slug avec --execute, y compris sur un document publié', function
 
     expect($document->fresh()->slug)->toBe('slug-complet-non-tronque');
     expect(json_decode((string) file_get_contents($revert), true)[0]['slug'])->toBe('slug-tronque');
+});
+
+it('conserve l\'ancien slug en alias résolvable par l\'API', function () {
+    $document = LegalDocument::factory()->create([
+        'slug' => 'slug-tronque',
+        'curation_status' => 'published',
+    ]);
+    $document->articles()->create(['numero_article' => '1', 'ordre_affichage' => 1]);
+
+    $this->artisan('mibeko:corriger-slugs', [
+        '--mapping' => fichierSlugs([['id' => $document->id, 'slug' => 'slug-complet']]),
+        '--connection' => 'pgsql',
+        '--execute' => true,
+        '--revert-file' => tempnam(sys_get_temp_dir(), 'revert_').'.json',
+    ])->assertSuccessful();
+
+    expect(DocumentSlugAlias::where('slug', 'slug-tronque')->value('legal_document_id'))->toBe($document->id);
+
+    $this->getJson('/api/v1/legal-documents/slug/slug-tronque')
+        ->assertStatus(200)
+        ->assertJsonPath('data.canonical_slug', 'slug-complet');
+});
+
+it('refuse un slug qui est l\'ancienne URL d\'un autre document', function () {
+    $autre = LegalDocument::factory()->create(['slug' => 'ancienne-url-d-autrui']);
+    $autre->update(['slug' => 'autre-nouveau']);
+    $document = LegalDocument::factory()->create(['slug' => 'a-corriger']);
+
+    $this->artisan('mibeko:corriger-slugs', [
+        '--mapping' => fichierSlugs([['id' => $document->id, 'slug' => 'ancienne-url-d-autrui']]),
+        '--connection' => 'pgsql',
+        '--execute' => true,
+        '--revert-file' => tempnam(sys_get_temp_dir(), 'revert_').'.json',
+    ])->assertSuccessful();
+
+    expect($document->fresh()->slug)->toBe('a-corriger');
+    expect(DocumentSlugAlias::where('slug', 'ancienne-url-d-autrui')->value('legal_document_id'))->toBe($autre->id);
+});
+
+it('rejoue le fichier de retour arrière sans laisser d\'alias orphelin', function () {
+    $document = LegalDocument::factory()->create(['slug' => 'slug-a']);
+    $revert = tempnam(sys_get_temp_dir(), 'revert_').'.json';
+
+    $this->artisan('mibeko:corriger-slugs', [
+        '--mapping' => fichierSlugs([['id' => $document->id, 'slug' => 'slug-b']]),
+        '--connection' => 'pgsql',
+        '--execute' => true,
+        '--revert-file' => $revert,
+    ])->assertSuccessful();
+
+    // Retour arrière : slug-a redevient canonique (son alias tombe), slug-b devient alias.
+    $this->artisan('mibeko:corriger-slugs', [
+        '--mapping' => $revert,
+        '--connection' => 'pgsql',
+        '--execute' => true,
+        '--revert-file' => tempnam(sys_get_temp_dir(), 'revert_').'.json',
+    ])->assertSuccessful();
+
+    expect($document->fresh()->slug)->toBe('slug-a');
+    expect(DocumentSlugAlias::pluck('slug')->all())->toBe(['slug-b']);
 });
 
 it('refuse un slug déjà pris par un autre document', function () {

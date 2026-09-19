@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphToMany;
@@ -219,6 +220,55 @@ class LegalDocument extends Model implements Auditable
             }
         });
 
+        // Filet d'alias (mibeko-dashboard#155) : un slug ne change jamais sans
+        // laisser l'ancien résolvable. Avant l'écriture, on tient l'invariant
+        // croisé — le nouveau slug ne doit pas être l'alias d'un AUTRE
+        // document (sinon une même URL désignerait deux textes) ; s'il est un
+        // ancien slug de CE document, il redevient canonique et l'alias tombe.
+        static::saving(function (LegalDocument $document) {
+            if (! $document->exists || ! $document->isDirty('slug')) {
+                return;
+            }
+
+            $alias = DocumentSlugAlias::query()->where('slug', $document->slug)->first();
+
+            if ($alias === null) {
+                return;
+            }
+
+            if ($alias->legal_document_id !== $document->id) {
+                throw ValidationException::withMessages([
+                    'slug' => "Le slug « {$document->slug} » est déjà l'ancienne URL d'un autre document.",
+                ]);
+            }
+
+            $alias->delete();
+        });
+
+        // L'ancien slug n'entre dans les alias qu'APRÈS l'écriture : tant que
+        // la ligne n'est pas mise à jour, il est encore canonique et le
+        // garde-fou de `DocumentSlugAlias` le refuserait. Dans `saved`,
+        // `getOriginal()` porte encore la valeur d'avant (`syncOriginal()`
+        // n'est appelé qu'ensuite). Un slug vide d'origine (création, ou
+        // réparation par le hook ci-dessus) n'a jamais été une URL : rien à
+        // conserver.
+        static::saved(function (LegalDocument $document) {
+            if (! $document->wasChanged('slug')) {
+                return;
+            }
+
+            $ancien = trim((string) $document->getOriginal('slug'));
+
+            if ($ancien === '' || $ancien === $document->slug) {
+                return;
+            }
+
+            DocumentSlugAlias::create([
+                'slug' => $ancien,
+                'legal_document_id' => $document->id,
+            ]);
+        });
+
         // Garde de transition (audit docs/audit-ingestion-2026-08-02.md,
         // phase 3b) : ne s'applique qu'aux écritures Eloquent d'un document
         // DÉJÀ existant dont `curation_status` change réellement — jamais à
@@ -426,6 +476,16 @@ class LegalDocument extends Model implements Auditable
     }
 
     /**
+     * Anciens slugs de ce document, encore résolvables (mibeko-dashboard#155).
+     *
+     * @return HasMany<DocumentSlugAlias, $this>
+     */
+    public function slugAliases(): HasMany
+    {
+        return $this->hasMany(DocumentSlugAlias::class, 'legal_document_id');
+    }
+
+    /**
      * Scope a query to only include published documents that have articles.
      */
     public function scopePublished($query)
@@ -439,7 +499,11 @@ class LegalDocument extends Model implements Auditable
      *
      * Le slug est tronqué à 80 caractères pour rester lisible dans une URL, et
      * suffixé (`-2`, `-3`, …) en cas de collision avec un document existant
-     * (corbeille incluse, pour ne pas réutiliser le slug d'un texte restauré).
+     * (corbeille incluse, pour ne pas réutiliser le slug d'un texte restauré)
+     * ou avec l'ancien slug d'un autre document (`document_slug_aliases`) :
+     * une URL qui a un jour désigné un texte ne doit jamais en désigner un
+     * autre. Les alias du document lui-même ne comptent pas — il a le droit
+     * de reprendre un slug qui fut le sien.
      */
     public static function generateUniqueSlug(string $source, ?string $ignoreId = null): string
     {
@@ -452,15 +516,68 @@ class LegalDocument extends Model implements Auditable
         $slug = $base;
         $suffix = 2;
 
-        while (static::withTrashed()
-            ->where('slug', $slug)
-            ->when($ignoreId, fn ($query) => $query->where('id', '!=', $ignoreId))
-            ->exists()) {
+        while (static::slugTaken($slug, $ignoreId)) {
             $slug = $base.'-'.$suffix;
             $suffix++;
         }
 
         return $slug;
+    }
+
+    /**
+     * Vrai si `$slug` est déjà le slug canonique d'un document (corbeille
+     * incluse) ou l'alias d'un document autre que `$ignoreId`.
+     */
+    public static function slugTaken(string $slug, ?string $ignoreId = null): bool
+    {
+        $canonique = static::withTrashed()
+            ->where('slug', $slug)
+            ->when($ignoreId, fn ($query) => $query->where('id', '!=', $ignoreId))
+            ->exists();
+
+        if ($canonique) {
+            return true;
+        }
+
+        return DocumentSlugAlias::query()
+            ->where('slug', $slug)
+            ->when($ignoreId, fn ($query) => $query->where('legal_document_id', '!=', $ignoreId))
+            ->exists();
+    }
+
+    /**
+     * Document publié désigné par un slug, canonique ou ancien (alias).
+     *
+     * Le canonique est essayé d'abord ; l'invariant croisé garantit qu'un slug
+     * n'est jamais les deux à la fois, l'ordre ne fait donc que fixer une
+     * priorité de principe. Lève `ModelNotFoundException` (404) si aucun
+     * document publié ne répond — un alias vers un brouillon reste un 404.
+     *
+     * @param  array<int, string>  $with
+     */
+    public static function publishedBySlugOrAlias(string $slug, array $with = []): static
+    {
+        $document = static::query()
+            ->published()
+            ->where('slug', $slug)
+            ->with($with)
+            ->first();
+
+        if ($document !== null) {
+            return $document;
+        }
+
+        $alias = DocumentSlugAlias::query()->where('slug', $slug)->first();
+
+        if ($alias === null) {
+            throw (new ModelNotFoundException)->setModel(static::class, [$slug]);
+        }
+
+        return static::query()
+            ->published()
+            ->whereKey($alias->legal_document_id)
+            ->with($with)
+            ->firstOrFail();
     }
 
     /**

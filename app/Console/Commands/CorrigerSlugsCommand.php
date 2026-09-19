@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 /**
  * Remplace le slug de documents nommément listés par une valeur donnée.
@@ -22,9 +23,17 @@ use Illuminate\Support\Facades\DB;
  * commande separee plutôt qu'un changement de `generateUniqueSlug()`.
  *
  * Contrairement à `CorrigerTitresJournauxCommand`, cette commande n'écarte PAS
- * les documents déjà publiés : le cas d'usage visé est de corriger un slug
- * généré dans la même session, avant qu'il n'ait eu le temps d'être partagé ou
- * indexé. Vérifier `updated_at` avant `--execute` si ce n'est plus le cas.
+ * les documents déjà publiés. Depuis le filet d'alias (mibeko-dashboard#155),
+ * c'est sans danger pour les liens entrants : l'ancien slug est conservé dans
+ * `document_slug_aliases`, l'API continue de le résoudre et le site redirige
+ * en 301 vers le nouveau. La cible doit donc avoir joué la migration qui crée
+ * cette table — sinon l'insertion échoue et la transaction est annulée, aucun
+ * slug n'est touché.
+ *
+ * Aucun modèle Eloquent ici — ils sont liés à la connexion par défaut et
+ * viseraient le développement sans que cela se voie (cf. ProdPreflightCommand) ;
+ * l'invariant croisé slug canonique / alias (voir la migration) est donc
+ * revérifié à la main avant d'écrire.
  *
  *   php artisan mibeko:corriger-slugs --mapping=slugs.json                                   # simulation
  *   php artisan mibeko:corriger-slugs --mapping=slugs.json --connection=pgsql_prod_rw --execute
@@ -37,7 +46,7 @@ class CorrigerSlugsCommand extends Command
         {--execute : Écrit réellement. Sans cette option, simulation seule.}
         {--revert-file= : Où écrire le fichier de retour arrière (défaut : storage/app/)}';
 
-    protected $description = 'Remplace le slug de documents nommément listés (aucun champ API équivalent).';
+    protected $description = 'Remplace le slug de documents nommément listés (aucun champ API équivalent) ; l\'ancien reste résolvable (alias).';
 
     public function handle(): int
     {
@@ -69,6 +78,8 @@ class CorrigerSlugsCommand extends Command
         $db = DB::connection($connexion);
         $lignes = [];
         $retourArriere = [];
+        /** @var array<string, array{ancien: string|null, nouveau: string}> $corrections */
+        $corrections = [];
 
         foreach ($mapping as $entree) {
             $id = $entree['id'] ?? null;
@@ -92,6 +103,12 @@ class CorrigerSlugsCommand extends Command
                 continue;
             }
 
+            if ($document->slug === $nouveauSlug) {
+                $this->warn("Déjà à jour, ignoré : {$nouveauSlug}");
+
+                continue;
+            }
+
             $collision = $db->table('legal_documents')
                 ->where('slug', $nouveauSlug)
                 ->where('id', '!=', $id)
@@ -103,8 +120,21 @@ class CorrigerSlugsCommand extends Command
                 continue;
             }
 
+            // Une URL qui a désigné un texte ne doit jamais en désigner un autre.
+            $ancienneUrlAutrui = $db->table('document_slug_aliases')
+                ->where('slug', $nouveauSlug)
+                ->where('legal_document_id', '!=', $id)
+                ->exists();
+
+            if ($ancienneUrlAutrui) {
+                $this->warn("Slug déjà l'ancienne URL d'un autre document, ignoré : {$nouveauSlug}");
+
+                continue;
+            }
+
             $lignes[] = [$document->id, $document->slug, $nouveauSlug];
             $retourArriere[] = ['id' => $document->id, 'slug' => $document->slug];
+            $corrections[$document->id] = ['ancien' => $document->slug, 'nouveau' => $nouveauSlug];
         }
 
         if ($lignes === []) {
@@ -113,11 +143,11 @@ class CorrigerSlugsCommand extends Command
             return self::SUCCESS;
         }
 
-        $this->table(['ID', 'Slug actuel', 'Nouveau slug'], $lignes);
+        $this->table(['ID', 'Slug actuel (devient alias)', 'Nouveau slug'], $lignes);
 
         if (! $ecrire) {
             $this->newLine();
-            $this->info(count($lignes).' slug(s) seraient corrigés. SIMULATION — aucune écriture.');
+            $this->info(count($lignes).' slug(s) seraient corrigés, chaque slug actuel restant résolvable comme alias. SIMULATION — aucune écriture.');
             $this->line('Pour écrire : --connection=pgsql_prod_rw --execute');
 
             return self::SUCCESS;
@@ -130,24 +160,43 @@ class CorrigerSlugsCommand extends Command
         $this->info("Retour arrière écrit : {$fichierRetour}");
 
         $touchees = 0;
+        $alias = 0;
 
-        $db->transaction(function () use ($db, $mapping, &$touchees) {
-            foreach ($mapping as $entree) {
-                $id = $entree['id'] ?? null;
-                $slug = trim((string) ($entree['slug'] ?? ''));
+        $db->transaction(function () use ($db, $corrections, &$touchees, &$alias) {
+            foreach ($corrections as $id => $correction) {
+                $modifiees = $db->table('legal_documents')
+                    ->where('id', $id)
+                    ->whereNull('deleted_at')
+                    ->update(['slug' => $correction['nouveau'], 'updated_at' => now()]);
 
-                if (! is_string($id) || $slug === '') {
+                if ($modifiees === 0) {
                     continue;
                 }
 
-                $touchees += $db->table('legal_documents')
-                    ->where('id', $id)
-                    ->whereNull('deleted_at')
-                    ->update(['slug' => $slug, 'updated_at' => now()]);
+                $touchees += $modifiees;
+
+                // Le document reprend un de ses anciens slugs : il redevient
+                // canonique, l'alias n'a plus lieu d'être.
+                $db->table('document_slug_aliases')
+                    ->where('slug', $correction['nouveau'])
+                    ->where('legal_document_id', $id)
+                    ->delete();
+
+                if (trim((string) $correction['ancien']) === '') {
+                    continue;
+                }
+
+                $db->table('document_slug_aliases')->insert([
+                    'id' => (string) Str::uuid(),
+                    'slug' => $correction['ancien'],
+                    'legal_document_id' => $id,
+                    'created_at' => now(),
+                ]);
+                $alias++;
             }
         });
 
-        $this->info("{$touchees} slug(s) corrigé(s).");
+        $this->info("{$touchees} slug(s) corrigé(s), {$alias} ancien(s) slug(s) conservé(s) en alias.");
 
         return self::SUCCESS;
     }
