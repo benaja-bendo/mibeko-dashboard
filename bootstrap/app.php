@@ -22,7 +22,22 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        $middleware->trustProxies(at: '*');
+        // Confiance aux en-têtes X-Forwarded-* limitée aux plages privées
+        // (mibeko-dashboard#159) : Traefik et le site vitrine, qui relaie l'IP
+        // de ses visiteurs, sont des conteneurs des réseaux Docker du VPS ; un
+        // client externe, lui, arrive avec une IP publique. Avec `*`, tout
+        // client pouvait forger `X-Forwarded-For` et contourner chaque quota
+        // par IP — et l'IP relayée par le site n'aurait rien eu de plus
+        // crédible qu'une forgerie. Traefik, en mode par défaut, supprime les
+        // X-Forwarded-* entrants d'une source non fiable avant de poser l'IP
+        // réelle : la chaîne est cohérente de bout en bout.
+        $middleware->trustProxies(at: [
+            '127.0.0.0/8',
+            '::1',
+            '10.0.0.0/8',
+            '172.16.0.0/12',
+            '192.168.0.0/16',
+        ]);
         $middleware->encryptCookies(except: ['appearance', 'sidebar_state']);
         // Le contenu juridique d'un dossier de travail est une transcription
         // source : ses blancs externes font partie de la proposition mesurée.

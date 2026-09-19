@@ -231,18 +231,14 @@ Route::prefix('v1')->middleware('throttle:api')->group(function () {
     // Bibliothèque — lecture publique : contenu identique pour tous, mis en
     // cache serveur. Partagée entre le web pro et le mobile (la consultation
     // des textes ne requiert pas de compte ; seule l'IA reste authentifiée).
-    Route::get('library/home', [LibraryHomeController::class, 'index']);
-    Route::get('library/themes', [LibraryHomeController::class, 'themes']);
-    Route::get('library/themes/{slug}', [LibraryHomeController::class, 'themeDocuments']);
+    // `library/home` et `library/themes` sont déclarées plus haut, dans le
+    // groupe `corpus_read` (mibeko-dashboard#159).
     Route::get('library/search', [LibrarySearchController::class, 'search'])
         ->withoutMiddleware('throttle:api')
         ->middleware('throttle:search_public');
     Route::get('library/suggest', [LibrarySearchController::class, 'suggest'])
         ->withoutMiddleware('throttle:api')
         ->middleware('throttle:search_suggest');
-
-    // Plan du site vitrine (sitemap.xml) — documents publiés + numéros d'articles.
-    Route::get('sitemap', [SitemapController::class, 'index']);
 
     // Configuration de l'app mobile (force-update) — publique : appelée au
     // démarrage de l'app, avant toute authentification (cf. config/mobile.php).
@@ -286,18 +282,37 @@ Route::prefix('v1')->middleware('throttle:api')->group(function () {
         // la place du PDF. Ici le plafond par IP passe à 300/min, ce qui absorbe
         // le CGNAT des opérateurs congolais (cf. limiteur `corpus_read`).
         Route::get('legal-documents/{id}/pdf', [PdfProxyController::class, 'show']);
+
+        // Lectures publiques du site vitrine (mibeko-dashboard#159). Le
+        // serveur SSR de mibeko.fr appelle ces routes depuis UNE seule IP :
+        // sous `throttle:api` (60/min par IP), c'est tout le site qui était
+        // plafonné à 60 pages de textes par minute — mesuré en production le
+        // 19/09/2026 (60 × 200 puis 429, `x-ratelimit-limit: 60`), un seuil
+        // qu'un passage de Googlebot atteint seul. Contenu déjà public et mis
+        // en cache serveur : le quota protège le coût, pas un secret — c'est
+        // exactement le cas d'usage de `corpus_read`. Le site relaie l'IP du
+        // visiteur en `X-Forwarded-For` (honorée depuis les réseaux privés
+        // seulement, cf. bootstrap/app.php), les quotas redeviennent alors
+        // par visiteur.
+        Route::get('legal-documents', [LegalDocumentController::class, 'index']);
+        Route::get('legal-documents/slug/{slug}', [LegalDocumentController::class, 'showBySlug']);
+        Route::apiResource('document-types', DocumentTypeController::class)->only(['index']);
+        Route::get('library/home', [LibraryHomeController::class, 'index']);
+        Route::get('library/themes', [LibraryHomeController::class, 'themes']);
+        Route::get('library/themes/{slug}', [LibraryHomeController::class, 'themeDocuments']);
+        Route::get('sitemap', [SitemapController::class, 'index']);
     });
 
     Route::apiResource('institutions', InstitutionController::class)->only(['index']);
-    Route::apiResource('document-types', DocumentTypeController::class)->only(['index']);
     // Déclaré avant l'apiResource pour que « years » ne soit pas capturé par show/{id}
     Route::get('official-journals/years', [OfficialJournalController::class, 'years']);
     Route::apiResource('official-journals', OfficialJournalController::class)->only(['index', 'show'])->names('api.official-journals');
 
     Route::get('legal-documents/search', [LegalDocumentController::class, 'search']);
-    // Vue publique par slug (site vitrine SEO) — publié uniquement.
-    Route::get('legal-documents/slug/{slug}', [LegalDocumentController::class, 'showBySlug']);
-    Route::apiResource('legal-documents', LegalDocumentController::class)->only(['index', 'show']);
+    // `index` et la vue publique par slug (`legal-documents/slug/{slug}`) sont
+    // déclarées plus haut, dans le groupe `corpus_read` (mibeko-dashboard#159).
+    // `search` reste déclarée AVANT `show/{id}`, qui la capturerait sinon.
+    Route::apiResource('legal-documents', LegalDocumentController::class)->only(['show']);
 
     // Bulk update and delete — editor + admin only
     Route::middleware(['auth:sanctum', 'role:editor|admin'])->group(function () {
