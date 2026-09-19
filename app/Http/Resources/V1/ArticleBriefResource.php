@@ -48,6 +48,14 @@ class ArticleBriefResource extends JsonResource
                     'created_at' => $v->created_at->toDateTimeString(),
                     'contenu_texte' => $v->contenu_texte,
                     'validation_status' => $v->validation_status,
+                    // Texte modificateur (dashboard#166) : null pour une correction
+                    // (jamais forkée) comme pour les versions historiques restées
+                    // orphelines de tout amendement identifié — le front distingue
+                    // les deux par absence de valeur, jamais par une valeur devinée.
+                    'modifie_par_document_id' => $v->modifie_par_document_id,
+                    'modifie_par_document_titre' => $v->relationLoaded('modifiedByDocument')
+                        ? $v->modifiedByDocument?->titre_officiel
+                        : null,
                 ]);
             }),
         ];

@@ -48,7 +48,10 @@ class StructureNodeController extends Controller
             // se retrouvait alors affiché en fin de division au lieu de son rang.
             ->with(['articles' => function ($q) use ($openFlags) {
                 $q->withCount($openFlags)
-                    ->with(['activeVersion', 'versions' => fn ($v) => $v->orderByDesc('created_at')])
+                    ->with([
+                        'activeVersion',
+                        'versions' => fn ($v) => $v->orderByDesc('created_at')->with('modifiedByDocument:id,titre_officiel'),
+                    ])
                     ->orderBy('ordre_affichage')
                     ->orderBy('created_at');
             }])
@@ -65,7 +68,7 @@ class StructureNodeController extends Controller
             ->whereNull('parent_node_id')
             ->withCount($openFlags)
             ->with(['activeVersion', 'versions' => function ($q) {
-                $q->orderByDesc('created_at');
+                $q->orderByDesc('created_at')->with('modifiedByDocument:id,titre_officiel');
             }])
             ->orderBy('ordre_affichage')
             ->get();
