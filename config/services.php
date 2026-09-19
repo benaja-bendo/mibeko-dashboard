@@ -48,4 +48,14 @@ return [
         'api_key' => env('MINERU_API_KEY'),
     ],
 
+    // Purge du cache CDN devant mibeko.fr (benaja-bendo/mibeko-dashboard#161,
+    // vps_infra#1). Absents tant que le CDN n'est pas basculé : CloudflarePurger
+    // s'en sert comme garde-fou de no-op, pas comme un défaut à corriger.
+    // `api_token` : jeton limité à la permission Zone → Cache Purge de la zone
+    // concernée — jamais un jeton compte entier.
+    'cloudflare' => [
+        'zone_id' => env('CLOUDFLARE_ZONE_ID'),
+        'api_token' => env('CLOUDFLARE_API_TOKEN'),
+    ],
+
 ];

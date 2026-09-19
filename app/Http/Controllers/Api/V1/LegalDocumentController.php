@@ -12,6 +12,7 @@ use App\Models\StructureNode;
 use App\Models\Tag;
 use App\Search\SearchQueryLogger;
 use App\Search\SearchSurface;
+use App\Services\Cdn\CdnPurgeScheduler;
 use App\Services\Curation\LibelleDescriptifExtractor;
 use App\Services\Curation\NumeroActeExtractor;
 use App\Services\Curation\PublicationGuardrail;
@@ -732,9 +733,16 @@ class LegalDocumentController extends Controller
      * scope, type) and the curation workflow status. Publishing requires the
      * document to have at least one article.
      */
-    public function update(Request $request, string $id, LegalWatchNotifier $watch, PublicationGuardrail $guardrail): JsonResponse
+    public function update(Request $request, string $id, LegalWatchNotifier $watch, PublicationGuardrail $guardrail, CdnPurgeScheduler $cdnPurge): JsonResponse
     {
         $document = LegalDocument::findOrFail($id);
+
+        // Capturé AVANT toute écriture : `curation_status` de la ligne telle
+        // qu'elle était en base, pour détecter une dépublication après coup
+        // (benaja-bendo/mibeko-dashboard#161) — la transaction peut échouer et
+        // laisser ce document intact, mais si elle réussit, ce statut est le
+        // point de départ réel de la transition.
+        $wasPublished = $document->curation_status === LegalDocument::STATUS_PUBLISHED;
 
         Gate::authorize('update', $document);
 
@@ -935,6 +943,20 @@ class LegalDocumentController extends Controller
             $watch->documentsPublished([$document->id]);
         }
 
+        // Purge CDN (dashboard#161) : la page publique change de contenu dans
+        // les deux sens — un texte qui apparaît, ou un texte qui redevient un
+        // brouillon et ne doit plus être servi depuis le bord du réseau.
+        // `curation_status` doit avoir RÉELLEMENT changé (pas seulement avoir
+        // été envoyé identique) pour ne pas purger sur un PATCH qui ne touche
+        // que le libellé ou le numéro d'acte d'un texte déjà publié.
+        $isUnpublishing = $wasPublished
+            && array_key_exists('curation_status', $validated)
+            && $validated['curation_status'] !== LegalDocument::STATUS_PUBLISHED;
+
+        if ($isPublishing || $isUnpublishing) {
+            $cdnPurge->scheduleAsync();
+        }
+
         return $this->success(
             new LegalDocumentResource($document->fresh(['institution', 'type', 'tags'])),
             'Document mis à jour avec succès'
@@ -1094,7 +1116,7 @@ class LegalDocumentController extends Controller
      * @bodyParam action string required Action to perform: set_curation_status, set_statut.
      * @bodyParam value string required New value for the action.
      */
-    public function bulkUpdate(Request $request, LegalWatchNotifier $watch, PublicationGuardrail $guardrail): JsonResponse
+    public function bulkUpdate(Request $request, LegalWatchNotifier $watch, PublicationGuardrail $guardrail, CdnPurgeScheduler $cdnPurge): JsonResponse
     {
         $validated = $request->validate([
             'ids' => ['required', 'array', 'min:1', 'max:200'],
@@ -1305,6 +1327,13 @@ class LegalDocumentController extends Controller
         // dans la même requête, un seul appel groupé.
         if ($isPublishing && ! empty($publishedIds)) {
             $watch->documentsPublished($publishedIds);
+            // Purge CDN (dashboard#161). La dépublication en masse n'est PAS
+            // couverte ici : elle est en pratique rarissime (le chemin normal
+            // de dépublication reste le PATCH unitaire, réservé aux admins
+            // avec motif, cf. plus haut) — reliquat documenté dans le ticket
+            // plutôt qu'une détection ajoutée sans test dans cette boucle déjà
+            // dense en garde-fous d'audit.
+            $cdnPurge->scheduleAsync();
         }
 
         $message = "{$updated} document(s) mis à jour avec succès.";

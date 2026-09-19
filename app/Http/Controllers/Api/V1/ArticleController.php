@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Http\Resources\V1\ArticleResource;
 use App\Models\Article;
 use App\Models\ArticleVersion;
+use App\Models\LegalDocument;
+use App\Services\Cdn\CdnPurgeScheduler;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -127,7 +129,7 @@ class ArticleController extends Controller
     /**
      * Update an article.
      */
-    public function update(Request $request, string $id): JsonResponse
+    public function update(Request $request, string $id, CdnPurgeScheduler $cdnPurge): JsonResponse
     {
         $article = Article::findOrFail($id);
 
@@ -144,7 +146,7 @@ class ArticleController extends Controller
         ]);
 
         try {
-            return DB::transaction(function () use ($article, $validated) {
+            return DB::transaction(function () use ($article, $validated, $cdnPurge) {
                 // Devient vrai dès que la branche contenu/zone ci-dessous a
                 // effectivement écrit `validation_status` dans une VERSION
                 // (créée ou mise à jour en place) — pas seulement envoyée par le
@@ -250,6 +252,21 @@ class ArticleController extends Controller
                 }
 
                 $article->update(collect($validated)->except('content')->toArray());
+
+                // Purge CDN (dashboard#161) : le texte d'un article publié
+                // vient de changer — la page publique du document et celle de
+                // l'article servent une version périmée tant que le cache
+                // n'est pas vidé. `$contentChanged`/`$locatorChanged`
+                // n'existent que si le bloc contenu/zone ci-dessus s'est
+                // exécuté ; sur un document en brouillon, rien ne sert au
+                // public, donc rien à purger.
+                $documentEstPublie = LegalDocument::where('id', $article->document_id)
+                    ->where('curation_status', LegalDocument::STATUS_PUBLISHED)
+                    ->exists();
+
+                if ($documentEstPublie && ((isset($contentChanged) && $contentChanged) || (isset($locatorChanged) && $locatorChanged))) {
+                    $cdnPurge->scheduleAsync();
+                }
 
                 return $this->success(
                     new ArticleResource($article->load('activeVersion')),
