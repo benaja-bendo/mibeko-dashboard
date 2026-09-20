@@ -7,6 +7,8 @@ use App\Models\LegalDocument;
 use App\Models\OfficialJournal;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Event;
+use OwenIt\Auditing\Events\Auditing;
 use OwenIt\Auditing\Models\Audit;
 
 /**
@@ -451,6 +453,39 @@ it('trace la correction dans l\'audit owen-it — updated, plus jamais created (
         ->toBe(1)
         ->and(Audit::where('auditable_type', ArticleVersion::class)->where('auditable_id', $idAvant)->where('event', 'created')->count())
         ->toBe(0);
+});
+
+it('route l\'audit owen-it sur --connection pendant l\'écriture, puis restaure (dashboard#169)', function () {
+    // Une seule base de test disponible (RefreshDatabase ne wrappe que la
+    // connexion par défaut ; une vraie connexion distincte ne verrait pas les
+    // écritures faites dans la transaction non commitée de l'autre — donc pas
+    // de test à deux connexions ici). Le routage se prouve en observant
+    // `config('audit.drivers.database.connection')` au moment exact où
+    // owen-it s'apprête à écrire (événement `Auditing`, avant persistance) :
+    // avant ce correctif, cette valeur restait `null` tout du long ; avec, on
+    // l'observe posée sur la connexion cible (ici `pgsql`, égale par
+    // coïncidence à la connexion par défaut, mais la mécanique est la même
+    // quelle que soit la cible).
+    config(['audit.drivers.database.connection' => null]);
+
+    $jo = OfficialJournal::factory()->create()->id;
+    $tete = arreteTete($jo, 1550, 'Conformément aux articles 91 et 92 de la');
+    fragmentSuspension($jo, 'flux:frag-jo28', 'retrait en cas de non-exécution.');
+    Audit::query()->delete();
+
+    // Écouteur posé seulement APRÈS les fixtures : leur propre création
+    // audite déjà (mêmes modèles), et compterait comme du bruit ici — seule
+    // la fusion elle-même, ci-dessous, doit être observée.
+    $connexionsObservees = [];
+    Event::listen(Auditing::class, function () use (&$connexionsObservees) {
+        $connexionsObservees[] = config('audit.drivers.database.connection');
+    });
+
+    fusionner();
+
+    expect($connexionsObservees)->not->toBeEmpty()
+        ->and($connexionsObservees)->each->toBe('pgsql')
+        ->and(config('audit.drivers.database.connection'))->toBeNull();
 });
 
 it('conserve la page source des articles rapatriés', function () {

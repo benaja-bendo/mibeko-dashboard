@@ -8,6 +8,16 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Laravel\Ai\Embeddings;
 
+/**
+ * Hors du périmètre du correctif d'audit dashboard#169, bien qu'elle écrive
+ * elle aussi sur `--connection` via `ArticleVersion::on($connexion)` :
+ * `$version->saveQuietly()` (ci-dessous) désactive tous les événements
+ * Eloquent le temps de l'appel, y compris ceux dont dépend l'observateur
+ * `AuditableObserver` d'owen-it/auditing. Aucun audit n'est donc jamais
+ * tenté ici, quelle que soit la connexion — silence voulu pour un backfill
+ * d'embeddings à fort volume sur une donnée dérivée, pas un défaut à
+ * corriger avec `AuditeSurLaConnexionCible`.
+ */
 class GenerateEmbeddingsCommand extends Command
 {
     /**

@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Console\Commands\Concerns\AuditeSurLaConnexionCible;
 use App\Models\Article;
 use App\Models\ArticleVersion;
 use App\Models\LegalDocument;
@@ -76,25 +77,25 @@ use Illuminate\Support\Str;
  * `updated_at`, enverrait les articles rapatriés sans l'article corrigé — un
  * document incohérent hors ligne.
  *
- * Passer par les modèles règle DEUX de ces quatre points sur la cible :
- * l'embedding remis à NULL et la chaîne `$touches` écrivent bien sur la
- * connexion passée en `--connection`. Les deux autres NON, et il faut le
- * savoir avant d'exécuter (mesuré le 10/08/2026) : la commande écrit sur
- * `pgsql_prod_rw` pendant que l'application tourne sur le `.env` LOCAL —
- * `.env` ne doit jamais être basculé vers la prod (CLAUDE.md), cela
- * redirigerait scheduler, jobs et serveurs MCP. Or `CorpusVersion::bump()`
- * passe par `Cache::forever` sur le store `database`, donc la table `cache`
- * de la connexion PAR DÉFAUT ; et owen-it résout la connexion de ses lignes
- * `audits` sur `config('audit.drivers.database.connection')`, à `null` ici,
- * donc là aussi la connexion par défaut. Concrètement : **le cache de
- * l'assistant en production n'est PAS invalidé et l'audit prod reste vide** —
- * ils atterrissent dans la base de dev locale. La commande le rappelle
- * explicitement en fin d'exécution ; l'invalidation du cache prod est une
- * étape manuelle. La traçabilité repose sur le fichier de retour arrière
- * SEUL (dashboard#166, 19/09/2026) : la version corrigée s'écrit désormais
- * EN PLACE, jamais en ouvrant une nouvelle ligne `article_versions` — cette
- * table n'est pas un journal d'audit de secours, un vrai amendement légal
- * doit rester le seul à y ouvrir une période.
+ * Passer par les modèles règle TROIS de ces quatre points sur la cible :
+ * l'embedding remis à NULL, la chaîne `$touches`, et désormais l'audit
+ * owen-it (dashboard#169, `AuditeSurLaConnexionCible`) écrivent bien sur la
+ * connexion passée en `--connection`. Un seul NON, et il faut le savoir avant
+ * d'exécuter (mesuré le 10/08/2026) : la commande écrit sur `pgsql_prod_rw`
+ * pendant que l'application tourne sur le `.env` LOCAL — `.env` ne doit
+ * jamais être basculé vers la prod (CLAUDE.md), cela redirigerait scheduler,
+ * jobs et serveurs MCP. Or `CorpusVersion::bump()` passe par `Cache::forever`
+ * sur le store `database`, donc la table `cache` de la connexion PAR DÉFAUT.
+ * Concrètement : **le cache de l'assistant en production n'est PAS
+ * invalidé** — il atterrit dans la base de dev locale. La commande le
+ * rappelle explicitement en fin d'exécution ; l'invalidation du cache prod
+ * est une étape manuelle. La traçabilité de la correction elle-même repose
+ * maintenant sur DEUX sources concordantes : l'audit owen-it sur la
+ * connexion cible, et le fichier de retour arrière (dashboard#166,
+ * 19/09/2026) : la version corrigée s'écrit désormais EN PLACE, jamais en
+ * ouvrant une nouvelle ligne `article_versions` — cette table n'est pas un
+ * journal d'audit de secours, un vrai amendement légal doit rester le seul à
+ * y ouvrir une période.
  *
  *   php artisan mibeko:fusionner-fragments --connection=pgsql_prod_ro \
  *       --titre-fragment="arrêté pourra faire l’objet d’une suspension ou d’un" \
@@ -105,6 +106,8 @@ use Illuminate\Support\Str;
  */
 class FusionnerFragmentsCommand extends Command
 {
+    use AuditeSurLaConnexionCible;
+
     protected $signature = 'mibeko:fusionner-fragments
         {--connection=pgsql_prod_ro : Connexion cible (pgsql_prod_ro en diagnostic, pgsql_prod_rw pour écrire)}
         {--titre-fragment= : Filtre facultatif : intitulé exact partagé par un lot de fragments. Sans lui, appariement par adjacence dans le JO.}
@@ -761,26 +764,28 @@ class FusionnerFragmentsCommand extends Command
 
         $touchees = 0;
 
-        $db->transaction(function () use ($connexion, $paires, &$touchees) {
-            foreach ($paires as $p) {
-                $this->fusionner($connexion, $p);
-                $touchees++;
-            }
+        $this->avecAuditSurConnexion($connexion, function () use ($db, $connexion, $paires, &$touchees) {
+            $db->transaction(function () use ($connexion, $paires, &$touchees) {
+                foreach ($paires as $p) {
+                    $this->fusionner($connexion, $p);
+                    $touchees++;
+                }
+            });
         });
 
         $this->info("{$touchees} paire(s) fusionnée(s).");
 
-        // Deux effets attendus n'atteignent PAS une cible distante : le bump de
-        // CorpusVersion et les lignes d'audit owen-it partent sur la connexion
-        // par défaut de l'application, c'est-à-dire la base LOCALE, jamais
-        // celle de `--connection`. Le taire donnerait l'illusion d'une
-        // opération complète — l'assistant continuerait de citer le texte
-        // tronqué, sans que rien ne le signale.
+        // Le bump de CorpusVersion n'atteint PAS une cible distante : il passe
+        // par Cache::forever sur le store `database`, donc la table `cache` de
+        // la connexion PAR DÉFAUT de l'application, jamais celle de
+        // `--connection`. Le taire donnerait l'illusion d'une opération
+        // complète — l'assistant continuerait de citer le texte tronqué, sans
+        // que rien ne le signale. L'audit owen-it, lui, est désormais routé
+        // sur la connexion cible (dashboard#169, avecAuditSurConnexion()).
         if (! in_array((string) $this->option('connection'), ['pgsql', '', 'pgsql_testing'], true)) {
             $this->newLine();
-            $this->warn('Deux étapes restent MANUELLES sur la cible :');
+            $this->warn('Une étape reste MANUELLE sur la cible :');
             $this->line('  · invalider le cache de réponses de l\'assistant (CorpusVersion) — sinon il sert encore le texte tronqué ;');
-            $this->line('  · l\'audit owen-it de ces écritures n\'existe pas sur la cible (connexion par défaut, cf. docblock de la commande) ; seul le fichier de retour arrière ci-dessus fait foi.');
             $this->line('  · les embeddings des versions corrigées sont à NULL : lancer `mibeko:process-rag` sur la cible.');
         }
 
@@ -881,14 +886,16 @@ class FusionnerFragmentsCommand extends Command
      * `config('audit.drivers.database.connection')`, restée à `null`, donc
      * la connexion PAR DÉFAUT plutôt que `--connection` : sur une écriture
      * `pgsql_prod_rw`, l'audit atterrissait dans la base de DÉVELOPPEMENT
-     * (constaté le 10/08/2026, toujours vrai). Forker une version comme
-     * pis-aller à cette lacune d'audit plantait une fausse ligne
-     * `article_versions` — exactement le défaut mesuré en production le
-     * 19/09/2026 (2 486 articles à « versions » dont aucune ne correspond à
-     * un amendement légal). La lacune d'audit reste réelle ; elle ne se
-     * répare plus en polluant l'historique légal. Le fichier de retour
-     * arrière reste la trace de cette opération, comme documenté en fin de
-     * commande.
+     * (constaté le 10/08/2026). Forker une version comme pis-aller à cette
+     * lacune d'audit plantait une fausse ligne `article_versions` —
+     * exactement le défaut mesuré en production le 19/09/2026 (2 486
+     * articles à « versions » dont aucune ne correspond à un amendement
+     * légal). La lacune d'audit elle-même est réparée depuis (dashboard#169,
+     * `AuditeSurLaConnexionCible` bascule `audit.drivers.database.connection`
+     * le temps de l'écriture) ; ce n'est de toute façon plus le fork qui doit
+     * la compenser — un vrai amendement légal doit rester le seul à ouvrir
+     * une période sur `article_versions`. Le fichier de retour arrière reste
+     * une seconde trace de l'opération, comme documenté en fin de commande.
      *
      * L'embedding est systématiquement remis à NULL : l'observateur saute la
      * génération par défaut (`$shouldSkipEmbeddings`), et sans ce NULL
