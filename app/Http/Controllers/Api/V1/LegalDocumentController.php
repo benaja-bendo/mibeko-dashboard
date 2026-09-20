@@ -309,27 +309,60 @@ class LegalDocumentController extends Controller
 
         $currentArticle = null;
 
+        // `au=YYYY-MM-DD` (dashboard#167) : servir l'article dans sa version à
+        // une date donnée plutôt que la version en vigueur. Validé avant tout
+        // accès base — un format libre atteindrait `::date` en SQL brut et
+        // remonterait en 500 plutôt qu'en 422 lisible.
+        $request->validate(['au' => 'nullable|date_format:Y-m-d']);
+        $au = $request->filled('au') ? $request->string('au')->toString() : null;
+
         if ($request->filled('article')) {
             $article = $document->articles()
                 ->where('numero_article', $request->string('article'))
-                ->with('activeVersion')
+                ->with(['activeVersion', 'versions.modifiedByDocument:id,titre_officiel'])
                 ->first();
 
             if ($article) {
+                $selectedVersion = $au !== null ? $article->versionAt($au)->first() : $article->activeVersion;
+                // `au=` hors de toute période connue : la seule cause possible
+                // est une date antérieure à la toute première version (cf.
+                // Article::versionAt) — jamais un article sans texte du tout,
+                // un article publié porte toujours au moins une version.
+                $versionFound = $au === null || $selectedVersion !== null;
+
                 $currentArticle = [
                     'id' => $article->id,
                     'number' => $article->numero_article,
                     'order' => $article->ordre_affichage,
-                    'content' => $article->activeVersion?->contenu_texte,
+                    'content' => $selectedVersion?->contenu_texte,
                     // Nature de la feuille (preamble, signature, table) et
                     // tableaux structurés : sans eux le site ne peut que rendre
                     // du texte, et un tableau ressort en balises à l'écran.
-                    'content_format' => $article->activeVersion?->contentFormat(),
-                    'tables' => $article->activeVersion?->publicTables() ?? [],
+                    'content_format' => $selectedVersion?->contentFormat(),
+                    'tables' => $selectedVersion?->publicTables() ?? [],
                     // Page du PDF source : la seule provenance disponible à
                     // l'échelle de l'article, et elle est exacte.
-                    'page' => $article->activeVersion?->sourcePage(),
+                    'page' => $selectedVersion?->sourcePage(),
                     'related' => $this->relatedTexts($article),
+                    // Contexte de la sélection par date — toujours présents,
+                    // pour que le site distingue « aucune version à cette date »
+                    // (au non nul, version_found=false) de « aucun ?au= demandé ».
+                    'au' => $au,
+                    'version_found' => $versionFound,
+                    'earliest_known_date' => $versionFound ? null : $article->versions->min('validity_start'),
+                    // Historique pour un sélecteur côté site — dates de la
+                    // période, et le texte qui l'a ouverte s'il est connu
+                    // (`modifie_par_document_id`, jamais deviné : null pour une
+                    // simple correction, cf. dashboard#166).
+                    'versions' => $article->versions
+                        ->sortBy('validity_start')
+                        ->values()
+                        ->map(fn ($v) => [
+                            'start' => $v->validity_start,
+                            'end' => $v->validity_end,
+                            'is_current' => $v->validity_end === null,
+                            'modifie_par' => $v->modifiedByDocument?->titre_officiel,
+                        ]),
                 ];
             }
         }
