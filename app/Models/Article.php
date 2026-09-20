@@ -57,6 +57,21 @@ class Article extends Model
         return $this->hasOne(ArticleVersion::class)->whereRaw('upper_inf(validity_period)');
     }
 
+    /**
+     * Version en vigueur à une date donnée (dashboard#167) — `@>` est
+     * l'opérateur de contenance PostgreSQL sur un `daterange` : la version
+     * dont la période couvre `$date`. Les périodes d'un même article ne se
+     * chevauchent jamais (contrainte `EXCLUDE USING GIST`) et ne laissent
+     * aucun trou entre elles une fois ouvertes (`ArticleController::addVersion()`
+     * ferme l'une exactement où l'autre commence) : l'absence de résultat ne
+     * peut donc signifier qu'une chose, `$date` antérieure à la toute
+     * première version connue — jamais une période manquante au milieu.
+     */
+    public function versionAt(string $date)
+    {
+        return $this->hasOne(ArticleVersion::class)->whereRaw('validity_period @> ?::date', [$date]);
+    }
+
     public function tags(): MorphToMany
     {
         return $this->morphToMany(Tag::class, 'taggable');

@@ -183,6 +183,24 @@ class ArticleVersion extends Model implements Auditable
         return null;
     }
 
+    /**
+     * Borne haute (date de fin) de la période de validité — null si la
+     * version est encore en vigueur (borne ouverte, `upper_inf`).
+     */
+    public function getValidityEndAttribute(): ?string
+    {
+        if (! is_string($this->validity_period) || $this->validity_period === '') {
+            return null;
+        }
+
+        // Capture la date ISO après la virgule, juste avant le crochet fermant.
+        if (preg_match('/,\s*(\d{4}-\d{2}-\d{2})\s*[\])]$/', $this->validity_period, $matches)) {
+            return $matches[1];
+        }
+
+        return null;
+    }
+
     public function sourceRun(): BelongsTo
     {
         return $this->belongsTo(ExtractionRun::class, 'source_run_id');
