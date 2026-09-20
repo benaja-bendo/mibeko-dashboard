@@ -2,8 +2,10 @@
 
 use App\Models\CurationFlag;
 use App\Models\LegalDocument;
+use App\Models\Tag;
 use App\Models\User;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Str;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 
@@ -207,6 +209,85 @@ it('rejette une modification de métadonnées dont un champ est hors liste blanc
 
     expect($document->fresh()->curation_status)->toBe('draft')
         ->and(File::glob(cheminFileOperations('rejected').'/*.json'))->toHaveCount(1);
+});
+
+// ── rattacher_tags (seule opération Classe 1 admise sur un document publié) ──
+
+it('attache des tags à un document PUBLIÉ — exception assumée de rattacher_tags', function () {
+    $document = LegalDocument::factory()->create(['curation_status' => 'published']);
+    $famille = Tag::create(['name' => 'Famille & personnes', 'slug' => 'famille']);
+
+    deposerLotOperations(lotClasseUne('rattacher_tags', [
+        'modifications' => [['id' => $document->id, 'attacher' => [$famille->id]]],
+    ], 1));
+
+    $this->artisan('mibeko:operations')
+        ->expectsConfirmation('Exécuter ce lot ?', 'yes')
+        ->assertSuccessful();
+
+    expect($document->fresh()->tags()->pluck('tags.id')->all())->toBe([$famille->id]);
+});
+
+it('détache un tag sans toucher les autres', function () {
+    $document = LegalDocument::factory()->create(['curation_status' => 'published']);
+    $famille = Tag::create(['name' => 'Famille & personnes', 'slug' => 'famille']);
+    $justice = Tag::create(['name' => 'Justice & droits', 'slug' => 'justice']);
+    $document->tags()->attach([$famille->id, $justice->id]);
+
+    deposerLotOperations(lotClasseUne('rattacher_tags', [
+        'modifications' => [['id' => $document->id, 'detacher' => [$famille->id]]],
+    ], 1));
+
+    $this->artisan('mibeko:operations')
+        ->expectsConfirmation('Exécuter ce lot ?', 'yes')
+        ->assertSuccessful();
+
+    expect($document->fresh()->tags()->pluck('tags.id')->all())->toBe([$justice->id]);
+});
+
+it('rattacher_tags fonctionne aussi sur un document de staging (pas réservé aux publiés)', function () {
+    $document = LegalDocument::factory()->create(['curation_status' => 'draft']);
+    $tag = Tag::create(['name' => 'Travail & emploi', 'slug' => 'travail']);
+
+    deposerLotOperations(lotClasseUne('rattacher_tags', [
+        'modifications' => [['id' => $document->id, 'attacher' => [$tag->id]]],
+    ], 1));
+
+    $this->artisan('mibeko:operations')
+        ->expectsConfirmation('Exécuter ce lot ?', 'yes')
+        ->assertSuccessful();
+
+    expect($document->fresh()->tags()->pluck('tags.id')->all())->toBe([$tag->id]);
+});
+
+it('rejette rattacher_tags si un identifiant de tag est introuvable', function () {
+    $document = LegalDocument::factory()->create(['curation_status' => 'published']);
+
+    deposerLotOperations(lotClasseUne('rattacher_tags', [
+        'modifications' => [['id' => $document->id, 'attacher' => [(string) Str::uuid()]]],
+    ], 1));
+
+    $this->artisan('mibeko:operations')
+        ->expectsOutputToContain('tag introuvable')
+        ->assertSuccessful();
+
+    expect($document->fresh()->tags()->count())->toBe(0)
+        ->and(File::glob(cheminFileOperations('rejected').'/*.json'))->toHaveCount(1);
+});
+
+it('rejette rattacher_tags si un même tag est à la fois attaché et détaché', function () {
+    $document = LegalDocument::factory()->create(['curation_status' => 'published']);
+    $tag = Tag::create(['name' => 'Fiscalité & impôts', 'slug' => 'fiscalite']);
+
+    deposerLotOperations(lotClasseUne('rattacher_tags', [
+        'modifications' => [['id' => $document->id, 'attacher' => [$tag->id], 'detacher' => [$tag->id]]],
+    ], 1));
+
+    $this->artisan('mibeko:operations')
+        ->expectsOutputToContain('à la fois attaché et détaché')
+        ->assertSuccessful();
+
+    expect(File::glob(cheminFileOperations('rejected').'/*.json'))->toHaveCount(1);
 });
 
 // ── Validation au clavier ────────────────────────────────────────────────────

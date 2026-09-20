@@ -6,6 +6,7 @@ use App\Models\Article;
 use App\Models\CurationFlag;
 use App\Models\LegalDocument;
 use App\Models\StructureNode;
+use App\Models\Tag;
 use App\Models\User;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
@@ -15,12 +16,21 @@ use RuntimeException;
  * Liste blanche et exécution des lots de la file d'opérations Classe 1
  * (docs/infra/production.md § 6 bis, décision du 08/08/2026).
  *
- * Le périmètre Classe 1 est la curation de staging, rien d'autre : les
- * curation_flags (créer, résoudre, rouvrir) et les métadonnées ou transitions
- * de `curation_status` de documents JAMAIS publiés (draft/review/validated) —
+ * Le périmètre Classe 1 est la curation de staging : les curation_flags
+ * (créer, résoudre, rouvrir) et les métadonnées ou transitions de
+ * `curation_status` de documents JAMAIS publiés (draft/review/validated) —
  * jamais vers `published`, jamais un document publié ni l'ayant été. Tout le
  * reste relève de la Classe 2 (méthode en 4 temps, autorisation par opération
  * dans le chat).
+ *
+ * Exception unique, ajoutée le 20/09/2026 (`docs/decisions.md`,
+ * mibeko-site#31) : `rattacher_tags` s'applique aussi à un document PUBLIÉ.
+ * Un tag est une étiquette de navigation (« Famille & personnes », « Travail
+ * & emploi »…) pour le site public, jamais un champ du contenu juridique ni
+ * de son statut — le distinguo qui range tout le reste de ce fichier du côté
+ * Classe 2 (« tout ce qui touche un document publié ») ne s'y applique donc
+ * pas. Cette opération est la SEULE de la liste blanche à ignorer
+ * `documentClasseUne()` ; elle utilise sa propre garde, `documentPourTags()`.
  *
  * Toute écriture passe par Eloquent, jamais par du SQL brut : la machine à
  * états de LegalDocument, l'audit owen-it/auditing et la policy
@@ -36,6 +46,7 @@ class OperationsClasseUne
         'changer_statut_documents',
         'modifier_metadonnees_documents',
         'retirer_documents_staging',
+        'rattacher_tags',
     ];
 
     /** @var list<string> Statuts de staging : un document Classe 1 en vient ET y reste. */
@@ -98,6 +109,7 @@ class OperationsClasseUne
             'changer_statut_documents' => $this->violationsChangerStatut($params, $utilisateur),
             'modifier_metadonnees_documents' => $this->violationsModifierMetadonnees($params, $utilisateur),
             'retirer_documents_staging' => $this->violationsRetirerStaging($params, $utilisateur),
+            'rattacher_tags' => $this->violationsRattacherTags($params, $utilisateur),
         };
     }
 
@@ -141,6 +153,11 @@ class OperationsClasseUne
                 'cible' => count($params['document_ids']).' document(s) : '.$this->apercu($params['document_ids']),
                 'effet' => 'suppression DOUCE (deleted_at) — réversible par restore(), aucun octet perdu',
             ],
+            'rattacher_tags' => [
+                'cible' => count($params['modifications']).' document(s) : '
+                    .$this->apercu(array_column($params['modifications'], 'id')),
+                'effet' => 'attache/détache des tags de navigation — aucun contenu juridique touché',
+            ],
         };
     }
 
@@ -171,6 +188,7 @@ class OperationsClasseUne
             'changer_statut_documents' => $this->executerChangerStatut($params),
             'modifier_metadonnees_documents' => $this->executerModifierMetadonnees($params),
             'retirer_documents_staging' => $this->executerRetirerStaging($params),
+            'rattacher_tags' => $this->executerRattacherTags($params),
         };
     }
 
@@ -610,6 +628,100 @@ class OperationsClasseUne
         return $touches;
     }
 
+    // ── Tags de navigation (documents publiés OU en staging) ────────────────
+
+    /**
+     * @param  array<string, mixed>  $params
+     * @return list<string>
+     */
+    private function violationsRattacherTags(array $params, User $utilisateur): array
+    {
+        $modifications = $params['modifications'] ?? null;
+
+        if (! is_array($modifications) || $modifications === [] || ! array_is_list($modifications)) {
+            return ['`params.modifications` doit être une liste non vide de {id, attacher?, detacher?}.'];
+        }
+
+        $violations = [];
+        $tagsExistants = null;
+
+        foreach ($modifications as $index => $modification) {
+            $rang = $index + 1;
+
+            if (! is_array($modification)) {
+                $violations[] = "Modification {$rang} : objet {id, attacher, detacher} attendu.";
+
+                continue;
+            }
+
+            $attacher = $modification['attacher'] ?? [];
+            $detacher = $modification['detacher'] ?? [];
+
+            if (! is_array($attacher) || ! array_is_list($attacher) || ! is_array($detacher) || ! array_is_list($detacher)) {
+                $violations[] = "Modification {$rang} : `attacher` et `detacher` doivent être des listes d'identifiants de tags.";
+
+                continue;
+            }
+
+            if ($attacher === [] && $detacher === []) {
+                $violations[] = "Modification {$rang} : `attacher` et `detacher` sont vides — rien à faire.";
+
+                continue;
+            }
+
+            if (array_intersect($attacher, $detacher) !== []) {
+                $violations[] = "Modification {$rang} : un même tag ne peut pas être à la fois attaché et détaché.";
+
+                continue;
+            }
+
+            $tagsExistants ??= Tag::query()->pluck('id')->all();
+
+            foreach ([...$attacher, ...$detacher] as $tagId) {
+                if (! is_string($tagId) || ! Str::isUuid($tagId) || ! in_array($tagId, $tagsExistants, true)) {
+                    $violations[] = "Modification {$rang} : tag introuvable : ".json_encode($tagId).'.';
+                }
+            }
+
+            [, $violationsDocument] = $this->documentPourTags($modification['id'] ?? null, $utilisateur);
+            $violations = [...$violations, ...$violationsDocument];
+        }
+
+        return $violations;
+    }
+
+    /**
+     * @param  array<string, mixed>  $params
+     */
+    private function executerRattacherTags(array $params): int
+    {
+        $touches = 0;
+
+        foreach ($params['modifications'] as $modification) {
+            $document = LegalDocument::query()->findOrFail($modification['id']);
+            $attacher = $modification['attacher'] ?? [];
+            $detacher = $modification['detacher'] ?? [];
+
+            $avant = $document->tags()->pluck('tags.id')->sort()->values()->all();
+
+            if ($attacher !== []) {
+                $document->tags()->syncWithoutDetaching($attacher);
+            }
+
+            if ($detacher !== []) {
+                $document->tags()->detach($detacher);
+            }
+
+            $apres = $document->tags()->pluck('tags.id')->sort()->values()->all();
+
+            if ($avant !== $apres) {
+                $touches++;
+            }
+        }
+
+        return $touches;
+    }
+
     // ── Gardes partagées ─────────────────────────────────────────────────────
 
     /**
@@ -640,6 +752,35 @@ class OperationsClasseUne
             return [null, [
                 "Document {$id} : a déjà été publié (trace d'audit) — toute intervention relève de la Classe 2.",
             ]];
+        }
+
+        if (Gate::forUser($utilisateur)->denies('update', $document)) {
+            return [null, ["Document {$id} : le jeton n'a pas le droit documents.update."]];
+        }
+
+        return [$document, []];
+    }
+
+    /**
+     * Charge un document pour `rattacher_tags` : existant (non supprimé),
+     * éditable par le porteur du jeton — **publié ou non**, à la différence
+     * de `documentClasseUne()`. Un tag ne modifie ni le contenu juridique ni
+     * `curation_status` : le restreindre au staging n'aurait aucun sens,
+     * puisque le seul usage réel (thèmes de la page /situations) porte
+     * justement sur des documents déjà publiés.
+     *
+     * @return array{0: LegalDocument|null, 1: list<string>}
+     */
+    private function documentPourTags(mixed $id, User $utilisateur): array
+    {
+        if (! is_string($id) || ! Str::isUuid($id)) {
+            return [null, ['Identifiant de document invalide : '.json_encode($id).'.']];
+        }
+
+        $document = LegalDocument::query()->find($id);
+
+        if ($document === null) {
+            return [null, ["Document introuvable (ou supprimé) : {$id}."]];
         }
 
         if (Gate::forUser($utilisateur)->denies('update', $document)) {
