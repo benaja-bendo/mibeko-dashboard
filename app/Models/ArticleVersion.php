@@ -6,12 +6,20 @@ use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use OwenIt\Auditing\Contracts\Auditable;
 use Pgvector\Laravel\Vector;
 
+/**
+ * `SoftDeletes` (dashboard#166) : retire une version fermée sans jamais la
+ * supprimer physiquement (interdit, `docs/infra/production.md` § 6) — sert la
+ * remédiation des articles à versions multiples qui ne sont pas de vrais
+ * amendements (`mibeko:remedier-versions-multiples`). La version ACTIVE
+ * (`upper_inf(validity_period)`) n'est jamais soft-deleted.
+ */
 class ArticleVersion extends Model implements Auditable
 {
-    use HasFactory, HasUuids, \OwenIt\Auditing\Auditable;
+    use HasFactory, HasUuids, \OwenIt\Auditing\Auditable, SoftDeletes;
 
     protected $touches = ['article'];
 

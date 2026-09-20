@@ -187,7 +187,7 @@ class SanteController extends Controller
                 'curationFlags',
                 fn ($query) => $query->where('resolved', false),
             )->count(),
-            'versions_without_embedding' => DB::table('article_versions')->whereNull('embedding')->count(),
+            'versions_without_embedding' => DB::table('article_versions')->whereNull('embedding')->whereNull('deleted_at')->count(),
             'retard_publication' => [
                 'seuil_jours' => self::RETARD_PUBLICATION_JOURS,
                 'documents' => (clone $enRetard)->count(),
