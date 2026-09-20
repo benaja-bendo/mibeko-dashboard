@@ -54,6 +54,12 @@ it('refuse le profil de production en lecture seule', function () {
 it('épargne une entrée qui expire exactement maintenant', function () {
     // Frontière : `expiration = maintenant` n'est pas encore dépassée. La
     // comparaison doit rester stricte, sinon la purge devance le cache lui-même.
+    // `travelTo` fige l'horloge : la commande lit son propre `now()` dans
+    // `handle()`, un instant réel après celui posé ici — sans le figer, une
+    // seconde entière peut s'écouler entre les deux appels (bootstrap
+    // artisan compris) et faire replonger l'entrée dans le passé, purgée à
+    // tort. Constaté en CI le 20/09/2026.
+    $this->travelTo(now());
     poserEntreeCache('cle-limite', now()->getTimestamp());
 
     $this->artisan('mibeko:purger-cache-expire')->assertSuccessful();
