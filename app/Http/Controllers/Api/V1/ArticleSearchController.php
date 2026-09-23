@@ -166,7 +166,11 @@ class ArticleSearchController extends Controller
     public function search(Request $request): JsonResponse
     {
         $request->validate([
-            'q' => ['nullable', 'string', 'min:2'],
+            // Plafond aligné sur `search_logs.query`. Route anonyme qui génère
+            // un embedding (appel payant) dès que le lexical rend < 10
+            // résultats : sans borne, une requête de plusieurs Ko se payait
+            // en tokens à chaque appel.
+            'q' => ['nullable', 'string', 'min:2', 'max:255'],
             'document_id' => ['nullable', 'string', 'exists:legal_documents,id'],
             'tag' => ['nullable', 'string'],
             'type' => ['nullable', 'string', 'exists:document_types,code'],
