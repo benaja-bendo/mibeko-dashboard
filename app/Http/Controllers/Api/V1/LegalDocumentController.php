@@ -136,7 +136,7 @@ class LegalDocumentController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
-        $perPage = min((int) $request->input('per_page', 20), 100);
+        $perPage = $this->perPage($request);
 
         // Un appel non privilégié (anonyme ou sans rôle éditorial) ne voit que
         // le corpus publié : les brouillons restent réservés au dashboard.
@@ -176,8 +176,15 @@ class LegalDocumentController extends Controller
      */
     public function search(Request $request): JsonResponse
     {
-        $query = $request->input('q', '');
-        $perPage = min((int) $request->input('per_page', 20), 100);
+        // Seul des cinq points d'entrée de recherche sans validation : un
+        // `q[]=` y levait une 500 (« Array to string conversion »). Plafond
+        // aligné sur la colonne `search_logs.query`.
+        $validated = $request->validate([
+            'q' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        $query = $validated['q'] ?? '';
+        $perPage = $this->perPage($request);
 
         // Même garde que l'index : la recherche liste les mêmes documents.
         $canViewUnpublished = $this->canViewUnpublishedDocuments($request);

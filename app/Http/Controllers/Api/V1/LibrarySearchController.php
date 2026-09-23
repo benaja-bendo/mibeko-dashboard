@@ -49,7 +49,9 @@ class LibrarySearchController extends Controller
     public function search(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'q' => ['required', 'string', 'min:2'],
+            // Plafond aligné sur `search_logs.query` : au-delà, aucune requête
+            // humaine, seulement du coût (tsquery, trigram) sur route publique.
+            'q' => ['required', 'string', 'min:2', 'max:255'],
             'type' => ['nullable', 'string', 'exists:document_types,code'],
             'institution_id' => ['nullable', 'string', 'exists:institutions,id'],
             'legal_scope' => ['nullable', 'string', 'in:national,ohada,communautaire'],

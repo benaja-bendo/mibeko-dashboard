@@ -80,7 +80,7 @@ class OfficialJournalController extends Controller
             $query->where('is_published', true);
         }
 
-        $journals = $query->paginate(min((int) $request->get('per_page', 15), 100));
+        $journals = $query->paginate($this->perPage($request, default: 15));
 
         return OfficialJournalResource::collection($journals);
     }
