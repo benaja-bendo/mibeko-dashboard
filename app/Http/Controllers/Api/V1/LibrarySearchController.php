@@ -82,7 +82,7 @@ class LibrarySearchController extends Controller
             withSemantic: $request->boolean('semantic'),
         );
 
-        $this->searchLogger->log(SearchSurface::LIBRARY_SEARCH, $validated['q'], $paginator->total(), $request->user());
+        $this->searchLogger->log(SearchSurface::LIBRARY_SEARCH, $validated['q'], $paginator->total(), $request);
 
         return $this->paginatedSuccess($paginator, null, 'Résultats de recherche récupérés avec succès');
     }
@@ -114,7 +114,7 @@ class LibrarySearchController extends Controller
             SearchSurface::LIBRARY_SUGGEST,
             $q,
             count($documents) + count($articles) + count($passages),
-            $request->user(),
+            $request,
         );
 
         return response()->json([
