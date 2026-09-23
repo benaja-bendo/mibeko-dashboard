@@ -220,7 +220,7 @@ class LegalDocumentController extends Controller
 
         $this->attachEmbeddingProgress($documents);
 
-        $this->searchLogger->log(SearchSurface::LEGAL_DOCUMENTS_SEARCH, $query, $documents->total(), $request->user());
+        $this->searchLogger->log(SearchSurface::LEGAL_DOCUMENTS_SEARCH, $query, $documents->total(), $request);
 
         return $this->paginatedSuccess(
             $documents,

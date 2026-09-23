@@ -331,7 +331,7 @@ class ArticleSearchController extends Controller
             str_contains($request->path(), 'articles/search') ? SearchSurface::MOBILE_ARTICLES_SEARCH : SearchSurface::MOBILE_SEARCH,
             $query ?? '',
             $paginator->total(),
-            $request->user(),
+            $request,
         );
 
         $aiAnswer = null;
