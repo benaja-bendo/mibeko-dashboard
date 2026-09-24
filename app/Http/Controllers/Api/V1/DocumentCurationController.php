@@ -186,7 +186,7 @@ class DocumentCurationController extends Controller
         $checklists = $document->publicationChecklists()
             ->with('actor:id,name')
             ->orderByDesc('created_at')
-            ->paginate(min((int) $request->input('per_page', 20), 100));
+            ->paginate($this->perPage($request));
 
         return $this->paginatedSuccess(
             $checklists,

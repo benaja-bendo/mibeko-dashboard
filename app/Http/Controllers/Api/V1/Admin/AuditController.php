@@ -34,7 +34,7 @@ class AuditController extends Controller
         $query = Audit::query()->with(['user', 'auditable']);
         $this->applyFilters($query, $request);
 
-        $perPage = min((int) $request->integer('per_page', 25) ?: 25, 100);
+        $perPage = $this->perPage($request, default: 25);
         $audits = $query->latest()->paginate($perPage);
 
         return $this->paginatedSuccess($audits, AuditResource::class, 'Journal d\'activité récupéré avec succès');
