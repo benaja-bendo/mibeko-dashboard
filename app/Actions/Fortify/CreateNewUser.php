@@ -28,6 +28,8 @@ class CreateNewUser implements CreatesNewUsers
                 Rule::unique(User::class),
             ],
             'password' => $this->passwordRules(),
+        ], [
+            'email.unique' => __('auth.email_deja_inscrit'),
         ])->validate();
 
         // Même raison que dans AuthController::register : un compte sans
