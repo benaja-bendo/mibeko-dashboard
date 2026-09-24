@@ -49,7 +49,9 @@ class LibrarySearchController extends Controller
     public function search(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'q' => ['required', 'string', 'min:2'],
+            // Plafond aligné sur `search_logs.query` : au-delà, aucune requête
+            // humaine, seulement du coût (tsquery, trigram) sur route publique.
+            'q' => ['required', 'string', 'min:2', 'max:255'],
             'type' => ['nullable', 'string', 'exists:document_types,code'],
             'institution_id' => ['nullable', 'string', 'exists:institutions,id'],
             'legal_scope' => ['nullable', 'string', 'in:national,ohada,communautaire'],
@@ -80,7 +82,7 @@ class LibrarySearchController extends Controller
             withSemantic: $request->boolean('semantic'),
         );
 
-        $this->searchLogger->log(SearchSurface::LIBRARY_SEARCH, $validated['q'], $paginator->total(), $request->user());
+        $this->searchLogger->log(SearchSurface::LIBRARY_SEARCH, $validated['q'], $paginator->total(), $request);
 
         return $this->paginatedSuccess($paginator, null, 'Résultats de recherche récupérés avec succès');
     }
@@ -112,7 +114,7 @@ class LibrarySearchController extends Controller
             SearchSurface::LIBRARY_SUGGEST,
             $q,
             count($documents) + count($articles) + count($passages),
-            $request->user(),
+            $request,
         );
 
         return response()->json([

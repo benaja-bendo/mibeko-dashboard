@@ -2,7 +2,7 @@
 
 use App\Actions\Fortify\CreateNewUser;
 use App\Models\User;
-use Illuminate\Auth\Notifications\VerifyEmail;
+use App\Notifications\VerifyEmailNotification;
 use Illuminate\Support\Facades\Notification;
 use Spatie\Permission\Models\Role;
 
@@ -30,7 +30,7 @@ it('renseigne le statut du compte créé par l\'inscription mobile', function ()
     expect($compte->status)->toBe('active');
     expect($compte->email_verification_required)->toBeTrue();
     expect($compte->hasVerifiedEmail())->toBeFalse();
-    Notification::assertSentTo($compte, VerifyEmail::class);
+    Notification::assertSentTo($compte, VerifyEmailNotification::class);
 });
 
 it('renseigne le statut du compte créé par l\'inscription web', function () {

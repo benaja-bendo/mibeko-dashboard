@@ -124,27 +124,13 @@ class AiAssistantController extends Controller
             ->orderBy('created_at')
             ->orderBy('id')
             ->get(['id', 'role', 'content', 'meta', 'created_at'])
-            ->map(function (AgentConversationMessage $message) {
-                $content = $message->content;
-
-                // Nettoyer le contexte RAG des anciens messages utilisateur.
-                // Quantificateur paresseux (.*?) pour éviter le backtracking
-                // catastrophique sur de gros messages legacy ; on retombe sur le
-                // contenu d'origine si la regex échoue (jamais de null silencieux
-                // qui supprimerait le message du fil).
-                if ($message->role === 'user') {
-                    $pattern = '/Voici les extraits de loi pertinents trouvés dans la base Mibeko :\s*.*?Question de l\'utilisateur : /s';
-                    $content = preg_replace($pattern, '', $content) ?? $content;
-                }
-
-                return [
-                    'id' => $message->id,
-                    'role' => $message->role,
-                    'content' => $content,
-                    'meta' => $this->normalizeMessageMeta($message->meta),
-                    'created_at' => $message->created_at?->toISOString(),
-                ];
-            })
+            ->map(fn (AgentConversationMessage $message) => [
+                'id' => $message->id,
+                'role' => $message->role,
+                'content' => $message->displayContent(),
+                'meta' => $this->normalizeMessageMeta($message->meta),
+                'created_at' => $message->created_at?->toISOString(),
+            ])
             // Les tours « appel d'outil » de l'assistant n'ont pas de texte :
             // ils ne doivent pas produire de bulle vide dans le fil.
             ->filter(fn (array $message) => trim((string) $message['content']) !== '')
