@@ -132,7 +132,9 @@ class PrivacyController extends Controller
      * Supprime le compte (droit à l'effacement, RGPD art. 17).
      *
      * Exige le mot de passe courant, révoque tous les jetons puis applique un
-     * soft-delete (conservation temporaire pour obligations légales avant purge).
+     * soft-delete : un admin peut encore restaurer le compte pendant 30 jours,
+     * après quoi `mibeko:purger-comptes-supprimes` l'efface avec ce qu'il
+     * possède (`config/account_deletion.php`, décision du 24/09/2026).
      */
     public function destroy(Request $request): JsonResponse
     {

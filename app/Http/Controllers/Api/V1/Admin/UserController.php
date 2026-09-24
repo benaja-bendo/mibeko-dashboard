@@ -161,7 +161,9 @@ class UserController extends Controller
     }
 
     /**
-     * Suppression douce (soft delete) — le compte peut être restauré.
+     * Suppression douce (soft delete) — le compte peut être restauré pendant
+     * 30 jours, puis `mibeko:purger-comptes-supprimes` l'efface définitivement
+     * (`config/account_deletion.php`).
      */
     public function destroy(Request $request, User $user): JsonResponse
     {
