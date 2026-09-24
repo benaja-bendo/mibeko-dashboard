@@ -30,6 +30,8 @@ class AuthController extends Controller
             'email' => 'required|string|email|max:255|unique:users',
             'password' => 'required|string|min:8|confirmed',
             'device_name' => 'required|string',
+        ], [
+            'email.unique' => __('auth.email_deja_inscrit'),
         ]);
 
         // `status` est renseigné ici et pas seulement laissé au défaut de la
