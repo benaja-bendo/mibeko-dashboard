@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Notifications\VerifyEmailNotification;
 use Database\Factories\UserFactory;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
@@ -83,6 +84,16 @@ class User extends Authenticatable implements Auditable, MustVerifyEmail
             'last_seen_at' => 'datetime',
             'suspended_at' => 'datetime',
         ];
+    }
+
+    /**
+     * Envoie l'e-mail de vérification par la file d'attente : une panne SMTP
+     * ne doit jamais faire échouer l'inscription qui le déclenche
+     * (mibeko-dashboard#185). Sert aussi au renvoi (`email/verification-notification`).
+     */
+    public function sendEmailVerificationNotification(): void
+    {
+        $this->notify(new VerifyEmailNotification);
     }
 
     /**

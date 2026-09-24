@@ -1,7 +1,7 @@
 <?php
 
 use App\Models\User;
-use Illuminate\Auth\Notifications\VerifyEmail;
+use App\Notifications\VerifyEmailNotification;
 use Illuminate\Routing\Middleware\ThrottleRequests;
 use Illuminate\Support\Facades\Notification;
 
@@ -22,7 +22,7 @@ it('renvoie la notification de vérification et répond 202 pour un utilisateur 
         ->postJson('/api/v1/email/verification-notification')
         ->assertStatus(202);
 
-    Notification::assertSentTo($user, VerifyEmail::class);
+    Notification::assertSentTo($user, VerifyEmailNotification::class);
 });
 
 it('n\'envoie rien mais répond 202 quand l\'adresse est déjà vérifiée', function () {
