@@ -32,7 +32,7 @@ class ReviewQueueController extends Controller
     public function index(Request $request): JsonResponse
     {
         $status = $request->query('curation_status', LegalDocument::STATUS_REVIEW);
-        $perPage = min((int) $request->input('per_page', 20), 100);
+        $perPage = $this->perPage($request);
         $assignedTo = $request->query('assigned_to');
 
         $documents = LegalDocument::query()

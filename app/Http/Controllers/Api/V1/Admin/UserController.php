@@ -48,7 +48,7 @@ class UserController extends Controller
         $this->applyTrashedScope($query, $request->query('trashed'));
         $this->applyFilters($query, $request);
 
-        $perPage = min((int) $request->integer('per_page', 20) ?: 20, 100);
+        $perPage = $this->perPage($request);
         $users = $query->latest()->paginate($perPage);
 
         return $this->paginatedSuccess($users, UserResource::class, 'Utilisateurs récupérés avec succès');

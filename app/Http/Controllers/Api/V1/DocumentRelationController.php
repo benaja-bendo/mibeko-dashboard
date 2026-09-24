@@ -190,7 +190,7 @@ class DocumentRelationController extends Controller
                 ->where('source_doc_id', $request->query('document_id'))
                 ->orWhere('target_doc_id', $request->query('document_id'))))
             ->orderByDesc('created_at')
-            ->paginate((int) $request->integer('per_page', 20));
+            ->paginate($this->perPage($request));
 
         return $this->paginatedSuccess($relations, null, 'Relations récupérées avec succès');
     }

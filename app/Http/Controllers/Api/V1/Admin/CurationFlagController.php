@@ -43,7 +43,7 @@ class CurationFlagController extends Controller
             // Bloquantes d'abord, puis les plus récentes : on traite le critique en tête.
             ->orderByRaw("CASE severity WHEN 'blocking' THEN 0 WHEN 'warning' THEN 1 ELSE 2 END")
             ->orderByDesc('created_at')
-            ->paginate((int) $request->integer('per_page', 20));
+            ->paginate($this->perPage($request));
 
         return $this->paginatedSuccess(
             $flags,
