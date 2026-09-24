@@ -2,6 +2,16 @@
 
 use Illuminate\Support\Facades\Schedule;
 
+// mibeko-dashboard#183 : efface les comptes supprimés depuis plus de 30 jours
+// (config/account_deletion.php), avant la sauvegarde de 03:00 pour qu'elle ne
+// les recopie pas. Planifiée seulement après une première exécution humaine
+// vérifiée en production (24/09/2026 : 3 comptes, 85 lignes, écart exact).
+Schedule::command('mibeko:purger-comptes-supprimes --execute')
+    ->dailyAt('02:45')
+    ->withoutOverlapping()
+    ->runInBackground()
+    ->appendOutputTo(storage_path('logs/purger-comptes-supprimes.log'));
+
 Schedule::command('mibeko:backup --disk=gdrive --only-db')
     ->dailyAt('03:00')
     ->withoutOverlapping()
