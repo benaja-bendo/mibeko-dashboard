@@ -38,6 +38,19 @@ it('renvoie les erreurs de validation de l\'API en français, jamais en clé bru
         ->assertJsonPath('message', 'Le champ recherche doit être du texte.');
 });
 
+it('résume en français un refus qui porte sur plusieurs champs', function () {
+    // `ValidationException::summarize()` ajoute « (and :count more errors) »
+    // au premier message : resté en anglais dans la prod du 24/09/2026 après
+    // la première passe de traduction, relevé en vérifiant le déploiement.
+    $this->postJson('/api/v1/register', [])
+        ->assertUnprocessable()
+        ->assertJsonPath('message', 'Le champ nom est obligatoire. (et 3 autres erreurs)');
+
+    $this->postJson('/api/v1/register', ['name' => 'Un nom', 'password' => 'motdepasse-solide', 'password_confirmation' => 'motdepasse-solide'])
+        ->assertUnprocessable()
+        ->assertJsonPath('message', 'Le champ adresse e-mail est obligatoire. (et 1 autre erreur)');
+});
+
 it('oriente vers la connexion quand l\'adresse est déjà inscrite (inscription mobile)', function () {
     User::factory()->create(['email' => 'deja@example.test']);
 
