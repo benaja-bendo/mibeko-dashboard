@@ -366,7 +366,8 @@ class ArticleSearchController extends Controller
                 'query' => $query,
                 'source_count' => count($sources),
                 'top_score' => count($sources) > 0 ? $sources[0]['score'] : null,
-                'authenticated' => $request->user() !== null,
+                // Route publique : `user()` lirait la garde `web` (#178).
+                'authenticated' => $request->user('sanctum') !== null,
             ]);
 
             if (empty($sources)) {

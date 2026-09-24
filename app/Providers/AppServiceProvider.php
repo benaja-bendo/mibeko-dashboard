@@ -232,11 +232,20 @@ class AppServiceProvider extends ServiceProvider
         // de l'App Store. Le client s'appuie sur le champ machine `code`/`scope`
         // et le header standard Retry-After (transmis via `$headers`).
         RateLimiter::for('ai_assistant', function (Request $request) {
+            // mibeko-dashboard#178 : garde `sanctum` explicite. Ce limiteur sert
+            // aussi une route publique, la recherche avec `rag=`, qui l'appelle
+            // en ligne (ArticleSearchController::ragAllowedByThrottle). Hors
+            // `auth:sanctum`, la garde par défaut reste `web` : `user()` y vaut
+            // null même avec un Bearer valide, et un usager connecté retombait
+            // sur le palier anonyme (5/min par IP, sans quota de fond). Derrière
+            // `auth:sanctum`, les deux gardes résolvent le même usager.
+            $user = $request->user('sanctum');
+
             // mibeko-dashboard#61 : « un 429 est une donnée » — journalisé ici,
             // seul endroit qui voit un refus de quota avant le contrôleur.
-            $log = function (Request $request) {
+            $log = function (Request $request) use ($user) {
                 if ($route = AiRouteName::fromRequest($request)) {
-                    app(AiUsageLogger::class)->rateLimited($request->user(), $route);
+                    app(AiUsageLogger::class)->rateLimited($user, $route);
                 }
             };
 
@@ -306,8 +315,6 @@ class AppServiceProvider extends ServiceProvider
                     'scope' => 'month',
                 ], 429, $headers);
             };
-
-            $user = $request->user();
 
             if (! $user) {
                 return Limit::perMinute(5)->by($request->ip())->response($minuteResponse);
