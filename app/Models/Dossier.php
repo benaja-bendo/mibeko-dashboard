@@ -41,6 +41,13 @@ class Dossier extends Model implements Auditable
     /** Statuts d'avancement d'une affaire. */
     public const STATUSES = ['ouvert', 'en_cours', 'en_attente', 'clos'];
 
+    /**
+     * Étiquette des dossiers de favoris. Les favoris n'ont pas de table :
+     * l'app mobile range un article mis en favori dans « Mes Favoris », un
+     * dossier ainsi étiqueté (l'usager peut aussi étiqueter l'un des siens).
+     */
+    public const TAG_FAVORIS = 'FAVORIS';
+
     protected $fillable = [
         'id',
         'user_id',
