@@ -1,5 +1,6 @@
 <?php
 
+use App\Ai\AiUserQuotaTier;
 use App\Models\Article;
 use App\Models\ArticleVersion;
 use App\Models\DocumentType;
@@ -7,9 +8,11 @@ use App\Models\LegalDocument;
 use App\Models\User;
 use App\Observers\ArticleVersionObserver;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
 use Laravel\Ai\AnonymousAgent;
 use Laravel\Ai\Embeddings;
+use Spatie\Permission\Models\Role;
 
 uses(RefreshDatabase::class);
 
@@ -227,14 +230,66 @@ it('applique le quota du rôle, pas le plafond anonyme, pour un utilisateur auth
     // au-dessus de 5 : les 6 appels doivent tous réussir, contrairement au test
     // anonyme ci-dessus — preuve que ragAllowedByThrottle() distingue bien les
     // deux, sans dupliquer la politique du limiteur nommé.
+    //
+    // mibeko-dashboard#178 : vrai jeton Bearer, jamais `actingAs()`. Celui-ci
+    // remplissait la garde `web`, que `$request->user()` lit par défaut sur
+    // cette route publique : le test passait alors qu'un client réel (Bearer)
+    // retombait sur le palier anonyme.
     $user = User::factory()->create();
+    $token = $user->createToken('test')->plainTextToken;
 
     for ($i = 0; $i < 6; $i++) {
-        $response = $this->actingAs($user)
+        $response = $this->withToken($token)
             ->getJson('/api/v1/articles/search?q=licenciement&rag=true');
         $response->assertStatus(200);
         expect($response->json('data.answer'))->not->toBeNull();
     }
+});
+
+/*
+ * mibeko-dashboard#178 — la route de recherche est publique (hors
+ * `auth:sanctum`) : la garde par défaut y reste `web`, nulle pour un client
+ * Bearer. Authentification par VRAI jeton, sans `actingAs()` ni
+ * `Sanctum::actingAs()` : le premier remplit la garde `web`, le second bascule
+ * la garde par défaut sur `sanctum` — tous deux masquaient le défaut.
+ */
+it('décompte le RAG d\'un usager authentifié par jeton sur son quota, pas sur le palier anonyme', function (?string $role, string $scope) {
+    $user = User::factory()->create();
+    if ($role !== null) {
+        $user->assignRole(Role::findOrCreate($role));
+    }
+
+    $response = $this->withToken($user->createToken('test')->plainTextToken)
+        ->getJson('/api/v1/search?q=licenciement&rag=1');
+
+    $response->assertStatus(200);
+    expect($response->json('data.answer'))->not->toBeNull()
+        // Compteur de fond de l'usager (clé exacte de ThrottleRequests)…
+        ->and(RateLimiter::attempts(AiUserQuotaTier::cacheKey($user, $scope)))->toBe(1)
+        // … et jamais celui du palier anonyme, indexé sur l'IP.
+        ->and(RateLimiter::attempts(md5('ai_assistant127.0.0.1')))->toBe(0);
+})->with([
+    'standard (mensuel)' => [null, 'month'],
+    'user_pro (journalier)' => ['user_pro', 'day'],
+    'admin (journalier)' => ['admin', 'day'],
+]);
+
+it('refuse le RAG à un usager authentifié par jeton dont le quota mensuel est épuisé', function () {
+    $user = User::factory()->create();
+
+    // Allocation mensuelle consommée ailleurs (assistant, bibliothèque) : le
+    // palier anonyme, vierge pour cette IP, laisserait passer la requête.
+    for ($i = 0; $i < config('ai.quotas.standard.per_month'); $i++) {
+        RateLimiter::hit(AiUserQuotaTier::cacheKey($user, 'month'), 30 * 86400);
+    }
+
+    $response = $this->withToken($user->createToken('test')->plainTextToken)
+        ->getJson('/api/v1/search?q=licenciement&rag=1');
+
+    // Dégradation silencieuse vers la recherche seule, comme au plafond anonyme.
+    $response->assertStatus(200);
+    expect($response->json('data.answer'))->toBeNull()
+        ->and($response->json('data'))->not->toBeEmpty();
 });
 
 it('résout le contexte d\'un article isolé (document parent inclus)', function () {
