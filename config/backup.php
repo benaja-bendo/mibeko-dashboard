@@ -312,6 +312,16 @@ return [
          */
         'strategy' => DefaultStrategy::class,
 
+        /*
+         * Borné à 51 jours (7 + 16 + 4 semaines, ni mensuelles ni annuelles) —
+         * décision du 24/09/2026. La politique de confidentialité (mibeko-site,
+         * § 4) promet qu'aucune copie d'un compte supprimé ne subsiste 90 jours
+         * après la demande : 30 jours avant la purge
+         * (`config/account_deletion.php`), puis au plus 51 jours dans une
+         * sauvegarde. Les valeurs Spatie par défaut (8 semaines, 4 mois, 2 ans)
+         * gardaient une copie environ deux ans. `PurgerComptesSupprimesCommandTest`
+         * refait l'addition : allonger ici, c'est réécrire la page publique.
+         */
         'default_strategy' => [
             /*
              * The number of days for which backups must be kept.
@@ -330,19 +340,19 @@ return [
              * of that week will be kept. Older backups within the same week will be removed.
              * If you create backups only once a week, no backups will be removed yet.
              */
-            'keep_weekly_backups_for_weeks' => 8,
+            'keep_weekly_backups_for_weeks' => 4,
 
             /*
              * After the "keep_weekly_backups_for_weeks" period is over, the most recent backup
              * of that month will be kept. Older backups within the same month will be removed.
              */
-            'keep_monthly_backups_for_months' => 4,
+            'keep_monthly_backups_for_months' => 0,
 
             /*
              * After the "keep_monthly_backups_for_months" period is over, the most recent backup
              * of that year will be kept. Older backups within the same year will be removed.
              */
-            'keep_yearly_backups_for_years' => 2,
+            'keep_yearly_backups_for_years' => 0,
 
             /*
              * After cleaning up the backups remove the oldest backup until
