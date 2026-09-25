@@ -17,10 +17,20 @@ class AgentConversation extends Model
 
     protected static function booted(): void
     {
-        // La table du package n'a pas de contrainte ON DELETE CASCADE : on
+        // La migration du package ne déclare pas de ON DELETE CASCADE : on
         // supprime explicitement les messages pour ne pas laisser d'orphelins
         // s'accumuler en base à chaque suppression de conversation.
+        //
+        // Les avis d'abord, tant que les identifiants des messages se lisent :
+        // `agent_message_feedback.message_id` n'a aucune clé étrangère, et la
+        // note comme le commentaire libre survivaient à leur message
+        // (dashboard#205).
         static::deleting(function (AgentConversation $conversation): void {
+            AgentMessageFeedback::whereIn(
+                'message_id',
+                AgentConversationMessage::where('conversation_id', $conversation->getKey())->select('id'),
+            )->delete();
+
             $conversation->messages()->delete();
         });
     }

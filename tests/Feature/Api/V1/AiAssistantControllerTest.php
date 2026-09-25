@@ -79,6 +79,39 @@ it('cascades message deletion when a conversation is deleted', function () {
         ->toBe(0);
 });
 
+it('deletes the feedback of a deleted conversation, and only it', function () {
+    $user = User::factory()->create();
+    Sanctum::actingAs($user);
+
+    $supprimee = AgentConversation::factory()->create(['user_id' => $user->id]);
+    $gardee = AgentConversation::factory()->create(['user_id' => $user->id]);
+    $messageSupprime = AgentConversationMessage::factory()->assistant()->create([
+        'conversation_id' => $supprimee->id,
+        'user_id' => $user->id,
+    ]);
+    $messageGarde = AgentConversationMessage::factory()->assistant()->create([
+        'conversation_id' => $gardee->id,
+        'user_id' => $user->id,
+    ]);
+    AgentMessageFeedback::create([
+        'message_id' => $messageSupprime->id,
+        'user_id' => $user->id,
+        'rating' => AgentMessageFeedback::RATING_DOWN,
+        'comment' => 'Mon voisin Moukoko refuse de partir',
+    ]);
+    AgentMessageFeedback::create([
+        'message_id' => $messageGarde->id,
+        'user_id' => $user->id,
+        'rating' => AgentMessageFeedback::RATING_UP,
+    ]);
+
+    $this->deleteJson("/api/v1/assistant/conversations/{$supprimee->id}")
+        ->assertNoContent();
+
+    // L'avis ne survit pas à son message : ni la note, ni le commentaire libre.
+    expect(AgentMessageFeedback::pluck('message_id')->all())->toBe([$messageGarde->id]);
+});
+
 it('caches the ai response for identical queries', function () {
     $user = User::factory()->create();
     Sanctum::actingAs($user);
