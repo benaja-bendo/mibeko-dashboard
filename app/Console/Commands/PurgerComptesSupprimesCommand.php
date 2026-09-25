@@ -5,6 +5,7 @@ namespace App\Console\Commands;
 use App\Models\Dossier;
 use App\Models\User;
 use App\Models\UserSetting;
+use App\Support\ValeursAudit;
 use Carbon\CarbonInterface;
 use Illuminate\Console\Command;
 use Illuminate\Database\ConnectionInterface;
@@ -431,8 +432,8 @@ class PurgerComptesSupprimesCommand extends Command
             //    lisent encore : on garde l'événement et la date, pas les valeurs.
             [$objetsEffaces, $liaisons] = $this->objetsEffacesDansLeJournal($perimetre);
             $db->table($this->tableAudits())->whereRaw($objetsEffaces, $liaisons)->update([
-                'old_values' => DB::raw($this->valeursEffacees('old_values')),
-                'new_values' => DB::raw($this->valeursEffacees('new_values')),
+                'old_values' => DB::raw(ValeursAudit::effacees('old_values')),
+                'new_values' => DB::raw(ValeursAudit::effacees('new_values')),
                 'ip_address' => null,
                 'user_agent' => null,
             ]);
@@ -454,20 +455,6 @@ class PurgerComptesSupprimesCommand extends Command
             //    efface, SET NULL anonymise, RESTRICT lèverait et annulerait tout).
             $db->table('users')->where('id', $compte->id)->delete();
         });
-    }
-
-    /**
-     * Garde les clés d'un objet JSON (quels champs ont changé), remplace ses
-     * valeurs par null ; laisse tel quel un tableau vide ou une valeur nulle.
-     */
-    private function valeursEffacees(string $colonne): string
-    {
-        return <<<SQL
-            case when {$colonne} is not null and jsonb_typeof({$colonne}::jsonb) = 'object'
-                 then coalesce((select jsonb_object_agg(cle, 'null'::jsonb) from jsonb_object_keys({$colonne}::jsonb) as cle), '{}'::jsonb)::text
-                 else {$colonne}
-            end
-            SQL;
     }
 
     /**
