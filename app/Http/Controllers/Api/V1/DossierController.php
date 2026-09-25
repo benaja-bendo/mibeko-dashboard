@@ -19,7 +19,9 @@ use Illuminate\Support\Facades\DB;
  * (horloge client, epoch ms). Le client pousse son état complet (dossiers
  * modifiés + suppressions) et reçoit l'état autoritaire du serveur, qu'il
  * applique localement. Les suppressions sont conservées en tombstones
- * (soft delete) afin de se propager aux autres appareils.
+ * (soft delete) afin de se propager aux autres appareils ; un tombstone ne
+ * garde que son identifiant et ses horodatages, son contenu est effacé à la
+ * suppression (dashboard#205).
  */
 class DossierController extends Controller
 {
@@ -88,7 +90,9 @@ class DossierController extends Controller
 
         DB::transaction(function () use ($userId, $clientDossiers, $deletedIds) {
             if ($deletedIds !== []) {
-                Dossier::where('user_id', $userId)->whereIn('id', $deletedIds)->delete();
+                // Un par un, pas en masse : l'événement `deleted` vide chaque
+                // tombstone de son contenu (`Dossier::booted`).
+                Dossier::where('user_id', $userId)->whereIn('id', $deletedIds)->get()->each->delete();
             }
 
             foreach ($clientDossiers as $payload) {

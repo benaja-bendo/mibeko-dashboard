@@ -82,13 +82,14 @@ class DossierWebController extends Controller
     }
 
     /**
-     * Suppression douce (tombstone propagé à la sync mobile).
+     * Suppression douce (tombstone propagé à la sync mobile), vidée de son
+     * contenu dans la même transaction (`Dossier::booted`).
      */
     public function destroy(Request $request, Dossier $dossier): JsonResponse
     {
         $this->ensureOwner($request, $dossier);
 
-        $dossier->delete();
+        DB::transaction(fn () => $dossier->delete());
 
         return $this->success(null, 'Dossier supprimé.');
     }
