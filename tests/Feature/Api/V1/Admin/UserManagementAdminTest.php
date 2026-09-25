@@ -2,7 +2,9 @@
 
 use App\Models\User;
 use App\Notifications\PasswordResetCodeNotification;
+use App\Notifications\VerifyEmailNotification;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Routing\Middleware\ThrottleRequests;
 use Illuminate\Support\Facades\Notification;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
@@ -328,6 +330,98 @@ it('marque l\'email comme vérifié', function () {
         ->assertOk();
 
     expect($user->fresh()->email_verified_at)->not->toBeNull();
+});
+
+// mibeko-dashboard#203 : renvoi du lien de vérification depuis la fiche admin.
+
+it('renvoie le lien de vérification et trace le renvoi', function () {
+    Notification::fake();
+    $user = User::factory()->unverified()->create(['status' => 'active']);
+
+    $this->actingAs($this->admin)
+        ->postJson("/api/v1/admin/users/{$user->id}/verification-email")
+        ->assertStatus(202)
+        ->assertJsonPath('data.remaining', 2);
+
+    Notification::assertSentTo($user, VerifyEmailNotification::class);
+    expect($user->fresh()->email_verified_at)->toBeNull();
+    $this->assertDatabaseHas('audits', [
+        'auditable_id' => $user->id,
+        'auditable_type' => User::class,
+        'event' => 'verification_email_resent',
+        'user_id' => $this->admin->id,
+    ]);
+});
+
+it('refuse de renvoyer le lien à une adresse déjà vérifiée', function () {
+    Notification::fake();
+
+    $this->actingAs($this->admin)
+        ->postJson("/api/v1/admin/users/{$this->proUser->id}/verification-email")
+        ->assertStatus(409);
+
+    Notification::assertNothingSent();
+});
+
+it('refuse de renvoyer le lien à un compte suspendu', function () {
+    Notification::fake();
+    $user = User::factory()->unverified()->create(['status' => 'suspended']);
+
+    $this->actingAs($this->admin)
+        ->postJson("/api/v1/admin/users/{$user->id}/verification-email")
+        ->assertStatus(409);
+
+    Notification::assertNothingSent();
+});
+
+it('limite les renvois à trois par heure pour un même compte', function () {
+    // Le quota générique `api` tombe à 2/min en test : on le retire pour
+    // n'exercer que celui du contrôleur, clé par compte destinataire.
+    $this->withoutMiddleware(ThrottleRequests::class);
+    Notification::fake();
+    $user = User::factory()->unverified()->create(['status' => 'active']);
+    $other = User::factory()->unverified()->create(['status' => 'active']);
+
+    foreach (range(1, 3) as $ignored) {
+        $this->actingAs($this->admin)
+            ->postJson("/api/v1/admin/users/{$user->id}/verification-email")
+            ->assertStatus(202);
+    }
+
+    $this->actingAs($this->admin)
+        ->postJson("/api/v1/admin/users/{$user->id}/verification-email")
+        ->assertStatus(429);
+
+    // Le quota vise le destinataire : un autre compte reste joignable.
+    $this->actingAs($this->admin)
+        ->postJson("/api/v1/admin/users/{$other->id}/verification-email")
+        ->assertStatus(202);
+
+    Notification::assertSentToTimes($user, VerifyEmailNotification::class, 3);
+});
+
+it('refuse le renvoi du lien à un non-admin', function () {
+    Notification::fake();
+    $user = User::factory()->unverified()->create(['status' => 'active']);
+
+    $this->actingAs($this->proUser)
+        ->postJson("/api/v1/admin/users/{$user->id}/verification-email")
+        ->assertForbidden();
+
+    Notification::assertNothingSent();
+});
+
+it('indique dans la fiche si la vérification est exigée', function () {
+    $user = User::factory()->unverified()->create([
+        'status' => 'active',
+        'email_verification_required' => true,
+    ]);
+
+    $this->actingAs($this->admin)
+        ->getJson("/api/v1/admin/users/{$user->id}")
+        ->assertOk()
+        ->assertJsonPath('data.email_verified', false)
+        ->assertJsonPath('data.email_verification_required', true);
 });
 
 it('désactive la double authentification', function () {

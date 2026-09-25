@@ -514,6 +514,10 @@ Route::prefix('v1')->middleware('throttle:api')->group(function () {
                 ->name('users.revoke-tokens');
             Route::post('users/{user}/verify-email', [AdminUserController::class, 'verifyEmail'])
                 ->name('users.verify-email');
+            // mibeko-dashboard#203 : renvoi du lien (support), à ne pas confondre
+            // avec `verify-email` ci-dessus, qui valide l'adresse sans e-mail.
+            Route::post('users/{user}/verification-email', [AdminUserController::class, 'resendVerificationEmail'])
+                ->name('users.verification-email');
             Route::delete('users/{user}/two-factor', [AdminUserController::class, 'disableTwoFactor'])
                 ->name('users.two-factor.disable');
             Route::post('users/{user}/impersonate', [AdminImpersonationController::class, 'start'])
