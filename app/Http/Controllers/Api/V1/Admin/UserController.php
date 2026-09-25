@@ -18,6 +18,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -36,6 +37,8 @@ use OwenIt\Auditing\Events\AuditCustom;
 class UserController extends Controller
 {
     private const ONLINE_WINDOW_MINUTES = 5;
+
+    private const VERIFICATION_RESENDS_PER_HOUR = 3;
 
     /**
      * Annuaire paginé : recherche (nom/email) + filtres (rôle, statut, présence,
@@ -229,6 +232,53 @@ class UserController extends Controller
         $user->forceFill(['email_verified_at' => now()])->save();
 
         return $this->success(null, 'Adresse email marquée comme vérifiée.');
+    }
+
+    /**
+     * Renvoie le lien de vérification d'adresse e-mail (support) —
+     * mibeko-dashboard#203.
+     *
+     * Seul recours d'un usager mobile tant que l'app publiée n'offre pas
+     * d'écran pour redemander le lien. L'e-mail part par la file
+     * (`User::sendEmailVerificationNotification`) : la réponse annonce une mise
+     * en file, pas un envoi, car un échec SMTP ne se lit qu'ensuite dans
+     * `failed_jobs`. Le quota vise le compte destinataire, pas l'admin, pour
+     * qu'aucun clic répété ne transforme le lien en spam. L'envoi ne modifie
+     * pas la ligne `users` : sans évènement d'audit dédié, il ne laisserait
+     * aucune trace.
+     */
+    public function resendVerificationEmail(User $user): JsonResponse
+    {
+        if ($user->hasVerifiedEmail()) {
+            return $this->error(null, 'Cette adresse est déjà vérifiée.', 409);
+        }
+
+        if ($user->status === 'suspended') {
+            return $this->error(null, 'Ce compte est suspendu : réactivez-le avant de renvoyer le lien.', 409);
+        }
+
+        $key = 'admin-verification-email:'.$user->getKey();
+
+        if (RateLimiter::tooManyAttempts($key, self::VERIFICATION_RESENDS_PER_HOUR)) {
+            $minutes = (int) ceil(RateLimiter::availableIn($key) / 60);
+
+            return $this->error(null, "Trop de renvois pour ce compte : réessayez dans {$minutes} min.", 429);
+        }
+
+        $user->sendEmailVerificationNotification();
+        RateLimiter::hit($key, 3600);
+
+        $user->auditEvent = 'verification_email_resent';
+        $user->isCustomEvent = true;
+        $user->auditCustomOld = [];
+        $user->auditCustomNew = ['verification_email_to' => $user->email];
+        Event::dispatch(new AuditCustom($user));
+
+        return $this->success(
+            ['remaining' => RateLimiter::remaining($key, self::VERIFICATION_RESENDS_PER_HOUR)],
+            'E-mail de vérification mis en file d\'envoi.',
+            202,
+        );
     }
 
     /**
