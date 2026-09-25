@@ -21,25 +21,6 @@ function creerArticleAvecNumero(LegalDocument $document, string $numero, string 
     ]);
 }
 
-/** Détecteur factice qui lève systématiquement — prouve le chemin `incomplet`. */
-class DetecteurEnEchecPourTest implements DetecteurContenu
-{
-    public function code(): string
-    {
-        return 'detecteur_factice_en_echec';
-    }
-
-    public function severity(): string
-    {
-        return CurationFlag::SEVERITY_WARNING;
-    }
-
-    public function detecter(LegalDocument $document): array
-    {
-        throw new RuntimeException('panne simulée');
-    }
-}
-
 it('records resultat=ok and a zero count when nothing is detected', function () {
     $document = LegalDocument::factory()->create(['titre_officiel' => 'Loi n° 1-2026 du 1 janvier 2026 portant test']);
     creerArticleAvecNumero($document, '1', 'Un contenu tout à fait normal, sans aucune anomalie détectable.');
@@ -142,7 +123,26 @@ it('marks resultat=incomplet and logs a false count when a detector throws, with
     $document = LegalDocument::factory()->create(['titre_officiel' => 'Loi n° 1-2026 du 1 janvier 2026 portant test']);
     creerArticleAvecNumero($document, '1', 'Un contenu tout à fait normal.');
 
-    $jeu = new JeuDeDetecteurs([new DetecteurEnEchecPourTest, new D1NumeroDoublon]);
+    /** Détecteur factice qui lève systématiquement — prouve le chemin `incomplet`. */
+    $detecteurEnEchec = new class implements DetecteurContenu
+    {
+        public function code(): string
+        {
+            return 'detecteur_factice_en_echec';
+        }
+
+        public function severity(): string
+        {
+            return CurationFlag::SEVERITY_WARNING;
+        }
+
+        public function detecter(LegalDocument $document): array
+        {
+            throw new RuntimeException('panne simulée');
+        }
+    };
+
+    $jeu = new JeuDeDetecteurs([$detecteurEnEchec, new D1NumeroDoublon]);
     $run = $jeu->controler($document);
 
     expect($run->resultat)->toBe(DocumentControleRun::RESULTAT_INCOMPLET)
