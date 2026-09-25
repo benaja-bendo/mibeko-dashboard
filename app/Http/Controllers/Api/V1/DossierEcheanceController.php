@@ -11,6 +11,7 @@ use App\Models\DossierEcheance;
 use App\Traits\HttpResponses;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 /**
  * CRUD des échéances d'un dossier (web). Web-only au Palier 1 ; les colonnes
@@ -54,13 +55,14 @@ class DossierEcheanceController extends Controller
     }
 
     /**
-     * Suppression douce d'une échéance.
+     * Suppression douce d'une échéance, vidée de son contenu dans la même
+     * transaction (`DossierEcheance::booted`).
      */
     public function destroy(Request $request, DossierEcheance $echeance): JsonResponse
     {
         $this->ensureOwner($request, $echeance);
 
-        $echeance->delete();
+        DB::transaction(fn () => $echeance->delete());
 
         return $this->success(null, 'Échéance supprimée.');
     }

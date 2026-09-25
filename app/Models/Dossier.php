@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Services\EffaceurContenuSupprime;
 use Database\Factories\DossierFactory;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -17,7 +18,8 @@ use OwenIt\Auditing\Contracts\Auditable;
  * Dossier juridique d'un utilisateur (organisation d'articles par affaire).
  *
  * L'identifiant UUID est généré côté client pour permettre la création
- * hors-ligne ; la suppression douce sert de tombstone de synchronisation.
+ * hors-ligne ; la suppression douce sert de tombstone de synchronisation, vidé
+ * de son contenu au moment même de la suppression (voir `booted()`).
  *
  * Les champs « affaire » (type, status, client, partie adverse, juridiction…)
  * sont alimentés par le tableau de bord web ; la sync mobile n'utilise que le
@@ -80,6 +82,34 @@ class Dossier extends Model implements Auditable
             'client_created_at' => 'integer',
             'client_updated_at' => 'integer',
         ];
+    }
+
+    /**
+     * Supprimer, c'est effacer : le tombstone ne garde que de quoi propager la
+     * suppression aux autres appareils (`EffaceurContenuSupprime`, dashboard#205).
+     * Une suppression définitive n'a rien à vider, les clés étrangères
+     * emportent les annexes.
+     */
+    protected static function booted(): void
+    {
+        static::softDeleted(function (Dossier $dossier): void {
+            (new EffaceurContenuSupprime($dossier->getConnection()))->effacerDossiers([$dossier->getKey()]);
+        });
+    }
+
+    /**
+     * La ligne d'audit `deleted` garde les champs, pas leurs valeurs. owen-it
+     * l'écrit APRÈS l'effacement de `booted()` (il s'enregistre à
+     * `whenBooted`) : sans cette surcharge, elle recopierait tout le dossier
+     * au moment même où on le vide.
+     *
+     * @return array{0: array<string, null>, 1: array<string, mixed>}
+     */
+    protected function getDeletedEventAttributes(): array
+    {
+        $champs = array_filter(array_keys($this->attributes), fn (string $attribut) => $this->isAttributeAuditable($attribut));
+
+        return [array_fill_keys($champs, null), []];
     }
 
     public function user(): BelongsTo

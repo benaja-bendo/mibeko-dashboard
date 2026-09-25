@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Services\EffaceurContenuSupprime;
 use Database\Factories\DossierEcheanceFactory;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -13,7 +14,9 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * Échéance rattachée à un dossier (audience, délai de procédure, prescription…).
  *
  * UUID généré côté client et tombstone par suppression douce, comme les
- * dossiers, en prévision d'une synchronisation multi-appareils ultérieure.
+ * dossiers, en prévision d'une synchronisation multi-appareils ultérieure. Le
+ * tombstone est vidé de son contenu au moment même de la suppression (voir
+ * `booted()`).
  */
 class DossierEcheance extends Model
 {
@@ -60,6 +63,18 @@ class DossierEcheance extends Model
             'client_created_at' => 'integer',
             'client_updated_at' => 'integer',
         ];
+    }
+
+    /**
+     * Supprimer, c'est effacer : comme pour le dossier, le tombstone ne garde
+     * que son identifiant et ses horodatages (`EffaceurContenuSupprime`,
+     * dashboard#205).
+     */
+    protected static function booted(): void
+    {
+        static::softDeleted(function (DossierEcheance $echeance): void {
+            (new EffaceurContenuSupprime($echeance->getConnection()))->effacerEcheances([$echeance->getKey()]);
+        });
     }
 
     public function dossier(): BelongsTo
