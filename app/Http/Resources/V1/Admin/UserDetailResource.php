@@ -33,10 +33,12 @@ class UserDetailResource extends JsonResource
             'email' => $this->email,
             'email_verified' => $this->email_verified_at !== null,
             'email_verified_at' => optional($this->email_verified_at)->toIso8601String(),
-            // Vrai pour les inscriptions depuis le 13/09/2026 ; faux pour les
-            // comptes plus anciens ou créés par un admin, qui, même non
-            // vérifiés, ne sont pas bloqués par `EnsureRequiredEmailIsVerified`.
-            'email_verification_required' => (bool) $this->email_verification_required,
+            // Vrai quand le compte est réellement bloqué tant qu'il n'est pas
+            // vérifié : inscription depuis le 13/09/2026 ET blocage actif
+            // (`auth.verification.enforce`, suspendu depuis le 25/09/2026,
+            // mibeko-dashboard#206). La fiche affiche « bloqué » sur cette
+            // valeur : elle doit dire ce que vit l'usager, pas la règle en veille.
+            'email_verification_required' => $this->isEmailVerificationEnforced(),
             'status' => $this->status ?? 'active',
             'suspended_at' => optional($this->suspended_at)->toIso8601String(),
             'suspension_reason' => $this->suspension_reason,

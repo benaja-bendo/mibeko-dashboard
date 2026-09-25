@@ -23,7 +23,9 @@ it('renseigne le statut du compte créé par l\'inscription mobile', function ()
         'password_confirmation' => 'motdepasse-solide',
         'device_name' => 'iPhone de test',
     ])->assertSuccessful()
-        ->assertJsonPath('data.user.email_verification_required', true);
+        // Valeur effective : blocage suspendu par défaut (mibeko-dashboard#206),
+        // alors que le compte, lui, reste marqué soumis à la règle (ci-dessous).
+        ->assertJsonPath('data.user.email_verification_required', false);
 
     $compte = User::where('email', 'recrue@example.test')->sole();
 

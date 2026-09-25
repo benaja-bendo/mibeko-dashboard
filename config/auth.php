@@ -114,4 +114,21 @@ return [
 
     'password_timeout' => env('AUTH_PASSWORD_TIMEOUT', 10800),
 
+    /*
+    |--------------------------------------------------------------------------
+    | Vérification de l'adresse e-mail
+    |--------------------------------------------------------------------------
+    |
+    | `enforce` : blocage des nouveaux comptes non vérifiés
+    | (`EnsureRequiredEmailIsVerified`). ÉTEINT par défaut depuis le
+    | 25/09/2026 (mibeko-dashboard#206) : la version mobile publiée (1.3.2)
+    | ne sait pas expliquer ce blocage. Ne le rallumer qu'une fois la version
+    | qui l'explique publiée ET imposée (`min_supported_version`).
+    |
+    */
+
+    'verification' => [
+        'enforce' => (bool) env('AUTH_EMAIL_VERIFICATION_ENFORCED', false),
+    ],
+
 ];

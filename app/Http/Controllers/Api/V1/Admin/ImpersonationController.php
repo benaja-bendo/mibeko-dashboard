@@ -72,6 +72,10 @@ class ImpersonationController extends Controller
     private function formatUser(User $user): array
     {
         return array_merge($user->toArray(), [
+            // Même valeur effective que `AuthController::formatUser`
+            // (mibeko-dashboard#206) : sinon le web redirige l'admin vers
+            // l'écran de vérification d'un compte que le serveur laisse passer.
+            'email_verification_required' => $user->isEmailVerificationEnforced(),
             'roles' => $user->getRoleNames()->values(),
             'permissions' => $user->getAllPermissions()->pluck('name')->values(),
         ]);

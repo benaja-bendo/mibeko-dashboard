@@ -97,6 +97,23 @@ class User extends Authenticatable implements Auditable, MustVerifyEmail
     }
 
     /**
+     * Obligation EFFECTIVE de vérifier l'adresse avant d'accéder au produit :
+     * compte né sous la règle du 13/09/2026 (`email_verification_required`)
+     * ET blocage actif (`auth.verification.enforce`).
+     *
+     * Le blocage est suspendu tant que la version mobile qui l'explique n'est
+     * pas publiée (mibeko-dashboard#206). La colonne, elle, reste écrite à
+     * l'inscription : rallumer le réglage ne perd aucune information. Les
+     * clients (web, mobile) ne lisent que cette valeur effective, jamais la
+     * colonne brute, pour qu'aucun ne bloque ce que le serveur laisse passer.
+     */
+    public function isEmailVerificationEnforced(): bool
+    {
+        return $this->email_verification_required
+            && (bool) config('auth.verification.enforce');
+    }
+
+    /**
      * Get the notifications for the user.
      */
     public function notifications(): HasMany
