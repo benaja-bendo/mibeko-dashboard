@@ -158,6 +158,10 @@ class AuthController extends Controller
         $user->load('mobileProfile');
 
         return array_merge($user->toArray(), [
+            // Valeur effective, pas la colonne : le web redirige et le mobile
+            // bloque sur ce champ dès l'inscription et la connexion
+            // (mibeko-dashboard#206).
+            'email_verification_required' => $user->isEmailVerificationEnforced(),
             'roles' => $user->getRoleNames()->values(),
             'permissions' => $user->getAllPermissions()->pluck('name')->values(),
         ]);

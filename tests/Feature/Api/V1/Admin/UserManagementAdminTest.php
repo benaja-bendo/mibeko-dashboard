@@ -412,6 +412,7 @@ it('refuse le renvoi du lien à un non-admin', function () {
 });
 
 it('indique dans la fiche si la vérification est exigée', function () {
+    config(['auth.verification.enforce' => true]);
     $user = User::factory()->unverified()->create([
         'status' => 'active',
         'email_verification_required' => true,
@@ -422,6 +423,18 @@ it('indique dans la fiche si la vérification est exigée', function () {
         ->assertOk()
         ->assertJsonPath('data.email_verified', false)
         ->assertJsonPath('data.email_verification_required', true);
+});
+
+it('ne présente pas comme bloqué un compte que le blocage suspendu laisse passer', function () {
+    $user = User::factory()->unverified()->create([
+        'status' => 'active',
+        'email_verification_required' => true,
+    ]);
+
+    $this->actingAs($this->admin)
+        ->getJson("/api/v1/admin/users/{$user->id}")
+        ->assertOk()
+        ->assertJsonPath('data.email_verification_required', false);
 });
 
 it('désactive la double authentification', function () {

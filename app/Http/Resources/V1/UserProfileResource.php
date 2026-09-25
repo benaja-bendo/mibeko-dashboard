@@ -26,7 +26,10 @@ class UserProfileResource extends JsonResource
             'name' => $this->name,
             'email' => $this->email,
             'email_verified' => $this->email_verified_at !== null,
-            'email_verification_required' => $this->email_verification_required,
+            // Obligation effective (réglage `auth.verification.enforce` compris) :
+            // l'écran bloquant mobile et la redirection web n'agissent que
+            // lorsque le serveur bloque réellement (mibeko-dashboard#206).
+            'email_verification_required' => $this->isEmailVerificationEnforced(),
             // Timestamp exposé en plus du booléen (l'app mobile en a besoin pour
             // l'écran de vérification) — ajout non destructif.
             'email_verified_at' => $this->email_verified_at?->toIso8601String(),
