@@ -28,8 +28,8 @@ use Illuminate\Database\Query\Builder;
  * Écritures par le query builder, jamais par Eloquent : un `update()` de modèle
  * ferait écrire à owen-it une ligne `updated` recopiant le contenu au moment
  * même où on l'efface. Chaque écriture ne vise que ce qui subsiste encore :
- * rejouer ne touche rien, et une mesure annonce exactement ce qu'une
- * exécution touchera.
+ * rejouer ne touche rien, et une simulation annonce exactement ce qu'une
+ * exécution touchera (`mibeko:effacer-contenus-supprimes`).
  */
 class EffaceurContenuSupprime
 {
@@ -195,6 +195,40 @@ class EffaceurContenuSupprime
     }
 
     /**
+     * Avis dont le message n'existe plus : `agent_message_feedback.message_id`
+     * n'a pas de clé étrangère, et la suppression d'une conversation les
+     * laissait derrière elle jusqu'au correctif de dashboard#205.
+     *
+     * @return list<string>
+     */
+    public function avisOrphelins(int $limite = 0): array
+    {
+        $requete = $this->orphelins($this->db->table('agent_message_feedback'))
+            ->orderBy('created_at')
+            ->orderBy('id');
+
+        if ($limite > 0) {
+            $requete->limit($limite);
+        }
+
+        return $requete->pluck('id')->all();
+    }
+
+    /**
+     * Efface ces avis, s'ils sont toujours orphelins.
+     *
+     * @param  list<string>  $ids
+     */
+    public function effacerAvis(array $ids): int
+    {
+        if ($ids === []) {
+            return 0;
+        }
+
+        return $this->orphelins($this->db->table('agent_message_feedback')->whereIn('id', $ids))->delete();
+    }
+
+    /**
      * @param  list<string>  $ids
      * @return array<string, int>
      */
@@ -255,6 +289,13 @@ class EffaceurContenuSupprime
         return $requete
             ->where('auditable_type', (new Dossier)->getMorphClass())
             ->whereRaw('('.ValeursAudit::subsistent('old_values').' or '.ValeursAudit::subsistent('new_values').')');
+    }
+
+    private function orphelins(Builder $requete): Builder
+    {
+        return $requete->whereNotExists(fn (Builder $message) => $message->selectRaw('1')
+            ->from('agent_conversation_messages')
+            ->whereColumn('agent_conversation_messages.id', 'agent_message_feedback.message_id'));
     }
 
     private function tableAudits(): string
