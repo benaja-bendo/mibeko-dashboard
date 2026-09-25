@@ -119,6 +119,11 @@ return [
     | Vérification de l'adresse e-mail
     |--------------------------------------------------------------------------
     |
+    | `expire` : durée de validité du lien signé, en minutes (clé lue par le
+    | `VerifyEmail` de Laravel). 48 h plutôt que les 60 min par défaut : le
+    | public consulte ses e-mails par intermittence, et une heure a suffi à
+    | rendre inutiles les liens renvoyés après la panne SMTP du 24/09/2026.
+    |
     | `enforce` : blocage des nouveaux comptes non vérifiés
     | (`EnsureRequiredEmailIsVerified`). ÉTEINT par défaut depuis le
     | 25/09/2026 (mibeko-dashboard#206) : la version mobile publiée (1.3.2)
@@ -128,6 +133,7 @@ return [
     */
 
     'verification' => [
+        'expire' => (int) env('AUTH_VERIFICATION_EXPIRE', 2880),
         'enforce' => (bool) env('AUTH_EMAIL_VERIFICATION_ENFORCED', false),
     ],
 

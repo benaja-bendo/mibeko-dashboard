@@ -91,7 +91,7 @@ it('rédige l\'e-mail de vérification entièrement en français', function () {
     expect($message->subject)->toBe('Mibeko — Confirmez votre adresse e-mail')
         ->and($html)->toContain('Bonjour,')
         ->and($html)->toContain('Confirmer mon adresse e-mail')
-        ->and($html)->toContain('valable 60 minutes')
+        ->and($html)->toContain('valable 48 heures')
         ->and($html)->toContain('Tous droits réservés.')
         ->and($html)->toContain('ne fonctionne pas, copiez l');
 
