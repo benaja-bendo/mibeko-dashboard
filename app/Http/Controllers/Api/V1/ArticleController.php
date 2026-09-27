@@ -68,6 +68,16 @@ class ArticleController extends Controller
             'source_locator' => 'sometimes|array',
             'ordre_affichage' => 'nullable|integer',
             'validation_status' => 'sometimes|string|in:pending,validated,error,draft',
+            // Date d'effet de la première version, quand elle est connue (dashboard#201).
+            // Sans elle, la version commence aujourd'hui : un article du texte d'origine
+            // ou créé par une loi de 1996 ne pourrait plus recevoir d'amendement daté
+            // d'avant, puisque `addVersion()` n'accepte que des ajouts dans le temps.
+            // Le texte qui a créé l'article exige cette date explicite, jamais déduite.
+            'start_date' => 'required_with:modifie_par_document_id|date',
+            'modifie_par_document_id' => [
+                'sometimes',
+                Rule::exists('legal_documents', 'id')->whereNull('deleted_at'),
+            ],
         ]);
 
         try {
@@ -108,7 +118,8 @@ class ArticleController extends Controller
                 $article->versions()->create([
                     'contenu_texte' => $validated['content'],
                     'source_locator' => $validated['source_locator'] ?? [],
-                    'validity_period' => ArticleVersion::makeValidityPeriod(now()->toDateString()),
+                    'validity_period' => ArticleVersion::makeValidityPeriod($validated['start_date'] ?? now()->toDateString()),
+                    'modifie_par_document_id' => $validated['modifie_par_document_id'] ?? null,
                     'validation_status' => $validated['validation_status'] ?? 'pending',
                     'is_verified' => ($validated['validation_status'] ?? null) === 'validated',
                 ]);
