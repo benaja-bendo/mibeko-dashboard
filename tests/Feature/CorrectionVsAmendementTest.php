@@ -168,6 +168,88 @@ it('refuse un amendement dont la date d\'effet précède la version la plus réc
     expect(ArticleVersion::where('article_id', $article->id)->count())->toBe(1);
 });
 
+// ── Création datée : l'historique d'un texte ancien (dashboard#201) ──────────
+
+it('crée un article du texte d\'origine à sa date d\'effet, sans texte modificateur', function () {
+    $document = LegalDocument::factory()->create();
+
+    $this->actingAs($this->editor)
+        ->postJson('/api/v1/articles', [
+            'document_id' => $document->id,
+            'numero_article' => '39',
+            'content' => 'Rédaction de 1975.',
+            'start_date' => '1975-03-15',
+        ])
+        ->assertCreated();
+
+    $version = Article::where('document_id', $document->id)->firstOrFail()->activeVersion()->first();
+    expect($version->validity_start)->toBe('1975-03-15')
+        ->and($version->modifie_par_document_id)->toBeNull();
+});
+
+it('crée un article né d\'une loi modificative, rattaché à cette loi et à sa date d\'effet', function () {
+    $code = LegalDocument::factory()->create();
+    $loi = LegalDocument::factory()->create();
+
+    $this->actingAs($this->editor)
+        ->postJson('/api/v1/articles', [
+            'document_id' => $code->id,
+            'numero_article' => '39-2',
+            'content' => 'Article créé par la loi de 1996.',
+            'start_date' => '1996-03-06',
+            'modifie_par_document_id' => $loi->id,
+        ])
+        ->assertCreated();
+
+    $version = Article::where('document_id', $code->id)->firstOrFail()->activeVersion()->first();
+    expect($version->validity_start)->toBe('1996-03-06')
+        ->and($version->modifie_par_document_id)->toBe($loi->id);
+});
+
+it('refuse de rattacher un article créé à une loi sans date d\'effet explicite', function () {
+    $code = LegalDocument::factory()->create();
+    $loi = LegalDocument::factory()->create();
+
+    $this->actingAs($this->editor)
+        ->postJson('/api/v1/articles', [
+            'document_id' => $code->id,
+            'numero_article' => '39-2',
+            'content' => 'Article créé par la loi de 1996.',
+            'modifie_par_document_id' => $loi->id,
+        ])
+        ->assertStatus(422)
+        ->assertJsonValidationErrors('start_date');
+
+    expect(Article::where('document_id', $code->id)->exists())->toBeFalse();
+});
+
+it('accepte l\'amendement de 1996 d\'un article créé à sa date de 1975 — l\'historique complet devient possible', function () {
+    $code = LegalDocument::factory()->create();
+    $loi = LegalDocument::factory()->create();
+
+    $this->actingAs($this->editor)
+        ->postJson('/api/v1/articles', [
+            'document_id' => $code->id,
+            'numero_article' => '39',
+            'content' => 'Rédaction de 1975.',
+            'start_date' => '1975-03-15',
+        ])
+        ->assertCreated();
+    $article = Article::where('document_id', $code->id)->firstOrFail();
+
+    $this->actingAs($this->editor)
+        ->postJson("/api/v1/articles/{$article->id}/versions", [
+            'content' => 'Rédaction de la loi de 1996.',
+            'start_date' => '1996-03-06',
+            'modifie_par_document_id' => $loi->id,
+        ])
+        ->assertOk();
+
+    expect(ArticleVersion::where('article_id', $article->id)->count())->toBe(2)
+        ->and($article->activeVersion()->first()->contenu_texte)->toBe('Rédaction de la loi de 1996.')
+        ->and($article->versionAt('1980-01-01')->first()->contenu_texte)->toBe('Rédaction de 1975.');
+});
+
 it('corrige un amendement enregistré le même jour plutôt que d\'en empiler un doublon', function () {
     $article = articleAvecVersion('Texte.', '2020-01-01');
     $modificateur = LegalDocument::factory()->create();

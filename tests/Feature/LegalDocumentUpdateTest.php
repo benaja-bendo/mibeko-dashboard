@@ -247,3 +247,29 @@ it('ne touche pas à la vérification quand la modification ne porte pas sur le 
 
     expect($document->fresh()->statut_verifie_le)->toBeNull();
 });
+
+it('corrige la date de consolidation d\'un texte consolidé (dashboard#201)', function () {
+    $document = LegalDocument::factory()->create([
+        'document_role' => 'STOCK',
+        'stock_code' => 'code-du-travail',
+        'consolidation_as_of' => '2026-05-27',
+        'official_journal_id' => null,
+    ]);
+
+    $this->actingAs($this->editor)
+        ->patchJson("/api/v1/legal-documents/{$document->id}", ['consolidation_as_of' => '1996-03-06'])
+        ->assertOk();
+
+    expect($document->fresh()->consolidation_as_of->toDateString())->toBe('1996-03-06');
+});
+
+it('refuse une date de consolidation sur un acte unitaire', function () {
+    $document = LegalDocument::factory()->create(['document_role' => 'FLUX']);
+
+    $this->actingAs($this->editor)
+        ->patchJson("/api/v1/legal-documents/{$document->id}", ['consolidation_as_of' => '1996-03-06'])
+        ->assertStatus(422)
+        ->assertJsonValidationErrors('consolidation_as_of');
+
+    expect($document->fresh()->consolidation_as_of)->toBeNull();
+});
