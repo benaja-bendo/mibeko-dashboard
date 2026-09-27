@@ -834,6 +834,12 @@ class LegalDocumentController extends Controller
             'date_signature' => ['sometimes', 'nullable', 'date'],
             'date_publication' => ['sometimes', 'nullable', 'date'],
             'date_entree_vigueur' => ['sometimes', 'nullable', 'date'],
+            // Date à laquelle un texte consolidé (STOCK) est à jour, affichée
+            // « Consolidée au … » sur le site. Jamais nulle pour un STOCK
+            // (contrainte chk_legal_documents_role_logic) : on la corrige, on
+            // ne l'efface pas. Posée par le pipeline à l'ingestion, elle valait
+            // la date de l'import, pas celle du droit (dashboard#201).
+            'consolidation_as_of' => ['sometimes', 'date'],
             // Gate éditorial (audit phase 3c) : assume explicitement l'absence
             // de date d'entrée en vigueur plutôt que de la laisser simplement
             // oubliée avant publication.
@@ -874,6 +880,16 @@ class LegalDocumentController extends Controller
             return $this->error(
                 ['official_journal_id' => ['Un document consolidé (STOCK) ne peut pas être rattaché à un journal officiel.']],
                 'Impossible de rattacher un document consolidé à un journal officiel.',
+                422
+            );
+        }
+
+        // Même contrainte, dans l'autre sens : seul un document consolidé porte
+        // une date de consolidation.
+        if (array_key_exists('consolidation_as_of', $validated) && $document->document_role !== 'STOCK') {
+            return $this->error(
+                ['consolidation_as_of' => ['Seul un document consolidé (STOCK) porte une date de consolidation.']],
+                'Impossible de dater la consolidation d\'un acte unitaire.',
                 422
             );
         }
