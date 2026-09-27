@@ -90,8 +90,9 @@ class GenerateEmbeddingsCommand extends Command
             // `legal_documents.deleted_at IS NULL`. Celui d'ArticleVersion filtre
             // déjà `article_versions.deleted_at`. La suppression douce d'un article
             // ne touche pas ses versions, qui restent sans embedding : sans ce
-            // filtre, le cron les vectoriserait pour rien (661 en prod le
-            // 27/09/2026), sur le débit Mistral que l'assistant partage.
+            // filtre, le cron les vectorise pour rien, sur le débit Mistral que
+            // l'assistant partage (constaté le 27/09/2026, pendant le
+            // rechargement du Code du travail).
             // `whereHas` plutôt qu'une jointure : un `join('articles')` sans
             // `select('article_versions.*')` écraserait `id` par celui de
             // l'article, et `saveQuietly()` écrirait l'embedding sur une autre ligne.
