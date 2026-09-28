@@ -23,6 +23,12 @@ use Illuminate\Support\Str;
  * `source_url` est déjà renseigné est ignoré — la commande est donc rejouable
  * sans écraser une provenance déjà correcte.
  *
+ * Seule exception : `--remplacer=<id>`, répétable, nomme un par un les
+ * documents dont la provenance doit changer (ex. le Code du travail, dont
+ * l'autorité doit nommer la consolidation de praticien d'où viennent ses
+ * modifications de 1988, dashboard#201). Les autres restent protégés, et le
+ * retour arrière garde l'ancienne valeur.
+ *
  * Canal DB directe : `metadata` n'est pas un champ accepté par
  * `PATCH /legal-documents/{id}` (LegalDocumentController::update) aujourd'hui.
  * Champ sans canal API → `pgsql_prod_rw`, transaction, fichier de retour
@@ -39,9 +45,10 @@ class CorrigerProvenanceCommand extends Command
         {--mapping= : Fichier JSON [{id, source_url, fetched_at, autorite}, …] relu par un humain}
         {--connection=pgsql_prod_ro : Connexion cible (pgsql_prod_ro en simulation, pgsql_prod_rw pour écrire)}
         {--execute : Écrit réellement. Sans cette option, simulation seule.}
-        {--revert-file= : Où écrire le fichier de retour arrière (défaut : storage/app/)}';
+        {--revert-file= : Où écrire le fichier de retour arrière (défaut : storage/app/)}
+        {--remplacer=* : Identifiant d\'un document dont la provenance déjà renseignée doit être remplacée (répétable)}';
 
-    protected $description = 'Complète metadata.{source_url,fetched_at,autorite} de documents ingérés en web_upload, sans écraser une provenance déjà renseignée.';
+    protected $description = 'Complète metadata.{source_url,fetched_at,autorite} de documents, sans écraser une provenance déjà renseignée sauf pour les documents nommés par --remplacer.';
 
     public function handle(): int
     {
@@ -72,6 +79,15 @@ class CorrigerProvenanceCommand extends Command
 
         $db = DB::connection($connexion);
 
+        $aRemplacer = array_values(array_filter((array) $this->option('remplacer')));
+        $absents = array_diff($aRemplacer, array_column($mapping, 'id'));
+
+        if ($absents !== []) {
+            $this->error('--remplacer vise des documents absents du fichier : '.implode(', ', $absents));
+
+            return self::FAILURE;
+        }
+
         $lignes = [];
         $retourArriere = [];
         $aTraiter = [];
@@ -99,8 +115,10 @@ class CorrigerProvenanceCommand extends Command
 
             $metadataActuelle = json_decode((string) ($document->metadata ?? '{}'), true) ?: [];
 
-            if (! empty($metadataActuelle['source_url'])) {
-                $this->warn("Provenance déjà renseignée, ignoré : {$document->document_key}");
+            $remplacement = ! empty($metadataActuelle['source_url']);
+
+            if ($remplacement && ! in_array($document->id, $aRemplacer, true)) {
+                $this->warn('Provenance déjà renseignée, ignoré : '.($document->document_key ?? $document->id));
 
                 continue;
             }
@@ -112,7 +130,7 @@ class CorrigerProvenanceCommand extends Command
             ], fn ($v) => $v !== null && $v !== '');
 
             if (empty($extra['source_url'])) {
-                $this->warn("Entrée ignorée : `source_url` manquant pour {$document->document_key}");
+                $this->warn('Entrée ignorée : `source_url` manquant pour '.($document->document_key ?? $document->id));
 
                 continue;
             }
@@ -120,8 +138,9 @@ class CorrigerProvenanceCommand extends Command
             $metadataFusionnee = array_merge($metadataActuelle, $extra);
 
             $lignes[] = [
-                Str::limit($document->document_key, 40),
+                Str::limit($document->document_key ?? $document->titre_officiel, 40),
                 $document->curation_status,
+                $remplacement ? 'remplacée' : 'ajoutée',
                 Str::limit((string) $extra['source_url'], 50),
                 $extra['autorite'] ?? '—',
             ];
@@ -144,7 +163,7 @@ class CorrigerProvenanceCommand extends Command
             return self::SUCCESS;
         }
 
-        $this->table(['document_key', 'curation_status', 'source_url', 'autorite'], $lignes);
+        $this->table(['document', 'curation_status', 'provenance', 'source_url', 'autorite'], $lignes);
 
         if (! $ecrire) {
             $this->newLine();
