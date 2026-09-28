@@ -4,6 +4,8 @@
 
 Ce dossier regroupe la documentation d'architecture, les guides opérationnels et les archives historiques du backend Mibeko (API Laravel 13 servant le SPA React, l'application mobile et le site public).
 
+**Décisions propres à ce dépôt** : [`decisions.md`](./decisions.md) (identifiants `API-`). Les décisions transverses sont dans le registre `docs/decisions.md` du monorepo (dépôt `mibeko-docs`).
+
 ## Architecture
 
 Documents décrivant la conception du système, le modèle de données et les flux de traitement.

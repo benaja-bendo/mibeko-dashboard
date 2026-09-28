@@ -198,6 +198,8 @@ Use Wayfinder to generate TypeScript functions for Laravel routes. Import from `
 > que l'intérieur de ses balises, cette section survit donc à un `boost:install`.
 > Ne jamais la déplacer à l'intérieur du bloc.
 
+Toute décision structurante s'écrit au format du registre (D-001) : dans `docs/decisions.md` de ce dépôt (préfixe `API-`) si elle ne change que ce dépôt ; sinon dans le registre transverse, `docs/decisions.md` du monorepo (dépôt `mibeko-docs`, préfixe `D-`).
+
 ## `titre_officiel` ≠ `libelle_descriptif` (16/08/2026)
 
 Sur les « actes en abrégé » du Journal officiel — nominations, décorations,
@@ -263,4 +265,4 @@ Mesuré en production le 17/08/2026 (lecture seule) : 175 propositions sur les
 avait bien été imprimé par le JO, c'est le découpage qui l'a détaché du titre :
 **chantier distinct**, ne pas le traiter par ce canal.
 
-Décision complète et datée : `docs/decisions.md` (2026-08-16).
+Décision complète : D-039 du registre transverse (`docs/decisions.md` du monorepo, dépôt `mibeko-docs`).
