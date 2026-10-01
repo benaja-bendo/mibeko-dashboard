@@ -80,12 +80,26 @@ class StructureNodeController extends Controller
          * clé au lieu d'annexer les orphelins à la fin — sinon le préambule
          * (article orphelin, ordre 0) s'afficherait APRÈS les chapitres sur un
          * acte structuré, au lieu d'être en tête.
+         *
+         * Chaque nœud porte la clé de SA racine, et les nœuds arrivent déjà dans
+         * l'ordre de lecture : le tri, stable, garde chaque division juste après
+         * son parent. La liste plate est ainsi lisible telle quelle, même par un
+         * client qui ne reconstruit pas l'arbre (dashboard#217).
          */
-        $orderedItems = $nodes
-            ->map(fn (StructureNode $node): array => [
-                'order' => $node->sort_order ?? 0,
-                'payload' => (new StructureNodeResource($node))->resolve($request),
-            ])
+        $nodeIds = $nodes->pluck('id')->flip();
+        $rootOrder = 0;
+        $orderedItems = StructureNode::inReadingOrder($nodes)
+            ->map(function (StructureNode $node) use ($request, $nodeIds, &$rootOrder): array {
+                $parentId = StructureNode::parentIdFromPath((string) $node->tree_path);
+                if ($parentId === null || ! $nodeIds->has($parentId)) {
+                    $rootOrder = $node->sort_order ?? 0;
+                }
+
+                return [
+                    'order' => $rootOrder,
+                    'payload' => (new StructureNodeResource($node))->resolve($request),
+                ];
+            })
             ->concat($orphanArticles->map(fn (Article $article): array => [
                 'order' => $article->ordre_affichage ?? 0,
                 'payload' => array_merge(

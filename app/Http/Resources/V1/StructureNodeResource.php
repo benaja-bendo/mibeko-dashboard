@@ -17,11 +17,7 @@ class StructureNodeResource extends JsonResource
     public function toArray(Request $request): array
     {
         /** @var StructureNode $this */
-        $parts = explode('.', $this->tree_path);
-        $parentId = null;
-        if (count($parts) > 1) {
-            $parentId = str_replace('_', '-', $parts[count($parts) - 2]);
-        }
+        $parentId = StructureNode::parentIdFromPath((string) $this->tree_path);
 
         // Anomalie de division non résolue → l'arbre affiche ✗ (error) sur le
         // nœud. Auparavant le statut du nœud n'était pas exposé du tout.
