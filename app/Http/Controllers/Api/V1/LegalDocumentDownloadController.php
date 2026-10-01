@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\V1\ArticleSyncResource;
 use App\Models\LegalDocument;
+use App\Models\StructureNode;
 use App\Traits\GuardsUnpublishedDocuments;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -63,16 +64,10 @@ class LegalDocumentDownloadController extends Controller
             $nodesQuery->whereRaw('tree_path <@ (SELECT tree_path FROM structure_nodes WHERE id = ? AND deleted_at IS NULL)', [$nodeId]);
         }
 
-        $nodes = $nodesQuery->get()->map(function ($node) {
-            $parts = explode('.', $node->tree_path);
-            $parentId = null;
-            if (count($parts) > 1) {
-                $parentId = str_replace('_', '-', $parts[count($parts) - 2]);
-            }
-
+        $nodes = StructureNode::inReadingOrder($nodesQuery->get())->map(function (StructureNode $node) {
             return [
                 'id' => $node->id,
-                'parent_id' => $parentId,
+                'parent_id' => StructureNode::parentIdFromPath((string) $node->tree_path),
                 'type' => $node->type_unite ?? 'SECTION',
                 'number' => $node->numero,
                 'title' => $node->titre,

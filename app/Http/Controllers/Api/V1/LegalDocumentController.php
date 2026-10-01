@@ -617,10 +617,11 @@ class LegalDocumentController extends Controller
     }
 
     /**
-     * Sommaire public d'un document : nœuds de structure (aplatis, avec
-     * `parent_id` dérivé du `tree_path`) et articles racine (orphelins). Le
-     * site vitrine reconstruit l'arbre côté client. Aucun contenu d'article
-     * n'est exposé ici (seulement les numéros, pour le maillage de navigation).
+     * Sommaire public d'un document : nœuds de structure (aplatis dans l'ordre
+     * de lecture, avec `parent_id` dérivé du `tree_path`) et articles racine
+     * (orphelins). Le site vitrine reconstruit l'arbre côté client. Aucun
+     * contenu d'article n'est exposé ici (seulement les numéros, pour le
+     * maillage de navigation).
      *
      * @return array{nodes: array<int, array<string, mixed>>, orphan_articles: array<int, array<string, mixed>>}
      */
@@ -631,10 +632,9 @@ class LegalDocumentController extends Controller
             ->get(['id', 'numero_article', 'ordre_affichage', 'parent_node_id'])
             ->groupBy('parent_node_id');
 
-        $rawNodes = StructureNode::query()
+        $rawNodes = StructureNode::inReadingOrder(StructureNode::query()
             ->where('document_id', $document->id)
-            ->orderBy('sort_order')
-            ->get(['id', 'type_unite', 'numero', 'titre', 'tree_path', 'sort_order']);
+            ->get(['id', 'type_unite', 'numero', 'titre', 'tree_path', 'sort_order']));
 
         // Le `tree_path` (ltree) encode chaque nœud par un label `n_<uuid>`.
         // Plutôt que de reconvertir le label en uuid (fragile : préfixe `n_`,
