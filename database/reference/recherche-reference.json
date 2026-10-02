@@ -1,0 +1,70 @@
+{
+    "description": "Jeu de questions de référence de la recherche (mibeko-dashboard#233). Chaque cas donne une question telle qu'un usager la tape, le ou les articles qui y répondent, et le rang maximal toléré. Rejoué par `php artisan mibeko:mesurer-recherche`. Un cas s'ajoute quand une question réelle trouve mal son article ; il ne se retire jamais sans écrire pourquoi.",
+    "cas": [
+        {
+            "question": "Mon employeur m'a licencié sans préavis",
+            "attendu": [{"document": "code-du-travail", "articles": ["41", "42"]}],
+            "rang_max": 3
+        },
+        {
+            "question": "Combien de temps peut durer ma période d'essai ?",
+            "attendu": [{"document": "code-du-travail", "articles": ["35", "32-4"]}],
+            "rang_max": 3,
+            "note": "En production le 02/10/2026 : deux blocs SIGNATURE d'arrêtés sortaient avant l'article 35."
+        },
+        {
+            "question": "Mon bailleur peut-il refuser de renouveler mon bail commercial ?",
+            "attendu": [{"document": "acte-uniforme-portant-droit-commercial-general", "articles": ["127", "123", "124"]}],
+            "rang_max": 3
+        },
+        {
+            "question": "Comment prouver la filiation d'un enfant né hors mariage ?",
+            "attendu": [{"document": "code-de-la-famille-de-1984", "articles": ["263", "266"]}],
+            "rang_max": 3
+        },
+        {
+            "question": "Qu'est-ce que le nantissement du fonds de commerce ?",
+            "attendu": [{"document": "acte-uniforme-portant-organisation-des-suretes-revise", "articles": ["162"]}],
+            "rang_max": 3
+        },
+        {
+            "question": "Quelles mentions doit contenir l'acte de cession d'un fonds de commerce ?",
+            "attendu": [{"document": "acte-uniforme-portant-droit-commercial-general", "articles": ["150"]}],
+            "rang_max": 3
+        },
+        {
+            "question": "Quel préavis pour mettre fin au contrat d'un agent commercial ?",
+            "attendu": [{"document": "acte-uniforme-portant-droit-commercial-general", "articles": ["228"]}],
+            "rang_max": 3
+        },
+        {
+            "question": "durée de la garde à vue",
+            "attendu": [{"document": "code-de-procedure-penale-1963", "articles": ["48", "49", "50"]}],
+            "rang_max": 3
+        },
+        {
+            "question": "conditions candidat élection président",
+            "attendu": [{"document": "republique-du-congo-constitution-2015", "articles": ["66", "71"]}],
+            "rang_max": 3,
+            "note": "Le 02/10/2026 : 10e rang, derrière des préambules de décrets dont le titre parle d'élection."
+        },
+        {
+            "question": "âge minimum pour se marier",
+            "attendu": [{"document": "code-de-la-famille-de-1984", "articles": ["128"]}],
+            "rang_max": 3,
+            "note": "« marier » et « mariage » n'ont pas la même racine pour le stemmer français : écart de vocabulaire."
+        },
+        {
+            "question": "causes de divorce",
+            "attendu": [{"document": "code-de-la-famille-de-1984", "articles": ["180"]}],
+            "rang_max": 3,
+            "depend_de": "mibeko-dashboard#198 (Code civil français publié comme congolais)"
+        },
+        {
+            "question": "constitution 1992 article 69",
+            "attendu": [{"document": "constitution-de-la-republique-du-congo-du-15-mars-1992", "articles": ["69"]}],
+            "rang_max": 1,
+            "note": "Non-régression de mibeko-dashboard#229 : un texte abrogé que l'on nomme reste en tête."
+        }
+    ]
+}
