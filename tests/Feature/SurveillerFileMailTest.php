@@ -3,7 +3,11 @@
 use App\Notifications\FileMailBloqueeNotification;
 use App\Notifications\PasswordResetCodeNotification;
 use App\Notifications\UserInvitationNotification;
+use Illuminate\Notifications\Events\NotificationSending;
+use Illuminate\Notifications\Events\NotificationSent;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Str;
 
@@ -79,4 +83,71 @@ it('ignore les échecs de jobs sans rapport avec l\'accès au compte', function 
     $this->artisan('mibeko:surveiller-file-mail')->assertSuccessful();
 
     Notification::assertNothingSent();
+});
+
+it('ignore un échec plus ancien que la fenêtre de surveillance', function () {
+    Notification::fake();
+    insererJobEchoue(PasswordResetCodeNotification::class, now()->subHours(25)->toDateTimeString());
+
+    $this->artisan('mibeko:surveiller-file-mail')->assertSuccessful();
+
+    Notification::assertNothingSent();
+});
+
+it('ne signale un même échec qu\'une seule fois', function () {
+    Notification::fake();
+    insererJobEchoue(PasswordResetCodeNotification::class);
+
+    $this->artisan('mibeko:surveiller-file-mail')->assertFailed();
+    $this->artisan('mibeko:surveiller-file-mail')->assertSuccessful();
+
+    Notification::assertSentOnDemandTimes(FileMailBloqueeNotification::class, 1);
+});
+
+it('signale un nouvel échec arrivé après un premier signalement, et lui seul', function () {
+    Notification::fake();
+    insererJobEchoue(PasswordResetCodeNotification::class, now()->subHours(2)->toDateTimeString());
+    $this->artisan('mibeko:surveiller-file-mail')->assertFailed();
+
+    insererJobEchoue(UserInvitationNotification::class);
+    $this->artisan('mibeko:surveiller-file-mail')->assertFailed();
+
+    Notification::assertSentOnDemandTimes(FileMailBloqueeNotification::class, 2);
+    Notification::assertSentOnDemand(
+        FileMailBloqueeNotification::class,
+        fn ($notification) => count($notification->echecs) === 1 && $notification->echecs[0]['classe'] === 'UserInvitationNotification',
+    );
+});
+
+it('garde un échec à signaler tant que l\'alerte n\'a pas pu partir', function () {
+    insererJobEchoue(PasswordResetCodeNotification::class);
+
+    $smtpEnPanne = true;
+    $envoyees = 0;
+    Event::listen(NotificationSending::class, function () use (&$smtpEnPanne) {
+        if ($smtpEnPanne) {
+            throw new RuntimeException('550 5.7.1 Sender mismatch');
+        }
+    });
+    Event::listen(NotificationSent::class, function () use (&$envoyees) {
+        $envoyees++;
+    });
+
+    expect(fn () => Artisan::call('mibeko:surveiller-file-mail'))->toThrow(RuntimeException::class);
+    expect($envoyees)->toBe(0);
+
+    $smtpEnPanne = false;
+    $this->artisan('mibeko:surveiller-file-mail')->assertFailed();
+
+    expect($envoyees)->toBe(1);
+});
+
+it('continue d\'alerter à chaque passage tant qu\'un job reste bloqué', function () {
+    Notification::fake();
+    insererJobEnAttente(UserInvitationNotification::class, 15);
+
+    $this->artisan('mibeko:surveiller-file-mail')->assertFailed();
+    $this->artisan('mibeko:surveiller-file-mail')->assertFailed();
+
+    Notification::assertSentOnDemandTimes(FileMailBloqueeNotification::class, 2);
 });

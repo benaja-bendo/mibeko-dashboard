@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Notifications\PasswordResetCodeNotification;
 use App\Notifications\UserInvitationNotification;
+use Carbon\CarbonInterface;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -32,17 +33,23 @@ class MailQueueHealthChecker
     /**
      * Jobs ayant ÉCHOUÉ (`failed_jobs`) — ex. SMTP en erreur, identifiants invalides.
      *
-     * @return list<array{classe: string, quand: string}>
+     * `$depuis` borne la mesure aux échecs récents. Sans borne, `failed_jobs`
+     * ne se vide jamais de lui-même : un échec ancien resterait compté à vie.
+     * L'`id` permet à l'appelant de se souvenir de ce qu'il a déjà signalé.
+     *
+     * @return list<array{id: int, classe: string, quand: string}>
      */
-    public function echecs(int $limit = 20): array
+    public function echecs(int $limit = 20, ?CarbonInterface $depuis = null): array
     {
         $lignes = DB::table('failed_jobs')
             ->where(fn ($q) => $this->filtrerParClasse($q))
+            ->when($depuis, fn ($q) => $q->where('failed_at', '>=', $depuis))
             ->orderByDesc('failed_at')
             ->limit($limit)
-            ->get(['payload', 'failed_at']);
+            ->get(['id', 'payload', 'failed_at']);
 
         return $lignes->map(fn ($ligne) => [
+            'id' => (int) $ligne->id,
             'classe' => $this->extraireClasse((string) $ligne->payload),
             'quand' => (string) $ligne->failed_at,
         ])->all();

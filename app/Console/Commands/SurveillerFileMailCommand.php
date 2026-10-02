@@ -5,6 +5,7 @@ namespace App\Console\Commands;
 use App\Notifications\FileMailBloqueeNotification;
 use App\Services\MailQueueHealthChecker;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Notification;
 
 /**
@@ -20,6 +21,12 @@ use Illuminate\Support\Facades\Notification;
  */
 class SurveillerFileMailCommand extends Command
 {
+    /** Plus ancien, un échec relève de l'historique et ne déclenche plus d'alerte. */
+    private const FENETRE_ECHECS_HEURES = 24;
+
+    /** Plus grand `failed_jobs.id` déjà signalé : une alerte ne part qu'une fois par échec. */
+    private const CLE_DERNIER_ECHEC_SIGNALE = 'mail-queue:dernier-echec-signale';
+
     protected $signature = 'mibeko:surveiller-file-mail';
 
     protected $description = "Alerte si un e-mail d'accès au compte (reset, invitation) a échoué ou reste bloqué en file.";
@@ -31,11 +38,11 @@ class SurveillerFileMailCommand extends Command
 
     public function handle(): int
     {
-        $echecs = $this->healthChecker->echecs();
+        $echecs = $this->echecsNonSignales();
         $bloques = $this->healthChecker->bloques();
 
         if ($echecs === [] && $bloques === []) {
-            $this->info('File saine : aucun échec, aucun blocage.');
+            $this->info('File saine : aucun échec récent non signalé, aucun blocage.');
 
             return self::SUCCESS;
         }
@@ -47,26 +54,53 @@ class SurveillerFileMailCommand extends Command
             $this->warn("Bloqué : {$bloque['classe']} (en attente depuis {$bloque['minutes']} min)");
         }
 
-        $this->alerter($echecs, $bloques);
+        if ($this->alerter($echecs, $bloques) && $echecs !== []) {
+            Cache::forever(self::CLE_DERNIER_ECHEC_SIGNALE, max(array_column($echecs, 'id')));
+        }
 
         return self::FAILURE;
     }
 
     /**
-     * @param  list<array{classe: string, quand: string}>  $echecs
+     * Un échec est un événement, pas un état : `failed_jobs` le garde à vie,
+     * alors que l'alerte n'a de sens qu'à la première fois où on le voit.
+     * Mesuré en production le 02/10/2026 : 3 échecs du 22/09 avaient déclenché
+     * ~700 alertes, une toutes les 15 minutes depuis le retour du SMTP
+     * (mibeko-dashboard#224).
+     *
+     * @return list<array{id: int, classe: string, quand: string}>
+     */
+    private function echecsNonSignales(): array
+    {
+        $dejaSignale = (int) Cache::get(self::CLE_DERNIER_ECHEC_SIGNALE, 0);
+
+        return array_values(array_filter(
+            $this->healthChecker->echecs(depuis: now()->subHours(self::FENETRE_ECHECS_HEURES)),
+            fn (array $echec): bool => $echec['id'] > $dejaSignale,
+        ));
+    }
+
+    /**
+     * Vrai seulement si l'alerte est réellement partie : sinon l'échec reste à
+     * signaler au passage suivant. Un envoi qui plante (SMTP en panne) lève une
+     * exception avant que l'appelant n'avance sa mémoire, ce qui a le même effet.
+     *
+     * @param  list<array{id: int, classe: string, quand: string}>  $echecs
      * @param  list<array{classe: string, minutes: int}>  $bloques
      */
-    private function alerter(array $echecs, array $bloques): void
+    private function alerter(array $echecs, array $bloques): bool
     {
         $destinataire = (string) config('backup.notifications.mail.to');
 
         if ($destinataire === '') {
             $this->error('MAIL_TO_ADDRESS absent — alerte non envoyée.');
 
-            return;
+            return false;
         }
 
         Notification::route('mail', $destinataire)
             ->notify(new FileMailBloqueeNotification($echecs, $bloques));
+
+        return true;
     }
 }
