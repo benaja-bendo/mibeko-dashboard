@@ -1,6 +1,6 @@
 # Registre des décisions — API (mibeko-dashboard)
 
-> Statut : à jour au 28 septembre 2026 · **Fait autorité sur** : les décisions en vigueur qui ne changent que le code de ce dépôt. Les décisions qui touchent plusieurs dépôts, le produit ou la méthode sont dans le registre transverse (`docs/decisions.md` du monorepo, dépôt `mibeko-docs`), qui donne aussi le gabarit et les règles (D-001).
+> Statut : à jour au 2 octobre 2026 · **Fait autorité sur** : les décisions en vigueur qui ne changent que le code de ce dépôt. Les décisions qui touchent plusieurs dépôts, le produit ou la méthode sont dans le registre transverse (`docs/decisions.md` du monorepo, dépôt `mibeko-docs`), qui donne aussi le gabarit et les règles (D-001).
 
 Identifiants `API-NNN`, jamais réutilisés ; une nouvelle décision s'ajoute à la fin de sa section. Les décisions reprises le 28/09/2026 ne portent « Écarté » et « On rouvre si » que si l'original les donnait ; texte d'origine : `docs/_archive/2026-09-28-journal-decisions-2026-07-a-09.md` (dépôt `mibeko-docs`).
 
@@ -19,6 +19,14 @@ Identifiants `API-NNN`, jamais réutilisés ; une nouvelle décision s'ajoute à
 **Contexte** : la 1.0 (23/09) franchit trois versions à ruptures : participants polymorphes, `steps` à la place de `tool_calls`/`tool_results`, reprise des messages de production. Deux régressions silencieuses ont été repérées.
 **Décision** : on ne monte que lorsqu'un besoin le justifie, par un chantier dédié testé sur une copie du dump de production.
 **On rouvre si** : l'erreur « Réponse IA incomplète (fin : tool_calls) » devient fréquente. Mesure du 25/09 : 0 sur 19 tours depuis le 12/09. À refaire à quelques centaines de tours.
+
+### API-019 · 2026-10-02 · L'alerte de file mail signale un échec une seule fois ; un blocage, à chaque passage
+**Statut** : en vigueur · **Réf.** : dashboard#224, dashboard#185
+
+**Contexte** : `mibeko:surveiller-file-mail` relisait tout `failed_jobs` toutes les 15 minutes. Trois échecs du 22/09 (550 Sender mismatch) ont produit environ 700 alertes à partir du retour du SMTP, le 24/09. Elle était muette avant, car elle part par le même SMTP.
+**Décision** : un échec est un événement. Il n'alerte que s'il a moins de 24 h et n'a pas déjà été signalé (plus grand `failed_jobs.id` notifié, gardé en cache, avancé seulement après un envoi réussi). Un blocage (`jobs` en attente depuis plus de 10 minutes) est un état : il alerte à chaque passage tant que le worker est arrêté. La console `/admin/sante` garde la mesure complète, sans fenêtre.
+**Écarté** : purger `failed_jobs` (`DELETE` physique interdit en production, et ces lignes sont la trace de l'incident) ; une fenêtre seule (jusqu'à 96 alertes par échec sur 24 h) ; une mémoire seule (un `cache:clear` rejouerait tout l'historique).
+**On rouvre si** : un échec déjà signalé doit être rappelé après un premier silence (par exemple à J+1), ou si la console doit suivre la même fenêtre que l'alerte.
 
 ## Assistant IA et mesure
 
