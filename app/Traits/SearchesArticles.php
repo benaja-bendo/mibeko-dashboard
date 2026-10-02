@@ -4,12 +4,19 @@ namespace App\Traits;
 
 use Illuminate\Database\Query\Builder;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
 trait SearchesArticles
 {
+    /** Drapeau de cache posé quand le fournisseur d'embeddings a échoué. */
+    protected const CLE_FILET_SEMANTIQUE_SUSPENDU = 'recherche:filet-semantique-suspendu';
+
+    /** Compteur du plafond global du filet sémantique de la recherche publique. */
+    protected const CLE_FILET_SEMANTIQUE_PUBLIC = 'recherche:filet-semantique-public';
+
     /**
      * Recherche d'articles pour l'IA (agent) et le serveur MCP.
      *
@@ -217,17 +224,13 @@ trait SearchesArticles
 
         // Embedding de la requête pour le filet sémantique (mis en cache : une
         // même requête ne le régénère pas). Dégradation gracieuse en cas d'échec.
-        $embeddingString = null;
-        if ($useApprox && $withSemantic) {
-            try {
-                $embedding = Str::of($topical)->toEmbeddings(cache: true);
-                if (! empty($embedding)) {
-                    $embeddingString = '['.implode(',', $embedding).']';
-                }
-            } catch (\Throwable $e) {
-                Log::warning('Filet sémantique de la recherche bibliothèque indisponible : '.$e->getMessage());
-            }
-        }
+        // Une référence « article N » est une navigation, pas une question : le
+        // numéro et le titre décident. Mesuré le 02/10/2026, le rang sémantique
+        // faisait passer l'article 69 de la Constitution de 2002 devant celui de
+        // 1992 sur « constitution 1992 article 69 » (API-020).
+        $embeddingString = $useApprox && $withSemantic && $articleNum === null
+            ? $this->embeddingDeLaRequete($topical)
+            : null;
 
         // Candidats sémantiques bornés en top-K, calculés AVANT d'ajouter les
         // conditions lexicales : le clone ne porte que les filtres déjà présents
@@ -237,6 +240,7 @@ trait SearchesArticles
         if ($embeddingString !== null) {
             $semanticIds = $this->semanticCandidateIds($query, $embeddingString);
         }
+        $this->filetSemantiqueUtilise = $semanticIds !== [];
 
         // L'opérateur indexable `%>>` lit `pg_trgm.strict_word_similarity_threshold` :
         // on le fixe sur la connexion pour que l'index GIN trigram soit utilisable
@@ -283,10 +287,17 @@ trait SearchesArticles
             $contentBindings[] = $topical;
         }
 
-        if ($embeddingString !== null) {
-            // Poids faible : filet de dernier recours, sous le lexical et le trigram.
-            $contentExpression .= ' + (COALESCE(1 - (av.embedding <=> ?::vector), 0) * 0.25)';
-            $contentBindings[] = $embeddingString;
+        if ($semanticIds !== []) {
+            // Le rang parmi les plus proches voisins, et non la similarité brute :
+            // sur ce corpus, elle varie de 0,68 à 0,81 entre un candidat moyen et
+            // le meilleur, et son poids ajoutait presque la même constante à
+            // toutes les lignes. Le premier voisin reçoit tout le poids, le
+            // dernier presque rien (API-020).
+            $contentExpression .= ' + COALESCE((? + 1 - array_position(?::uuid[], a.id))::float / ?, 0) * ?';
+            $contentBindings = [
+                ...$contentBindings,
+                count($semanticIds), '{'.implode(',', $semanticIds).'}', count($semanticIds), $this->poidsSemantique,
+            ];
         }
 
         // Le contenu d'un préambule ou d'un bloc de signature ne répond pas à une
@@ -331,6 +342,62 @@ trait SearchesArticles
                     $q->where('a.numero_article', '=', $articleNum);
                 }
             });
+    }
+
+    /**
+     * Embedding de la requête au format pgvector, ou null si le filet doit
+     * être sauté (API-020).
+     *
+     * L'appel au fournisseur est borné à `budgetEmbeddingSecondes`. Un échec
+     * (délai dépassé, 429, panne) suspend le filet pendant
+     * `suspensionFiletSemantiqueSecondes` : les recherches suivantes restent
+     * lexicales au lieu de payer chacune le même délai.
+     */
+    protected function embeddingDeLaRequete(string $texte): ?string
+    {
+        if (Cache::has(self::CLE_FILET_SEMANTIQUE_SUSPENDU)) {
+            return null;
+        }
+
+        try {
+            $embedding = Str::of($texte)->toEmbeddings(cache: true, timeout: $this->budgetEmbeddingSecondes);
+        } catch (\Throwable $e) {
+            Cache::put(self::CLE_FILET_SEMANTIQUE_SUSPENDU, true, now()->addSeconds($this->suspensionFiletSemantiqueSecondes));
+            Log::warning('Filet sémantique de la recherche suspendu : '.$e->getMessage());
+
+            return null;
+        }
+
+        return empty($embedding) ? null : '['.implode(',', $embedding).']';
+    }
+
+    /**
+     * Plafond global du filet sémantique de la recherche publique, par minute
+     * et pour tout le site (API-020) : un afflux de questions sur le site ne
+     * doit pas épuiser le quota d'embeddings que l'assistant partage.
+     */
+    protected function filetSemantiquePublicDisponible(): bool
+    {
+        $cle = self::CLE_FILET_SEMANTIQUE_PUBLIC.':'.now()->format('YmdHi');
+        Cache::add($cle, 0, 120);
+
+        return Cache::increment($cle) <= $this->filetSemantiquePublicParMinute;
+    }
+
+    /**
+     * Une question en phrase (« âge minimum pour se marier »), par opposition
+     * à un numéro d'article, un titre court ou un mot-clé (API-020).
+     *
+     * Compte les mots que retient la requête plein texte (trois lettres ou
+     * plus, hors mots structurels), une fois la référence « article N » mise
+     * de côté : « article 41 code du travail » n'en a que deux.
+     */
+    protected function estUneQuestionEnPhrase(string $search): bool
+    {
+        [, $topical] = $this->parseArticleQuery($search);
+        $orTsQuery = $this->formatTsQuery($topical);
+
+        return $orTsQuery !== '' && count(explode(' | ', $orTsQuery)) >= $this->motsQuestionEnPhrase;
     }
 
     /**
@@ -441,6 +508,11 @@ trait SearchesArticles
     /**
      * Run a pure full-text library search and return the paginated, mapped rows.
      *
+     * `$withSemantic` à null laisse le moteur décider (API-020) : le filet
+     * sémantique court dès le premier passage pour une question en phrase triée
+     * par pertinence, et jamais pour un numéro d'article, un titre ou un tri par
+     * date. Vrai ou faux force le choix (paramètre `semantic` de l'API).
+     *
      * @param  array<string, mixed>  $filters
      */
     protected function lexicalArticleSearch(
@@ -448,12 +520,16 @@ trait SearchesArticles
         array $filters = [],
         string $sort = 'relevance',
         int $perPage = 12,
-        bool $withSemantic = false,
+        ?bool $withSemantic = null,
     ): LengthAwarePaginator {
-        // Premier passage : lexical seul, sans les filets de rappel. C'est le
-        // chemin de l'écrasante majorité des recherches, et le seul qui tienne
-        // dans un délai interactif — mesuré à 77 ms contre ~4 s pour le trigram.
-        $paginator = $this->paginerRechercheLexicale($search, $filters, $sort, $perPage, false, false);
+        $withSemantic ??= $sort === 'relevance'
+            && $this->estUneQuestionEnPhrase($search)
+            && $this->filetSemantiquePublicDisponible();
+
+        // Premier passage sans le filet trigram : c'est le chemin de l'écrasante
+        // majorité des recherches, et le seul qui tienne dans un délai
+        // interactif (mesuré à 77 ms contre ~4 s pour le trigram).
+        $paginator = $this->paginerRechercheLexicale($search, $filters, $sort, $perPage, $withSemantic, false);
 
         if ($paginator->total() >= $this->rappelSuffisant) {
             return $this->mapperPage($paginator);
@@ -563,6 +639,9 @@ trait SearchesArticles
      */
     protected int $semanticTopK = 40;
 
+    /** Poids du rang sémantique dans le score de contenu (premier voisin : tout le poids). */
+    protected float $poidsSemantique = 0.5;
+
     /**
      * Coefficient appliqué au score d'un article dont le texte est abrogé
      * (`legal_documents.statut = 'abroge'`), mibeko-dashboard#229.
@@ -602,6 +681,35 @@ trait SearchesArticles
      * les filets existent, et là leur coût est justifié.
      */
     protected int $rappelSuffisant = 10;
+
+    /**
+     * Nombre de mots à partir duquel une requête est une question en phrase,
+     * qui allume le filet sémantique de la recherche publique (API-020).
+     */
+    protected int $motsQuestionEnPhrase = 4;
+
+    /**
+     * Délai maximal, en secondes, de l'appel d'embedding de la requête. Le SDK
+     * n'accepte que des secondes entières. Mesuré le 02/10/2026 sur 15 appels :
+     * médiane 315 ms, mais jusqu'à 2,4 s, et 2 appels sur 5 dépassaient 2 s
+     * dans un moment de lenteur. Le défaut du SDK (30 s) aurait tenu la page
+     * d'autant.
+     */
+    protected int $budgetEmbeddingSecondes = 3;
+
+    /** Durée de la suspension du filet sémantique après un échec du fournisseur. */
+    protected int $suspensionFiletSemantiqueSecondes = 60;
+
+    /**
+     * Plafond, par minute et pour tout le site, des recherches publiques qui
+     * allument le filet sémantique. Mesuré en production le 02/10/2026 : au plus
+     * 30 recherches en phrase dans une même minute sur 30 jours, pour un quota
+     * Mistral de 360 embeddings par minute, partagé avec l'assistant.
+     */
+    protected int $filetSemantiquePublicParMinute = 60;
+
+    /** Vrai si le dernier passage a classé avec le filet sémantique (témoin de mesure). */
+    protected bool $filetSemantiqueUtilise = false;
 
     /**
      * Format query for Postgres to_tsquery

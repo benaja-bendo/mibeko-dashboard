@@ -65,6 +65,15 @@ Identifiants `API-NNN`, jamais réutilisés ; une nouvelle décision s'ajoute à
 **Contexte** : le 23/09, 80 % des lignes venaient de liens écrits par le site lui-même, et aucune n'avait d'`user_id`.
 **On rouvre si** : il faut compter l'autocomplétion (`library/suggest`), une question laissée ouverte.
 
+### API-020 · 2026-10-02 · La recherche publique allume le filet sémantique pour une question en phrase
+**Statut** : en vigueur · **Réf.** : dashboard#233, dashboard#50
+
+**Contexte** : le filet sémantique de `library/search` ne courait qu'au 2e passage (moins de 10 résultats lexicaux), donc jamais pour une question. Son terme (0,25 × similarité) ajoutait presque la même constante à toutes les lignes : similarités de 0,68 à 0,81. Mesure du 02/10 (`mibeko:mesurer-recherche`, 13 questions) : 7 cas sur 11 mesurables sur la copie de la production, 10 sur 13 sur la production en lecture seule ; « âge minimum pour se marier » hors des 50 premiers, la question électorale au 7e rang. Le fondateur accepte une réponse plus lente si elle est plus fiable (02/10).
+**Décision** : sans `semantic`, le filet court dès le 1er passage pour une question en phrase (au moins 4 mots de 3 lettres ou plus) triée par pertinence ; jamais pour une référence « article N » (assistant compris), un titre court, un mot-clé ou un tri par date. Il pèse par le rang du voisin : 0,5 pour le premier, presque rien pour le 40e. L'embedding est borné à 3 s, un échec suspend le filet 60 s, et le site entier a droit à 60 recherches sémantiques par minute. `semantic=1` ou `0` force le choix.
+**Écarté** : remplacer `ts_rank` de la requête ET par la part des mots présents (4 cas sur 10 au lieu de 7 : ce terme vaut 1 dès que deux mots sont proches, et c'est un signal) ou l'y ajouter (5 sur 10) ; baisser le poids du titre (aucun gain une fois le filet allumé, régression à 0,5). Non tenté : un dictionnaire « marier → mariage », la question passant déjà avec le filet.
+**Conséquences** : 10 sur 11 sur la copie (le divorce attend dashboard#198), 13 sur 13 sur la production. Coût mesuré sur la copie : +240 ms de médiane sur le moteur, plus l'appel d'embedding d'une question nouvelle (médiane 258 ms, jusqu'à 2,4 s). Les limites Mistral sont par modèle : 360 embeddings par minute, à part des 15 appels de chat (clé de développement, à confirmer sur celle de production) ; la production a culminé à 30 recherches en phrase par minute sur 30 jours. L'autocomplétion du site appelle la même route à chaque frappe.
+**On rouvre si** : la médiane de `library/search` en production dépasse 2 s, le journal montre des « Filet sémantique de la recherche suspendu » répétés, le plafond est atteint, ou une recherche courte (« se marier ») bute sur un écart de vocabulaire.
+
 ## Sécurité, comptes et facturation
 
 ### API-009 · 2026-08-16 · L'audit attribue les écritures de l'API ; l'historique sans auteur n'est pas reconstitué
