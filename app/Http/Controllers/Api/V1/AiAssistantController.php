@@ -281,7 +281,13 @@ class AiAssistantController extends Controller
         $user = $request->user();
         $mode = $validated['mode'] ?? MibekoIA::MODE_CONCISE;
         $references = $this->resolveReferences($validated['references'] ?? []);
-        $agent = new MibekoIA(mode: $mode, scopedDocuments: $references);
+        // mibeko-dashboard#228 : toute question oblige le modèle à chercher dans
+        // le fonds avant de répondre ; seule une formule de politesse y échappe.
+        $agent = new MibekoIA(
+            mode: $mode,
+            scopedDocuments: $references,
+            searchRequired: ! $this->chatService->isSmallTalk($validated['message']),
+        );
 
         // mibeko-dashboard#83 : posé par le limiteur `ai_assistant` quand cette
         // requête a consommé un crédit (quota gratuit dépassé) — la ligne
@@ -409,27 +415,54 @@ class AiAssistantController extends Controller
             $generationComplete = false;
             $failed = false;
 
-            $emitDelta = function (string $text) use (&$partial): void {
+            // mibeko-dashboard#228 : tant qu'aucune recherche n'a tourné, le texte
+            // d'une question est retenu, jamais envoyé. Si le flux se termine sans
+            // recherche, ce texte (un avis de mémoire) est jeté et remplacé par
+            // AssistantChatService::UNGROUNDED_REPLY. Le modèle étant forcé de
+            // chercher à la première étape, rien n'est retenu en temps normal.
+            $holdUntilSearch = $agent->searchRequired;
+            $held = '';
+
+            $emitDelta = function (string $text) use (&$partial, &$holdUntilSearch, &$held): void {
+                if ($holdUntilSearch) {
+                    $held .= $text;
+
+                    return;
+                }
                 $partial .= $text;
                 if ($text !== '') {
                     ServerSentEvents::send(['type' => 'text_delta', 'delta' => $text]);
                 }
             };
 
+            // Seulement sur une fin normale avec du texte : une réponse vide ou
+            // tronquée reste une erreur, traitée comme telle plus bas.
+            $replaceUngrounded = function () use (&$holdUntilSearch, &$held, $emitDelta): void {
+                if (! $holdUntilSearch || trim($held) === '') {
+                    return;
+                }
+                $holdUntilSearch = false;
+                $held = '';
+                $emitDelta(AssistantChatService::UNGROUNDED_REPLY);
+            };
+
             try {
                 $agentResponse = $agent->stream($userMessage, provider: $this->assistantProviders())->then(
-                    function (StreamedAgentResponse $response) use ($user, $userMessage, $userMeta, $cacheKey, $cacheable, $logId, &$assistantMessageId, &$generationComplete) {
+                    function (StreamedAgentResponse $response) use ($agent, $user, $userMessage, $userMeta, $cacheKey, $cacheable, $logId, &$assistantMessageId, &$generationComplete) {
                         $generationComplete = true;
                         $sources = $this->chatService->sourcesFromEvents($response->events);
+                        $searchRan = $this->chatService->searchRanInEvents($response->events);
                         // Le corpus a été interrogé et n'a rien rendu : l'état est persisté
                         // et mis en cache avec la réponse, pour que l'historique et une
                         // requête identique ultérieure disent la même chose que le flux.
-                        $noResult = $this->chatService->searchRanInEvents($response->events) && $sources === [];
+                        $noResult = $searchRan && $sources === [];
+                        $searchSkipped = $agent->searchRequired && ! $searchRan;
                         // finalizeTurn nettoie déjà le texte persisté ; on met en cache la
                         // même version vérifiée pour que les requêtes identiques ultérieures
-                        // ne resservent pas de marqueur [n] orphelin.
-                        $assistantMessageId = $this->chatService->finalizeTurn($response->conversationId, $userMessage, $userMeta, $sources, $noResult);
-                        if ($cacheable) {
+                        // ne resservent pas de marqueur [n] orphelin. Une réponse rendue
+                        // sans recherche n'est jamais mise en cache.
+                        $assistantMessageId = $this->chatService->finalizeTurn($response->conversationId, $userMessage, $userMeta, $sources, $noResult, $searchSkipped);
+                        if ($cacheable && ! $searchSkipped) {
                             $this->chatService->cacheResponse($cacheKey, $this->chatService->verifyCitations($response->text, $sources), $sources, $noResult);
                         }
                         $this->usageLogger->success(
@@ -456,6 +489,9 @@ class AiAssistantController extends Controller
                     }
                     if ($event instanceof StreamEnd) {
                         $emitDelta($citationFilter->flush());
+                        if ($event->reason === 'stop') {
+                            $replaceUngrounded();
+                        }
                         if ($event->reason !== 'stop' || trim($partial) === '') {
                             throw new \RuntimeException('Réponse IA incomplète (fin : '.$event->reason.').');
                         }
@@ -470,6 +506,12 @@ class AiAssistantController extends Controller
 
                     if ($event instanceof ToolResult && $event->toolResult->name === AssistantChatService::SEARCH_TOOL) {
                         $searchRan = true;
+                        // La recherche a tourné : le texte retenu (rare préambule) part.
+                        if ($holdUntilSearch) {
+                            $holdUntilSearch = false;
+                            $emitDelta($held);
+                            $held = '';
+                        }
                         // `extractsFrom` et non `json_decode` : une charge de statut
                         // (« aucun_extrait ») est un objet, pas une liste d'extraits —
                         // la décoder naïvement enverrait une source fantôme au client.
@@ -490,6 +532,11 @@ class AiAssistantController extends Controller
 
                 // Vide le tampon résiduel (marqueur incomplet, texte en attente).
                 $emitDelta($citationFilter->flush());
+                // Flux complet sans évènement de fin : même remplacement que ce
+                // que `then()` vient de persister.
+                if ($generationComplete) {
+                    $replaceUngrounded();
+                }
             } catch (\Throwable $e) {
                 $failed = true;
                 report($e);
@@ -536,8 +583,12 @@ class AiAssistantController extends Controller
         $sources = $this->chatService->sourcesFromResponse($response);
         // Même règle que dans le flux : « a cherché et n'a rien trouvé » n'est pas
         // « n'avait pas à chercher ».
-        $noResult = $this->chatService->searchRanInResponse($response) && $sources === [];
-        $this->chatService->finalizeTurn($response->conversationId, $userMessage, $userMeta, $sources, $noResult);
+        $searchRan = $this->chatService->searchRanInResponse($response);
+        $noResult = $searchRan && $sources === [];
+        // mibeko-dashboard#228 : une question à laquelle le modèle a répondu sans
+        // chercher ne reçoit pas cet avis de mémoire, ni en direct ni en cache.
+        $searchSkipped = $agent->searchRequired && ! $searchRan;
+        $this->chatService->finalizeTurn($response->conversationId, $userMessage, $userMeta, $sources, $noResult, $searchSkipped);
         $this->usageLogger->success(
             $user,
             AiRouteName::ASSISTANT_CHAT,
@@ -552,7 +603,9 @@ class AiAssistantController extends Controller
 
         // Marqueurs [n] sans source réelle neutralisés avant restitution : le
         // client (JSON) ne reçoit jamais de citation hallucinée.
-        $reply = $this->chatService->verifyCitations($response->text, $sources);
+        $reply = $searchSkipped
+            ? AssistantChatService::UNGROUNDED_REPLY
+            : $this->chatService->verifyCitations($response->text, $sources);
 
         // Titre de repli si le package n'en a pas généré (première réponse).
         if (! $id) {
@@ -562,7 +615,7 @@ class AiAssistantController extends Controller
             }
         }
 
-        if (! $id) {
+        if (! $id && ! $searchSkipped) {
             $this->chatService->cacheResponse($cacheKey, $reply, $sources, $noResult);
         }
 

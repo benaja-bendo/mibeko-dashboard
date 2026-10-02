@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Laravel\Ai\Responses\Data\ToolCall;
 use Tests\TestCase;
 
 /*
@@ -47,4 +48,17 @@ expect()->extend('toBeOne', function () {
 function something()
 {
     // ..
+}
+
+/**
+ * Premier pas d'une réponse simulée de MibekoIA : une recherche dans le fonds.
+ *
+ * mibeko-dashboard#228 : une question oblige désormais le modèle à chercher, et
+ * une réponse simulée sans recherche est remplacée par le message de repli. Les
+ * tests qui portent sur autre chose (cache, titre, citations) simulent donc ce
+ * que fait le vrai modèle : chercher, puis répondre.
+ */
+function appelDeRecherche(string $query = 'question'): ToolCall
+{
+    return new ToolCall(id: 'call_recherche', name: 'SearchLegalDatabase', arguments: ['query' => $query]);
 }

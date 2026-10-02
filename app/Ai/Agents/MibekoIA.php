@@ -2,6 +2,7 @@
 
 namespace App\Ai\Agents;
 
+use App\Ai\AssistantChatService;
 use App\Ai\Tools\SearchLegalDatabase;
 use Laravel\Ai\Attributes\MaxSteps;
 use Laravel\Ai\Concerns\RemembersConversations;
@@ -9,7 +10,9 @@ use Laravel\Ai\Contracts\Agent;
 use Laravel\Ai\Contracts\Conversational;
 use Laravel\Ai\Contracts\HasTools;
 use Laravel\Ai\Contracts\Tool;
+use Laravel\Ai\Gateway\TextGenerationOptions;
 use Laravel\Ai\Promptable;
+use Laravel\Ai\ToolChoice;
 use Stringable;
 
 /**
@@ -43,10 +46,12 @@ class MibekoIA implements Agent, Conversational, HasTools
     /**
      * @param  string  $mode  Mode de réponse : MODE_CONCISE (par défaut) ou MODE_ANALYSIS.
      * @param  array<int, array{id: string, title: string}>  $scopedDocuments  Documents épinglés par l'utilisateur (restreignent la recherche).
+     * @param  bool  $searchRequired  Faux pour une simple formule de politesse ({@see AssistantChatService::isSmallTalk()}).
      */
     public function __construct(
         public string $mode = self::MODE_CONCISE,
         public array $scopedDocuments = [],
+        public bool $searchRequired = true,
     ) {
         $this->searchTool = new SearchLegalDatabase(
             documentIds: array_column($this->scopedDocuments, 'id'),
@@ -93,6 +98,21 @@ RECHERCHE CIBLÉE : l'utilisateur a restreint la recherche aux documents suivant
         }
 
         return $instructions;
+    }
+
+    /**
+     * Oblige le modèle à chercher dans le fonds avant de répondre (mibeko-dashboard#228).
+     *
+     * Le SDK n'impose ce choix qu'à la première étape et le relâche ensuite
+     * ({@see TextGenerationOptions::forStep()}) : le modèle
+     * cherche au moins une fois, puis rédige librement, et peut encore relancer
+     * des recherches. Sans cette contrainte, la règle 3 des instructions restait
+     * une consigne : 15 réponses sur 93 en septembre 2026 n'avaient rien cherché.
+     * Vérifié le 02/10/2026 contre l'API Mistral, qui accepte `required`.
+     */
+    public function toolChoice(): ?ToolChoice
+    {
+        return $this->searchRequired ? new ToolChoice(ToolChoice::required) : null;
     }
 
     /**

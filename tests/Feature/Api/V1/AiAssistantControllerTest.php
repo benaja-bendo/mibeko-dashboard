@@ -123,6 +123,7 @@ it('caches the ai response for identical queries', function () {
     Queue::fake();
 
     MibekoIA::fake([
+        appelDeRecherche(),
         'Ceci est une réponse de test qui sera mise en cache.',
     ]);
 
@@ -163,7 +164,7 @@ it('invalidates the cached response when the legal corpus changes', function () 
     $user = User::factory()->create();
     Sanctum::actingAs($user);
 
-    MibekoIA::fake(['Réponse initiale.']);
+    MibekoIA::fake([appelDeRecherche(), 'Réponse initiale.']);
 
     $question = ['message' => 'Quels sont les délais de préavis ?'];
 
@@ -390,6 +391,7 @@ it('answers in analysis mode and does not reuse the concise cache', function () 
     Sanctum::actingAs($user);
 
     MibekoIA::fake([
+        appelDeRecherche(),
         'Réponse courte.',
     ]);
 
@@ -602,7 +604,7 @@ it('dispatches AI title generation for a newly created conversation', function (
     $user = User::factory()->create();
     Sanctum::actingAs($user);
 
-    MibekoIA::fake(['Réponse.']);
+    MibekoIA::fake([appelDeRecherche(), 'Réponse.']);
 
     // 1er appel : conversation créée par le package (titre IA déjà côté package).
     // 2e appel identique : notre chemin « cache » pré-crée la conversation et
@@ -659,7 +661,7 @@ it('strips orphan citation markers from the JSON reply and its cache', function 
     // Le faux fournisseur ne déclenche aucun outil : la réponse n'a AUCUNE source
     // réelle. Tous les marqueurs [n] qu'il contient sont donc orphelins et doivent
     // être retirés avant restitution ET avant mise en cache.
-    MibekoIA::fake(['Le preavis est un mois [1]. Voir aussi [2].']);
+    MibekoIA::fake([appelDeRecherche(), 'Le preavis est un mois [1]. Voir aussi [2].']);
 
     $message = 'Quel est le delai de preavis';
 
@@ -690,7 +692,7 @@ it('does not leak an orphan marker in the streamed SSE deltas', function () {
     Queue::fake();
 
     // Aucun outil déclenché → aucune source → [1] est orphelin.
-    MibekoIA::fake(['Règle applicable [1] au litige.']);
+    MibekoIA::fake([appelDeRecherche(), 'Règle applicable [1] au litige.']);
 
     $response = $this->postJson('/api/v1/assistant/chat', [
         'message' => 'Une question streamée avec citation',
