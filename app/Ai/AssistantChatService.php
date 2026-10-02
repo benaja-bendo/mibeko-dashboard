@@ -32,6 +32,56 @@ class AssistantChatService
     public const CACHE_TTL_HOURS = 24;
 
     /**
+     * Réponse servie à la place d'un avis rendu sans recherche (mibeko-dashboard#228).
+     *
+     * Mesuré le 01/10/2026 : 15 réponses sur 93 en septembre n'avaient appelé
+     * aucune recherche, dont un avis sur le divorce faux sur trois points. Le
+     * modèle est désormais forcé de chercher (voir {@see MibekoIA::toolChoice()}) ;
+     * ce texte ne sert que si un fournisseur passe outre.
+     */
+    public const UNGROUNDED_REPLY = "Je n'ai pas pu appuyer cette réponse sur les textes du fonds Mibeko, et je préfère ne pas vous répondre de mémoire. Décrivez votre situation en quelques mots (par exemple\u{a0}: «\u{a0}licenciement sans préavis\u{a0}») et je chercherai les articles applicables.";
+
+    /**
+     * Formules de pure politesse, seules exemptées de la recherche obligatoire.
+     *
+     * Liste FERMÉE, en ASCII minuscule (le message est normalisé avant
+     * comparaison) : un message fait uniquement de ces formules n'appelle aucun
+     * fondement légal. Tout le reste en appelle un, y compris deux mots-clés
+     * (« licenciement abusif ») ou un « oui » qui relance la conversation : mieux
+     * vaut une recherche de trop qu'un avis de mémoire.
+     *
+     * @var list<string>
+     */
+    private const SMALL_TALK = [
+        'bonjour', 'bonsoir', 'salut', 'coucou', 'hello', 'hey',
+        'bonne journee', 'bonne soiree', 'bonne nuit', 'au revoir', 'a bientot', 'a plus',
+        'merci beaucoup', 'merci bien', 'mille mercis', 'mille merci', 'grand merci', 'merci',
+        'ok', 'okay', 'd accord', 'dac', 'parfait', 'super', 'top', 'genial', 'cool',
+        'tres bien', 'c est note', 'bien recu', 'compris', 'entendu', 'ca marche',
+        'comment ca va', 'ca va', 'comment vas tu', 'comment allez vous', 'et toi', 'et vous',
+        'qui es tu', 'tu es qui', 'qui etes vous', 'que sais tu faire', 'que peux tu faire',
+        'mibeko', 'test',
+    ];
+
+    /**
+     * Vrai si le message n'est qu'une formule de politesse : seul cas où
+     * l'assistant peut répondre sans chercher dans le fonds (mibeko-dashboard#228).
+     */
+    public function isSmallTalk(string $message): bool
+    {
+        $normalized = Str::of($message)->lower()->ascii()
+            ->replaceMatches('/[^a-z0-9]+/', ' ')
+            ->squish()
+            ->value();
+
+        $phrases = self::SMALL_TALK;
+        usort($phrases, fn (string $a, string $b) => strlen($b) <=> strlen($a));
+        $alternatives = implode('|', array_map(fn (string $phrase) => preg_quote($phrase, '/'), $phrases));
+
+        return trim((string) preg_replace('/\b(?:'.$alternatives.')\b/', ' ', $normalized)) === '';
+    }
+
+    /**
      * Clé de cache d'une réponse : message normalisé + mode + références + version
      * du corpus (toute évolution des textes publiés invalide les réponses).
      *
@@ -221,11 +271,15 @@ class AssistantChatService
      * contexte RAG, méta), attache les sources au dernier message assistant et
      * neutralise ses éventuels marqueurs de citation orphelins.
      *
+     * Avec `$searchSkipped`, la question appelait une recherche et le modèle a
+     * répondu sans chercher : son texte est remplacé par {@see UNGROUNDED_REPLY},
+     * pour que ni l'historique ni le rejeu au modèle ne gardent un avis de mémoire.
+     *
      * @param  array<string, mixed>  $userMeta
      * @param  array<int, mixed>  $sources
      * @return string|null Id du message assistant (pour le feedback immédiat).
      */
-    public function finalizeTurn(string $conversationId, string $userMessage, array $userMeta, array $sources, bool $noResult = false): ?string
+    public function finalizeTurn(string $conversationId, string $userMessage, array $userMeta, array $sources, bool $noResult = false, bool $searchSkipped = false): ?string
     {
         $lastUserMessage = AgentConversationMessage::where('conversation_id', $conversationId)
             ->where('role', 'user')
@@ -252,6 +306,14 @@ class AssistantChatService
 
         if ($lastAssistant) {
             $dirty = false;
+
+            if ($searchSkipped) {
+                $lastAssistant->content = self::UNGROUNDED_REPLY;
+                $meta = is_array($lastAssistant->meta) ? $lastAssistant->meta : [];
+                $meta['search_skipped'] = true;
+                $lastAssistant->meta = $meta;
+                $dirty = true;
+            }
 
             // Retire du texte persisté les marqueurs [n] sans source réelle : la
             // relecture de l'historique (et le rejeu au modèle) ne doit jamais

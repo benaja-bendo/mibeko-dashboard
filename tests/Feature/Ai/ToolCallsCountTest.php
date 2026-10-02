@@ -72,7 +72,7 @@ it('laisse tool_calls_count à null pour une réponse servie depuis le cache', f
     Sanctum::actingAs($user);
     Queue::fake();
 
-    MibekoIA::fake(['Réponse sans recherche.']);
+    MibekoIA::fake([appelDeRecherche(), 'Réponse mise en cache.']);
 
     $question = ['message' => 'Question mise en cache pour le comptage'];
     $this->postJson('/api/v1/assistant/chat', $question)->assertOk();

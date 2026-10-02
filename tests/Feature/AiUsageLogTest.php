@@ -58,7 +58,7 @@ it('journalise une réponse servie depuis le cache sans coût', function () {
     // hermétique, aucune clé API en CI (cf. AiAssistantControllerTest.php).
     Queue::fake();
 
-    MibekoIA::fake(['Réponse.']);
+    MibekoIA::fake([appelDeRecherche(), 'Réponse.']);
 
     $question = ['message' => 'Question identique pour le cache'];
     $this->postJson('/api/v1/assistant/chat', $question)->assertOk();
