@@ -248,34 +248,49 @@ trait SearchesArticles
         // Le score est composé conditionnellement (et non gardé par un paramètre
         // booléen) : Laravel convertit les bindings booléens en entiers, ce que
         // `CASE WHEN ? THEN` refuserait sous PostgreSQL.
-        $scoreExpression = "
+        //
+        // Deux familles de termes (mibeko-dashboard#229). La CIBLE dit que la
+        // personne nomme le texte (numéro d'article, mots du titre) ; le CONTENU
+        // dit que l'article parle du sujet. Seul le contenu d'un texte abrogé est
+        // pénalisé : « constitution 1992 article 69 » trouve toujours l'ancienne
+        // Constitution, mais une question sur le fond place le texte en vigueur
+        // devant l'ancien.
+        $targetExpression = "
             (CASE WHEN ?::text IS NOT NULL AND a.numero_article = ?::text THEN 2.0 ELSE 0.0 END) +
             (CASE WHEN ? != '' AND ld.titre_officiel ILIKE ? THEN 0.5 ELSE 0.0 END) +
             (CASE WHEN ? != '' THEN ts_rank(
                 to_tsvector('french', COALESCE(ld.titre_officiel, '') || ' ' || COALESCE(ld.libelle_descriptif, '')),
                 to_tsquery('french', ?)
-            ) * 1.5 ELSE 0.0 END) +
-            (CASE WHEN ? != '' THEN ts_rank(av.search_tsv, websearch_to_tsquery('french', ?)) * 0.4 ELSE 0.0 END) +
-            (CASE WHEN ? != '' THEN ts_rank(av.search_tsv, to_tsquery('french', ?)) * 0.2 ELSE 0.0 END)
+            ) * 1.5 ELSE 0.0 END)
         ";
-        $scoreBindings = [
+        $targetBindings = [
             $articleNum, $articleNum,
             $topical, "%$topical%",
             $orTsQuery, $orTsQuery,
+        ];
+
+        $contentExpression = "
+            (CASE WHEN ? != '' THEN ts_rank(av.search_tsv, websearch_to_tsquery('french', ?)) * 0.4 ELSE 0.0 END) +
+            (CASE WHEN ? != '' THEN ts_rank(av.search_tsv, to_tsquery('french', ?)) * 0.2 ELSE 0.0 END)
+        ";
+        $contentBindings = [
             $topical, $topical,
             $orTsQuery, $orTsQuery,
         ];
 
         if ($useTrigram) {
-            $scoreExpression .= ' + (strict_word_similarity(f_unaccent(?), f_unaccent(av.contenu_texte)) * 0.3)';
-            $scoreBindings[] = $topical;
+            $contentExpression .= ' + (strict_word_similarity(f_unaccent(?), f_unaccent(av.contenu_texte)) * 0.3)';
+            $contentBindings[] = $topical;
         }
 
         if ($embeddingString !== null) {
             // Poids faible : filet de dernier recours, sous le lexical et le trigram.
-            $scoreExpression .= ' + (COALESCE(1 - (av.embedding <=> ?::vector), 0) * 0.25)';
-            $scoreBindings[] = $embeddingString;
+            $contentExpression .= ' + (COALESCE(1 - (av.embedding <=> ?::vector), 0) * 0.25)';
+            $contentBindings[] = $embeddingString;
         }
+
+        $scoreExpression = "({$targetExpression}) + ({$contentExpression}) * (CASE WHEN ld.statut = 'abroge' THEN ? ELSE 1.0 END)";
+        $scoreBindings = [...$targetBindings, ...$contentBindings, $this->abrogatedScoreFactor];
 
         $query->selectRaw("({$scoreExpression}) as total_score", $scoreBindings)
             ->where(function ($q) use ($articleNum, $topical, $orTsQuery, $hasText, $useTrigram, $semanticIds) {
@@ -538,6 +553,18 @@ trait SearchesArticles
      * être plafonné.
      */
     protected int $semanticTopK = 40;
+
+    /**
+     * Coefficient appliqué au score d'un article dont le texte est abrogé
+     * (`legal_documents.statut = 'abroge'`), mibeko-dashboard#229.
+     *
+     * Mesuré le 02/10/2026 : « conditions candidat élection président » sortait
+     * en tête l'article 69 de la Constitution de 1992, abrogée et marquée comme
+     * telle. À pertinence comparable, le texte en vigueur doit passer devant.
+     * Un coefficient plutôt qu'une exclusion : un étudiant doit encore trouver
+     * l'ancien texte, et l'ordre à l'intérieur d'un même document ne change pas.
+     */
+    protected float $abrogatedScoreFactor = 0.5;
 
     /**
      * Nombre de résultats lexicaux au-delà duquel les filets de rappel ne sont

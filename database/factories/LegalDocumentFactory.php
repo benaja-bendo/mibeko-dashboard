@@ -27,7 +27,11 @@ class LegalDocumentFactory extends Factory
             'date_signature' => $this->faker->date(),
             'date_publication' => $this->faker->date(),
             'date_entree_vigueur' => $this->faker->date(),
-            'statut' => $this->faker->randomElement(['vigueur', 'abroge', 'projet']),
+            // En vigueur par défaut, jamais tiré au hasard : le statut pèse sur le
+            // classement de la recherche (mibeko-dashboard#229), un tirage rendrait
+            // aléatoire tout test qui vérifie un ordre de résultats. Un test qui
+            // veut un texte abrogé le dit explicitement.
+            'statut' => 'vigueur',
             'curation_status' => 'published',
             // Provenance par défaut (dashboard#119, garde-fou de publication) :
             // même doctrine que `date_entree_vigueur` ci-dessus — un document
