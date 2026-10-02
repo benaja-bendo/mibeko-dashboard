@@ -15,6 +15,10 @@ it('ne garde aucune sauvegarde de plus de 51 jours et garde toutes celles du der
     config(['backup.backup.destination.disks' => ['gdrive']]);
     $dossier = config('backup.backup.name');
 
+    // Heure figée après 03:00 : avant, la sauvegarde « du jour » serait dans le
+    // futur et le décompte des âges glisserait d'un jour (dashboard#226).
+    $this->travelTo(now()->setTime(12, 0));
+
     // Une sauvegarde par nuit à 03:00 pendant 120 jours, comme le planificateur.
     foreach (range(0, 120) as $jours) {
         Storage::disk('gdrive')->put($dossier.'/'.now()->subDays($jours)->setTime(3, 0)->format('Y-m-d-H-i-s').'.zip', 'sauvegarde');
