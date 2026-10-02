@@ -6,6 +6,7 @@ use App\Models\DocumentType;
 use App\Models\LegalDocument;
 use App\Models\User;
 use App\Observers\ArticleVersionObserver;
+use Illuminate\Support\Facades\DB;
 use Laravel\Ai\Embeddings;
 use Laravel\Sanctum\Sanctum;
 
@@ -55,7 +56,24 @@ it('rejoue le jeu de questions de référence et donne le rang de l\'article att
     $this->artisan('mibeko:mesurer-recherche', ['--connection' => 'pgsql', '--fichier' => $jeu])
         ->expectsOutputToContain('texte absent')
         ->expectsOutputToContain('Dans la tolérance : 1 sur 1 cas mesurables')
+        ->expectsOutputToContain('Embeddings : 2 calculés')
         ->assertSuccessful();
+
+    unlink($jeu);
+});
+
+it('n\'écrit rien dans le cache de la base qu\'elle mesure', function () {
+    // Le 02/10/2026, une mesure sur la copie de la production y a laissé le
+    // compteur du plafond sémantique : le cache suivait la connexion mesurée.
+    config(['cache.default' => 'database', 'ai.caching.embeddings.store' => 'database']);
+    $jeu = tempnam(sys_get_temp_dir(), 'recherche-reference');
+    file_put_contents($jeu, json_encode(['cas' => [
+        ['question' => "Combien de temps peut durer ma période d'essai ?", 'attendu' => [['document' => 'code-du-travail', 'articles' => ['35']]], 'rang_max' => 2],
+    ]]));
+
+    $this->artisan('mibeko:mesurer-recherche', ['--connection' => 'pgsql', '--fichier' => $jeu])->assertSuccessful();
+
+    expect(DB::table('cache')->count())->toBe(0);
 
     unlink($jeu);
 });

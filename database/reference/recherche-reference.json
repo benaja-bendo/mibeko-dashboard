@@ -14,8 +14,9 @@
         },
         {
             "question": "Mon bailleur peut-il refuser de renouveler mon bail commercial ?",
-            "attendu": [{"document": "acte-uniforme-portant-droit-commercial-general", "articles": ["127", "123", "124"]}],
-            "rang_max": 3
+            "attendu": [{"document": "acte-uniforme-portant-droit-commercial-general", "articles": ["126", "127", "123", "124"]}],
+            "rang_max": 3,
+            "note": "Article 126 ajouté le 02/10/2026 : c'est lui qui pose la règle (le bailleur peut refuser contre une indemnité d'éviction), l'article 127 en donne les exceptions."
         },
         {
             "question": "Comment prouver la filiation d'un enfant né hors mariage ?",
@@ -59,6 +60,12 @@
             "attendu": [{"document": "code-de-la-famille-de-1984", "articles": ["180"]}],
             "rang_max": 3,
             "depend_de": "mibeko-dashboard#198 (Code civil français publié comme congolais)"
+        },
+        {
+            "question": "registre du commerce et du crédit mobilier",
+            "attendu": [{"document": "acte-uniforme-portant-droit-commercial-general", "articles": ["34", "35", "36"]}],
+            "rang_max": 3,
+            "note": "Question réelle : la plus fréquente des recherches en phrase sur 30 jours (93 fois au 02/10/2026). Avant API-020, l'article 72 (transfert des registres) sortait en tête."
         },
         {
             "question": "constitution 1992 article 69",
