@@ -26,11 +26,22 @@ class UserInvitationController extends Controller
     private const EXPIRY_DAYS = 7;
 
     /**
-     * Liste des invitations (les plus récentes d'abord).
+     * Liste des invitations en attente ou de leur historique.
      */
-    public function index(): JsonResponse
+    public function index(Request $request): JsonResponse
     {
-        $invitations = UserInvitation::with('inviter')->latest()->get();
+        $status = $request->validate(['status' => 'sometimes|in:pending,history'])['status'] ?? 'pending';
+
+        $invitations = UserInvitation::with('inviter')
+            ->when($status === 'pending', fn ($query) => $query
+                ->whereNull('accepted_at')
+                ->where('expires_at', '>', now()))
+            ->when($status === 'history', fn ($query) => $query
+                ->where(fn ($query) => $query
+                    ->whereNotNull('accepted_at')
+                    ->orWhere('expires_at', '<=', now())))
+            ->latest()
+            ->get();
 
         return $this->success(
             UserInvitationResource::collection($invitations),

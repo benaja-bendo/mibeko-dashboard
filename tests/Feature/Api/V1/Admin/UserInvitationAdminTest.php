@@ -80,18 +80,45 @@ it('refuse une seconde invitation en attente pour la même adresse', function ()
 // ---------------------------------------------------------------------------
 
 it('liste les invitations', function () {
-    UserInvitation::create([
+    $enAttente = UserInvitation::create([
         'email' => 'a@mibeko.test',
         'token' => Hash::make('tok'),
         'roles' => ['editor'],
         'expires_at' => now()->addDays(7),
+    ]);
+    $acceptee = UserInvitation::create([
+        'email' => 'b@mibeko.test',
+        'token' => Hash::make('tok'),
+        'roles' => ['editor'],
+        'expires_at' => now()->addDays(7),
+        'accepted_at' => now(),
+    ]);
+    $expiree = UserInvitation::create([
+        'email' => 'c@mibeko.test',
+        'token' => Hash::make('tok'),
+        'roles' => ['editor'],
+        'expires_at' => now()->subDay(),
     ]);
 
     $this->actingAs($this->admin)
         ->getJson('/api/v1/admin/invitations')
         ->assertOk()
         ->assertJsonCount(1, 'data')
-        ->assertJsonPath('data.0.email', 'a@mibeko.test');
+        ->assertJsonPath('data.0.id', $enAttente->id);
+
+    $this->actingAs($this->admin)
+        ->getJson('/api/v1/admin/invitations?status=history')
+        ->assertOk()
+        ->assertJsonCount(2, 'data')
+        ->assertJsonFragment(['id' => $acceptee->id, 'status' => 'accepted'])
+        ->assertJsonFragment(['id' => $expiree->id, 'status' => 'expired']);
+});
+
+it('refuse un filtre d\'invitations inconnu', function () {
+    $this->actingAs($this->admin)
+        ->getJson('/api/v1/admin/invitations?status=all')
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors('status');
 });
 
 it('annule une invitation', function () {
