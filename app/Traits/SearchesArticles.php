@@ -289,8 +289,14 @@ trait SearchesArticles
             $contentBindings[] = $embeddingString;
         }
 
-        $scoreExpression = "({$targetExpression}) + ({$contentExpression}) * (CASE WHEN ld.statut = 'abroge' THEN ? ELSE 1.0 END)";
-        $scoreBindings = [...$targetBindings, ...$contentBindings, $this->abrogatedScoreFactor];
+        // Le contenu d'un préambule ou d'un bloc de signature ne répond pas à une
+        // question de fond (mibeko-dashboard#233) : ce sont des visas, des noms
+        // de signataires, parfois une annexe avalée qui fait remonter n'importe
+        // quel mot. Même logique que pour l'abrogé : seul le contenu est pénalisé.
+        $scoreExpression = "({$targetExpression}) + ({$contentExpression})
+            * (CASE WHEN ld.statut = 'abroge' THEN ? ELSE 1.0 END)
+            * (CASE WHEN a.numero_article = 'PREAMBULE' OR a.numero_article LIKE 'SIGNATURE%' THEN ? ELSE 1.0 END)";
+        $scoreBindings = [...$targetBindings, ...$contentBindings, $this->abrogatedScoreFactor, $this->pseudoArticleScoreFactor];
 
         $query->selectRaw("({$scoreExpression}) as total_score", $scoreBindings)
             ->where(function ($q) use ($articleNum, $topical, $orTsQuery, $hasText, $useTrigram, $semanticIds) {
@@ -483,7 +489,9 @@ trait SearchesArticles
         } elseif ($sort === 'date_asc') {
             $query->orderBy('ld.date_publication');
         } else {
-            $query->orderByDesc('total_score');
+            // À score égal, un ordre stable (mibeko-dashboard#233) : sans lui, des
+            // articles ex aequo changeaient de place d'une requête à l'autre.
+            $query->orderByDesc('total_score')->orderBy('a.id');
         }
 
         return $query->paginate($perPage);
@@ -510,6 +518,7 @@ trait SearchesArticles
         $this->applyLexicalScoring($query, $search, withSemantic: true);
 
         return $query->orderByDesc('total_score')
+            ->orderBy('a.id')
             ->limit($limit)
             ->get()
             ->map(fn ($item) => $this->mapArticleRow($item))
@@ -565,6 +574,16 @@ trait SearchesArticles
      * l'ancien texte, et l'ordre à l'intérieur d'un même document ne change pas.
      */
     protected float $abrogatedScoreFactor = 0.5;
+
+    /**
+     * Coefficient appliqué au score de contenu d'un préambule ou d'un bloc de
+     * signature (`numero_article` = PREAMBULE ou SIGNATURE…), mibeko-dashboard#233.
+     *
+     * Mesuré le 02/10/2026 en production : « période d'essai » sortait d'abord
+     * deux blocs SIGNATURE d'arrêtés aéronautiques, dont le texte avait avalé
+     * une annexe ; l'article 35 du Code du travail venait en 3e.
+     */
+    protected float $pseudoArticleScoreFactor = 0.3;
 
     /**
      * Nombre de résultats lexicaux au-delà duquel les filets de rappel ne sont
