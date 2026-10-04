@@ -7,7 +7,7 @@ use App\Models\LegalDocument;
  * l'app quand elle n'est pas déjà présente : sans détection de plateforme ni
  * fallback store, le bouton "ouvrir dans l'app" ne faisait rien de visible
  * pour qui n'avait pas l'app (le clic tentait mibeko:// puis restait sur la
- * page, silencieusement). Voir routes/web.php::mobileAppLinkContext().
+ * page, silencieusement). Voir ShareController::mobileAppLinkContext().
  */
 it('sends an Android visitor to an intent:// link with a Play Store fallback', function () {
     config(['app.site_url' => 'https://mibeko.fr']);
