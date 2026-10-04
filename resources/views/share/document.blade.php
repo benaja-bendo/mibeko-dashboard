@@ -121,7 +121,14 @@
 </head>
 <body>
     <div class="card">
-        <img src="{{ asset('logo.svg') }}" alt="Mibeko Logo" class="logo">
+        <img
+            src="{{ asset('logo/mibeko-64.webp') }}"
+            srcset="{{ asset('logo/mibeko-128.webp') }} 2x, {{ asset('logo/mibeko-192.webp') }} 3x"
+            width="64"
+            height="64"
+            alt="Mibeko Logo"
+            class="logo"
+        >
         <div class="type-badge">{{ $document->type->nom }}</div>
         <h1>{{ $document->titre_officiel }}</h1>
 

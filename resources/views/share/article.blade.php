@@ -114,7 +114,14 @@
 </head>
 <body>
     <div class="card">
-        <img src="{{ asset('logo.svg') }}" alt="Mibeko Logo" class="logo">
+        <img
+            src="{{ asset('logo/mibeko-64.webp') }}"
+            srcset="{{ asset('logo/mibeko-128.webp') }} 2x, {{ asset('logo/mibeko-192.webp') }} 3x"
+            width="64"
+            height="64"
+            alt="Mibeko Logo"
+            class="logo"
+        >
         <h1>Article {{ $article->numero_article }}</h1>
         <p class="doc-title">{{ $article->document->titre_officiel }}</p>
 
