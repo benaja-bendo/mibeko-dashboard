@@ -10,7 +10,11 @@
     <meta property="og:description" content="{{ $document->type->nom }} - Consultez ce document complet sur Mibeko, votre plateforme de droit numérique.">
     <meta property="og:type" content="article">
     <meta property="og:url" content="{{ url()->current() }}">
-    <meta property="og:image" content="{{ asset('logo.svg') }}">
+    <meta property="og:image" content="{{ $ogImage }}">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:image:type" content="image/png">
+    <meta property="og:image:alt" content="{{ $document->titre_officiel }}">
     <meta property="og:site_name" content="Mibeko">
 
     @if(!empty($canonical))
@@ -121,7 +125,14 @@
 </head>
 <body>
     <div class="card">
-        <img src="{{ asset('logo.svg') }}" alt="Mibeko Logo" class="logo">
+        <img
+            src="{{ asset('logo/mibeko-64.webp') }}"
+            srcset="{{ asset('logo/mibeko-128.webp') }} 2x, {{ asset('logo/mibeko-192.webp') }} 3x"
+            width="64"
+            height="64"
+            alt="Mibeko Logo"
+            class="logo"
+        >
         <div class="type-badge">{{ $document->type->nom }}</div>
         <h1>{{ $document->titre_officiel }}</h1>
 
