@@ -81,6 +81,25 @@ if (! function_exists('mobileAppLinkContext')) {
     }
 }
 
+// Image d'aperçu (og:image) de ces deux vues. WhatsApp, Facebook et LinkedIn
+// n'affichent pas un SVG : on reprend le PNG 1200 × 630 que le site génère pour
+// la page canonique (mibeko-site#27 : /textes/{chemin} → /og/{chemin}.png, avec
+// le type, le titre et la source du texte), et l'image par défaut du site quand
+// la page n'a pas de canonique (document publié sans slug).
+if (! function_exists('shareOgImage')) {
+    function shareOgImage(?string $canonical): string
+    {
+        $siteUrl = rtrim((string) config('app.site_url'), '/');
+        $textesPrefix = $siteUrl.'/textes/';
+
+        if ($canonical === null || ! str_starts_with($canonical, $textesPrefix)) {
+            return $siteUrl.'/og-default.png';
+        }
+
+        return $siteUrl.'/og/'.substr($canonical, strlen($textesPrefix)).'.png';
+    }
+}
+
 Route::get('/article/{articleId}', function (Request $request, string $articleId) {
     $article = Article::with(['document', 'activeVersion'])->findOrFail($articleId);
 
@@ -100,6 +119,7 @@ Route::get('/article/{articleId}', function (Request $request, string $articleId
     $response = response()->view('share.article', [
         'article' => $article,
         'canonical' => $canonical,
+        'ogImage' => shareOgImage($canonical),
         ...mobileAppLinkContext($request),
     ]);
 
@@ -119,6 +139,7 @@ Route::get('/document/{documentId}', function (Request $request, string $documen
     $response = response()->view('share.document', [
         'document' => $document,
         'canonical' => $canonical,
+        'ogImage' => shareOgImage($canonical),
         ...mobileAppLinkContext($request),
     ]);
 

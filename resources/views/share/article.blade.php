@@ -10,7 +10,11 @@
     <meta property="og:description" content="{{ Str::limit($article->activeVersion?->contenu_texte ?? 'Consultez cet article sur Mibeko, votre plateforme de droit numérique.', 200) }}">
     <meta property="og:type" content="article">
     <meta property="og:url" content="{{ url()->current() }}">
-    <meta property="og:image" content="{{ asset('logo.svg') }}">
+    <meta property="og:image" content="{{ $ogImage }}">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:image:type" content="image/png">
+    <meta property="og:image:alt" content="Article {{ $article->numero_article }} - {{ $article->document->titre_officiel }}">
     <meta property="og:site_name" content="Mibeko">
 
     @if(!empty($canonical))
