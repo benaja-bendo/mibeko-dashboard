@@ -12,6 +12,20 @@ Schedule::command('mibeko:purger-comptes-supprimes --execute')
     ->runInBackground()
     ->appendOutputTo(storage_path('logs/purger-comptes-supprimes.log'));
 
+// mibeko-dashboard#205 : efface ce que l'usager a déjà supprimé (contenu des
+// tombstones de dossiers et d'échéances, annexes, valeurs d'audit, avis des
+// conversations supprimées). Depuis le correctif, chaque suppression l'efface
+// elle-même : cette passe doit donc rester à zéro, et ce qu'elle trouve révèle
+// un chemin de suppression qui y échappe (sortie dans le journal). Avant la
+// sauvegarde de 03:00, comme la purge des comptes. Planifiée seulement après
+// une première exécution humaine vérifiée en production (05/10/2026 : 6 dossiers
+// et 7 lignes d'audit, écart exact).
+Schedule::command('mibeko:effacer-contenus-supprimes --execute')
+    ->dailyAt('02:50')
+    ->withoutOverlapping()
+    ->runInBackground()
+    ->appendOutputTo(storage_path('logs/effacer-contenus-supprimes.log'));
+
 Schedule::command('mibeko:backup --disk=gdrive --only-db')
     ->dailyAt('03:00')
     ->withoutOverlapping()
