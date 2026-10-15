@@ -187,7 +187,7 @@ function detecteurFactice(string $code, array $articlesEnDefaut): DetecteurConte
     };
 }
 
-function signalementOuvert(LegalDocument $document, ?string $articleId, string $source, string $type): CurationFlag
+function signalementConformiteOuvert(LegalDocument $document, ?string $articleId, string $source, string $type): CurationFlag
 {
     return CurationFlag::create([
         'document_id' => $document->id,
@@ -279,8 +279,8 @@ it('never touches the flags of other sources, whatever their type', function () 
         CurationFlag::SOURCE_STRUCTURAL,
         CurationFlag::SOURCE_REPORT,
         CurationFlag::SOURCE_LLM,
-    ])->map(fn (string $source) => signalementOuvert($document, $article->id, $source, 'd1_numero_doublon'));
-    $conforme = signalementOuvert($document, $article->id, CurationFlag::SOURCE_CONFORMITE, 'd1_numero_doublon');
+    ])->map(fn (string $source) => signalementConformiteOuvert($document, $article->id, $source, 'd1_numero_doublon'));
+    $conforme = signalementConformiteOuvert($document, $article->id, CurationFlag::SOURCE_CONFORMITE, 'd1_numero_doublon');
 
     (new JeuDeDetecteurs)->controler($document);
 
@@ -296,10 +296,10 @@ it('closes per identity : only the article that no longer has the defect', funct
     creerArticleAvecNumero($document, '2', 'Second article.');
     [$a, $b] = $document->articles()->get()->all();
 
-    $sur_a = signalementOuvert($document, $a->id, CurationFlag::SOURCE_CONFORMITE, 'detecteur_factice');
-    $sur_b = signalementOuvert($document, $b->id, CurationFlag::SOURCE_CONFORMITE, 'detecteur_factice');
-    $sur_document = signalementOuvert($document, null, CurationFlag::SOURCE_CONFORMITE, 'detecteur_factice');
-    $autre_type = signalementOuvert($document, $b->id, CurationFlag::SOURCE_CONFORMITE, 'detecteur_non_execute');
+    $sur_a = signalementConformiteOuvert($document, $a->id, CurationFlag::SOURCE_CONFORMITE, 'detecteur_factice');
+    $sur_b = signalementConformiteOuvert($document, $b->id, CurationFlag::SOURCE_CONFORMITE, 'detecteur_factice');
+    $sur_document = signalementConformiteOuvert($document, null, CurationFlag::SOURCE_CONFORMITE, 'detecteur_factice');
+    $autre_type = signalementConformiteOuvert($document, $b->id, CurationFlag::SOURCE_CONFORMITE, 'detecteur_non_execute');
 
     (new JeuDeDetecteurs([detecteurFactice('detecteur_factice', [$a->id])]))->controler($document);
 
@@ -313,7 +313,7 @@ it('closes nothing for a detector that failed', function () {
     $document = LegalDocument::factory()->create();
     creerArticleAvecNumero($document, '1', 'Un article.');
     $article = $document->articles()->first();
-    $ouvert = signalementOuvert($document, $article->id, CurationFlag::SOURCE_CONFORMITE, 'd1_numero_doublon');
+    $ouvert = signalementConformiteOuvert($document, $article->id, CurationFlag::SOURCE_CONFORMITE, 'd1_numero_doublon');
 
     $enEchec = new class implements DetecteurContenu
     {
