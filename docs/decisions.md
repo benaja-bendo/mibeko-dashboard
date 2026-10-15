@@ -1,6 +1,6 @@
 # Registre des décisions — API (mibeko-dashboard)
 
-> Statut : à jour au 2 octobre 2026 · **Fait autorité sur** : les décisions en vigueur qui ne changent que le code de ce dépôt. Les décisions qui touchent plusieurs dépôts, le produit ou la méthode sont dans le registre transverse (`docs/decisions.md` du monorepo, dépôt `mibeko-docs`), qui donne aussi le gabarit et les règles (D-001).
+> Statut : à jour au 15 octobre 2026 · **Fait autorité sur** : les décisions en vigueur qui ne changent que le code de ce dépôt. Les décisions qui touchent plusieurs dépôts, le produit ou la méthode sont dans le registre transverse (`docs/decisions.md` du monorepo, dépôt `mibeko-docs`), qui donne aussi le gabarit et les règles (D-001).
 
 Identifiants `API-NNN`, jamais réutilisés ; une nouvelle décision s'ajoute à la fin de sa section. Les décisions reprises le 28/09/2026 ne portent « Écarté » et « On rouvre si » que si l'original les donnait ; texte d'origine : `docs/_archive/2026-09-28-journal-decisions-2026-07-a-09.md` (dépôt `mibeko-docs`).
 
@@ -138,3 +138,15 @@ Identifiants `API-NNN`, jamais réutilisés ; une nouvelle décision s'ajoute à
 
 **Décision** : la route contournait la double authentification et n'avait aucun usage réel.
 **On rouvre si** : une connexion sociale est voulue ; elle devra alors passer par le même contrôle 2FA que `login()`.
+
+### API-021 · 2026-10-15 · Le contrôle referme les signalements dont le défaut a disparu, et l'exception d1/d2 suit le numéro
+**Statut** : en vigueur à partir du déploiement de dashboard#253 · **Réf.** : dashboard#253, dashboard#23, dashboard#141
+
+**Contexte** : `JeuDeDetecteurs` ne faisait qu'ajouter. Sur l'arrêté n° 3277, des flags bloquants posés le 16/09 sur des textes réécrits le 17/09 restaient ouverts, et des flags d1/d2 avaient été résolus d'un clic sans que les numéros `_doublon_1` changent (8 constatés le 15/10). Mesure du 15/10/2026, lecture seule (`pgsql_prod_ro`, 1 904 documents vivants) : 22 signalements `conformite` ouverts dont le défaut a disparu, soit 11 sur l'arrêté 3277 (10 d4, 1 d3) et 11 d10 sur 11 documents publiés dont le titre a été complété les 25 et 29/09. Aucun en brouillon. Le planificateur ne reprenait alors aucun document, tous ayant un run v3 postérieur à leur dernière modification.
+**Décision** :
+1. Le contrôle referme (`resolved`, `resolved_at`, `resolved_by` nul, `anchor.fermeture = defaut_disparu`) tout signalement `source = conformite` ouvert que son détecteur, exécuté sans erreur, ne retrouve plus à ce document et à cet article. Jamais en dry-run, jamais pour une autre source, jamais pour un détecteur en échec. Une fermeture du contrôle n'est pas une exception humaine : si le défaut revient, il est signalé de nouveau.
+2. Les documents publiés sont inclus. Les 11 flags publiés sont faux, et les garder ouverts fausserait le registre #23. L'effet n'est pas immédiat : `mibeko:controler-documents` ne reprend que les documents modifiés après leur dernier run, la fermeture arrive donc document par document. Pour l'obtenir tout de suite, l'humain lance `mibeko:controler-documents --document=<id>` sur les 12 documents (Classe 2 pour les 11 publiés, `docs/infra/production.md` § 6) ; l'écart attendu est exact : 11 d10 de moins sur les publiés, 10 d4 et 1 d3 de moins sur l'arrêté 3277. `--dry-run` annonce ce nombre.
+3. L'empreinte de D1 et de D2 porte le numéro d'article et le contenu. Une exception résolue sous l'ancienne empreinte (contenu seul) est honorée une fois, puis réestampillée (`anchor.empreinte` seulement), pour ne pas rouvrir d'un coup les 81 exceptions humaines existantes (6 d1, 75 d2, dont 66 d2 sur des publiés).
+**Écarté** : exclure les publiés (11 faux bloquants resteraient, et un même défaut serait traité selon le statut) ; incrémenter `VERSION` (déclasserait tous les runs et ferait reprendre les 1 904 documents, sans nouveau défaut détecté) ; supprimer les lignes périmées (le `DELETE` physique est interdit, et la ligne refermée est la trace) ; abandonner les 81 empreintes héritées (66 bloquants rouverts sur des publiés) ; le numéro seul dans l'empreinte (un texte réécrit ne ferait plus revoir l'exception).
+**Conséquences** : chaque fermeture ou réestampillage écrit une ligne d'audit (`audit.console`). Les résolutions d'un clic de l'arrêté 3277 restent des exceptions tant que le numéro est inchangé : le correctif empêche l'exception de survivre à un changement de numéro, il ne les rouvre pas. Les rouvrir est une opération de curation à part.
+**On rouvre si** : D1 ne doit plus jamais être excusable (« doublon » n'est jamais un vrai numéro d'article) ; ou si un détecteur peut renvoyer vide à tort, par exemple pendant une réextraction, auquel cas la fermeture devra exiger un second passage.
