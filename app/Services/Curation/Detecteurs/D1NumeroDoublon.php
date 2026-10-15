@@ -13,7 +13,7 @@ use App\Models\CurationFlag;
  *
  * Port fidèle de la v2 : `num LIKE '%doublon%'`.
  */
-class D1NumeroDoublon extends DetecteurParArticle
+class D1NumeroDoublon extends DetecteurParNumeroArticle
 {
     public function code(): string
     {

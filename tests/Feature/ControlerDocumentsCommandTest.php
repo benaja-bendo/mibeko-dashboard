@@ -176,3 +176,33 @@ it('never changes curation_status : a document already validated stays validated
     expect(CurationFlag::where('document_id', $document->id)->where('source', CurationFlag::SOURCE_CONFORMITE)->exists())->toBeTrue()
         ->and($document->fresh()->curation_status)->toBe('validated');
 });
+
+it('--dry-run reports how many stale flags the real run would close, and closes none', function () {
+    $document = LegalDocument::factory()->create();
+    $article = $document->articles()->create(['numero_article' => '12', 'ordre_affichage' => 1]);
+    $article->versions()->create([
+        'contenu_texte' => 'Un contenu tout à fait normal, sans aucune anomalie.',
+        'validity_period' => ArticleVersion::makeValidityPeriod('2020-01-01'),
+        'validation_status' => 'validated',
+    ]);
+    $perime = CurationFlag::create([
+        'document_id' => $document->id,
+        'article_id' => $article->id,
+        'source' => CurationFlag::SOURCE_CONFORMITE,
+        'type_probleme' => 'd1_numero_doublon',
+        'severity' => CurationFlag::SEVERITY_BLOCKING,
+        'description' => 'posé avant que le numéro soit corrigé',
+        'anchor' => ['empreinte' => hash('sha256', 'ancien')],
+        'resolved' => false,
+    ]);
+
+    $this->artisan('mibeko:controler-documents', ['--document' => $document->id, '--dry-run' => true])
+        ->expectsOutputToContain('1 signalement(s) ouvert(s) dont le défaut a disparu seraient refermés')
+        ->assertExitCode(0);
+
+    expect($perime->fresh()->resolved)->toBeFalse();
+
+    $this->artisan('mibeko:controler-documents', ['--document' => $document->id])->assertExitCode(0);
+
+    expect($perime->fresh()->resolved)->toBeTrue();
+});
