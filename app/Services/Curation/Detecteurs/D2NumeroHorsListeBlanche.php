@@ -18,7 +18,7 @@ use App\Models\CurationFlag;
  * non-régression de #141 : reproduire exactement les compteurs v2 avant
  * toute activation des ajouts v3).
  */
-class D2NumeroHorsListeBlanche extends DetecteurParArticle
+class D2NumeroHorsListeBlanche extends DetecteurParNumeroArticle
 {
     private const LISTE_BLANCHE = '/^(premier|unique|1er|PREAMBULE|SIGNATURE|ANNEXE|TABLEAU_[0-9]+|[0-9]+(-[0-9]+)?( ?(bis|ter|quater|quinquies))?)$/i';
 

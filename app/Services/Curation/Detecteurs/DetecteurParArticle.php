@@ -28,12 +28,34 @@ abstract class DetecteurParArticle implements DetecteurContenu
             $candidats[] = [
                 'article_id' => $article->id,
                 'description' => $this->description($article, $contenu),
-                'empreinte_source' => $contenu,
+                'empreinte_source' => $this->empreinteSource($article, $contenu),
+                'empreintes_heritees' => $this->empreintesHeritees($article, $contenu),
                 'anchor' => $this->anchor($article),
             ];
         }
 
         return $candidats;
+    }
+
+    /**
+     * Ce dont dépend l'anomalie : par défaut le contenu de l'article. Un
+     * détecteur qui juge autre chose (le numéro) surcharge, sinon une
+     * exception résolue survivrait à un changement de la chose jugée.
+     */
+    protected function empreinteSource(Article $article, string $contenu): string
+    {
+        return $contenu;
+    }
+
+    /**
+     * Anciennes sources d'empreinte encore honorées pour une exception déjà
+     * résolue (voir `JeuDeDetecteurs::poserSignalement()`). Vide par défaut.
+     *
+     * @return array<int, string>
+     */
+    protected function empreintesHeritees(Article $article, string $contenu): array
+    {
+        return [];
     }
 
     abstract protected function estAnomalie(string $contenu, Article $article): bool;

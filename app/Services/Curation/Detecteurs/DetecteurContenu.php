@@ -41,7 +41,11 @@ interface DetecteurContenu
      * sans lui, toute résolution humaine se comporterait comme si le contenu
      * changeait à chaque passage (aucune exception ne tiendrait jamais).
      *
-     * @return array<int, array{article_id?: string, description: string, empreinte_source: string, anchor?: array<string, mixed>|null}>
+     * `empreintes_heritees` (optionnel) : anciennes sources d'empreinte encore
+     * honorées pour une exception déjà résolue, le temps d'un changement
+     * d'empreinte (`JeuDeDetecteurs::poserSignalement()` les réestampille).
+     *
+     * @return array<int, array{article_id?: string, description: string, empreinte_source: string, empreintes_heritees?: array<int, string>, anchor?: array<string, mixed>|null}>
      */
     public function detecter(LegalDocument $document): array;
 }

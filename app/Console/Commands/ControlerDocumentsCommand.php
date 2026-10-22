@@ -67,9 +67,13 @@ class ControlerDocumentsCommand extends Command
             DocumentControleRun::RESULTAT_ECHEC => 0,
             DocumentControleRun::RESULTAT_INCOMPLET => 0,
         ];
+        $perimes = 0;
         foreach ($documents as $document) {
             $run = $jeu->controler($document, $version, $dryRun);
             $compteurs[$run->resultat]++;
+            if ($dryRun) {
+                $perimes += $jeu->signalementsPerimes($document)->count();
+            }
             $bar->advance();
         }
 
@@ -84,6 +88,7 @@ class ControlerDocumentsCommand extends Command
             "({$conformes}/{$total} conformes, {$pourcentage} %)."
         );
         if ($dryRun) {
+            $this->info("{$perimes} signalement(s) ouvert(s) dont le défaut a disparu seraient refermés.");
             $this->warn('Dry-run : rien n\'a été écrit en base.');
         }
 

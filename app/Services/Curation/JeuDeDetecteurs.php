@@ -20,6 +20,7 @@ use App\Services\Curation\Detecteurs\DetecteurContenu;
 use App\Services\Curation\Detecteurs\DoublonTitreDate;
 use App\Services\Curation\Detecteurs\PseudoTitre;
 use App\Services\Curation\Detecteurs\SequenceRepartAUn;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Throwable;
@@ -44,8 +45,15 @@ use Throwable;
  * signalement ouvert n'est donc jamais dupliqué (peu importe si le contenu a
  * bougé entre-temps : la revue humaine reste sur la version actuelle du
  * texte) ; un signalement résolu (exception « fidèle à la source », `#27`)
- * ne ressort que si le contenu à son ancrage a réellement changé depuis —
- * jamais à chaque passage planifié sur un texte inchangé.
+ * ne ressort que si ce que le détecteur juge a réellement changé depuis (le
+ * texte à son ancrage, et le numéro pour D1 et D2), jamais à chaque passage
+ * planifié sur un texte inchangé.
+ *
+ * Le contrôle referme aussi ce qu'il a posé et ne retrouve plus (API-021,
+ * dashboard#253) : un signalement `conformite` ouvert dont le détecteur,
+ * exécuté sans erreur, ne trouve plus le défaut à ce document et cet article
+ * est résolu avec `anchor.fermeture = defaut_disparu`. Seule cette source est
+ * concernée, et jamais en dry-run.
  */
 class JeuDeDetecteurs
 {
@@ -56,6 +64,14 @@ class JeuDeDetecteurs
      * passage ne les a pas recontrôlés.
      */
     const VERSION = 'v3';
+
+    /**
+     * Valeur de `anchor['fermeture']` posée quand le contrôle referme
+     * lui-même un signalement dont le défaut a disparu du texte. Distingue
+     * cette fermeture d'une exception humaine (« fidèle à la source ») : la
+     * première ne protège jamais le défaut s'il revient.
+     */
+    const FERMETURE_DEFAUT_DISPARU = 'defaut_disparu';
 
     /** @var array<int, DetecteurContenu> */
     private array $detecteurs;
@@ -103,6 +119,9 @@ class JeuDeDetecteurs
      * `echec` dès qu'un détecteur trouve au moins un candidat, exactement le
      * comportement brut de la requête SQL v2 — c'est ce qui rend la
      * comparaison de compteurs valide.
+     *
+     * Le contrôle referme aussi ce qu'il a posé et ne retrouve plus (API-021) :
+     * voir `refermerSignalementsPerimes()`.
      */
     public function controler(LegalDocument $document, ?string $version = null, bool $dryRun = false): DocumentControleRun
     {
@@ -112,6 +131,7 @@ class JeuDeDetecteurs
             $resultats = [];
             $incomplet = false;
             $anomalieTrouvee = false;
+            $identitesVues = [];
 
             foreach ($this->detecteurs as $detecteur) {
                 try {
@@ -134,6 +154,7 @@ class JeuDeDetecteurs
                 }
 
                 $resultats[$detecteur->code()] = count($candidats);
+                $identitesVues[$detecteur->code()] = $this->identites($candidats);
                 if (count($candidats) > 0) {
                     $anomalieTrouvee = true;
                 }
@@ -142,6 +163,10 @@ class JeuDeDetecteurs
                         $this->poserSignalement($document, $detecteur, $candidat);
                     }
                 }
+            }
+
+            if (! $dryRun) {
+                $this->refermerSignalementsPerimes($document, $identitesVues);
             }
 
             if ($dryRun) {
@@ -174,20 +199,113 @@ class JeuDeDetecteurs
     }
 
     /**
+     * Signalements `conformite` ouverts que le contrôle refermerait
+     * aujourd'hui : leur détecteur s'est exécuté sans erreur et ne retrouve
+     * plus le défaut à ce document, pour ce détecteur et cet article.
+     * Lecture seule : sert à mesurer l'effet avant de laisser le contrôle
+     * écrire (`mibeko:controler-documents --dry-run`).
+     *
+     * @return Collection<int, CurationFlag>
+     */
+    public function signalementsPerimes(LegalDocument $document): Collection
+    {
+        $identitesVues = [];
+        foreach ($this->detecteurs as $detecteur) {
+            try {
+                $identitesVues[$detecteur->code()] = $this->identites($detecteur->detecter($document));
+            } catch (Throwable) {
+                continue;
+            }
+        }
+
+        return $this->chercherSignalementsPerimes($document, $identitesVues);
+    }
+
+    /**
+     * Referme les signalements `conformite` dont le défaut a disparu
+     * (`resolved`, `resolved_at`, `anchor.fermeture` = `defaut_disparu`,
+     * `resolved_by` nul : c'est le contrôle, pas un éditeur). Sans cela un
+     * signalement posé sur un texte ensuite réécrit restait ouvert, donc
+     * bloquant, à vie (dashboard#253).
+     *
+     * Ne ferme que ce qu'il a lui-même la charge de tenir : `source =
+     * conformite`, et seulement pour les détecteurs qui se sont exécutés
+     * (un détecteur en échec ne prouve aucune disparition). Idempotent : un
+     * signalement refermé n'est plus ouvert au passage suivant.
+     *
+     * @param  array<string, array<string, true>>  $identitesVues
+     */
+    private function refermerSignalementsPerimes(LegalDocument $document, array $identitesVues): void
+    {
+        foreach ($this->chercherSignalementsPerimes($document, $identitesVues) as $signalement) {
+            $signalement->update([
+                'resolved' => true,
+                'resolved_at' => now(),
+                'resolved_by' => null,
+                'anchor' => array_merge($signalement->anchor ?? [], ['fermeture' => self::FERMETURE_DEFAUT_DISPARU]),
+            ]);
+        }
+    }
+
+    /**
+     * @param  array<string, array<string, true>>  $identitesVues  Par code de détecteur exécuté, les articles (`''` pour un défaut du document) où il a trouvé un défaut.
+     * @return Collection<int, CurationFlag>
+     */
+    private function chercherSignalementsPerimes(LegalDocument $document, array $identitesVues): Collection
+    {
+        if ($identitesVues === []) {
+            return new Collection;
+        }
+
+        return CurationFlag::where('document_id', $document->id)
+            ->where('source', CurationFlag::SOURCE_CONFORMITE)
+            ->where('resolved', false)
+            ->whereIn('type_probleme', array_keys($identitesVues))
+            ->get()
+            ->reject(fn (CurationFlag $signalement) => isset($identitesVues[$signalement->type_probleme][$signalement->article_id ?? '']))
+            ->values();
+    }
+
+    /**
+     * @param  array<int, array{article_id?: string}>  $candidats
+     * @return array<string, true>
+     */
+    private function identites(array $candidats): array
+    {
+        $identites = [];
+        foreach ($candidats as $candidat) {
+            $identites[$candidat['article_id'] ?? ''] = true;
+        }
+
+        return $identites;
+    }
+
+    /**
      * Pose un signalement pour un candidat — sauf s'il en existe déjà un pour
      * la même identité (document, détecteur, article) portant la MÊME
      * empreinte de contenu, qu'il soit encore ouvert ou déjà résolu (§ 3.5) :
      * un ouvert n'est jamais dupliqué (la revue humaine voit déjà le texte
-     * actuel), un résolu reste une exception valable tant que le texte à cet
-     * ancrage n'a pas changé. Seul un contenu different depuis le dernier
-     * signalement connu (ou l'absence de tout signalement antérieur) fait
-     * naître une nouvelle ligne.
+     * actuel), un résolu reste une exception valable tant que ce que le
+     * détecteur juge n'a pas changé (le texte, et le numéro pour D1 et D2).
+     * Seul un contenu different depuis le dernier signalement connu (ou
+     * l'absence de tout signalement antérieur) fait naître une nouvelle ligne.
      *
-     * @param  array{article_id?: string, description: string, empreinte_source: string, anchor?: array<string, mixed>|null}  $candidat
+     * Un signalement refermé par le contrôle (`anchor.fermeture`) n'est pas
+     * une exception : si le défaut revient, il est signalé de nouveau, même
+     * texte. Une exception résolue sous une ancienne source d'empreinte
+     * (`empreintes_heritees`) reste honorée une fois, puis réestampillée à
+     * l'empreinte courante pour que l'exception se lie dès lors à ce que le
+     * détecteur juge aujourd'hui.
+     *
+     * @param  array{article_id?: string, description: string, empreinte_source: string, empreintes_heritees?: array<int, string>, anchor?: array<string, mixed>|null}  $candidat
      */
     private function poserSignalement(LegalDocument $document, DetecteurContenu $detecteur, array $candidat): void
     {
         $empreinte = hash('sha256', $candidat['empreinte_source']);
+        $empreintesHeritees = array_map(
+            fn (string $source) => hash('sha256', $source),
+            $candidat['empreintes_heritees'] ?? [],
+        );
 
         // Tiebreaker sur `id` (UUID ordonné, `HasUuids`) : deux signalements
         // posés dans la même seconde ne doivent jamais rendre ce choix
@@ -201,9 +319,21 @@ class JeuDeDetecteurs
             ->first();
 
         if ($dernierSignalement !== null) {
-            $empreinteConnue = $dernierSignalement->anchor['empreinte'] ?? null;
-            if (! $dernierSignalement->resolved || $empreinteConnue === $empreinte) {
+            if (! $dernierSignalement->resolved) {
                 return;
+            }
+
+            $anchorConnu = $dernierSignalement->anchor ?? [];
+            if (($anchorConnu['fermeture'] ?? null) !== self::FERMETURE_DEFAUT_DISPARU) {
+                $empreinteConnue = $anchorConnu['empreinte'] ?? null;
+                if ($empreinteConnue === $empreinte) {
+                    return;
+                }
+                if (in_array($empreinteConnue, $empreintesHeritees, true)) {
+                    $dernierSignalement->update(['anchor' => array_merge($anchorConnu, ['empreinte' => $empreinte])]);
+
+                    return;
+                }
             }
         }
 
