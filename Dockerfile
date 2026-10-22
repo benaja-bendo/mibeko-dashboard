@@ -62,7 +62,11 @@ RUN cp .env.example .env \
 # ─────────────────────────────────────────────────────────────
 # Stage 3 : Image de production PHP-FPM
 # ─────────────────────────────────────────────────────────────
-FROM php:8.4-fpm-alpine AS production
+# Version de correctif épinglée : 8.4.27 corrige CVE-2026-109618 et
+# CVE-2026-109619 (exécution de code à distance sans authentification, PHP-FPM
+# compris). Un tag flottant (`8.4-fpm-alpine`) laisserait un cache de build
+# garder l'ancienne base sans que rien ne le signale.
+FROM php:8.4.27-fpm-alpine AS production
 
 # Extensions système nécessaires
 RUN apk add --no-cache \
