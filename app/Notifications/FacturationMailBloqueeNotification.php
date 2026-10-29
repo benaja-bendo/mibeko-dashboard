@@ -36,7 +36,7 @@ class FacturationMailBloqueeNotification extends Notification
     public function toMail(object $notifiable): MailMessage
     {
         $message = (new MailMessage)
-            ->subject('[Mibeko] File mail — facturation')
+            ->subject('[Mibeko] File mail : facturation')
             ->greeting('Alerte file de notifications de facturation.')
             ->line("Un e-mail de facturation (confirmation d'achat ou rappel d'échéance d'abonnement) est en échec ou reste bloqué en production.");
 

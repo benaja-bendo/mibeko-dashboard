@@ -38,7 +38,7 @@ class VerifyEmailNotification extends VerifyEmail implements ShouldQueue
         $duree = self::dureeDeValidite((int) Config::get('auth.verification.expire', 60));
 
         return (new MailMessage)
-            ->subject('Mibeko — Confirmez votre adresse e-mail')
+            ->subject('Mibeko : Confirmez votre adresse e-mail')
             ->greeting('Bonjour,')
             ->line('Pour finaliser votre inscription sur Mibeko, confirmez votre adresse e-mail.')
             ->action('Confirmer mon adresse e-mail', $url)

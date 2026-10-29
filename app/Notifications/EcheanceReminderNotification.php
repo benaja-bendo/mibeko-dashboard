@@ -49,10 +49,10 @@ class EcheanceReminderNotification extends Notification implements ShouldQueue
         $base = rtrim((string) (config('app.frontend_url') ?: config('app.url')), '/');
 
         return (new MailMessage)
-            ->subject("Mibeko — Échéance {$when} : {$echeance->title}")
+            ->subject("Mibeko, échéance {$when} : {$echeance->title}")
             ->greeting('Bonjour,')
             ->line("Une échéance de votre dossier « {$dossier?->name} » arrive {$when}.")
-            ->line("**{$echeance->title}**".($date ? " — {$date}" : ''))
+            ->line("**{$echeance->title}**".($date ? " ({$date})" : ''))
             ->action('Ouvrir le dossier', "{$base}/app/dossiers?open={$dossier?->id}")
             ->line('Rappel indicatif : vérifiez la date et les délais applicables.')
             ->salutation("L'équipe Mibeko");

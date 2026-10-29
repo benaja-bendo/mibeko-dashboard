@@ -11,18 +11,18 @@
         <div class="cover-badge" style="margin-bottom: 0.7cm;">Extrait officiel</div>
 
         {{-- Document source --}}
-        <div class="no-break" style="border-left: 2.5pt solid #c8a86a; background-color: #faf7ef; padding: 12pt 14pt; margin-bottom: 1cm;">
-            <div style="font-family: 'DejaVu Sans', sans-serif; font-size: 7.5pt; font-weight: bold; text-transform: uppercase; letter-spacing: 1.5px; color: #9a7b33; margin-bottom: 4pt;">
+        <div class="no-break" style="border-left: 2.5pt solid #c1c8c2; background-color: #f6f3f2; padding: 12pt 14pt; margin-bottom: 1cm;">
+            <div style="font-family: 'DejaVu Sans', sans-serif; font-size: 7.5pt; font-weight: bold; text-transform: uppercase; letter-spacing: 1.5px; color: #8f4c31; margin-bottom: 4pt;">
                 {{ $document->type->nom ?? 'Document source' }}
                 @if($document->institution)
                     &nbsp;·&nbsp;{{ $document->institution->nom }}
                 @endif
             </div>
-            <div style="font-family: 'DejaVu Serif', Georgia, serif; font-size: 12.5pt; font-weight: bold; color: #18140c; line-height: 1.4;">
+            <div style="font-family: 'DejaVu Serif', Georgia, serif; font-size: 12.5pt; font-weight: bold; color: #1b1c1c; line-height: 1.4;">
                 {{ $document->titre_officiel }}
             </div>
             @if($article->parentNode)
-            <div style="font-family: 'DejaVu Sans', sans-serif; font-size: 8pt; color: #8d8678; margin-top: 5pt;">
+            <div style="font-family: 'DejaVu Sans', sans-serif; font-size: 8pt; color: #676d69; margin-top: 5pt;">
                 {{ $article->parentNode->type_unite }} {{ $article->parentNode->numero }}
                 @if($article->parentNode->titre) — {{ $article->parentNode->titre }} @endif
             </div>

@@ -88,7 +88,7 @@ it('rédige l\'e-mail de vérification entièrement en français', function () {
     $message = (new VerifyEmailNotification)->toMail($compte);
     $html = (string) $message->render();
 
-    expect($message->subject)->toBe('Mibeko — Confirmez votre adresse e-mail')
+    expect($message->subject)->toBe('Mibeko : Confirmez votre adresse e-mail')
         ->and($html)->toContain('Bonjour,')
         ->and($html)->toContain('Confirmer mon adresse e-mail')
         ->and($html)->toContain('valable 48 heures')
