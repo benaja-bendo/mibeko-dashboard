@@ -495,6 +495,10 @@ class AiAssistantController extends Controller
                         if ($event->reason !== 'stop' || trim($partial) === '') {
                             throw new \RuntimeException('Réponse IA incomplète (fin : '.$event->reason.').');
                         }
+                        // mibeko-dashboard#257 : un appel d'outil écrit en texte n'est pas une réponse.
+                        if ($this->chatService->isToolCallText($partial)) {
+                            throw new \RuntimeException('Réponse IA incomplète (appel d\'outil écrit en texte).');
+                        }
                     }
                     if ($event instanceof ToolCall && $event->toolCall->name === AssistantChatService::SEARCH_TOOL) {
                         $toolCallsCount++;

@@ -5,6 +5,7 @@ namespace App\Providers;
 use App\Ai\AiRouteName;
 use App\Ai\AiUsageLogger;
 use App\Ai\AiUserQuotaTier;
+use App\Ai\Mistral\FinalAnswerMistralProvider;
 use App\Ai\NormalizesContentBlockResponses;
 use App\Ai\Storage\CompactingConversationStore;
 use App\Exceptions\InsufficientCreditsException;
@@ -21,6 +22,7 @@ use Dedoc\Scramble\Support\Generator\SecurityScheme;
 use Google\Client as GoogleClient;
 use Google\Service\Drive;
 use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Filesystem\FilesystemAdapter;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -30,6 +32,7 @@ use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
+use Laravel\Ai\AiManager;
 use Laravel\Ai\Contracts\ConversationStore;
 use League\Flysystem\Filesystem;
 use Masbug\Flysystem\GoogleDriveAdapter;
@@ -45,6 +48,14 @@ class AppServiceProvider extends ServiceProvider
         // ne rejoue pas les extraits complets des tours précédents au modèle
         // (cf. CompactingConversationStore) : contexte, coût et latence bornés.
         $this->app->singleton(ConversationStore::class, CompactingConversationStore::class);
+
+        // mibeko-dashboard#257 : le gateway Mistral de laravel/ai v0.9.1 ne prévient
+        // pas le modèle que c'est sa dernière étape ; à la place du pilote `mistral`,
+        // un fournisseur qui lui interdit alors les outils (cf. FinalAnswerMistralGateway).
+        $this->callAfterResolving(AiManager::class, fn (AiManager $ai) => $ai->extend(
+            'mistral',
+            fn ($app, array $config) => new FinalAnswerMistralProvider($config, $app->make(Dispatcher::class)),
+        ));
     }
 
     /**
