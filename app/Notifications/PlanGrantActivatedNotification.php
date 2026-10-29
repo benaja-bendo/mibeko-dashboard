@@ -39,7 +39,7 @@ class PlanGrantActivatedNotification extends Notification implements ShouldQueue
         $base = rtrim((string) (config('app.frontend_url') ?: config('app.url')), '/');
 
         $message = (new MailMessage)
-            ->subject('Mibeko — Confirmation de votre abonnement Pro')
+            ->subject('Mibeko : Confirmation de votre abonnement Pro')
             ->greeting('Bonjour,')
             ->line('Votre paiement a été vérifié et votre accès Mibeko Pro est activé.')
             ->line("Période : du {$grant->starts_at->translatedFormat('j F Y')} au {$grant->ends_at->translatedFormat('j F Y')}.");

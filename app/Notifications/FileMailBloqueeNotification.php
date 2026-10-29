@@ -36,7 +36,7 @@ class FileMailBloqueeNotification extends Notification
     public function toMail(object $notifiable): MailMessage
     {
         $message = (new MailMessage)
-            ->subject('[Mibeko] File mail — échec ou blocage')
+            ->subject('[Mibeko] File mail : échec ou blocage')
             ->greeting('Alerte file de notifications critiques.')
             ->line("Un e-mail d'accès au compte (réinitialisation de mot de passe ou invitation) est en échec ou reste bloqué en production.");
 

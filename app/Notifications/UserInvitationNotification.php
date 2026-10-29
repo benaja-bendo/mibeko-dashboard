@@ -43,7 +43,7 @@ class UserInvitationNotification extends Notification implements ShouldQueue
         ]);
 
         $message = (new MailMessage)
-            ->subject('Mibeko — Vous êtes invité à rejoindre l\'équipe')
+            ->subject('Mibeko : Vous êtes invité à rejoindre l\'équipe')
             ->greeting('Bonjour,');
 
         if ($this->inviterName !== null) {

@@ -43,7 +43,7 @@ class PlanGrantExpiringReminderNotification extends Notification implements Shou
         $when = $this->daysUntil <= 1 ? 'demain' : "dans {$this->daysUntil} jours";
 
         return (new MailMessage)
-            ->subject("Mibeko — Votre abonnement Pro expire {$when}")
+            ->subject("Mibeko : Votre abonnement Pro expire {$when}")
             ->greeting('Bonjour,')
             ->line("Votre abonnement Mibeko Pro arrive à échéance {$when}, le {$grant->ends_at->translatedFormat('j F Y')}.")
             ->line("Il ne se renouvelle pas automatiquement : sans nouvelle démarche de votre part, l'accès Pro s'arrêtera à cette date.")

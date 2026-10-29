@@ -35,7 +35,7 @@ class PasswordResetCodeNotification extends Notification implements ShouldQueue
     public function toMail(object $notifiable): MailMessage
     {
         return (new MailMessage)
-            ->subject('Mibeko — Réinitialisation de votre mot de passe')
+            ->subject('Mibeko : Réinitialisation de votre mot de passe')
             ->greeting('Bonjour,')
             ->line('Vous avez demandé la réinitialisation de votre mot de passe Mibeko.')
             ->line("Votre code de vérification : **{$this->code}**")
