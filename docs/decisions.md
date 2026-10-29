@@ -138,3 +138,11 @@ Identifiants `API-NNN`, jamais réutilisés ; une nouvelle décision s'ajoute à
 
 **Décision** : la route contournait la double authentification et n'avait aucun usage réel.
 **On rouvre si** : une connexion sociale est voulue ; elle devra alors passer par le même contrôle 2FA que `login()`.
+
+### API-022 · 2026-10-06 · Un brouillon n'est un doublon écartable que s'il vient du même numéro de JO par un autre fichier
+**Statut** : en vigueur · **Réf.** : dashboard#251, mibeko-python#52, dashboard#41
+
+**Contexte** : le 17/09/2026, six JO (2026-32 à 2026-37) ont déposé 588 brouillons : l'acquisition télécharge toutes les variantes de fichier d'un même numéro et chacune est structurée. Le signalement `doublon_titre_date` (titre et date identiques) en repérait 543 ; mesuré sur une copie du dump, sept groupes sur 221 n'étaient pas des doublons (deux actes homonymes d'un même fichier, ou de JO différents).
+**Décision** : `DoublonsBrouillons` est la définition unique. Un groupe n'est écarté automatiquement que si tous ses membres sont des brouillons du même type, du même numéro de JO et de fichiers `source_url` distincts, avec le même nombre d'articles et des textes de longueur voisine (rapport d'au moins 0,9), et sans article déjà supprimé auparavant (la restauration rétablit tous les articles supprimés). Le reste va au rapport, pour un humain. On garde le moins bloqué (hors `doublon_titre_date`), puis le plus fourni, puis le plus ancien. Les signalements `doublon_titre_date` ne se referment jamais seuls : la commande referme ceux qui n'ont plus de jumeau vivant.
+**Écarté** : écarter sur le seul signalement de titre et de date (« communiqué partout où besoin sera. » ou « décret n° 2004-11 » désignent des actes distincts) ; la voie Classe 1 (la suppression d'un brouillon n'est pas dans sa liste blanche) ; `DELETE /legal-documents/bulk` (un échec à mi-parcours laisse un état partiel, et la relecture du statut avant chaque appel y est impossible).
+**On rouvre si** : l'acquisition ne dépose plus qu'une variante par numéro (mibeko-python#52) : la commande devient alors un filet, et la routine de tri (dashboard#252) reprend la définition.
