@@ -6,33 +6,33 @@
     <meta name="robots" content="noindex, nofollow">
     <title>{{ $service }}</title>
     <style>
-        :root { color-scheme: light dark; }
+        :root { color-scheme: light; }
         * { box-sizing: border-box; }
         body {
             margin: 0; min-height: 100vh; display: flex; align-items: center; justify-content: center;
             padding: 1.5rem;
             font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-            background: #f7f5ef; color: #1b2a23;
+            background: #fcf9f8; color: #1b1c1c;
         }
         .card {
-            max-width: 34rem; width: 100%; padding: 2.5rem; border-radius: 1rem; background: #ffffff;
-            border: 1px solid rgba(30, 107, 71, .12); box-shadow: 0 1px 2px rgba(0, 0, 0, .04);
+            max-width: 34rem; width: 100%; padding: 2.5rem; border-radius: 8px; background: #ffffff;
+            border: 1px solid #c1c8c2;
         }
         .badge {
             display: inline-block; font-size: .72rem; letter-spacing: .05em; text-transform: uppercase;
-            color: #1e6b47; background: rgba(30, 107, 71, .10); padding: .3rem .65rem; border-radius: 999px;
+            color: #03271a; background: #e6f0ea; padding: .3rem .65rem; border-radius: 4px;
         }
         h1 { font-size: 1.4rem; margin: 1rem 0 .35rem; font-weight: 600; }
-        p { color: #4b5a52; line-height: 1.6; margin: .35rem 0; }
+        p { color: #414844; line-height: 1.6; margin: .35rem 0; }
         .links { display: flex; flex-wrap: wrap; gap: .6rem; margin-top: 1.4rem; }
         .links a {
             text-decoration: none; font-size: .9rem; font-weight: 500;
-            color: #1e6b47; background: rgba(30, 107, 71, .08);
-            padding: .55rem .9rem; border-radius: .6rem; border: 1px solid rgba(30, 107, 71, .14);
+            color: #03271a; background: #e6f0ea;
+            padding: .55rem .9rem; border-radius: 8px; border: 1px solid #c1c8c2;
         }
-        .links a:hover { background: rgba(30, 107, 71, .14); }
-        .meta { margin-top: 1.4rem; padding-top: 1.1rem; border-top: 1px solid rgba(0, 0, 0, .06); font-size: .85rem; color: #6b7a72; }
-        .dot { display: inline-block; width: .5rem; height: .5rem; border-radius: 50%; background: #1e6b47; margin-right: .4rem; vertical-align: middle; }
+        .links a:hover { background: #c1c8c2; }
+        .meta { margin-top: 1.4rem; padding-top: 1.1rem; border-top: 1px solid #c1c8c2; font-size: .85rem; color: #676d69; }
+        .dot { display: inline-block; width: .5rem; height: .5rem; border-radius: 50%; background: #03271a; margin-right: .4rem; vertical-align: middle; }
     </style>
 </head>
 <body>

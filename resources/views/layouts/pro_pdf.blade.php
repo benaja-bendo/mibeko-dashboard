@@ -5,9 +5,11 @@
     <title>@yield('title', 'Mibeko - Document Juridique')</title>
     <style>
         /*
-         | Identité visuelle Mibeko (thème « Lex Gold ») adaptée à l'impression :
-         | encre quasi-noire sur blanc, or #9a7b33 pour les accents (plus dense
-         | que l'or écran #c8a86a, illisible sur papier), filets or pâle.
+         | Charte Mibeko (mibeko-site/docs/design-system.md) adaptée à l'impression :
+         | encre on-surface #1b1c1c sur blanc, vert primary #03271a pour la marque,
+         | terracotta secondary #8f4c31 pour les accents, filets outline-variant.
+         | Polices : dompdf n'embarque que DejaVu ; Inter et Source Serif 4 ne sont
+         | pas chargées, on garde DejaVu Sans / Serif pour ne pas casser le rendu.
          */
         @page {
             margin: 3.2cm 2cm 2.6cm 2cm;
@@ -17,7 +19,7 @@
             font-family: "DejaVu Serif", Georgia, serif;
             font-size: 10.5pt;
             line-height: 1.55;
-            color: #1c1a16;
+            color: #1b1c1c;
             margin: 0;
         }
 
@@ -35,7 +37,7 @@
             right: -2cm;
             height: 2.4cm;
             padding: 0.75cm 2cm 0 2cm;
-            border-bottom: 0.75pt solid #d8c79b;
+            border-bottom: 0.75pt solid #c1c8c2;
         }
 
         .header-table {
@@ -53,7 +55,7 @@
             font-size: 12pt;
             font-weight: bold;
             letter-spacing: 3px;
-            color: #9a7b33;
+            color: #03271a;
         }
 
         .brand-sub {
@@ -61,7 +63,7 @@
             font-size: 6.5pt;
             text-transform: uppercase;
             letter-spacing: 1.5px;
-            color: #8d8678;
+            color: #676d69;
             margin-top: 2pt;
         }
 
@@ -69,7 +71,7 @@
             text-align: right;
             font-family: "DejaVu Sans", Helvetica, sans-serif;
             font-size: 7.5pt;
-            color: #8d8678;
+            color: #676d69;
             line-height: 1.45;
         }
 
@@ -81,7 +83,7 @@
             right: -2cm;
             height: 1.6cm;
             padding: 8pt 2cm 0 2cm;
-            border-top: 0.75pt solid #d8c79b;
+            border-top: 0.75pt solid #c1c8c2;
         }
 
         .footer-table {
@@ -89,7 +91,7 @@
             border-collapse: collapse;
             font-family: "DejaVu Sans", Helvetica, sans-serif;
             font-size: 7.5pt;
-            color: #8d8678;
+            color: #676d69;
         }
 
         .footer-table td { padding: 0; }
@@ -116,18 +118,18 @@
         }
 
         .cover-band {
-            background-color: #18140c;
+            background-color: #03271a;
             height: 3.4cm;
             padding: 1.15cm 2cm 0 2cm;
         }
 
         .cover-band .brand-mark {
             font-size: 17pt;
-            color: #c8a86a;
+            color: #ffffff;
         }
 
         .cover-band .brand-sub {
-            color: #9a8d70;
+            color: #aacfbb;
         }
 
         .cover-body {
@@ -137,8 +139,8 @@
 
         .cover-badge {
             display: inline-block;
-            border: 1pt solid #9a7b33;
-            color: #9a7b33;
+            border: 1pt solid #8f4c31;
+            color: #8f4c31;
             padding: 4pt 14pt;
             font-family: "DejaVu Sans", Helvetica, sans-serif;
             font-size: 8.5pt;
@@ -152,7 +154,7 @@
             font-family: "DejaVu Serif", Georgia, serif;
             font-size: 22pt;
             font-weight: bold;
-            color: #18140c;
+            color: #1b1c1c;
             line-height: 1.35;
             margin: 1.1cm 0 0 0;
         }
@@ -160,7 +162,7 @@
         .cover-rule {
             width: 2.6cm;
             border: 0;
-            border-top: 1.5pt solid #c8a86a;
+            border-top: 1.5pt solid #c1c8c2;
             margin: 0.9cm auto;
         }
 
@@ -173,7 +175,7 @@
 
         .cover-info-table td {
             padding: 7pt 10pt;
-            border-bottom: 0.5pt solid #eee7d4;
+            border-bottom: 0.5pt solid #f0eded;
             text-align: left;
         }
 
@@ -183,7 +185,7 @@
             font-weight: bold;
             text-transform: uppercase;
             letter-spacing: 1px;
-            color: #9a7b33;
+            color: #8f4c31;
             width: 38%;
         }
 
@@ -201,13 +203,13 @@
             font-weight: bold;
             text-transform: uppercase;
             letter-spacing: 1.5px;
-            color: #18140c;
+            color: #1b1c1c;
         }
 
         .cover-republic .motto {
             font-size: 7.5pt;
             font-style: italic;
-            color: #8d8678;
+            color: #676d69;
             margin-top: 3pt;
         }
 
@@ -218,8 +220,8 @@
             font-weight: bold;
             text-transform: uppercase;
             letter-spacing: 2px;
-            color: #18140c;
-            border-bottom: 1.5pt solid #c8a86a;
+            color: #1b1c1c;
+            border-bottom: 1.5pt solid #c1c8c2;
             padding-bottom: 6pt;
             margin: 0 0 14pt 0;
         }
@@ -227,13 +229,13 @@
         .toc-entry {
             font-family: "DejaVu Sans", Helvetica, sans-serif;
             font-size: 9pt;
-            color: #1c1a16;
+            color: #1b1c1c;
             padding: 3pt 0;
-            border-bottom: 0.5pt dotted #e6ddc6;
+            border-bottom: 0.5pt dotted #eae7e7;
         }
 
         .toc-entry .toc-kind {
-            color: #9a7b33;
+            color: #8f4c31;
             font-weight: bold;
         }
 
@@ -242,15 +244,15 @@
             font-family: "DejaVu Sans", Helvetica, sans-serif;
             font-size: 11pt;
             font-weight: bold;
-            color: #18140c;
+            color: #1b1c1c;
             margin: 24pt 0 12pt 0;
             padding-bottom: 4pt;
-            border-bottom: 0.75pt solid #d8c79b;
+            border-bottom: 0.75pt solid #c1c8c2;
             page-break-after: avoid;
         }
 
         .section-title .section-kind {
-            color: #9a7b33;
+            color: #8f4c31;
             text-transform: uppercase;
             letter-spacing: 1px;
             font-size: 8.5pt;
@@ -269,7 +271,7 @@
             font-size: 9pt;
             text-transform: uppercase;
             letter-spacing: 1px;
-            color: #9a7b33;
+            color: #8f4c31;
             margin-bottom: 4pt;
         }
 
@@ -282,18 +284,18 @@
         /* ── Bandeau de certification (bas de l'extrait d'article) ──────── */
         .certification {
             margin-top: 1.4cm;
-            border-top: 0.75pt solid #d8c79b;
+            border-top: 0.75pt solid #c1c8c2;
             padding-top: 10pt;
             font-family: "DejaVu Sans", Helvetica, sans-serif;
             font-size: 8pt;
-            color: #8d8678;
+            color: #676d69;
             text-align: center;
         }
 
         .certification .cert-id {
             font-family: "DejaVu Sans Mono", monospace;
             font-size: 7pt;
-            color: #b3ab9a;
+            color: #727974;
             margin-top: 4pt;
         }
 
@@ -304,7 +306,7 @@
             transform: translate(-50%, -50%) rotate(-45deg);
             opacity: 0.035;
             font-size: 90pt;
-            color: #9a7b33;
+            color: #8f4c31;
             z-index: -100;
             font-family: "DejaVu Sans", sans-serif;
             font-weight: bold;

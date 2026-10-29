@@ -25,12 +25,12 @@
 @section('content')
     <div style="text-align: center; margin-bottom: 22pt;">
         <div class="cover-badge">Reçu de confirmation</div>
-        <h1 style="font-family: 'DejaVu Serif', Georgia, serif; font-size: 18pt; margin: 10pt 0 0 0; color: #18140c;">
+        <h1 style="font-family: 'DejaVu Serif', Georgia, serif; font-size: 18pt; margin: 10pt 0 0 0; color: #1b1c1c;">
             Abonnement Mibeko Pro
         </h1>
     </div>
 
-    <div style="background-color: #fbf7ec; border: 0.75pt solid #d8c79b; border-radius: 3px; padding: 10pt 14pt; margin-bottom: 20pt; font-family: 'DejaVu Sans', Helvetica, sans-serif; font-size: 8.5pt; color: #6b5a2f; line-height: 1.5;">
+    <div style="background-color: #f7e9e2; border: 0.75pt solid #c1c8c2; border-radius: 3px; padding: 10pt 14pt; margin-bottom: 20pt; font-family: 'DejaVu Sans', Helvetica, sans-serif; font-size: 8.5pt; color: #8f4c31; line-height: 1.5;">
         Ce document confirme un paiement enregistré et vérifié par l'équipe Mibeko.
         <strong>Ce n'est pas une facture</strong> : Mibeko n'exploite pas encore sous une entité
         juridique dotée d'un numéro d'identification fiscale, et ne peut donc émettre aucune pièce
@@ -95,13 +95,13 @@
                     <tr><td class="label">Adresse</td><td>{{ $billingInfo['address'] }}</td></tr>
                 @endif
             </table>
-            <p style="font-family: 'DejaVu Sans', Helvetica, sans-serif; font-size: 7.5pt; color: #8d8678; margin-top: 6pt;">
+            <p style="font-family: 'DejaVu Sans', Helvetica, sans-serif; font-size: 7.5pt; color: #676d69; margin-top: 6pt;">
                 Informations saisies par le titulaire lui-même, non vérifiées par Mibeko.
             </p>
         </div>
     @endif
 
-    <p style="font-family: 'DejaVu Sans', Helvetica, sans-serif; font-size: 8.5pt; color: #8d8678; margin-top: 24pt;">
+    <p style="font-family: 'DejaVu Sans', Helvetica, sans-serif; font-size: 8.5pt; color: #676d69; margin-top: 24pt;">
         Cet abonnement ne se renouvelle pas automatiquement. Un rappel est envoyé par e-mail avant
         son échéance ; le renouvellement reste à convenir avec l'équipe Mibeko.
     </p>
