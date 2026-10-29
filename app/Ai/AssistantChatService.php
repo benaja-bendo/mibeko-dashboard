@@ -82,6 +82,23 @@ class AssistantChatService
     }
 
     /**
+     * Vrai si le « texte » rendu n'est qu'un objet JSON : un appel d'outil que le
+     * modèle a écrit faute de pouvoir le faire (mibeko-dashboard#257).
+     *
+     * Constaté le 29/10/2026 sur des sondes réelles : forcé d'écrire à la dernière
+     * étape alors qu'il voulait encore chercher, Mistral Large a rendu
+     * `{"query": "…", "limit": 5}` en guise de réponse. Une réponse juridique n'est
+     * jamais un JSON seul : traité comme une réponse incomplète, ce texte n'est ni
+     * conservé comme réponse ni mis en cache.
+     */
+    public function isToolCallText(string $text): bool
+    {
+        $text = trim($text);
+
+        return $text !== '' && in_array($text[0], ['{', '['], true) && json_validate($text);
+    }
+
+    /**
      * Clé de cache d'une réponse : message normalisé + mode + références + version
      * du corpus (toute évolution des textes publiés invalide les réponses).
      *
